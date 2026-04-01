@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Virtus Caserta Shop</title>
+  <style>
+    :root {
+      --blu:     #0d2055;
+      --blu-m:   #1535a8;
+      --arancio: #f57c00;
+      --bianco:  #ffffff;
+      --grigio:  #f1f5f9;
+      --bordo:   #e2e8f0;
+      --testo:   #1e293b;
+      --sub:     #64748b;
+      --verde:   #16a34a;
+      --rosso:   #dc2626;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; background:var(--grigio); color:var(--testo); min-height:100vh; }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .login-card {
+      background:var(--bianco); border-radius:24px; padding:48px 40px;
+      width:100%; max-width:420px; box-shadow:0 8px 40px rgba(13,32,85,.15);
+    }
+    .login-logo { text-align:center; margin-bottom:32px; }
+    .login-logo .badge {
+      display:inline-block; background:var(--blu); color:var(--bianco);
+      font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+      padding:5px 16px; border-radius:20px; margin-bottom:12px;
+    }
+    .login-logo h1 { font-size:26px; font-weight:900; color:var(--blu); }
+    .login-logo p  { color:var(--sub); font-size:14px; margin-top:4px; }
+    .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+    .form-group label { font-size:12px; font-weight:700; color:var(--sub); letter-spacing:.5px; text-transform:uppercase; }
+    .form-group input {
+      padding:12px 16px; border:2px solid var(--bordo); border-radius:12px;
+      font-size:15px; outline:none; transition:border-color .2s;
+    }
+    .form-group input:focus { border-color:var(--blu-m); }
+    .btn-login {
+      width:100%; padding:14px; border:none; border-radius:50px; cursor:pointer;
+      background:var(--blu); color:var(--bianco); font-size:15px; font-weight:700;
+      letter-spacing:1px; text-transform:uppercase; transition:background .2s; margin-top:8px;
+    }
+    .btn-login:hover { background:var(--blu-m); }
+    #loginError { color:var(--rosso); font-size:13px; text-align:center; margin-top:10px; min-height:18px; }
+
+    /* ── DASHBOARD ── */
+    #dashboard { display:none; }
+
+    header {
+      background:var(--blu); padding:0 32px; height:64px;
+      display:flex; align-items:center; justify-content:space-between;
+      box-shadow:0 2px 12px rgba(0,0,0,.3);
+    }
+    .header-logo { display:flex; align-items:center; gap:12px; }
+    .header-logo span:first-child { font-size:18px; font-weight:900; color:var(--bianco); letter-spacing:2px; text-transform:uppercase; }
+    .header-logo span:last-child  { font-size:11px; color:var(--arancio); font-weight:700; letter-spacing:2px; text-transform:uppercase; }
+    .header-right { display:flex; align-items:center; gap:16px; }
+    .header-user  { font-size:13px; color:rgba(255,255,255,.7); }
+    .btn-logout {
+      padding:8px 18px; border-radius:50px; border:1px solid rgba(255,255,255,.3);
+      background:transparent; color:var(--bianco); font-size:13px; font-weight:600;
+      cursor:pointer; transition:background .2s;
+    }
+    .btn-logout:hover { background:rgba(255,255,255,.1); }
+
+    main { max-width:1100px; margin:0 auto; padding:40px 24px; }
+
+    .page-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:32px; flex-wrap:wrap; gap:16px;
+    }
+    .page-header h2 { font-size:24px; font-weight:900; color:var(--blu); }
+    .page-header p  { color:var(--sub); font-size:14px; margin-top:4px; }
+    .btn-new {
+      padding:12px 24px; border-radius:50px; border:none; cursor:pointer;
+      background:var(--arancio); color:var(--bianco); font-size:14px; font-weight:700;
+      letter-spacing:1px; text-transform:uppercase;
+      box-shadow:0 4px 16px rgba(245,124,0,.35); transition:background .2s, transform .2s;
+      display:flex; align-items:center; gap:8px;
+    }
+    .btn-new:hover { background:#ef6c00; transform:translateY(-1px); }
+
+    /* ── TABELLA PRODOTTI ── */
+    .prodotti-table {
+      background:var(--bianco); border-radius:20px;
+      box-shadow:0 2px 16px rgba(13,32,85,.08); overflow:hidden;
+    }
+    table { width:100%; border-collapse:collapse; }
+    thead tr { background:var(--grigio); }
+    th { padding:14px 20px; text-align:left; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--sub); }
+    td { padding:16px 20px; border-top:1px solid var(--bordo); font-size:14px; vertical-align:middle; }
+    tr:hover td { background:#fafbff; }
+
+    .prod-emoji { font-size:28px; }
+    .prod-nome  { font-weight:700; color:var(--testo); }
+    .prod-desc  { font-size:12px; color:var(--sub); margin-top:2px; max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .prod-price { font-size:16px; font-weight:800; color:var(--arancio); }
+
+    .badge-disponibile {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;
+    }
+    .badge-disponibile.si  { background:#dcfce7; color:#15803d; }
+    .badge-disponibile.no  { background:#fee2e2; color:#dc2626; }
+    .dot { width:7px; height:7px; border-radius:50%; }
+    .si .dot { background:#16a34a; }
+    .no .dot { background:#dc2626; }
+
+    .taglie-list { display:flex; gap:4px; flex-wrap:wrap; }
+    .taglia-chip {
+      padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;
+      background:var(--grigio); color:var(--sub);
+    }
+
+    .azioni { display:flex; gap:8px; }
+    .btn-azione {
+      padding:7px 14px; border-radius:8px; border:none; cursor:pointer;
+      font-size:12px; font-weight:700; transition:opacity .2s;
+    }
+    .btn-azione:hover { opacity:.8; }
+    .btn-edit   { background:#eff6ff; color:var(--blu-m); }
+    .btn-toggle { background:#f0fdf4; color:var(--verde); }
+    .btn-toggle.disabilita { background:#fff1f2; color:var(--rosso); }
+    .btn-delete { background:#fff1f2; color:var(--rosso); }
+
+    .empty-state { text-align:center; padding:60px 24px; color:var(--sub); }
+    .empty-state .icon { font-size:48px; margin-bottom:12px; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000;
+      display:flex; align-items:center; justify-content:center; padding:24px;
+      opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    .modal-overlay.aperto { opacity:1; pointer-events:all; }
+    .modal {
+      background:var(--bianco); border-radius:24px; width:100%; max-width:560px;
+      max-height:90vh; overflow-y:auto; padding:32px;
+      transform:scale(.95); transition:transform .25s;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal-overlay.aperto .modal { transform:scale(1); }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
+    .modal-header h3 { font-size:20px; font-weight:900; color:var(--blu); }
+    .btn-close { width:34px; height:34px; border-radius:10px; border:none; background:var(--grigio); cursor:pointer; font-size:16px; }
+    .btn-close:hover { background:var(--bordo); }
+
+    .modal .form-group { margin-bottom:14px; }
+    .modal .form-group input,
+    .modal .form-group textarea,
+    .modal .form-group select {
+      padding:11px 14px; border:2px solid var(--bordo); border-radius:10px;
+      font-size:14px; outline:none; width:100%; transition:border-color .2s;
+      font-family:inherit;
+    }
+    .modal .form-group input:focus,
+    .modal .form-group textarea:focus { border-color:var(--blu-m); }
+    .modal .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    textarea { resize:vertical; min-height:80px; }
+
+    .taglie-editor { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+    .taglia-toggle {
+      padding:6px 14px; border-radius:8px; border:2px solid var(--bordo);
+      background:var(--bianco); font-size:13px; font-weight:700; color:var(--sub);
+      cursor:pointer; transition:all .15s;
+    }
+    .taglia-toggle.on { border-color:var(--arancio); background:var(--arancio); color:var(--bianco); }
+
+    .modal-footer { display:flex; gap:12px; justify-content:flex-end; margin-top:24px; }
+    .btn-annulla {
+      padding:11px 24px; border-radius:50px; border:2px solid var(--bordo);
+      background:var(--bianco); color:var(--sub); font-size:14px; font-weight:700; cursor:pointer;
+    }
+    .btn-salva {
+      padding:11px 28px; border-radius:50px; border:none; cursor:pointer;
+      background:var(--blu); color:var(--bianco); font-size:14px; font-weight:700;
+      transition:background .2s;
+    }
+    .btn-salva:hover { background:var(--blu-m); }
+    .btn-salva:disabled { opacity:.5; cursor:not-allowed; }
+
+    /* ── TABS ── */
+    .tabs { display:flex; gap:4px; margin-bottom:28px; background:var(--bianco); border-radius:14px; padding:6px; box-shadow:0 2px 8px rgba(13,32,85,.08); width:fit-content; }
+    .tab-btn { padding:10px 24px; border-radius:10px; border:none; cursor:pointer; font-size:14px; font-weight:700; color:var(--sub); background:transparent; transition:all .2s; }
+    .tab-btn.attivo { background:var(--blu); color:var(--bianco); box-shadow:0 2px 8px rgba(13,32,85,.25); }
+    .tab-panel { display:none; }
+    .tab-panel.attivo { display:block; }
+
+    /* ── FOTO UPLOADER ── */
+    .foto-uploader { cursor:pointer; }
+    .foto-preview {
+      width:100%; height:160px; border:2px dashed var(--bordo); border-radius:12px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:8px; background:#f8fafc; transition:border-color .2s; overflow:hidden;
+    }
+    .foto-preview:hover { border-color:var(--blu-m); }
+    .foto-preview img { width:100%; height:100%; object-fit:cover; }
+    .foto-preview .upload-icon { font-size:32px; }
+    .foto-preview .upload-label { font-size:13px; color:var(--sub); }
+
+    /* ── TOAST ── */
+    .toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(60px);
+      background:#1a1a2e; color:var(--bianco); padding:12px 24px;
+      border-radius:50px; font-size:14px; font-weight:600;
+      box-shadow:0 6px 24px rgba(0,0,0,.3); z-index:9999;
+      transition:transform .35s cubic-bezier(.4,0,.2,1); white-space:nowrap;
+    }
+    .toast.visibile { transform:translateX(-50%) translateY(0); }
+
+    /* ── CONFIRM ── */
+    .confirm-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:2000;
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .confirm-box {
+      background:var(--bianco); border-radius:20px; padding:32px;
+      max-width:380px; width:100%; text-align:center;
+      box-shadow:0 16px 48px rgba(0,0,0,.25);
+    }
+    .confirm-box .icon { font-size:48px; margin-bottom:12px; }
+    .confirm-box h3 { font-size:18px; font-weight:800; margin-bottom:8px; }
+    .confirm-box p  { color:var(--sub); font-size:14px; margin-bottom:24px; }
+    .confirm-btns   { display:flex; gap:12px; justify-content:center; }
+    .btn-conf-si  { padding:11px 28px; border-radius:50px; border:none; background:var(--rosso); color:var(--bianco); font-weight:700; cursor:pointer; }
+    .btn-conf-no  { padding:11px 28px; border-radius:50px; border:2px solid var(--bordo); background:var(--bianco); color:var(--sub); font-weight:700; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- ── LOGIN ── -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="badge">Pannello Admin</div>
+        <h1>Virtus Caserta</h1>
+        <p>Accedi per gestire il negozio</p>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <button class="btn-login" onclick="doLogin()">Accedi</button>
+      <div id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div id="dashboard">
+    <header>
+      <div class="header-logo">
+        <span>Virtus Caserta</span>
+        <span>Shop Admin</span>
+      </div>
+      <div class="header-right">
+        <span class="header-user" id="headerUser"></span>
+        <a href="shop.html" style="color:rgba(255,255,255,.6);font-size:13px;text-decoration:none">← Vai allo shop</a>
+        <button class="btn-logout" onclick="logout()">Esci</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="tabs">
+        <button class="tab-btn attivo" onclick="switchTab('prodotti', this)">🛒 Prodotti</button>
+        <button class="tab-btn"        onclick="switchTab('notizie',  this)">📰 Notizie</button>
+      </div>
+
+      <!-- TAB PRODOTTI -->
+      <div class="tab-panel attivo" id="tabProdotti">
+        <div class="page-header">
+          <div>
+            <h2>Gestione prodotti</h2>
+            <p>Aggiungi, modifica o rimuovi gli articoli del negozio</p>
+          </div>
+          <button class="btn-new" onclick="apriModalNuovoProdotto()">＋ Nuovo prodotto</button>
+        </div>
+        <div class="prodotti-table">
+          <table>
+            <thead><tr><th></th><th>Prodotto</th><th>Prezzo</th><th>Taglie</th><th>Stato</th><th>Azioni</th></tr></thead>
+            <tbody id="prodottiBody">
+              <tr><td colspan="6"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB NOTIZIE -->
+      <div class="tab-panel" id="tabNotizie">
+        <div class="page-header">
+          <div>
+            <h2>Gestione notizie</h2>
+            <p>Aggiungi, modifica o rimuovi le notizie del sito</p>
+          </div>
+          <button class="btn-new" onclick="apriModalNuovaNotizia()">＋ Nuova notizia</button>
+        </div>
+        <div class="prodotti-table">
+          <table>
+            <thead><tr><th></th><th>Notizia</th><th>Data</th><th>Colore</th><th>Azioni</th></tr></thead>
+            <tbody id="notizieBody">
+              <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── MODAL PRODOTTO ── -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitolo">Nuovo prodotto</h3>
+        <button class="btn-close" onclick="chiudiModal()">✕</button>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Nome prodotto *</label>
+          <input type="text" id="pNome" placeholder="Es. Maglia Ufficiale 2025/26">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Descrizione</label>
+          <textarea id="pDescrizione" placeholder="Descrizione del prodotto..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Prezzo (€) *</label>
+          <input type="number" id="pPrezzo" placeholder="35.00" min="0.50" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Emoji / icona</label>
+          <input type="text" id="pEmoji" placeholder="🏐" maxlength="4">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Taglie disponibili</label>
+        <div class="taglie-editor" id="taglieEditor"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Foto prodotto</label>
+        <div class="foto-uploader" onclick="document.getElementById('pFotoInput').click()">
+          <div class="foto-preview" id="pFotoPreview">
+            <span class="upload-icon">📷</span>
+            <span class="upload-label">Clicca per caricare una foto</span>
+          </div>
+        </div>
+        <input type="file" id="pFotoInput" accept="image/*" style="display:none" onchange="uploadFoto(this,'p')">
+        <input type="hidden" id="pImmagine">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="chiudiModal()">Annulla</button>
+        <button class="btn-salva" id="btnSalva">Salva prodotto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL NOTIZIA ── -->
+  <div class="modal-overlay" id="modalNotiziaOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalNotiziaTitolo">Nuova notizia</h3>
+        <button class="btn-close" onclick="chiudiModalNotizia()">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label>Titolo *</label>
+        <input type="text" id="nTitolo" placeholder="Es. Vittoria nel derby!">
+      </div>
+      <div class="form-group">
+        <label>Testo *</label>
+        <textarea id="nTesto" placeholder="Descrizione della notizia..."></textarea>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="text" id="nData" placeholder="Es. 1 Aprile 2026">
+        </div>
+        <div class="form-group">
+          <label>Colore card</label>
+          <select id="nColore">
+            <option value="blu">🔵 Blu</option>
+            <option value="arancio">🟠 Arancio</option>
+            <option value="azzurro">🩵 Azzurro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Foto notizia</label>
+        <div class="foto-uploader" onclick="document.getElementById('nFotoInput').click()">
+          <div class="foto-preview" id="nFotoPreview">
+            <span class="upload-icon">📷</span>
+            <span class="upload-label">Clicca per caricare una foto</span>
+          </div>
+        </div>
+        <input type="file" id="nFotoInput" accept="image/*" style="display:none" onchange="uploadFoto(this,'n')">
+        <input type="hidden" id="nImmagine">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="chiudiModalNotizia()">Annulla</button>
+        <button class="btn-salva" id="btnSalvaNotizia">Salva notizia</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const TUTTE_TAGLIE = ['XS','S','M','L','XL','XXL','UNICA'];
+    let token = localStorage.getItem('vc_admin_token') || null;
+    let prodottoInEditing = null;
+    let taglieSelezionate = new Set(['S','M','L','XL']);
+
+    /* ══ AUTH ══ */
+    async function doLogin() {
+      const username = document.getElementById('loginUser').value.trim();
+      const password = document.getElementById('loginPass').value;
+      document.getElementById('loginError').textContent = '';
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        token = data.token;
+        localStorage.setItem('vc_admin_token', token);
+        mostraDashboard();
+      } catch (err) {
+        document.getElementById('loginError').textContent = '⚠️ ' + err.message;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('vc_admin_token');
+      token = null;
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+
+    function mostraDashboard() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('headerUser').textContent = '👤 ' + (document.getElementById('loginUser').value || 'admin');
+      caricaProdotti();
+    }
+
+    /* ── Verifica token salvato all'avvio ── */
+    if (token) {
+      try {
+        // Decode payload (senza verificare firma, la fa il server)
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 > Date.now()) {
+          document.getElementById('headerUser').textContent = '👤 admin';
+          mostraDashboard();
+        } else { localStorage.removeItem('vc_admin_token'); token = null; }
+      } catch { localStorage.removeItem('vc_admin_token'); token = null; }
+    }
+
+    /* ══ PRODOTTI ══ */
+    async function authFetch(url, options = {}) {
+      return fetch(url, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, ...(options.headers || {}) },
+      });
+    }
+
+    async function caricaProdotti() {
+      const res = await fetch('/api/products');
+      const products = await res.json();
+      renderTabella(products);
+    }
+
+    function renderTabella(products) {
+      const tbody = document.getElementById('prodottiBody');
+      if (!products.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">📦</div>Nessun prodotto ancora. Aggiungine uno!</div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = products.map(p => `
+        <tr>
+          <td class="prod-emoji">${p.emoji || '🏐'}</td>
+          <td>
+            <div class="prod-nome">${p.nome}</div>
+            <div class="prod-desc">${p.descrizione || '—'}</div>
+          </td>
+          <td class="prod-price">€ ${Number(p.prezzo).toFixed(2).replace('.', ',')}</td>
+          <td>
+            <div class="taglie-list">
+              ${(p.taglie || []).map(t => `<span class="taglia-chip">${t}</span>`).join('')}
+            </div>
+          </td>
+          <td>
+            <span class="badge-disponibile ${p.disponibile ? 'si' : 'no'}">
+              <span class="dot"></span>
+              ${p.disponibile ? 'Disponibile' : 'Non disponibile'}
+            </span>
+          </td>
+          <td>
+            <div class="azioni">
+              <button class="btn-azione btn-edit" onclick="apriModalModifica('${p.id}')">✏️ Modifica</button>
+              <button class="btn-azione btn-toggle ${p.disponibile ? 'disabilita' : ''}"
+                onclick="toggleDisponibile('${p.id}', ${p.disponibile})">
+                ${p.disponibile ? '🚫 Disabilita' : '✅ Abilita'}
+              </button>
+              <button class="btn-azione btn-delete" onclick="confermaElimina('${p.id}', '${p.nome.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function toggleDisponibile(id, attuale) {
+      await authFetch(`/api/admin/products/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ disponibile: !attuale }),
+      });
+      toast(attuale ? '🚫 Prodotto disabilitato' : '✅ Prodotto abilitato');
+      caricaProdotti();
+    }
+
+    function confermaElimina(id, nome) {
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-box">
+          <div class="icon">🗑️</div>
+          <h3>Elimina prodotto</h3>
+          <p>Sei sicuro di voler eliminare <strong>${nome}</strong>? L'operazione non è reversibile.</p>
+          <div class="confirm-btns">
+            <button class="btn-conf-si" onclick="eliminaProdotto('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
+            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function eliminaProdotto(id, overlay) {
+      await authFetch(`/api/admin/products/${id}`, { method: 'DELETE' });
+      overlay.remove();
+      toast('🗑️ Prodotto eliminato');
+      caricaProdotti();
+    }
+
+    /* ══ MODAL ══ */
+    function buildTaglieEditor(selezionate = []) {
+      taglieSelezionate = new Set(selezionate);
+      const el = document.getElementById('taglieEditor');
+      el.innerHTML = TUTTE_TAGLIE.map(t => `
+        <button type="button" class="taglia-toggle ${taglieSelezionate.has(t) ? 'on' : ''}"
+                onclick="toggleTaglia(this,'${t}')">${t}</button>`).join('');
+    }
+
+    function toggleTaglia(btn, taglia) {
+      if (taglieSelezionate.has(taglia)) { taglieSelezionate.delete(taglia); btn.classList.remove('on'); }
+      else                               { taglieSelezionate.add(taglia);    btn.classList.add('on'); }
+    }
+
+    /* ══ TABS ══ */
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('attivo'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('attivo'));
+      btn.classList.add('attivo');
+      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('attivo');
+      if (tab === 'notizie') caricaNotizie();
+    }
+
+    /* ══ FOTO UPLOAD ══ */
+    async function uploadFoto(input, prefix) {
+      const file = input.files[0];
+      if (!file) return;
+      const form = new FormData();
+      form.append('immagine', file);
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) { toast('⚠️ Upload fallito: ' + data.error); return; }
+      document.getElementById(prefix + 'Immagine').value = data.url;
+      document.getElementById(prefix + 'FotoPreview').innerHTML = `<img src="${data.url}" alt="preview">`;
+      toast('✅ Foto caricata');
+    }
+
+    function resetFotoPreview(prefix) {
+      document.getElementById(prefix + 'Immagine').value = '';
+      document.getElementById(prefix + 'FotoPreview').innerHTML = '<span class="upload-icon">📷</span><span class="upload-label">Clicca per caricare una foto</span>';
+    }
+
+    /* ══ MODAL PRODOTTO ══ */
+    function apriModalNuovoProdotto() {
+      prodottoInEditing = null;
+      document.getElementById('modalTitolo').textContent = 'Nuovo prodotto';
+      document.getElementById('pNome').value = '';
+      document.getElementById('pDescrizione').value = '';
+      document.getElementById('pPrezzo').value = '';
+      document.getElementById('pEmoji').value = '🏐';
+      buildTaglieEditor(['S','M','L','XL']);
+      resetFotoPreview('p');
+      document.getElementById('modalOverlay').classList.add('aperto');
+    }
+
+    async function apriModalModifica(id) {
+      const products = await fetch('/api/products').then(r => r.json());
+      const p = products.find(x => x.id === id);
+      if (!p) return;
+      prodottoInEditing = id;
+      document.getElementById('modalTitolo').textContent = 'Modifica prodotto';
+      document.getElementById('pNome').value = p.nome;
+      document.getElementById('pDescrizione').value = p.descrizione || '';
+      document.getElementById('pPrezzo').value = p.prezzo;
+      document.getElementById('pEmoji').value = p.emoji || '🏐';
+      buildTaglieEditor(p.taglie || []);
+      document.getElementById('pImmagine').value = p.immagine || '';
+      document.getElementById('pFotoPreview').innerHTML = p.immagine
+        ? `<img src="${p.immagine}" alt="foto">`
+        : '<span class="upload-icon">📷</span><span class="upload-label">Clicca per caricare una foto</span>';
+      document.getElementById('modalOverlay').classList.add('aperto');
+    }
+
+    function chiudiModal() { document.getElementById('modalOverlay').classList.remove('aperto'); }
+
+    async function salvaprodotto() {
+      const nome      = document.getElementById('pNome').value.trim();
+      const prezzo    = parseFloat(document.getElementById('pPrezzo').value);
+      const emoji     = document.getElementById('pEmoji').value.trim() || '🏐';
+      const descrizione = document.getElementById('pDescrizione').value.trim();
+      const immagine  = document.getElementById('pImmagine').value;
+
+      if (!nome) { toast('⚠️ Inserisci il nome del prodotto'); return; }
+      if (!prezzo || prezzo < 0.50) { toast('⚠️ Prezzo minimo € 0,50'); return; }
+
+      const body = { nome, descrizione, prezzo, emoji, immagine, taglie: [...taglieSelezionate] };
+      const btn  = document.getElementById('btnSalva');
+      btn.disabled = true; btn.textContent = 'Salvataggio...';
+      try {
+        if (prodottoInEditing) {
+          await authFetch(`/api/admin/products/${prodottoInEditing}`, { method: 'PUT', body: JSON.stringify(body) });
+          toast('✅ Prodotto aggiornato');
+        } else {
+          await authFetch('/api/admin/products', { method: 'POST', body: JSON.stringify(body) });
+          toast('✅ Prodotto aggiunto');
+        }
+        chiudiModal();
+        caricaProdotti();
+      } catch (err) {
+        toast('⚠️ Errore: ' + err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Salva prodotto';
+      }
+    }
+
+    document.getElementById('btnSalva').addEventListener('click', salvaprodotto);
+
+    /* ══ NOTIZIE ══ */
+    let notiziaInEditing = null;
+
+    async function caricaNotizie() {
+      const notizie = await fetch('/api/notizie').then(r => r.json());
+      renderTabellaNews(notizie);
+    }
+
+    function renderTabellaNews(notizie) {
+      const tbody = document.getElementById('notizieBody');
+      if (!notizie.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">📰</div>Nessuna notizia. Aggiungine una!</div></td></tr>`;
+        return;
+      }
+      const colori = { blu:'🔵', arancio:'🟠', azzurro:'🩵' };
+      tbody.innerHTML = notizie.map(n => `
+        <tr>
+          <td style="font-size:26px">${n.immagine ? `<img src="${n.immagine}" style="width:48px;height:48px;object-fit:cover;border-radius:8px">` : (colori[n.colore] || '🔵')}</td>
+          <td>
+            <div class="prod-nome">${n.titolo}</div>
+            <div class="prod-desc">${n.testo}</div>
+          </td>
+          <td style="color:var(--sub);font-size:13px">${n.data || '—'}</td>
+          <td><span style="font-size:18px">${colori[n.colore] || '🔵'} ${n.colore}</span></td>
+          <td>
+            <div class="azioni">
+              <button class="btn-azione btn-edit"   onclick="apriModalModificaNotizia('${n.id}')">✏️ Modifica</button>
+              <button class="btn-azione btn-delete" onclick="confermaEliminaNotizia('${n.id}', '${n.titolo.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    function apriModalNuovaNotizia() {
+      notiziaInEditing = null;
+      document.getElementById('modalNotiziaTitolo').textContent = 'Nuova notizia';
+      document.getElementById('nTitolo').value = '';
+      document.getElementById('nTesto').value = '';
+      document.getElementById('nData').value = new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+      document.getElementById('nColore').value = 'blu';
+      resetFotoPreview('n');
+      document.getElementById('modalNotiziaOverlay').classList.add('aperto');
+    }
+
+    async function apriModalModificaNotizia(id) {
+      const notizie = await fetch('/api/notizie').then(r => r.json());
+      const n = notizie.find(x => x.id === id);
+      if (!n) return;
+      notiziaInEditing = id;
+      document.getElementById('modalNotiziaTitolo').textContent = 'Modifica notizia';
+      document.getElementById('nTitolo').value  = n.titolo;
+      document.getElementById('nTesto').value   = n.testo;
+      document.getElementById('nData').value    = n.data || '';
+      document.getElementById('nColore').value  = n.colore || 'blu';
+      document.getElementById('nImmagine').value = n.immagine || '';
+      document.getElementById('nFotoPreview').innerHTML = n.immagine
+        ? `<img src="${n.immagine}" alt="foto">`
+        : '<span class="upload-icon">📷</span><span class="upload-label">Clicca per caricare una foto</span>';
+      document.getElementById('modalNotiziaOverlay').classList.add('aperto');
+    }
+
+    function chiudiModalNotizia() { document.getElementById('modalNotiziaOverlay').classList.remove('aperto'); }
+
+    async function salvaNotizia() {
+      const titolo   = document.getElementById('nTitolo').value.trim();
+      const testo    = document.getElementById('nTesto').value.trim();
+      const data     = document.getElementById('nData').value.trim();
+      const colore   = document.getElementById('nColore').value;
+      const immagine = document.getElementById('nImmagine').value;
+
+      if (!titolo || !testo) { toast('⚠️ Titolo e testo obbligatori'); return; }
+
+      const body = { titolo, testo, data, colore, immagine };
+      const btn  = document.getElementById('btnSalvaNotizia');
+      btn.disabled = true; btn.textContent = 'Salvataggio...';
+      try {
+        if (notiziaInEditing) {
+          await authFetch(`/api/admin/notizie/${notiziaInEditing}`, { method: 'PUT', body: JSON.stringify(body) });
+          toast('✅ Notizia aggiornata');
+        } else {
+          await authFetch('/api/admin/notizie', { method: 'POST', body: JSON.stringify(body) });
+          toast('✅ Notizia aggiunta');
+        }
+        chiudiModalNotizia();
+        caricaNotizie();
+      } catch (err) {
+        toast('⚠️ Errore: ' + err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Salva notizia';
+      }
+    }
+
+    document.getElementById('btnSalvaNotizia').addEventListener('click', salvaNotizia);
+
+    function confermaEliminaNotizia(id, titolo) {
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-box">
+          <div class="icon">🗑️</div>
+          <h3>Elimina notizia</h3>
+          <p>Sei sicuro di voler eliminare <strong>${titolo}</strong>?</p>
+          <div class="confirm-btns">
+            <button class="btn-conf-si" onclick="eliminaNotizia('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
+            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function eliminaNotizia(id, overlay) {
+      await authFetch(`/api/admin/notizie/${id}`, { method: 'DELETE' });
+      overlay.remove();
+      toast('🗑️ Notizia eliminata');
+      caricaNotizie();
+    }
+
+    /* ══ TOAST ══ */
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('visibile');
+      setTimeout(() => t.classList.remove('visibile'), 3000);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { chiudiModal(); chiudiModalNotizia(); }
+    });
+  </script>
+
+</body>
+</html>

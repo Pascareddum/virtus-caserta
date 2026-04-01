@@ -1,0 +1,19 @@
+[
+  {
+    "id": "1",
+    "nome": "Maglia Ufficiale Virtus Caserta 2025/26",
+    "descrizione": "La maglia ufficiale della stagione 2025/26. Tessuto tecnico traspirante, stemma ricamato, vestibilità sportiva. Ideale per il campo e per il tifo sugli spalti.",
+    "prezzo": 34.99,
+    "emoji": "🏐",
+    "disponibile": true,
+    "taglie": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+    ],
+    "immagine": "/uploads/1775046121398-trasferimento.jfif"
+  }
+]

@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop – Virtus Caserta</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    :root {
+      --blu-scuro:    #0d2055;
+      --blu-medio:    #1535a8;
+      --blu-chiaro:   #2a68d4;
+      --arancio:      #f57c00;
+      --arancio-chiaro: #ff9800;
+      --bianco:       #ffffff;
+      --grigio-chiaro:#dce8f8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--grigio-chiaro); color: #222; }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+      background: var(--blu-scuro); box-shadow: 0 2px 12px rgba(0,0,0,.4);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 72px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 14px; text-decoration: none;
+    }
+    .nav-logo img { height: 54px; width: auto; object-fit: contain; }
+    .nav-logo-testo { display: flex; flex-direction: column; line-height: 1.1; }
+    .nav-logo-testo span:first-child {
+      font-size: 20px; font-weight: 800; color: var(--bianco);
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .nav-logo-testo span:last-child {
+      font-size: 11px; color: var(--blu-chiaro); letter-spacing: 3px; text-transform: uppercase;
+    }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-back {
+      text-decoration: none; color: rgba(255,255,255,.8); font-size: 14px;
+      font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      padding: 8px 16px; border-radius: 6px; transition: background .2s;
+    }
+    .nav-back:hover { background: rgba(255,255,255,.1); }
+    .cart-btn {
+      position: relative; background: var(--arancio); color: var(--bianco);
+      border: none; cursor: pointer; padding: 10px 20px; border-radius: 50px;
+      font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+      transition: background .2s, transform .2s;
+    }
+    .cart-btn:hover { background: var(--arancio-chiaro); transform: translateY(-1px); }
+    .cart-count {
+      background: var(--bianco); color: var(--arancio); border-radius: 50%;
+      width: 20px; height: 20px; font-size: 11px; font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── HERO ── */
+    .shop-hero {
+      margin-top: 72px;
+      background: linear-gradient(135deg, var(--blu-scuro) 0%, var(--blu-medio) 60%, #1565c0 100%);
+      padding: 60px 24px 50px;
+      text-align: center;
+    }
+    .shop-hero .etichetta {
+      display: inline-block; background: rgba(42,104,212,.25);
+      border: 1px solid rgba(42,104,212,.5); color: var(--blu-chiaro);
+      font-size: 11px; font-weight: 700; letter-spacing: 3px;
+      text-transform: uppercase; padding: 5px 16px; border-radius: 20px; margin-bottom: 18px;
+    }
+    .shop-hero h1 {
+      font-size: clamp(32px, 6vw, 56px); font-weight: 900; color: var(--bianco);
+      letter-spacing: 3px; text-transform: uppercase;
+    }
+    .shop-hero h1 span { color: var(--arancio-chiaro); }
+    .shop-hero p { color: rgba(255,255,255,.7); margin-top: 12px; font-size: 16px; }
+
+    /* ── PRODOTTI ── */
+    .shop-section { padding: 60px 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: start;
+    }
+
+    /* Immagine prodotto */
+    .product-image-box {
+      background: var(--bianco);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(13,32,85,.12);
+    }
+    .product-img-main {
+      width: 100%; aspect-ratio: 1;
+      background: linear-gradient(135deg, var(--blu-scuro) 0%, var(--blu-medio) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 120px;
+    }
+    .product-img-thumbs {
+      display: flex; gap: 8px; padding: 12px;
+    }
+    .thumb {
+      width: 64px; height: 64px; border-radius: 10px; cursor: pointer;
+      background: var(--grigio-chiaro);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; border: 2px solid transparent;
+      transition: border-color .2s;
+    }
+    .thumb.attivo { border-color: var(--arancio); }
+
+    /* Dettagli prodotto */
+    .product-details { display: flex; flex-direction: column; gap: 20px; }
+
+    .product-badge {
+      display: inline-block; background: #dcfce7; color: #15803d;
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; padding: 4px 12px; border-radius: 20px;
+    }
+    .product-name {
+      font-size: 28px; font-weight: 900; color: var(--blu-scuro);
+      line-height: 1.2;
+    }
+    .product-desc { font-size: 15px; color: #555; line-height: 1.7; }
+
+    .product-price {
+      font-size: 36px; font-weight: 900; color: var(--arancio);
+    }
+    .product-price .iva { font-size: 13px; color: #9ca3af; font-weight: 400; margin-left: 4px; }
+
+    /* Taglia */
+    .label-field { font-size: 13px; font-weight: 700; color: var(--blu-scuro); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .taglie { display: flex; gap: 8px; flex-wrap: wrap; }
+    .taglia-btn {
+      width: 48px; height: 48px; border-radius: 10px; border: 2px solid #e2e8f0;
+      background: var(--bianco); font-size: 13px; font-weight: 700; color: #555;
+      cursor: pointer; transition: border-color .2s, background .2s, color .2s;
+    }
+    .taglia-btn:hover { border-color: var(--blu-chiaro); color: var(--blu-medio); }
+    .taglia-btn.selezionata { border-color: var(--arancio); background: var(--arancio); color: var(--bianco); }
+    .taglia-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    /* Quantità */
+    .qty-row { display: flex; align-items: center; gap: 12px; }
+    .qty-ctrl {
+      display: flex; align-items: center; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden;
+    }
+    .qty-ctrl button {
+      width: 40px; height: 44px; border: none; background: #f8fafc;
+      font-size: 20px; cursor: pointer; color: var(--blu-scuro);
+      transition: background .2s;
+    }
+    .qty-ctrl button:hover { background: var(--grigio-chiaro); }
+    .qty-ctrl input {
+      width: 52px; height: 44px; border: none; text-align: center;
+      font-size: 16px; font-weight: 700; color: var(--blu-scuro);
+      background: var(--bianco);
+    }
+    .qty-ctrl input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    /* Aggiungi al carrello */
+    .btn-add-cart {
+      padding: 16px 32px; border-radius: 50px; border: none; cursor: pointer;
+      background: var(--arancio); color: var(--bianco);
+      font-size: 16px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      box-shadow: 0 4px 20px rgba(245,124,0,.4);
+      transition: background .2s, transform .2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-add-cart:hover { background: var(--arancio-chiaro); transform: translateY(-2px); }
+
+    .product-features {
+      display: flex; flex-direction: column; gap: 8px;
+      background: #f8fafc; border-radius: 14px; padding: 16px 20px;
+    }
+    .feature-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #374151; }
+    .feature-row span:first-child { font-size: 18px; }
+
+    /* ── CARRELLO DRAWER ── */
+    .cart-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.5);
+      z-index: 2000; opacity: 0; pointer-events: none; transition: opacity .3s;
+    }
+    .cart-overlay.aperto { opacity: 1; pointer-events: all; }
+
+    .cart-drawer {
+      position: fixed; top: 0; right: 0; height: 100%; width: 420px; max-width: 95vw;
+      background: var(--bianco); z-index: 2001; display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+      box-shadow: -4px 0 40px rgba(0,0,0,.2);
+    }
+    .cart-drawer.aperto { transform: translateX(0); }
+
+    .cart-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid #e2e8f0;
+    }
+    .cart-header h2 { font-size: 20px; font-weight: 800; color: var(--blu-scuro); }
+    .close-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: none;
+      background: #f1f5f9; cursor: pointer; font-size: 18px;
+      transition: background .2s;
+    }
+    .close-btn:hover { background: #e2e8f0; }
+
+    .cart-items { flex: 1; overflow-y: auto; padding: 16px 24px; display: flex; flex-direction: column; gap: 12px; }
+    .cart-vuoto { text-align: center; padding: 60px 0; color: #9ca3af; font-size: 15px; }
+    .cart-vuoto .icon { font-size: 56px; margin-bottom: 12px; }
+
+    .cart-item {
+      display: flex; gap: 14px; padding: 14px; background: #f8fafc;
+      border-radius: 14px; align-items: center;
+    }
+    .cart-item-img {
+      width: 60px; height: 60px; border-radius: 10px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
+      display: flex; align-items: center; justify-content: center; font-size: 26px;
+    }
+    .cart-item-info { flex: 1; }
+    .cart-item-nome { font-size: 14px; font-weight: 700; color: var(--blu-scuro); }
+    .cart-item-sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+    .cart-item-prezzo { font-size: 15px; font-weight: 800; color: var(--arancio); margin-top: 4px; }
+    .cart-item-remove {
+      width: 28px; height: 28px; border-radius: 8px; border: none;
+      background: #fee2e2; color: #dc2626; font-size: 14px; cursor: pointer;
+      transition: background .2s;
+    }
+    .cart-item-remove:hover { background: #fecaca; }
+
+    .cart-footer { padding: 20px 24px; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 14px; }
+    .cart-totale { display: flex; justify-content: space-between; align-items: center; }
+    .cart-totale span:first-child { font-size: 16px; font-weight: 700; color: #374151; }
+    .cart-totale span:last-child { font-size: 22px; font-weight: 900; color: var(--blu-scuro); }
+    .btn-checkout {
+      padding: 15px; border-radius: 50px; border: none; cursor: pointer;
+      background: var(--blu-scuro); color: var(--bianco);
+      font-size: 15px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      transition: background .2s;
+    }
+    .btn-checkout:hover { background: var(--blu-medio); }
+
+    /* ── CHECKOUT MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6);
+      z-index: 3000; display: flex; align-items: center; justify-content: center;
+      padding: 24px; opacity: 0; pointer-events: none; transition: opacity .3s;
+    }
+    .modal-overlay.aperto { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--bianco); border-radius: 24px; width: 100%; max-width: 580px;
+      max-height: 90vh; overflow-y: auto;
+      transform: scale(.95); transition: transform .3s;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .modal-overlay.aperto .modal { transform: scale(1); }
+
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 24px 28px 0;
+    }
+    .modal-header h2 { font-size: 22px; font-weight: 900; color: var(--blu-scuro); }
+
+    .modal-body { padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 24px; }
+
+    .checkout-riepilogo {
+      background: #f8fafc; border-radius: 14px; padding: 16px 20px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .checkout-riga {
+      display: flex; justify-content: space-between; font-size: 14px; color: #374151;
+    }
+    .checkout-riga.totale {
+      font-size: 17px; font-weight: 800; color: var(--blu-scuro);
+      border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 4px;
+    }
+
+    .form-section h3 {
+      font-size: 14px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--blu-scuro); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid.single { grid-template-columns: 1fr; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #6b7280; letter-spacing: .5px; }
+    .form-group input, .form-group select {
+      padding: 11px 14px; border: 2px solid #e2e8f0; border-radius: 10px;
+      font-size: 15px; color: #111; background: var(--bianco);
+      transition: border-color .2s; outline: none;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--blu-chiaro); }
+
+    /* Card payment */
+    .card-box {
+      border: 2px solid #e2e8f0; border-radius: 14px; overflow: hidden;
+    }
+    .card-number-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid #e2e8f0;
+    }
+    .card-number-row input {
+      flex: 1; border: none; outline: none; font-size: 16px; color: #111;
+      letter-spacing: 2px;
+    }
+    .card-icons { display: flex; gap: 6px; }
+    .card-icon {
+      height: 24px; padding: 2px 6px; border-radius: 4px;
+      font-size: 11px; font-weight: 700; display: flex; align-items: center;
+    }
+    .card-icon.visa    { background: #1a1f71; color: #fff; }
+    .card-icon.mc      { background: #eb001b; color: #fff; }
+    .card-icon.amex    { background: #007bc1; color: #fff; }
+    .card-bottom { display: grid; grid-template-columns: 1fr 1fr; }
+    .card-bottom input {
+      padding: 12px 16px; border: none; outline: none; font-size: 15px; color: #111;
+    }
+    .card-bottom > *:first-child { border-right: 1px solid #e2e8f0; }
+
+    .metodi-pagamento { display: flex; flex-direction: column; gap: 10px; }
+    .metodo-btn {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 14px;
+      cursor: pointer; background: var(--bianco); transition: border-color .2s, background .2s;
+    }
+    .metodo-btn.selezionato { border-color: var(--blu-medio); background: #eff6ff; }
+    .metodo-radio {
+      width: 18px; height: 18px; border-radius: 50%; border: 2px solid #d1d5db;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      transition: border-color .2s;
+    }
+    .metodo-btn.selezionato .metodo-radio {
+      border-color: var(--blu-medio); background: var(--blu-medio);
+    }
+    .metodo-radio::after {
+      content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--bianco);
+      display: none;
+    }
+    .metodo-btn.selezionato .metodo-radio::after { display: block; }
+    .metodo-info { flex: 1; }
+    .metodo-nome { font-size: 15px; font-weight: 700; color: var(--blu-scuro); }
+    .metodo-sub  { font-size: 12px; color: #9ca3af; }
+    .metodo-logo { font-size: 22px; }
+
+    .form-carta { display: none; }
+    .form-carta.visibile { display: flex; flex-direction: column; gap: 12px; }
+
+    .btn-paga {
+      padding: 16px; border-radius: 50px; border: none; cursor: pointer;
+      background: var(--arancio); color: var(--bianco);
+      font-size: 16px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      box-shadow: 0 4px 20px rgba(245,124,0,.4); transition: background .2s, transform .2s;
+      width: 100%;
+    }
+    .btn-paga:hover { background: var(--arancio-chiaro); transform: translateY(-2px); }
+
+    .secure-note {
+      text-align: center; font-size: 12px; color: #9ca3af;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+
+    /* Stripe Element */
+    .stripe-element-box {
+      border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 16px;
+      background: var(--bianco); transition: border-color .2s;
+    }
+    .stripe-element-box.StripeElement--focus { border-color: var(--blu-chiaro); }
+    .stripe-element-box.StripeElement--invalid { border-color: #dc2626; }
+    #stripe-error { color: #dc2626; font-size: 13px; margin-top: 6px; min-height: 18px; }
+
+    /* PayPal container */
+    #paypalContainer { margin-top: 14px; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block; width: 18px; height: 18px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.4); border-top-color: #fff;
+      animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── CONFERMA ── */
+    .conferma-box { text-align: center; padding: 40px 24px; }
+    .conferma-box .check { font-size: 72px; margin-bottom: 16px; }
+    .conferma-box h2 { font-size: 26px; font-weight: 900; color: var(--blu-scuro); margin-bottom: 10px; }
+    .conferma-box p { color: #6b7280; font-size: 15px; line-height: 1.7; }
+    .btn-continua {
+      margin-top: 24px; padding: 14px 36px; border-radius: 50px; border: none;
+      cursor: pointer; background: var(--blu-scuro); color: var(--bianco);
+      font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1a1a2e; color: var(--bianco); padding: 14px 28px;
+      border-radius: 50px; font-size: 14px; font-weight: 600;
+      box-shadow: 0 8px 30px rgba(0,0,0,.3); z-index: 9999;
+      transition: transform .4s cubic-bezier(.4,0,.2,1);
+      white-space: nowrap;
+    }
+    .toast.visibile { transform: translateX(-50%) translateY(0); }
+
+    /* ── CATALOGO CARD ── */
+    .catalogo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 28px;
+    }
+    .prod-card {
+      background: var(--bianco); border-radius: 20px;
+      box-shadow: 0 2px 16px rgba(13,32,85,.09);
+      overflow: hidden; display: flex; flex-direction: column;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .prod-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(13,32,85,.15); }
+    .prod-card-img {
+      height: 180px; background: linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
+      display: flex; align-items: center; justify-content: center; font-size: 72px;
+      overflow: hidden;
+    }
+    .prod-card-img img { width:100%; height:100%; object-fit:cover; }
+    .prod-card-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .prod-card-nome { font-size: 17px; font-weight: 800; color: var(--blu-scuro); line-height: 1.3; }
+    .prod-card-desc { font-size: 13px; color: #6b7280; line-height: 1.5; flex: 1; }
+    .prod-card-price { font-size: 22px; font-weight: 900; color: var(--arancio); }
+    .prod-card .taglie { gap: 6px; }
+    .prod-card .taglia-btn { width: 40px; height: 40px; font-size: 12px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .product-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .cart-drawer { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <a href="index.html" class="nav-logo">
+      <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+      <div class="nav-logo-testo">
+        <span>Virtus</span>
+        <span>Caserta</span>
+      </div>
+    </a>
+    <div class="nav-right">
+      <a href="index.html" class="nav-back">← Sito principale</a>
+      <button class="cart-btn" onclick="apriCarrello()">
+        🛒 Carrello
+        <span class="cart-count" id="cartCount">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="shop-hero">
+    <div class="etichetta">Merchandising ufficiale</div>
+    <h1><span>Shop</span> Virtus Caserta</h1>
+    <p>Indossa i colori della tua squadra del cuore</p>
+  </div>
+
+  <!-- PRODOTTO TEST -->
+  <section style="padding:16px 24px 0">
+    <div class="container">
+      <div style="background:#fefce8;border:2px dashed #f59e0b;border-radius:16px;padding:16px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div style="font-size:32px">🧪</div>
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#b45309">Articolo di test</div>
+          <div style="font-size:17px;font-weight:800;color:#1c1917">Gadget Virtus Caserta – Test</div>
+          <div style="font-size:13px;color:#78716c">Usa questo articolo per provare il pagamento reale</div>
+        </div>
+        <div style="font-size:26px;font-weight:900;color:#f57c00">€ 0,50</div>
+        <button onclick="aggiungiProdottoTest()" style="background:#f57c00;color:#fff;border:none;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">
+          🛒 Aggiungi al carrello
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATALOGO PRODOTTI -->
+  <section class="shop-section">
+    <div class="container">
+      <div id="catalogoGrid" class="catalogo-grid">
+        <div style="text-align:center;padding:60px;color:#9ca3af;grid-column:1/-1">⏳ Caricamento prodotti...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARRELLO DRAWER -->
+  <div class="cart-overlay" id="cartOverlay" onclick="chiudiCarrello()"></div>
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="cart-header">
+      <h2>🛒 Il tuo carrello</h2>
+      <button class="close-btn" onclick="chiudiCarrello()">✕</button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div class="cart-vuoto">
+        <div class="icon">🛒</div>
+        Il carrello è vuoto
+      </div>
+    </div>
+    <div class="cart-footer">
+      <div class="cart-totale">
+        <span>Totale</span>
+        <span id="cartTotale">€ 0,00</span>
+      </div>
+      <button class="btn-checkout" onclick="apriCheckout()">Procedi all'acquisto →</button>
+    </div>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h2>Checkout</h2>
+        <button class="close-btn" onclick="chiudiModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+
+        <!-- Riepilogo ordine -->
+        <div class="checkout-riepilogo" id="checkoutRiepilogo"></div>
+
+        <!-- Dati personali -->
+        <div class="form-section">
+          <h3>👤 Dati personali</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nome</label>
+              <input type="text" id="chkNome" placeholder="Mario">
+            </div>
+            <div class="form-group">
+              <label>Cognome</label>
+              <input type="text" id="chkCognome" placeholder="Rossi">
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Email</label>
+              <input type="email" id="chkEmail" placeholder="mario@email.it">
+            </div>
+          </div>
+        </div>
+
+        <!-- Spedizione -->
+        <div class="form-section">
+          <h3>📦 Indirizzo di spedizione</h3>
+          <div class="form-grid single">
+            <div class="form-group">
+              <label>Indirizzo</label>
+              <input type="text" id="chkIndirizzo" placeholder="Via Roma, 1">
+            </div>
+          </div>
+          <div class="form-grid" style="margin-top:12px">
+            <div class="form-group">
+              <label>Città</label>
+              <input type="text" id="chkCitta" placeholder="Caserta">
+            </div>
+            <div class="form-group">
+              <label>CAP</label>
+              <input type="text" id="chkCap" placeholder="81100" maxlength="5">
+            </div>
+          </div>
+        </div>
+
+        <!-- Metodo di pagamento -->
+        <div class="form-section">
+          <h3>💳 Metodo di pagamento</h3>
+          <div class="metodi-pagamento">
+
+            <div class="metodo-btn selezionato" onclick="selezionaMetodo(this,'carta')">
+              <div class="metodo-radio"></div>
+              <div class="metodo-info">
+                <div class="metodo-nome">Carta di credito / debito</div>
+                <div class="metodo-sub">Visa, Mastercard, American Express</div>
+              </div>
+              <div class="metodo-logo">💳</div>
+            </div>
+
+            <div class="metodo-btn" onclick="selezionaMetodo(this,'paypal')">
+              <div class="metodo-radio"></div>
+              <div class="metodo-info">
+                <div class="metodo-nome">PayPal</div>
+                <div class="metodo-sub">Paga con il tuo conto PayPal</div>
+              </div>
+              <div class="metodo-logo">🅿️</div>
+            </div>
+
+            <div class="metodo-btn" onclick="selezionaMetodo(this,'bonifico')">
+              <div class="metodo-radio"></div>
+              <div class="metodo-info">
+                <div class="metodo-nome">Bonifico bancario</div>
+                <div class="metodo-sub">Riceverai le coordinate via email</div>
+              </div>
+              <div class="metodo-logo">🏦</div>
+            </div>
+
+          </div>
+
+          <!-- Form carta – Stripe Elements -->
+          <div class="form-carta visibile" id="formCarta" style="margin-top:14px">
+            <div class="form-group">
+              <label>Dati carta</label>
+              <div class="stripe-element-box" id="stripe-card-element"></div>
+              <div id="stripe-error"></div>
+            </div>
+          </div>
+
+          <!-- PayPal button -->
+          <div id="paypalContainer" style="display:none"></div>
+
+        </div>
+
+        <button class="btn-paga" id="btnPaga" onclick="completaOrdine()">
+          🔒 Paga ora
+        </button>
+        <p class="secure-note">🔒 Pagamento sicuro con crittografia SSL a 256 bit</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ══ STATO ══ */
+    let prodotti  = [];
+    const taglieSel = {};   // { productId: taglia }
+    let carrello  = [];
+    let metodoSel = 'carta';
+
+    /* ══ STRIPE ══ */
+    let stripe      = null;
+    let cardElement = null;
+    let stripeReady = false;
+
+    async function initStripe() {
+      if (stripeReady) return;
+      const { stripePublishableKey } = await fetch('/api/config').then(r => r.json());
+      if (!stripePublishableKey) {
+        document.getElementById('stripe-error').textContent = '⚠️ Stripe non configurato. Aggiungi STRIPE_PUBLISHABLE_KEY nel file .env';
+        return;
+      }
+      stripe = Stripe(stripePublishableKey);
+      const elements = stripe.elements();
+      cardElement = elements.create('card', {
+        hidePostalCode: true,
+        style: {
+          base:    { fontSize: '15px', color: '#111', '::placeholder': { color: '#9ca3af' } },
+          invalid: { color: '#dc2626' },
+        },
+      });
+      cardElement.mount('#stripe-card-element');
+      cardElement.on('change', e => {
+        document.getElementById('stripe-error').textContent = e.error ? e.error.message : '';
+      });
+      stripeReady = true;
+    }
+
+    /* ══ PAYPAL ══ */
+    let paypalReady = false;
+
+    async function initPayPal(totaleConSpedizione) {
+      const { paypalClientId } = await fetch('/api/config').then(r => r.json());
+      const container = document.getElementById('paypalContainer');
+
+      if (!paypalClientId) {
+        container.innerHTML = '<p style="color:#dc2626;font-size:13px">⚠️ PayPal non configurato. Aggiungi PAYPAL_CLIENT_ID nel file .env</p>';
+        return;
+      }
+
+      if (!paypalReady) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR`;
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+        paypalReady = true;
+      }
+
+      container.innerHTML = '<div id="paypal-btn"></div>';
+      paypal.Buttons({
+        createOrder: (_data, actions) => {
+          if (!validaCampi()) return Promise.reject(new Error('Compila tutti i campi'));
+          return actions.order.create({
+            purchase_units: [{ amount: { value: totaleConSpedizione.toFixed(2), currency_code: 'EUR' } }],
+          });
+        },
+        onApprove: async (_data, actions) => {
+          const order = await actions.order.capture();
+          await inviaEmail(order.id);
+          mostraConferma(document.getElementById('chkNome').value, document.getElementById('chkEmail').value);
+        },
+        onError: err => mostraToast('⚠️ Errore PayPal: ' + err),
+      }).render('#paypal-btn');
+    }
+
+    /* ══ CATALOGO ══ */
+    async function caricaProdotti() {
+      const res = await fetch('/api/products');
+      prodotti = await res.json();
+      renderCatalogo();
+    }
+
+    function renderCatalogo() {
+      const grid = document.getElementById('catalogoGrid');
+      const disponibili = prodotti.filter(p => p.disponibile);
+      if (!disponibili.length) {
+        grid.innerHTML = '<div style="text-align:center;padding:60px;color:#9ca3af;grid-column:1/-1">Nessun prodotto disponibile al momento.</div>';
+        return;
+      }
+      grid.innerHTML = disponibili.map(p => `
+        <div class="prod-card">
+          <div class="prod-card-img">
+            ${p.immagine ? `<img src="${p.immagine}" alt="${p.nome}">` : (p.emoji || '🏐')}
+          </div>
+          <div class="prod-card-body">
+            <span class="product-badge">✓ Disponibile</span>
+            <div class="prod-card-nome">${p.nome}</div>
+            <div class="prod-card-desc">${p.descrizione || ''}</div>
+            <div class="prod-card-price">€ ${Number(p.prezzo).toFixed(2).replace('.', ',')} <span class="iva">IVA inclusa</span></div>
+            <div>
+              <div class="label-field">Taglia</div>
+              <div class="taglie" id="taglie-${p.id}">
+                ${(p.taglie || []).map(t =>
+                  `<button class="taglia-btn" onclick="selezionaTagliaProdotto('${p.id}','${t}',this)">${t}</button>`
+                ).join('')}
+              </div>
+            </div>
+            <button class="btn-add-cart" style="margin-top:4px" onclick="aggiungiProdotto('${p.id}')">
+              🛒 Aggiungi al carrello
+            </button>
+          </div>
+        </div>`).join('');
+    }
+
+    function selezionaTagliaProdotto(pid, taglia, btn) {
+      document.querySelectorAll(`#taglie-${pid} .taglia-btn`).forEach(b => b.classList.remove('selezionata'));
+      btn.classList.add('selezionata');
+      taglieSel[pid] = taglia;
+    }
+
+    function aggiungiProdotto(pid) {
+      const p = prodotti.find(x => x.id === pid);
+      if (!p) return;
+      if (p.taglie && p.taglie.length > 1 && !taglieSel[pid]) {
+        mostraToast('⚠️ Seleziona una taglia'); return;
+      }
+      const taglia = taglieSel[pid] || p.taglie?.[0] || 'UNICA';
+      const esistente = carrello.find(i => i.id === pid && i.taglia === taglia);
+      if (esistente) esistente.qty = Math.min(10, esistente.qty + 1);
+      else carrello.push({ id: pid, nome: p.nome, prezzo: p.prezzo, emoji: p.emoji || '🏐', taglia, qty: 1 });
+      aggiornaCarrello();
+      mostraToast(`✅ ${p.nome} (${taglia}) aggiunta al carrello`);
+    }
+
+    /* ══ PRODOTTO TEST ══ */
+    function aggiungiProdottoTest() {
+      const test = { nome: 'Gadget Virtus Caserta – Test', prezzo: 0.50, emoji: '🧪', taglia: 'UNI', qty: 1 };
+      const esistente = carrello.find(i => i.nome === test.nome);
+      if (esistente) esistente.qty = Math.min(10, esistente.qty + 1);
+      else carrello.push(test);
+      aggiornaCarrello();
+      mostraToast('✅ Articolo test aggiunto al carrello');
+    }
+
+    /* ══ QUANTITÀ ══ */
+    function cambiaQty(delta) {
+      const input = document.getElementById('qty');
+      if (input) input.value = Math.min(10, Math.max(1, parseInt(input.value) + delta));
+    }
+
+    /* ══ CARRELLO ══ */
+    function aggiungiAlCarrello() {
+      if (!tagliaSel) { mostraToast('⚠️ Seleziona una taglia'); return; }
+      const qty = parseInt(document.getElementById('qty').value);
+      const esistente = carrello.find(i => i.taglia === tagliaSel);
+      if (esistente) esistente.qty = Math.min(10, esistente.qty + qty);
+      else carrello.push({ ...PRODOTTO, taglia: tagliaSel, qty });
+      aggiornaCarrello();
+      mostraToast(`✅ ${qty}× taglia ${tagliaSel} aggiunta al carrello`);
+      document.getElementById('qty').value = 1;
+    }
+
+    function aggiornaCarrello() {
+      const tot      = carrello.reduce((s, i) => s + i.prezzo * i.qty, 0);
+      const totItems = carrello.reduce((s, i) => s + i.qty, 0);
+      document.getElementById('cartCount').textContent = totItems;
+      document.getElementById('cartTotale').textContent = `€ ${tot.toFixed(2).replace('.', ',')}`;
+      const el = document.getElementById('cartItems');
+      if (!carrello.length) {
+        el.innerHTML = `<div class="cart-vuoto"><div class="icon">🛒</div>Il carrello è vuoto</div>`;
+        return;
+      }
+      el.innerHTML = carrello.map((item, i) => `
+        <div class="cart-item">
+          <div class="cart-item-img">${item.emoji}</div>
+          <div class="cart-item-info">
+            <div class="cart-item-nome">${item.nome}</div>
+            <div class="cart-item-sub">Taglia ${item.taglia} · Qtà ${item.qty}</div>
+            <div class="cart-item-prezzo">€ ${(item.prezzo * item.qty).toFixed(2).replace('.', ',')}</div>
+          </div>
+          <button class="cart-item-remove" onclick="rimuoviItem(${i})">✕</button>
+        </div>`).join('');
+    }
+
+    function rimuoviItem(i) { carrello.splice(i, 1); aggiornaCarrello(); }
+    function apriCarrello()  { document.getElementById('cartOverlay').classList.add('aperto'); document.getElementById('cartDrawer').classList.add('aperto'); }
+    function chiudiCarrello(){ document.getElementById('cartOverlay').classList.remove('aperto'); document.getElementById('cartDrawer').classList.remove('aperto'); }
+
+    /* ══ CHECKOUT ══ */
+    function calcolaTotali() {
+      const sub       = carrello.reduce((s, i) => s + i.prezzo * i.qty, 0);
+      const spedizione = 0;
+      return { sub, spedizione, totale: sub + spedizione };
+    }
+
+    function apriCheckout() {
+      if (!carrello.length) { mostraToast('Il carrello è vuoto'); return; }
+      chiudiCarrello();
+      const { sub, spedizione, totale } = calcolaTotali();
+      const righe = carrello.map(i =>
+        `<div class="checkout-riga"><span>${i.nome} – taglia ${i.taglia} ×${i.qty}</span><span>€ ${(i.prezzo * i.qty).toFixed(2).replace('.', ',')}</span></div>`
+      ).join('');
+      document.getElementById('checkoutRiepilogo').innerHTML = `
+        ${righe}
+        <div class="checkout-riga"><span>Spedizione</span><span>${spedizione === 0 ? 'Gratuita' : '€ ' + spedizione.toFixed(2).replace('.', ',')}</span></div>
+        <div class="checkout-riga totale"><span>Totale ordine</span><span>€ ${totale.toFixed(2).replace('.', ',')}</span></div>`;
+      document.getElementById('modalOverlay').classList.add('aperto');
+      // inizializza Stripe subito (così l'elemento è pronto)
+      initStripe();
+    }
+
+    function chiudiModal() { document.getElementById('modalOverlay').classList.remove('aperto'); }
+
+    function selezionaMetodo(btn, metodo) {
+      document.querySelectorAll('.metodo-btn').forEach(b => b.classList.remove('selezionato'));
+      btn.classList.add('selezionato');
+      metodoSel = metodo;
+      document.getElementById('formCarta').classList.toggle('visibile', metodo === 'carta');
+      document.getElementById('paypalContainer').style.display = metodo === 'paypal' ? 'block' : 'none';
+      document.getElementById('btnPaga').style.display = metodo === 'paypal' ? 'none' : 'block';
+      if (metodo === 'paypal') {
+        const { totale } = calcolaTotali();
+        initPayPal(totale);
+      }
+    }
+
+    /* ══ VALIDAZIONE ══ */
+    function validaCampi() {
+      const nome      = document.getElementById('chkNome').value.trim();
+      const cognome   = document.getElementById('chkCognome').value.trim();
+      const email     = document.getElementById('chkEmail').value.trim();
+      const indirizzo = document.getElementById('chkIndirizzo').value.trim();
+      const citta     = document.getElementById('chkCitta').value.trim();
+      const cap       = document.getElementById('chkCap').value.trim();
+      if (!nome || !cognome || !email || !indirizzo || !citta || !cap) {
+        mostraToast('⚠️ Compila tutti i campi obbligatori'); return false;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        mostraToast('⚠️ Email non valida'); return false;
+      }
+      return true;
+    }
+
+    /* ══ EMAIL ══ */
+    async function inviaEmail(orderId) {
+      const { spedizione, totale } = calcolaTotali();
+      await fetch('/api/send-order-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome:      document.getElementById('chkNome').value.trim(),
+          cognome:   document.getElementById('chkCognome').value.trim(),
+          email:     document.getElementById('chkEmail').value.trim(),
+          indirizzo: document.getElementById('chkIndirizzo').value.trim(),
+          citta:     document.getElementById('chkCitta').value.trim(),
+          cap:       document.getElementById('chkCap').value.trim(),
+          items: carrello,
+          totale, spedizione, metodo: metodoSel, orderId,
+        }),
+      });
+    }
+
+    /* ══ CONFERMA ══ */
+    function mostraConferma(nome, email) {
+      document.getElementById('modalBody').innerHTML = `
+        <div class="conferma-box">
+          <div class="check">✅</div>
+          <h2>Ordine confermato!</h2>
+          <p>Grazie <strong>${nome}</strong>!<br>
+          Riceverai la conferma a <strong>${email}</strong>.<br>
+          Spedizione entro 3–5 giorni lavorativi.</p>
+          <button class="btn-continua" onclick="resetShop()">Continua lo shopping</button>
+        </div>`;
+    }
+
+    /* ══ PAGA ORA ══ */
+    async function completaOrdine() {
+      if (!validaCampi()) return;
+      const nome  = document.getElementById('chkNome').value.trim();
+      const email = document.getElementById('chkEmail').value.trim();
+      const btn   = document.getElementById('btnPaga');
+      const { totale, spedizione } = calcolaTotali();
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Elaborazione...';
+
+      try {
+        if (metodoSel === 'carta') {
+          /* 1. Crea PaymentIntent sul server */
+          const intentRes = await fetch('/api/create-payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: Math.round(totale * 100) }),
+          });
+          const { clientSecret, error: intentErr } = await intentRes.json();
+          if (intentErr) throw new Error(intentErr);
+
+          /* 2. Conferma pagamento con Stripe.js */
+          const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+              card: cardElement,
+              billing_details: {
+                name:  `${nome} ${document.getElementById('chkCognome').value.trim()}`,
+                email,
+              },
+            },
+          });
+          if (error) throw new Error(error.message);
+
+          /* 3. Invia email di conferma */
+          await inviaEmail(paymentIntent.id);
+          mostraConferma(nome, email);
+
+        } else if (metodoSel === 'bonifico') {
+          await inviaEmail(null);
+          mostraConferma(nome, email);
+        }
+      } catch (err) {
+        mostraToast('⚠️ ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '🔒 Paga ora';
+      }
+    }
+
+    /* ══ RESET ══ */
+    function resetShop() {
+      carrello = []; stripeReady = false; cardElement = null;
+      aggiornaCarrello();
+      chiudiModal();
+      ['chkNome','chkCognome','chkEmail','chkIndirizzo','chkCitta','chkCap']
+        .forEach(id => { document.getElementById(id).value = ''; });
+    }
+
+    /* ══ TOAST ══ */
+    function mostraToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('visibile');
+      setTimeout(() => t.classList.remove('visibile'), 3500);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { chiudiModal(); chiudiCarrello(); }
+    });
+
+    caricaProdotti();
+  </script>
+
+</body>
+</html>

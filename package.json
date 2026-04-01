@@ -1,0 +1,17 @@
+{
+  "name": "virtus-caserta-bot",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "node-fetch": "^2.7.0",
+    "nodemailer": "^8.0.4",
+    "stripe": "^21.0.1"
+  }
+}
