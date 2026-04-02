@@ -3,604 +3,589 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin – Virtus Caserta Shop</title>
+  <title>Gestione – Virtus Caserta</title>
   <style>
     :root {
       --blu:     #0d2055;
       --blu-m:   #1535a8;
       --arancio: #f57c00;
       --bianco:  #ffffff;
-      --grigio:  #f1f5f9;
-      --bordo:   #e2e8f0;
-      --testo:   #1e293b;
-      --sub:     #64748b;
-      --verde:   #16a34a;
+      --grigio:  #f2f2f7;
+      --bordo:   #e5e5ea;
+      --testo:   #1c1c1e;
+      --sub:     #8e8e93;
       --rosso:   #dc2626;
+      --verde:   #16a34a;
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',Arial,sans-serif; background:var(--grigio); color:var(--testo); min-height:100vh; }
 
     /* ── LOGIN ── */
-    #loginScreen {
-      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    .login-overlay {
+      position:fixed; inset:0; z-index:9999;
+      background:var(--blu);
+      display:flex; align-items:center; justify-content:center;
     }
-    .login-card {
-      background:var(--bianco); border-radius:24px; padding:48px 40px;
-      width:100%; max-width:420px; box-shadow:0 8px 40px rgba(13,32,85,.15);
+    .login-box {
+      background:#fff; border-radius:20px;
+      padding:40px 36px; width:100%; max-width:380px;
+      box-shadow:0 20px 60px rgba(0,0,0,.3);
+      text-align:center;
     }
-    .login-logo { text-align:center; margin-bottom:32px; }
-    .login-logo .badge {
-      display:inline-block; background:var(--blu); color:var(--bianco);
-      font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase;
-      padding:5px 16px; border-radius:20px; margin-bottom:12px;
+    .login-box img { height:64px; margin-bottom:20px; }
+    .login-box h2 { font-size:20px; font-weight:800; color:var(--blu); margin-bottom:6px; }
+    .login-box p  { font-size:13px; color:var(--sub); margin-bottom:28px; }
+    .login-field { margin-bottom:14px; text-align:left; }
+    .login-field label { display:block; font-size:12px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:.8px; margin-bottom:5px; }
+    .login-field input {
+      width:100%; padding:11px 14px; border:1.5px solid var(--bordo);
+      border-radius:10px; font-size:14px; outline:none; transition:border-color .2s;
     }
-    .login-logo h1 { font-size:26px; font-weight:900; color:var(--blu); }
-    .login-logo p  { color:var(--sub); font-size:14px; margin-top:4px; }
-    .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
-    .form-group label { font-size:12px; font-weight:700; color:var(--sub); letter-spacing:.5px; text-transform:uppercase; }
-    .form-group input {
-      padding:12px 16px; border:2px solid var(--bordo); border-radius:12px;
-      font-size:15px; outline:none; transition:border-color .2s;
+    .login-field input:focus { border-color:var(--blu); }
+    .login-btn {
+      width:100%; padding:13px; background:var(--blu); color:#fff;
+      border:none; border-radius:10px; font-size:15px; font-weight:700;
+      cursor:pointer; transition:background .2s; margin-top:6px;
     }
-    .form-group input:focus { border-color:var(--blu-m); }
-    .btn-login {
-      width:100%; padding:14px; border:none; border-radius:50px; cursor:pointer;
-      background:var(--blu); color:var(--bianco); font-size:15px; font-weight:700;
-      letter-spacing:1px; text-transform:uppercase; transition:background .2s; margin-top:8px;
-    }
-    .btn-login:hover { background:var(--blu-m); }
-    #loginError { color:var(--rosso); font-size:13px; text-align:center; margin-top:10px; min-height:18px; }
+    .login-btn:hover { background:var(--blu-m); }
+    .login-error { color:var(--rosso); font-size:13px; margin-top:10px; min-height:18px; }
 
-    /* ── DASHBOARD ── */
-    #dashboard { display:none; }
-
+    /* ── HEADER ── */
     header {
-      background:var(--blu); padding:0 32px; height:64px;
+      background:var(--blu); height:64px;
       display:flex; align-items:center; justify-content:space-between;
-      box-shadow:0 2px 12px rgba(0,0,0,.3);
+      padding:0 28px; box-shadow:0 2px 12px rgba(0,0,0,.3);
+      position:sticky; top:0; z-index:100;
     }
-    .header-logo { display:flex; align-items:center; gap:12px; }
-    .header-logo span:first-child { font-size:18px; font-weight:900; color:var(--bianco); letter-spacing:2px; text-transform:uppercase; }
-    .header-logo span:last-child  { font-size:11px; color:var(--arancio); font-weight:700; letter-spacing:2px; text-transform:uppercase; }
-    .header-right { display:flex; align-items:center; gap:16px; }
-    .header-user  { font-size:13px; color:rgba(255,255,255,.7); }
+    .hdr-left { display:flex; align-items:center; gap:16px; }
+    .hdr-left img { height:40px; }
+    .hdr-left span { color:#fff; font-size:16px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+    .hdr-right { display:flex; align-items:center; gap:12px; }
+    .hdr-user { color:rgba(255,255,255,.7); font-size:13px; }
     .btn-logout {
-      padding:8px 18px; border-radius:50px; border:1px solid rgba(255,255,255,.3);
-      background:transparent; color:var(--bianco); font-size:13px; font-weight:600;
+      background:rgba(255,255,255,.12); color:#fff; border:none;
+      padding:7px 16px; border-radius:8px; font-size:13px; font-weight:600;
       cursor:pointer; transition:background .2s;
     }
-    .btn-logout:hover { background:rgba(255,255,255,.1); }
-
-    main { max-width:1100px; margin:0 auto; padding:40px 24px; }
-
-    .page-header {
-      display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:32px; flex-wrap:wrap; gap:16px;
+    .btn-logout:hover { background:rgba(255,255,255,.22); }
+    .btn-home {
+      background:var(--arancio); color:#fff; border:none;
+      padding:7px 16px; border-radius:8px; font-size:13px; font-weight:600;
+      cursor:pointer; text-decoration:none; transition:background .2s;
     }
-    .page-header h2 { font-size:24px; font-weight:900; color:var(--blu); }
-    .page-header p  { color:var(--sub); font-size:14px; margin-top:4px; }
-    .btn-new {
-      padding:12px 24px; border-radius:50px; border:none; cursor:pointer;
-      background:var(--arancio); color:var(--bianco); font-size:14px; font-weight:700;
-      letter-spacing:1px; text-transform:uppercase;
-      box-shadow:0 4px 16px rgba(245,124,0,.35); transition:background .2s, transform .2s;
-      display:flex; align-items:center; gap:8px;
-    }
-    .btn-new:hover { background:#ef6c00; transform:translateY(-1px); }
+    .btn-home:hover { background:#e56c00; }
 
-    /* ── TABELLA PRODOTTI ── */
-    .prodotti-table {
-      background:var(--bianco); border-radius:20px;
-      box-shadow:0 2px 16px rgba(13,32,85,.08); overflow:hidden;
+    /* ── TABS ── */
+    .tabs-bar {
+      background:#fff; border-bottom:1px solid var(--bordo);
+      display:flex; gap:0; padding:0 28px;
     }
+    .tab-btn {
+      padding:14px 22px; background:none; border:none;
+      font-size:14px; font-weight:600; color:var(--sub);
+      cursor:pointer; border-bottom:3px solid transparent;
+      transition:color .2s, border-color .2s; white-space:nowrap;
+    }
+    .tab-btn:hover { color:var(--testo); }
+    .tab-btn.attivo { color:var(--blu); border-bottom-color:var(--arancio); }
+
+    /* ── PANNELLO ── */
+    .pannello { display:none; padding:28px; max-width:1100px; margin:0 auto; }
+    .pannello.attivo { display:block; }
+
+    /* ── TOOLBAR ── */
+    .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+    .toolbar h2 { font-size:20px; font-weight:800; color:var(--blu); }
+    .btn-aggiungi {
+      background:var(--arancio); color:#fff; border:none;
+      padding:10px 22px; border-radius:10px; font-size:14px; font-weight:700;
+      cursor:pointer; transition:background .2s;
+    }
+    .btn-aggiungi:hover { background:#e56c00; }
+
+    /* ── TABELLA ── */
+    .card-table { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
     table { width:100%; border-collapse:collapse; }
-    thead tr { background:var(--grigio); }
-    th { padding:14px 20px; text-align:left; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--sub); }
-    td { padding:16px 20px; border-top:1px solid var(--bordo); font-size:14px; vertical-align:middle; }
-    tr:hover td { background:#fafbff; }
-
-    .prod-emoji { font-size:28px; }
-    .prod-nome  { font-weight:700; color:var(--testo); }
-    .prod-desc  { font-size:12px; color:var(--sub); margin-top:2px; max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .prod-price { font-size:16px; font-weight:800; color:var(--arancio); }
-
-    .badge-disponibile {
-      display:inline-flex; align-items:center; gap:5px;
-      padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700;
+    thead th {
+      background:var(--blu); color:#fff; padding:12px 16px;
+      text-align:left; font-size:12px; font-weight:700;
+      letter-spacing:.8px; text-transform:uppercase;
     }
-    .badge-disponibile.si  { background:#dcfce7; color:#15803d; }
-    .badge-disponibile.no  { background:#fee2e2; color:#dc2626; }
-    .dot { width:7px; height:7px; border-radius:50%; }
-    .si .dot { background:#16a34a; }
-    .no .dot { background:#dc2626; }
-
-    .taglie-list { display:flex; gap:4px; flex-wrap:wrap; }
+    tbody tr { border-bottom:1px solid var(--bordo); transition:background .15s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:#f8f9ff; }
+    td { padding:12px 16px; font-size:14px; vertical-align:middle; }
+    .prod-nome { font-weight:700; color:var(--testo); }
+    .prod-desc { font-size:12px; color:var(--sub); margin-top:2px; }
+    .prod-emoji { font-size:26px; text-align:center; }
+    .badge {
+      display:inline-block; padding:3px 10px; border-radius:20px;
+      font-size:11px; font-weight:700; letter-spacing:.5px;
+    }
+    .badge-verde  { background:#dcfce7; color:#15803d; }
+    .badge-rosso  { background:#fee2e2; color:#b91c1c; }
+    .badge-blu    { background:#dbeafe; color:#1d4ed8; }
+    .badge-arancio{ background:#ffedd5; color:#c2410c; }
+    .badge-azzurro{ background:#e0f2fe; color:#0369a1; }
     .taglia-chip {
-      padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;
-      background:var(--grigio); color:var(--sub);
+      display:inline-block; padding:2px 7px; border-radius:6px;
+      font-size:11px; font-weight:700; background:var(--grigio);
+      color:var(--sub); margin:1px;
     }
-
-    .azioni { display:flex; gap:8px; }
+    .azioni { display:flex; gap:6px; flex-wrap:wrap; }
     .btn-azione {
-      padding:7px 14px; border-radius:8px; border:none; cursor:pointer;
-      font-size:12px; font-weight:700; transition:opacity .2s;
+      padding:6px 12px; border-radius:8px; font-size:12px;
+      font-weight:700; cursor:pointer; border:none; transition:opacity .2s;
     }
     .btn-azione:hover { opacity:.8; }
-    .btn-edit   { background:#eff6ff; color:var(--blu-m); }
-    .btn-toggle { background:#f0fdf4; color:var(--verde); }
-    .btn-toggle.disabilita { background:#fff1f2; color:var(--rosso); }
-    .btn-delete { background:#fff1f2; color:var(--rosso); }
-
-    .empty-state { text-align:center; padding:60px 24px; color:var(--sub); }
-    .empty-state .icon { font-size:48px; margin-bottom:12px; }
+    .btn-edit   { background:#eff6ff; color:#1d4ed8; }
+    .btn-delete { background:#fee2e2; color:#b91c1c; }
+    .btn-toggle { background:#f0fdf4; color:#15803d; }
+    .empty-state { text-align:center; padding:48px 24px; color:var(--sub); }
+    .empty-state .icon { font-size:40px; margin-bottom:12px; }
 
     /* ── MODAL ── */
     .modal-overlay {
-      position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000;
-      display:flex; align-items:center; justify-content:center; padding:24px;
-      opacity:0; pointer-events:none; transition:opacity .25s;
+      position:fixed; inset:0; z-index:1000;
+      background:rgba(0,0,0,.5); backdrop-filter:blur(3px);
+      display:none; align-items:center; justify-content:center; padding:20px;
     }
-    .modal-overlay.aperto { opacity:1; pointer-events:all; }
-    .modal {
-      background:var(--bianco); border-radius:24px; width:100%; max-width:560px;
-      max-height:90vh; overflow-y:auto; padding:32px;
-      transform:scale(.95); transition:transform .25s;
+    .modal-overlay.aperto { display:flex; }
+    .modal-box {
+      background:#fff; border-radius:20px; width:100%; max-width:540px;
+      max-height:90vh; overflow-y:auto;
       box-shadow:0 20px 60px rgba(0,0,0,.25);
     }
-    .modal-overlay.aperto .modal { transform:scale(1); }
-    .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
-    .modal-header h3 { font-size:20px; font-weight:900; color:var(--blu); }
-    .btn-close { width:34px; height:34px; border-radius:10px; border:none; background:var(--grigio); cursor:pointer; font-size:16px; }
-    .btn-close:hover { background:var(--bordo); }
-
-    .modal .form-group { margin-bottom:14px; }
-    .modal .form-group input,
-    .modal .form-group textarea,
-    .modal .form-group select {
-      padding:11px 14px; border:2px solid var(--bordo); border-radius:10px;
-      font-size:14px; outline:none; width:100%; transition:border-color .2s;
-      font-family:inherit;
+    .modal-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px 24px 0; margin-bottom:20px;
     }
-    .modal .form-group input:focus,
-    .modal .form-group textarea:focus { border-color:var(--blu-m); }
-    .modal .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    textarea { resize:vertical; min-height:80px; }
-
-    .taglie-editor { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+    .modal-hdr h3 { font-size:18px; font-weight:800; color:var(--blu); }
+    .modal-close {
+      background:var(--grigio); border:none; width:32px; height:32px;
+      border-radius:50%; font-size:16px; cursor:pointer; display:flex;
+      align-items:center; justify-content:center; transition:background .2s;
+    }
+    .modal-close:hover { background:var(--bordo); }
+    .modal-body { padding:0 24px 24px; display:flex; flex-direction:column; gap:14px; }
+    .mf label { display:block; font-size:12px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:.8px; margin-bottom:5px; }
+    .mf input, .mf textarea, .mf select {
+      width:100%; padding:10px 13px; border:1.5px solid var(--bordo);
+      border-radius:10px; font-size:14px; outline:none; font-family:inherit;
+      transition:border-color .2s;
+    }
+    .mf input:focus, .mf textarea:focus, .mf select:focus { border-color:var(--blu); }
+    .mf textarea { resize:vertical; min-height:80px; }
+    .mf-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .mf-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    .taglie-editor { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
     .taglia-toggle {
-      padding:6px 14px; border-radius:8px; border:2px solid var(--bordo);
-      background:var(--bianco); font-size:13px; font-weight:700; color:var(--sub);
-      cursor:pointer; transition:all .15s;
+      padding:6px 12px; border-radius:8px; border:1.5px solid var(--bordo);
+      background:#fff; font-size:13px; font-weight:700; cursor:pointer;
+      transition:all .15s; color:var(--sub);
     }
-    .taglia-toggle.on { border-color:var(--arancio); background:var(--arancio); color:var(--bianco); }
-
-    .modal-footer { display:flex; gap:12px; justify-content:flex-end; margin-top:24px; }
+    .taglia-toggle.on { background:var(--blu); border-color:var(--blu); color:#fff; }
+    .img-preview {
+      width:100%; max-height:140px; object-fit:cover;
+      border-radius:10px; display:none; margin-top:6px;
+    }
+    .modal-ftr {
+      display:flex; justify-content:flex-end; gap:10px;
+      padding:16px 24px; border-top:1px solid var(--bordo);
+    }
     .btn-annulla {
-      padding:11px 24px; border-radius:50px; border:2px solid var(--bordo);
-      background:var(--bianco); color:var(--sub); font-size:14px; font-weight:700; cursor:pointer;
+      padding:10px 20px; border-radius:10px; border:1.5px solid var(--bordo);
+      background:#fff; font-size:14px; font-weight:700; cursor:pointer;
+      color:var(--sub); transition:background .2s;
     }
+    .btn-annulla:hover { background:var(--grigio); }
     .btn-salva {
-      padding:11px 28px; border-radius:50px; border:none; cursor:pointer;
-      background:var(--blu); color:var(--bianco); font-size:14px; font-weight:700;
-      transition:background .2s;
+      padding:10px 24px; border-radius:10px; border:none;
+      background:var(--arancio); color:#fff; font-size:14px;
+      font-weight:700; cursor:pointer; transition:background .2s;
     }
-    .btn-salva:hover { background:var(--blu-m); }
-    .btn-salva:disabled { opacity:.5; cursor:not-allowed; }
+    .btn-salva:hover { background:#e56c00; }
+    .btn-salva:disabled { opacity:.6; cursor:not-allowed; }
 
-    /* ── TABS ── */
-    .tabs { display:flex; gap:4px; margin-bottom:28px; background:var(--bianco); border-radius:14px; padding:6px; box-shadow:0 2px 8px rgba(13,32,85,.08); width:fit-content; }
-    .tab-btn { padding:10px 24px; border-radius:10px; border:none; cursor:pointer; font-size:14px; font-weight:700; color:var(--sub); background:transparent; transition:all .2s; }
-    .tab-btn.attivo { background:var(--blu); color:var(--bianco); box-shadow:0 2px 8px rgba(13,32,85,.25); }
-    .tab-panel { display:none; }
-    .tab-panel.attivo { display:block; }
-
-    /* ── FOTO UPLOADER ── */
-    .foto-uploader { cursor:pointer; }
-    .foto-preview {
-      width:100%; height:160px; border:2px dashed var(--bordo); border-radius:12px;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap:8px; background:#f8fafc; transition:border-color .2s; overflow:hidden;
+    /* ── UTENTI ── */
+    .role-select {
+      padding:6px 10px; border-radius:8px; border:1.5px solid var(--bordo);
+      font-size:13px; font-weight:600; background:#fff; cursor:pointer;
     }
-    .foto-preview:hover { border-color:var(--blu-m); }
-    .foto-preview img { width:100%; height:100%; object-fit:cover; }
-    .foto-preview .upload-icon { font-size:32px; }
-    .foto-preview .upload-label { font-size:13px; color:var(--sub); }
+    .notif-badge { font-size:11px; }
 
-    /* ── TOAST ── */
-    .toast {
-      position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(60px);
-      background:#1a1a2e; color:var(--bianco); padding:12px 24px;
-      border-radius:50px; font-size:14px; font-weight:600;
-      box-shadow:0 6px 24px rgba(0,0,0,.3); z-index:9999;
-      transition:transform .35s cubic-bezier(.4,0,.2,1); white-space:nowrap;
+    @media (max-width:640px) {
+      .tabs-bar { overflow-x:auto; }
+      .mf-row, .mf-row3 { grid-template-columns:1fr; }
+      header { padding:0 16px; }
+      .pannello { padding:16px; }
     }
-    .toast.visibile { transform:translateX(-50%) translateY(0); }
-
-    /* ── CONFIRM ── */
-    .confirm-overlay {
-      position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:2000;
-      display:flex; align-items:center; justify-content:center; padding:24px;
-    }
-    .confirm-box {
-      background:var(--bianco); border-radius:20px; padding:32px;
-      max-width:380px; width:100%; text-align:center;
-      box-shadow:0 16px 48px rgba(0,0,0,.25);
-    }
-    .confirm-box .icon { font-size:48px; margin-bottom:12px; }
-    .confirm-box h3 { font-size:18px; font-weight:800; margin-bottom:8px; }
-    .confirm-box p  { color:var(--sub); font-size:14px; margin-bottom:24px; }
-    .confirm-btns   { display:flex; gap:12px; justify-content:center; }
-    .btn-conf-si  { padding:11px 28px; border-radius:50px; border:none; background:var(--rosso); color:var(--bianco); font-weight:700; cursor:pointer; }
-    .btn-conf-no  { padding:11px 28px; border-radius:50px; border:2px solid var(--bordo); background:var(--bianco); color:var(--sub); font-weight:700; cursor:pointer; }
-
-    /* ── BADGE RUOLO ── */
-    .badge-ruolo { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
-    .badge-ruolo.admin    { background:#ede9fe; color:#6d28d9; }
-    .badge-ruolo.dirigente{ background:#fef3c7; color:#b45309; }
-    .badge-ruolo.user     { background:#f1f5f9; color:var(--sub); }
-
-    .role-select { padding:6px 10px; border-radius:8px; border:2px solid var(--bordo); font-size:13px; font-weight:600; cursor:pointer; outline:none; }
-    .role-select:focus { border-color:var(--blu-m); }
-
-    .tab-only-admin { display:none; }
   </style>
 </head>
 <body>
 
-  <!-- ── LOGIN ── -->
-  <div id="loginScreen">
-    <div class="login-card">
-      <div class="login-logo">
-        <div class="badge">Pannello Admin</div>
-        <h1>Virtus Caserta</h1>
-        <p>Accedi per gestire il negozio</p>
-      </div>
-      <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"
-               onkeydown="if(event.key==='Enter') doLogin()">
-      </div>
-      <button class="btn-login" onclick="doLogin()">Accedi</button>
-      <div id="loginError"></div>
+<!-- LOGIN -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    <h2>Area Gestione</h2>
+    <p>Accedi con le credenziali amministratore</p>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
     </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Accedi</button>
+    <div class="login-error" id="loginError"></div>
   </div>
+</div>
 
-  <!-- ── DASHBOARD ── -->
-  <div id="dashboard">
-    <header>
-      <div class="header-logo">
-        <span>Virtus Caserta</span>
-        <span>Shop Admin</span>
-      </div>
-      <div class="header-right">
-        <span class="header-user" id="headerUser"></span>
-        <a href="shop.html" style="color:rgba(255,255,255,.6);font-size:13px;text-decoration:none">← Vai allo shop</a>
-        <button class="btn-logout" onclick="logout()">Esci</button>
-      </div>
-    </header>
-
-    <main>
-      <div class="tabs" id="tabsBar">
-        <button class="tab-btn attivo" onclick="switchTab('prodotti', this)">🛒 Prodotti</button>
-        <button class="tab-btn"        onclick="switchTab('notizie',  this)">📰 Notizie</button>
-        <button class="tab-btn"        onclick="switchTab('calendario', this)">📅 Calendario</button>
-        <button class="tab-btn tab-only-admin" onclick="switchTab('utenti', this)">👥 Utenti</button>
-      </div>
-
-      <!-- TAB PRODOTTI -->
-      <div class="tab-panel attivo" id="tabProdotti">
-        <div class="page-header">
-          <div>
-            <h2>Gestione prodotti</h2>
-            <p>Aggiungi, modifica o rimuovi gli articoli del negozio</p>
-          </div>
-          <button class="btn-new" onclick="apriModalNuovoProdotto()">＋ Nuovo prodotto</button>
-        </div>
-        <div class="prodotti-table">
-          <table>
-            <thead><tr><th></th><th>Prodotto</th><th>Prezzo</th><th>Taglie</th><th>Stato</th><th>Azioni</th></tr></thead>
-            <tbody id="prodottiBody">
-              <tr><td colspan="6"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- TAB NOTIZIE -->
-      <div class="tab-panel" id="tabNotizie">
-        <div class="page-header">
-          <div>
-            <h2>Gestione notizie</h2>
-            <p>Aggiungi, modifica o rimuovi le notizie del sito</p>
-          </div>
-          <button class="btn-new" onclick="apriModalNuovaNotizia()">＋ Nuova notizia</button>
-        </div>
-        <div class="prodotti-table">
-          <table>
-            <thead><tr><th></th><th>Notizia</th><th>Data</th><th>Colore</th><th>Azioni</th></tr></thead>
-            <tbody id="notizieBody">
-              <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- TAB CALENDARIO -->
-      <div class="tab-panel" id="tabCalendario">
-        <div class="page-header">
-          <div>
-            <h2>Calendario allenamenti</h2>
-            <p>Gestisci le sessioni di allenamento</p>
-          </div>
-          <button class="btn-new" onclick="apriModalNuovaSessione()">＋ Nuova sessione</button>
-        </div>
-        <div class="prodotti-table">
-          <table>
-            <thead><tr><th>Data</th><th>Orario</th><th>Allenamento</th><th>Luogo</th><th>Categoria</th><th>Azioni</th></tr></thead>
-            <tbody id="calendarioBody">
-              <tr><td colspan="6"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- TAB UTENTI (solo admin) -->
-      <div class="tab-panel" id="tabUtenti">
-        <div class="page-header">
-          <div>
-            <h2>Gestione utenti</h2>
-            <p>Visualizza e modifica i ruoli degli utenti registrati</p>
-          </div>
-        </div>
-        <div class="prodotti-table">
-          <table>
-            <thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th>Registrato</th><th>Azioni</th></tr></thead>
-            <tbody id="utentiBody">
-              <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+<!-- HEADER -->
+<header>
+  <div class="hdr-left">
+    <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    <span>Gestione</span>
   </div>
+  <div class="hdr-right">
+    <span class="hdr-user" id="hdrUser"></span>
+    <a href="index.html" class="btn-home">← Home</a>
+    <button class="btn-logout" onclick="logout()">Esci</button>
+  </div>
+</header>
 
-  <!-- ── MODAL PRODOTTO ── -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modalTitolo">Nuovo prodotto</h3>
-        <button class="btn-close" onclick="chiudiModal()">✕</button>
-      </div>
+<!-- TABS -->
+<div class="tabs-bar">
+  <button class="tab-btn attivo" onclick="switchTab('prodotti')">🛒 Prodotti</button>
+  <button class="tab-btn"        onclick="switchTab('notizie')">📰 Notizie</button>
+  <button class="tab-btn"        onclick="switchTab('calendario')">📅 Calendario</button>
+  <button class="tab-btn"        onclick="switchTab('utenti')">👥 Utenti</button>
+</div>
 
-      <div class="form-grid">
-        <div class="form-group" style="grid-column:1/-1">
-          <label>Nome prodotto *</label>
-          <input type="text" id="pNome" placeholder="Es. Maglia Ufficiale 2025/26">
+<!-- ══ PRODOTTI ══ -->
+<div class="pannello attivo" id="pan-prodotti">
+  <div class="toolbar">
+    <h2>Prodotti</h2>
+    <button class="btn-aggiungi" onclick="apriModalProdotto(null)">+ Aggiungi prodotto</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th style="width:54px"></th>
+        <th>Prodotto</th>
+        <th>Prezzo</th>
+        <th>Taglie</th>
+        <th>Stato</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="prodottiBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ NOTIZIE ══ -->
+<div class="pannello" id="pan-notizie">
+  <div class="toolbar">
+    <h2>Notizie</h2>
+    <button class="btn-aggiungi" onclick="apriModalNotizia(null)">+ Aggiungi notizia</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th style="width:54px"></th>
+        <th>Titolo</th>
+        <th>Categoria</th>
+        <th>Data</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="notizieBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ CALENDARIO ══ -->
+<div class="pannello" id="pan-calendario">
+  <div class="toolbar">
+    <h2>Calendario allenamenti</h2>
+    <button class="btn-aggiungi" onclick="apriModalSessione(null)">+ Aggiungi sessione</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th>Data</th>
+        <th>Orario</th>
+        <th>Titolo</th>
+        <th>Luogo</th>
+        <th>Categoria</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="calendarioBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ UTENTI ══ -->
+<div class="pannello" id="pan-utenti">
+  <div class="toolbar">
+    <h2>Utenti registrati</h2>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Ruolo</th>
+        <th>Notifiche</th>
+        <th>Iscritto il</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="utentiBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL PRODOTTO -->
+<div class="modal-overlay" id="modalProdotto">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modalProdottoTitolo">Nuovo prodotto</h3>
+      <button class="modal-close" onclick="chiudiModal('modalProdotto')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf-row">
+        <div class="mf">
+          <label>Nome *</label>
+          <input type="text" id="pNome" placeholder="Es. Maglia Gara">
         </div>
-        <div class="form-group" style="grid-column:1/-1">
-          <label>Descrizione</label>
-          <textarea id="pDescrizione" placeholder="Descrizione del prodotto..."></textarea>
-        </div>
-        <div class="form-group">
-          <label>Prezzo (€) *</label>
-          <input type="number" id="pPrezzo" placeholder="35.00" min="0.50" step="0.01">
-        </div>
-        <div class="form-group">
-          <label>Emoji / icona</label>
+        <div class="mf">
+          <label>Emoji</label>
           <input type="text" id="pEmoji" placeholder="🏐" maxlength="4">
         </div>
       </div>
-
-      <div class="form-group">
-        <label>Taglie disponibili</label>
-        <div class="taglie-editor" id="taglieEditor"></div>
+      <div class="mf">
+        <label>Descrizione</label>
+        <textarea id="pDescrizione" placeholder="Breve descrizione del prodotto..."></textarea>
       </div>
-
-      <div class="form-group">
-        <label>Foto prodotto</label>
-        <div class="foto-uploader" onclick="document.getElementById('pFotoInput').click()">
-          <div class="foto-preview" id="pFotoPreview">
-            <span class="upload-icon">📷</span>
-            <span class="upload-label">Clicca per caricare una foto</span>
-          </div>
+      <div class="mf-row">
+        <div class="mf">
+          <label>Prezzo (€) *</label>
+          <input type="number" id="pPrezzo" placeholder="25.00" step="0.01" min="0">
         </div>
-        <input type="file" id="pFotoInput" accept="image/*" style="display:none" onchange="uploadFoto(this,'p')">
-        <input type="hidden" id="pImmagine">
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-annulla" onclick="chiudiModal()">Annulla</button>
-        <button class="btn-salva" id="btnSalva">Salva prodotto</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── MODAL NOTIZIA ── -->
-  <div class="modal-overlay" id="modalNotiziaOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modalNotiziaTitolo">Nuova notizia</h3>
-        <button class="btn-close" onclick="chiudiModalNotizia()">✕</button>
-      </div>
-
-      <div class="form-group">
-        <label>Titolo *</label>
-        <input type="text" id="nTitolo" placeholder="Es. Vittoria nel derby!">
-      </div>
-      <div class="form-group">
-        <label>Testo *</label>
-        <textarea id="nTesto" placeholder="Descrizione della notizia..."></textarea>
-      </div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Data</label>
-          <input type="text" id="nData" placeholder="Es. 1 Aprile 2026">
-        </div>
-        <div class="form-group">
-          <label>Colore card</label>
-          <select id="nColore">
-            <option value="blu">🔵 Blu</option>
-            <option value="arancio">🟠 Arancio</option>
-            <option value="azzurro">🩵 Azzurro</option>
+        <div class="mf">
+          <label>Disponibile</label>
+          <select id="pDisponibile">
+            <option value="true">✅ Sì</option>
+            <option value="false">❌ No</option>
           </select>
         </div>
       </div>
+      <div class="mf">
+        <label>Taglie</label>
+        <div class="taglie-editor" id="taglieEditor"></div>
+      </div>
+      <div class="mf">
+        <label>Immagine</label>
+        <input type="file" id="pImmagineFile" accept="image/*" onchange="anteprima('pImmagineFile','pImgPreview')">
+        <img id="pImgPreview" class="img-preview">
+        <input type="hidden" id="pImmagine">
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalProdotto')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaProdotto" onclick="salvaProdotto()">Salva</button>
+    </div>
+  </div>
+</div>
 
-      <div class="form-group">
-        <label>Foto notizia</label>
-        <div class="foto-uploader" onclick="document.getElementById('nFotoInput').click()">
-          <div class="foto-preview" id="nFotoPreview">
-            <span class="upload-icon">📷</span>
-            <span class="upload-label">Clicca per caricare una foto</span>
-          </div>
+<!-- MODAL NOTIZIA -->
+<div class="modal-overlay" id="modalNotizia">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modalNotiziaTitolo">Nuova notizia</h3>
+      <button class="modal-close" onclick="chiudiModal('modalNotizia')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf">
+        <label>Titolo *</label>
+        <input type="text" id="nTitolo" placeholder="Titolo della notizia">
+      </div>
+      <div class="mf">
+        <label>Testo *</label>
+        <textarea id="nTesto" placeholder="Contenuto della notizia..." style="min-height:120px;"></textarea>
+      </div>
+      <div class="mf-row">
+        <div class="mf">
+          <label>Categoria</label>
+          <select id="nColore">
+            <option value="blu">🔵 Notizia</option>
+            <option value="arancio">🟠 Comunicato</option>
+            <option value="azzurro">🩵 Risultato</option>
+          </select>
         </div>
-        <input type="file" id="nFotoInput" accept="image/*" style="display:none" onchange="uploadFoto(this,'n')">
+        <div class="mf">
+          <label>Data</label>
+          <input type="date" id="nData">
+        </div>
+      </div>
+      <div class="mf">
+        <label>Immagine</label>
+        <input type="file" id="nImmagineFile" accept="image/*" onchange="anteprima('nImmagineFile','nImgPreview')">
+        <img id="nImgPreview" class="img-preview">
         <input type="hidden" id="nImmagine">
       </div>
-
-      <div class="modal-footer">
-        <button class="btn-annulla" onclick="chiudiModalNotizia()">Annulla</button>
-        <button class="btn-salva" id="btnSalvaNotizia">Salva notizia</button>
-      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalNotizia')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaNotizia" onclick="salvaNotizia()">Salva</button>
     </div>
   </div>
+</div>
 
-  <!-- ── MODAL SESSIONE CALENDARIO ── -->
-  <div class="modal-overlay" id="modalSessioneOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modalSessioneTitolo">Nuova sessione</h3>
-        <button class="btn-close" onclick="chiudiModalSessione()">✕</button>
-      </div>
-      <div class="form-group">
+<!-- MODAL SESSIONE -->
+<div class="modal-overlay" id="modalSessione">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modalSessioneTitolo">Nuova sessione</h3>
+      <button class="modal-close" onclick="chiudiModal('modalSessione')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf">
         <label>Titolo *</label>
-        <input type="text" id="seTitolo" placeholder="Es. Allenamento Under 14">
+        <input type="text" id="sTitolo" placeholder="Es. Allenamento Under 19">
       </div>
-      <div class="modal form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div class="form-group">
+      <div class="mf-row3">
+        <div class="mf">
           <label>Data *</label>
-          <input type="date" id="seData">
+          <input type="date" id="sData">
         </div>
-        <div class="form-group">
+        <div class="mf">
           <label>Inizio *</label>
-          <input type="time" id="seOraInizio">
+          <input type="time" id="sOraInizio">
         </div>
-        <div class="form-group">
-          <label>Fine *</label>
-          <input type="time" id="seOraFine">
+        <div class="mf">
+          <label>Fine</label>
+          <input type="time" id="sOraFine">
         </div>
       </div>
-      <div class="form-group">
+      <div class="mf">
         <label>Luogo</label>
-        <input type="text" id="seLuogo" placeholder="Es. Palazzetto dello Sport">
+        <input type="text" id="sLuogo" placeholder="Es. Tenda di Abramo, Caserta">
       </div>
-      <div class="form-group">
+      <div class="mf">
         <label>Categoria</label>
-        <input type="text" id="seCategoria" placeholder="Es. Under 14 Femminile">
+        <select id="sCategoria">
+          <option value="">— Seleziona —</option>
+          <option value="Under 19">Under 19</option>
+          <option value="Under 16">Under 16</option>
+          <option value="Under 13">Under 13</option>
+          <option value="Prima Squadra">Prima Squadra</option>
+          <option value="Altro">Altro</option>
+        </select>
       </div>
-      <div class="form-group">
+      <div class="mf">
         <label>Note</label>
-        <textarea id="seNote" placeholder="Informazioni aggiuntive..."></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-annulla" onclick="chiudiModalSessione()">Annulla</button>
-        <button class="btn-salva" id="btnSalvaSessione">Salva sessione</button>
+        <textarea id="sNote" placeholder="Informazioni aggiuntive..."></textarea>
       </div>
     </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalSessione')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaSessione" onclick="salvaSessione()">Salva</button>
+    </div>
   </div>
+</div>
 
-  <!-- TOAST -->
-  <div class="toast" id="toast"></div>
+<script>
+  const TUTTE_TAGLIE = ['XS','S','M','L','XL','XXL','XXXL'];
+  let TOKEN = localStorage.getItem('vc_admin_token') || '';
+  let prodottoInEditing  = null;
+  let notiziaInEditing   = null;
+  let sessioneInEditing  = null;
+  let taglieSelezionate  = new Set(['S','M','L','XL']);
 
-  <script>
-    const TUTTE_TAGLIE = ['XS','S','M','L','XL','XXL','UNICA'];
-    let token = localStorage.getItem('vc_admin_token') || localStorage.getItem('vc_token') || null;
-    let currentRole = null;
-    let prodottoInEditing = null;
-    let taglieSelezionate = new Set(['S','M','L','XL']);
+  /* ══ AUTH ══ */
+  function headers() {
+    return { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN };
+  }
 
-    /* ══ AUTH ══ */
-    async function doLogin() {
-      const username = document.getElementById('loginUser').value.trim();
-      const password = document.getElementById('loginPass').value;
-      document.getElementById('loginError').textContent = '';
-      try {
-        const res = await fetch('/api/admin/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        token = data.token;
-        localStorage.setItem('vc_admin_token', token);
-        mostraDashboard();
-      } catch (err) {
-        document.getElementById('loginError').textContent = '⚠️ ' + err.message;
-      }
+  async function doLogin() {
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    document.getElementById('loginError').textContent = '';
+    if (!u || !p) { document.getElementById('loginError').textContent = 'Inserisci username e password.'; return; }
+    try {
+      const res  = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username:u, password:p }) });
+      const data = await res.json();
+      if (!res.ok) { document.getElementById('loginError').textContent = data.error; return; }
+      TOKEN = data.token;
+      localStorage.setItem('vc_admin_token', TOKEN);
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('hdrUser').textContent = 'Admin';
+      caricaTutto();
+    } catch {
+      document.getElementById('loginError').textContent = 'Errore di rete. Riprova.';
     }
+  }
 
-    function logout() {
-      localStorage.removeItem('vc_admin_token');
-      localStorage.removeItem('vc_token');
-      token = null;
-      document.getElementById('dashboard').style.display = 'none';
-      document.getElementById('loginScreen').style.display = 'flex';
-    }
+  function logout() {
+    localStorage.removeItem('vc_admin_token');
+    TOKEN = '';
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('loginPass').value = '';
+  }
 
-    function mostraDashboard() {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      // Decodifica ruolo dal token
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        currentRole = payload.role;
-        const nome = payload.nome || document.getElementById('loginUser')?.value || 'Utente';
-        document.getElementById('headerUser').textContent = '👤 ' + nome + (currentRole === 'dirigente' ? ' (Dirigente)' : '');
-        // Mostra tab Utenti solo agli admin
-        document.querySelectorAll('.tab-only-admin').forEach(el => {
-          el.style.display = currentRole === 'admin' ? '' : 'none';
-        });
-      } catch { currentRole = 'admin'; }
-      caricaProdotti();
-    }
+  /* ══ TABS ══ */
+  function switchTab(nome) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+      const nomi = ['prodotti','notizie','calendario','utenti'];
+      b.classList.toggle('attivo', nomi[i] === nome);
+    });
+    document.querySelectorAll('.pannello').forEach(p => p.classList.remove('attivo'));
+    document.getElementById('pan-'+nome).classList.add('attivo');
+    if (nome === 'prodotti')  caricaProdotti();
+    if (nome === 'notizie')   caricaNotizie();
+    if (nome === 'calendario') caricaCalendario();
+    if (nome === 'utenti')    caricaUtenti();
+  }
 
-    /* ── Verifica token salvato all'avvio ── */
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 > Date.now() && (payload.role === 'admin' || payload.role === 'dirigente')) {
-          mostraDashboard();
-        } else {
-          localStorage.removeItem('vc_admin_token');
-          localStorage.removeItem('vc_token');
-          token = null;
-        }
-      } catch { localStorage.removeItem('vc_admin_token'); token = null; }
-    }
+  function caricaTutto() {
+    caricaProdotti();
+    caricaNotizie();
+    caricaCalendario();
+    caricaUtenti();
+  }
 
-    /* ══ PRODOTTI ══ */
-    async function authFetch(url, options = {}) {
-      return fetch(url, {
-        ...options,
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, ...(options.headers || {}) },
-      });
-    }
+  /* ══ MODAL ══ */
+  function chiudiModal(id) { document.getElementById(id).classList.remove('aperto'); }
 
-    async function caricaProdotti() {
-      const res = await fetch('/api/products');
-      const products = await res.json();
-      renderTabella(products);
-    }
+  /* ══ UPLOAD ══ */
+  async function anteprima(inputId, previewId) {
+    const file = document.getElementById(inputId).files[0];
+    if (!file) return;
+    const preview = document.getElementById(previewId);
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  }
 
-    function renderTabella(products) {
-      const tbody = document.getElementById('prodottiBody');
+  async function uploadImmagine(inputId) {
+    const file = document.getElementById(inputId).files[0];
+    if (!file) return null;
+    const fd = new FormData();
+    fd.append('immagine', file);
+    const res = await fetch('/api/admin/upload', { method:'POST', headers:{'Authorization':'Bearer '+TOKEN}, body: fd });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url || null;
+  }
+
+  /* ══ PRODOTTI ══ */
+  async function caricaProdotti() {
+    const tbody = document.getElementById('prodottiBody');
+    try {
+      const products = await fetch('/api/products').then(r => r.json());
       if (!products.length) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">📦</div>Nessun prodotto ancora. Aggiungine uno!</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🛒</div>Nessun prodotto. Aggiungine uno!</div></td></tr>`;
         return;
       }
       tbody.innerHTML = products.map(p => `
@@ -608,493 +593,379 @@
           <td class="prod-emoji">${p.emoji || '🏐'}</td>
           <td>
             <div class="prod-nome">${p.nome}</div>
-            <div class="prod-desc">${p.descrizione || '—'}</div>
+            <div class="prod-desc">${p.descrizione || ''}</div>
           </td>
-          <td class="prod-price">€ ${Number(p.prezzo).toFixed(2).replace('.', ',')}</td>
-          <td>
-            <div class="taglie-list">
-              ${(p.taglie || []).map(t => `<span class="taglia-chip">${t}</span>`).join('')}
-            </div>
-          </td>
-          <td>
-            <span class="badge-disponibile ${p.disponibile ? 'si' : 'no'}">
-              <span class="dot"></span>
-              ${p.disponibile ? 'Disponibile' : 'Non disponibile'}
-            </span>
-          </td>
+          <td><strong>€ ${parseFloat(p.prezzo).toFixed(2)}</strong></td>
+          <td>${(p.taglie || []).map(t => `<span class="taglia-chip">${t}</span>`).join('')}</td>
+          <td><span class="badge ${p.disponibile ? 'badge-verde' : 'badge-rosso'}">${p.disponibile ? 'Disponibile' : 'Non disp.'}</span></td>
           <td>
             <div class="azioni">
-              <button class="btn-azione btn-edit" onclick="apriModalModifica('${p.id}')">✏️ Modifica</button>
-              <button class="btn-azione btn-toggle ${p.disponibile ? 'disabilita' : ''}"
-                onclick="toggleDisponibile('${p.id}', ${p.disponibile})">
-                ${p.disponibile ? '🚫 Disabilita' : '✅ Abilita'}
-              </button>
-              <button class="btn-azione btn-delete" onclick="confermaElimina('${p.id}', '${p.nome.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+              <button class="btn-azione btn-edit"   onclick="apriModalProdotto('${p.id}')">✏️ Modifica</button>
+              <button class="btn-azione btn-delete" onclick="eliminaProdotto('${p.id}','${p.nome.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
             </div>
           </td>
         </tr>`).join('');
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore caricamento prodotti.</div></td></tr>`;
     }
+  }
 
-    async function toggleDisponibile(id, attuale) {
-      await authFetch(`/api/admin/products/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ disponibile: !attuale }),
-      });
-      toast(attuale ? '🚫 Prodotto disabilitato' : '✅ Prodotto abilitato');
-      caricaProdotti();
-    }
+  async function apriModalProdotto(id) {
+    prodottoInEditing = id;
+    document.getElementById('modalProdottoTitolo').textContent = id ? 'Modifica prodotto' : 'Nuovo prodotto';
+    taglieSelezionate = new Set(['S','M','L','XL']);
+    document.getElementById('pNome').value        = '';
+    document.getElementById('pEmoji').value       = '🏐';
+    document.getElementById('pDescrizione').value = '';
+    document.getElementById('pPrezzo').value      = '';
+    document.getElementById('pDisponibile').value = 'true';
+    document.getElementById('pImmagine').value    = '';
+    document.getElementById('pImgPreview').style.display = 'none';
+    document.getElementById('pImmagineFile').value = '';
 
-    function confermaElimina(id, nome) {
-      const overlay = document.createElement('div');
-      overlay.className = 'confirm-overlay';
-      overlay.innerHTML = `
-        <div class="confirm-box">
-          <div class="icon">🗑️</div>
-          <h3>Elimina prodotto</h3>
-          <p>Sei sicuro di voler eliminare <strong>${nome}</strong>? L'operazione non è reversibile.</p>
-          <div class="confirm-btns">
-            <button class="btn-conf-si" onclick="eliminaProdotto('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
-            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
-    }
-
-    async function eliminaProdotto(id, overlay) {
-      await authFetch(`/api/admin/products/${id}`, { method: 'DELETE' });
-      overlay.remove();
-      toast('🗑️ Prodotto eliminato');
-      caricaProdotti();
-    }
-
-    /* ══ MODAL ══ */
-    function buildTaglieEditor(selezionate = []) {
-      taglieSelezionate = new Set(selezionate);
-      const el = document.getElementById('taglieEditor');
-      el.innerHTML = TUTTE_TAGLIE.map(t => `
-        <button type="button" class="taglia-toggle ${taglieSelezionate.has(t) ? 'on' : ''}"
-                onclick="toggleTaglia(this,'${t}')">${t}</button>`).join('');
-    }
-
-    function toggleTaglia(btn, taglia) {
-      if (taglieSelezionate.has(taglia)) { taglieSelezionate.delete(taglia); btn.classList.remove('on'); }
-      else                               { taglieSelezionate.add(taglia);    btn.classList.add('on'); }
-    }
-
-    /* ══ TABS ══ */
-    function switchTab(tab, btn) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('attivo'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('attivo'));
-      btn.classList.add('attivo');
-      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('attivo');
-      if (tab === 'notizie')    caricaNotizie();
-      if (tab === 'calendario') caricaCalendario();
-      if (tab === 'utenti')     caricaUtenti();
-    }
-
-    /* ══ FOTO UPLOAD ══ */
-    async function uploadFoto(input, prefix) {
-      const file = input.files[0];
-      if (!file) return;
-      const form = new FormData();
-      form.append('immagine', file);
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token },
-        body: form,
-      });
-      const data = await res.json();
-      if (!res.ok) { toast('⚠️ Upload fallito: ' + data.error); return; }
-      document.getElementById(prefix + 'Immagine').value = data.url;
-      document.getElementById(prefix + 'FotoPreview').innerHTML = `<img src="${data.url}" alt="preview">`;
-      toast('✅ Foto caricata');
-    }
-
-    function resetFotoPreview(prefix) {
-      document.getElementById(prefix + 'Immagine').value = '';
-      document.getElementById(prefix + 'FotoPreview').innerHTML = '<span class="upload-icon">📷</span><span class="upload-label">Clicca per caricare una foto</span>';
-    }
-
-    /* ══ MODAL PRODOTTO ══ */
-    function apriModalNuovoProdotto() {
-      prodottoInEditing = null;
-      document.getElementById('modalTitolo').textContent = 'Nuovo prodotto';
-      document.getElementById('pNome').value = '';
-      document.getElementById('pDescrizione').value = '';
-      document.getElementById('pPrezzo').value = '';
-      document.getElementById('pEmoji').value = '🏐';
-      buildTaglieEditor(['S','M','L','XL']);
-      resetFotoPreview('p');
-      document.getElementById('modalOverlay').classList.add('aperto');
-    }
-
-    async function apriModalModifica(id) {
+    if (id) {
       const products = await fetch('/api/products').then(r => r.json());
       const p = products.find(x => x.id === id);
-      if (!p) return;
-      prodottoInEditing = id;
-      document.getElementById('modalTitolo').textContent = 'Modifica prodotto';
-      document.getElementById('pNome').value = p.nome;
-      document.getElementById('pDescrizione').value = p.descrizione || '';
-      document.getElementById('pPrezzo').value = p.prezzo;
-      document.getElementById('pEmoji').value = p.emoji || '🏐';
-      buildTaglieEditor(p.taglie || []);
-      document.getElementById('pImmagine').value = p.immagine || '';
-      document.getElementById('pFotoPreview').innerHTML = p.immagine
-        ? `<img src="${p.immagine}" alt="foto">`
-        : '<span class="upload-icon">📷</span><span class="upload-label">Clicca per caricare una foto</span>';
-      document.getElementById('modalOverlay').classList.add('aperto');
-    }
-
-    function chiudiModal() { document.getElementById('modalOverlay').classList.remove('aperto'); }
-
-    async function salvaprodotto() {
-      const nome      = document.getElementById('pNome').value.trim();
-      const prezzo    = parseFloat(document.getElementById('pPrezzo').value);
-      const emoji     = document.getElementById('pEmoji').value.trim() || '🏐';
-      const descrizione = document.getElementById('pDescrizione').value.trim();
-      const immagine  = document.getElementById('pImmagine').value;
-
-      if (!nome) { toast('⚠️ Inserisci il nome del prodotto'); return; }
-      if (!prezzo || prezzo < 0.50) { toast('⚠️ Prezzo minimo € 0,50'); return; }
-
-      const body = { nome, descrizione, prezzo, emoji, immagine, taglie: [...taglieSelezionate] };
-      const btn  = document.getElementById('btnSalva');
-      btn.disabled = true; btn.textContent = 'Salvataggio...';
-      try {
-        if (prodottoInEditing) {
-          await authFetch(`/api/admin/products/${prodottoInEditing}`, { method: 'PUT', body: JSON.stringify(body) });
-          toast('✅ Prodotto aggiornato');
-        } else {
-          await authFetch('/api/admin/products', { method: 'POST', body: JSON.stringify(body) });
-          toast('✅ Prodotto aggiunto');
+      if (p) {
+        document.getElementById('pNome').value        = p.nome;
+        document.getElementById('pEmoji').value       = p.emoji || '🏐';
+        document.getElementById('pDescrizione').value = p.descrizione || '';
+        document.getElementById('pPrezzo').value      = p.prezzo;
+        document.getElementById('pDisponibile').value = p.disponibile ? 'true' : 'false';
+        document.getElementById('pImmagine').value    = p.immagine || '';
+        if (p.immagine) {
+          document.getElementById('pImgPreview').src = p.immagine;
+          document.getElementById('pImgPreview').style.display = 'block';
         }
-        chiudiModal();
-        caricaProdotti();
-      } catch (err) {
-        toast('⚠️ Errore: ' + err.message);
-      } finally {
-        btn.disabled = false; btn.textContent = 'Salva prodotto';
+        taglieSelezionate = new Set(p.taglie || ['S','M','L','XL']);
       }
     }
+    renderTaglieEditor();
+    document.getElementById('modalProdotto').classList.add('aperto');
+  }
 
-    document.getElementById('btnSalva').addEventListener('click', salvaprodotto);
+  function renderTaglieEditor() {
+    document.getElementById('taglieEditor').innerHTML = TUTTE_TAGLIE.map(t =>
+      `<button type="button" class="taglia-toggle ${taglieSelezionate.has(t)?'on':''}" onclick="toggleTaglia(this,'${t}')">${t}</button>`
+    ).join('');
+  }
 
-    /* ══ NOTIZIE ══ */
-    let notiziaInEditing = null;
+  function toggleTaglia(btn, t) {
+    if (taglieSelezionate.has(t)) { taglieSelezionate.delete(t); btn.classList.remove('on'); }
+    else { taglieSelezionate.add(t); btn.classList.add('on'); }
+  }
 
-    async function caricaNotizie() {
-      const notizie = await fetch('/api/notizie').then(r => r.json());
-      renderTabellaNews(notizie);
+  async function salvaProdotto() {
+    const nome  = document.getElementById('pNome').value.trim();
+    const prezzo = document.getElementById('pPrezzo').value;
+    if (!nome || !prezzo) { alert('Nome e prezzo sono obbligatori.'); return; }
+    const btn = document.getElementById('btnSalvaProdotto');
+    btn.disabled = true; btn.textContent = 'Salvataggio...';
+    try {
+      let immagine = document.getElementById('pImmagine').value;
+      const uploadUrl = await uploadImmagine('pImmagineFile');
+      if (uploadUrl) immagine = uploadUrl;
+
+      const body = {
+        nome,
+        descrizione: document.getElementById('pDescrizione').value.trim(),
+        prezzo: parseFloat(prezzo),
+        emoji: document.getElementById('pEmoji').value.trim() || '🏐',
+        disponibile: document.getElementById('pDisponibile').value === 'true',
+        taglie: [...taglieSelezionate],
+        immagine,
+      };
+      const url    = prodottoInEditing ? `/api/admin/products/${prodottoInEditing}` : '/api/admin/products';
+      const method = prodottoInEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      chiudiModal('modalProdotto');
+      caricaProdotti();
+    } catch (err) {
+      alert('Errore: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salva';
     }
+  }
 
-    function renderTabellaNews(notizie) {
-      const tbody = document.getElementById('notizieBody');
+  async function eliminaProdotto(id, nome) {
+    if (!confirm(`Eliminare il prodotto "${nome}"?`)) return;
+    const res = await fetch(`/api/admin/products/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaProdotti();
+    else alert('Errore durante l\'eliminazione.');
+  }
+
+  /* ══ NOTIZIE ══ */
+  const COLORI_LABEL = { blu:'Notizia', arancio:'Comunicato', azzurro:'Risultato' };
+  const COLORI_BADGE = { blu:'badge-blu', arancio:'badge-arancio', azzurro:'badge-azzurro' };
+
+  async function caricaNotizie() {
+    const tbody = document.getElementById('notizieBody');
+    try {
+      const notizie = await fetch('/api/notizie').then(r => r.json());
       if (!notizie.length) {
         tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">📰</div>Nessuna notizia. Aggiungine una!</div></td></tr>`;
         return;
       }
-      const colori = { blu:'🔵', arancio:'🟠', azzurro:'🩵' };
       tbody.innerHTML = notizie.map(n => `
         <tr>
-          <td style="font-size:26px">${n.immagine ? `<img src="${n.immagine}" style="width:48px;height:48px;object-fit:cover;border-radius:8px">` : (colori[n.colore] || '🔵')}</td>
+          <td style="font-size:26px;text-align:center;">${n.immagine ? `<img src="${n.immagine}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;">` : (n.colore==='arancio'?'🟠':n.colore==='azzurro'?'🩵':'🔵')}</td>
           <td>
             <div class="prod-nome">${n.titolo}</div>
-            <div class="prod-desc">${n.testo}</div>
+            <div class="prod-desc">${(n.testo||'').slice(0,80)}${(n.testo||'').length>80?'…':''}</div>
           </td>
-          <td style="color:var(--sub);font-size:13px">${n.data || '—'}</td>
-          <td><span style="font-size:18px">${colori[n.colore] || '🔵'} ${n.colore}</span></td>
+          <td><span class="badge ${COLORI_BADGE[n.colore]||'badge-blu'}">${COLORI_LABEL[n.colore]||'Notizia'}</span></td>
+          <td style="color:var(--sub);font-size:13px;">${n.data||'—'}</td>
           <td>
             <div class="azioni">
-              <button class="btn-azione btn-edit"   onclick="apriModalModificaNotizia('${n.id}')">✏️ Modifica</button>
-              <button class="btn-azione btn-delete" onclick="confermaEliminaNotizia('${n.id}', '${n.titolo.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+              <button class="btn-azione btn-edit"   onclick="apriModalNotizia('${n.id}')">✏️ Modifica</button>
+              <button class="btn-azione btn-delete" onclick="eliminaNotizia('${n.id}','${(n.titolo||'').replace(/'/g,"\\'")}')">🗑️ Elimina</button>
             </div>
           </td>
         </tr>`).join('');
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Errore caricamento notizie.</div></td></tr>`;
     }
+  }
 
-    function apriModalNuovaNotizia() {
-      notiziaInEditing = null;
-      document.getElementById('modalNotiziaTitolo').textContent = 'Nuova notizia';
-      document.getElementById('nTitolo').value = '';
-      document.getElementById('nTesto').value = '';
-      document.getElementById('nData').value = new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
-      document.getElementById('nColore').value = 'blu';
-      resetFotoPreview('n');
-      document.getElementById('modalNotiziaOverlay').classList.add('aperto');
-    }
+  async function apriModalNotizia(id) {
+    notiziaInEditing = id;
+    document.getElementById('modalNotiziaTitolo').textContent = id ? 'Modifica notizia' : 'Nuova notizia';
+    document.getElementById('nTitolo').value  = '';
+    document.getElementById('nTesto').value   = '';
+    document.getElementById('nColore').value  = 'blu';
+    document.getElementById('nData').value    = new Date().toISOString().slice(0,10);
+    document.getElementById('nImmagine').value = '';
+    document.getElementById('nImgPreview').style.display = 'none';
+    document.getElementById('nImmagineFile').value = '';
 
-    async function apriModalModificaNotizia(id) {
+    if (id) {
       const notizie = await fetch('/api/notizie').then(r => r.json());
       const n = notizie.find(x => x.id === id);
-      if (!n) return;
-      notiziaInEditing = id;
-      document.getElementById('modalNotiziaTitolo').textContent = 'Modifica notizia';
-      document.getElementById('nTitolo').value  = n.titolo;
-      document.getElementById('nTesto').value   = n.testo;
-      document.getElementById('nData').value    = n.data || '';
-      document.getElementById('nColore').value  = n.colore || 'blu';
-      document.getElementById('nImmagine').value = n.immagine || '';
-      document.getElementById('nFotoPreview').innerHTML = n.immagine
-        ? `<img src="${n.immagine}" alt="foto">`
-        : '<span class="upload-icon">📷</span><span class="upload-label">Clicca per caricare una foto</span>';
-      document.getElementById('modalNotiziaOverlay').classList.add('aperto');
-    }
-
-    function chiudiModalNotizia() { document.getElementById('modalNotiziaOverlay').classList.remove('aperto'); }
-
-    async function salvaNotizia() {
-      const titolo   = document.getElementById('nTitolo').value.trim();
-      const testo    = document.getElementById('nTesto').value.trim();
-      const data     = document.getElementById('nData').value.trim();
-      const colore   = document.getElementById('nColore').value;
-      const immagine = document.getElementById('nImmagine').value;
-
-      if (!titolo || !testo) { toast('⚠️ Titolo e testo obbligatori'); return; }
-
-      const body = { titolo, testo, data, colore, immagine };
-      const btn  = document.getElementById('btnSalvaNotizia');
-      btn.disabled = true; btn.textContent = 'Salvataggio...';
-      try {
-        if (notiziaInEditing) {
-          await authFetch(`/api/admin/notizie/${notiziaInEditing}`, { method: 'PUT', body: JSON.stringify(body) });
-          toast('✅ Notizia aggiornata');
-        } else {
-          await authFetch('/api/admin/notizie', { method: 'POST', body: JSON.stringify(body) });
-          toast('✅ Notizia aggiunta');
+      if (n) {
+        document.getElementById('nTitolo').value  = n.titolo;
+        document.getElementById('nTesto').value   = n.testo;
+        document.getElementById('nColore').value  = n.colore || 'blu';
+        document.getElementById('nData').value    = n.data ? isoDate(n.data) : '';
+        document.getElementById('nImmagine').value = n.immagine || '';
+        if (n.immagine) {
+          document.getElementById('nImgPreview').src = n.immagine;
+          document.getElementById('nImgPreview').style.display = 'block';
         }
-        chiudiModalNotizia();
-        caricaNotizie();
-      } catch (err) {
-        toast('⚠️ Errore: ' + err.message);
-      } finally {
-        btn.disabled = false; btn.textContent = 'Salva notizia';
       }
     }
+    document.getElementById('modalNotizia').classList.add('aperto');
+  }
 
-    document.getElementById('btnSalvaNotizia').addEventListener('click', salvaNotizia);
+  function isoDate(d) {
+    // Converte "15 aprile 2026" o "2026-04-15" in "2026-04-15"
+    if (!d) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    try {
+      const p = new Date(d);
+      if (!isNaN(p)) return p.toISOString().slice(0,10);
+    } catch {}
+    return '';
+  }
 
-    function confermaEliminaNotizia(id, titolo) {
-      const overlay = document.createElement('div');
-      overlay.className = 'confirm-overlay';
-      overlay.innerHTML = `
-        <div class="confirm-box">
-          <div class="icon">🗑️</div>
-          <h3>Elimina notizia</h3>
-          <p>Sei sicuro di voler eliminare <strong>${titolo}</strong>?</p>
-          <div class="confirm-btns">
-            <button class="btn-conf-si" onclick="eliminaNotizia('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
-            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
-    }
+  async function salvaNotizia() {
+    const titolo = document.getElementById('nTitolo').value.trim();
+    const testo  = document.getElementById('nTesto').value.trim();
+    if (!titolo || !testo) { alert('Titolo e testo sono obbligatori.'); return; }
+    const btn = document.getElementById('btnSalvaNotizia');
+    btn.disabled = true; btn.textContent = 'Salvataggio...';
+    try {
+      let immagine = document.getElementById('nImmagine').value;
+      const uploadUrl = await uploadImmagine('nImmagineFile');
+      if (uploadUrl) immagine = uploadUrl;
 
-    async function eliminaNotizia(id, overlay) {
-      await authFetch(`/api/admin/notizie/${id}`, { method: 'DELETE' });
-      overlay.remove();
-      toast('🗑️ Notizia eliminata');
+      const dataVal = document.getElementById('nData').value;
+      const dataFmt = dataVal
+        ? new Date(dataVal+'T12:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' })
+        : '';
+
+      const body = { titolo, testo, colore: document.getElementById('nColore').value, data: dataFmt, immagine };
+      const url    = notiziaInEditing ? `/api/admin/notizie/${notiziaInEditing}` : '/api/admin/notizie';
+      const method = notiziaInEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      chiudiModal('modalNotizia');
       caricaNotizie();
+    } catch (err) {
+      alert('Errore: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salva';
     }
+  }
 
-    /* ══ UTENTI ══ */
-    async function caricaUtenti() {
-      const res = await authFetch('/api/admin/users');
-      if (!res.ok) { toast('⚠️ Accesso non autorizzato'); return; }
-      const users = await res.json();
-      const tbody = document.getElementById('utentiBody');
-      if (!users.length) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div>Nessun utente registrato.</div></td></tr>`;
-        return;
-      }
-      const roleLabel = { user: 'Utente', dirigente: 'Dirigente', admin: 'Admin' };
-      tbody.innerHTML = users.map(u => `
-        <tr>
-          <td><div class="prod-nome">${u.nome} ${u.cognome}</div></td>
-          <td style="color:var(--sub);font-size:13px">${u.email}</td>
-          <td><span class="badge-ruolo ${u.role || 'user'}">${roleLabel[u.role || 'user'] || u.role}</span></td>
-          <td style="color:var(--sub);font-size:12px">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('it-IT') : '—'}</td>
-          <td>
-            <div class="azioni">
-              <select class="role-select" onchange="cambiaRuolo('${u.id}', this.value)">
-                <option value="user"       ${(u.role||'user')==='user'       ? 'selected' : ''}>👤 Utente</option>
-                <option value="dirigente"  ${(u.role||'user')==='dirigente'  ? 'selected' : ''}>🏅 Dirigente</option>
-                <option value="admin"      ${(u.role||'user')==='admin'      ? 'selected' : ''}>🔐 Admin</option>
-              </select>
-              <button class="btn-azione btn-delete" onclick="confermaEliminaUtente('${u.id}', '${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')">🗑️</button>
-            </div>
-          </td>
-        </tr>`).join('');
-    }
+  async function eliminaNotizia(id, titolo) {
+    if (!confirm(`Eliminare la notizia "${titolo}"?`)) return;
+    const res = await fetch(`/api/admin/notizie/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaNotizie();
+    else alert('Errore durante l\'eliminazione.');
+  }
 
-    async function cambiaRuolo(id, role) {
-      const res = await authFetch(`/api/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) });
-      if (!res.ok) { toast('⚠️ Errore cambio ruolo'); return; }
-      toast('✅ Ruolo aggiornato');
-      caricaUtenti();
-    }
+  /* ══ CALENDARIO ══ */
+  function parseOraInizio(ora) {
+    if (!ora) return '18:00';
+    return ora.includes('–') ? ora.split('–')[0].trim() : (ora.includes('-') ? ora.split('-')[0].trim() : ora);
+  }
+  function parseOraFine(ora) {
+    if (!ora) return '';
+    if (ora.includes('–')) return ora.split('–')[1]?.trim() || '';
+    if (ora.includes('-')) return ora.split('-')[1]?.trim() || '';
+    return '';
+  }
 
-    function confermaEliminaUtente(id, nome) {
-      const overlay = document.createElement('div');
-      overlay.className = 'confirm-overlay';
-      overlay.innerHTML = `
-        <div class="confirm-box">
-          <div class="icon">🗑️</div>
-          <h3>Elimina utente</h3>
-          <p>Sei sicuro di voler eliminare <strong>${nome}</strong>?</p>
-          <div class="confirm-btns">
-            <button class="btn-conf-si" onclick="eliminaUtente('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
-            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
-    }
-
-    async function eliminaUtente(id, overlay) {
-      await authFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-      overlay.remove();
-      toast('🗑️ Utente eliminato');
-      caricaUtenti();
-    }
-
-    /* ══ CALENDARIO ══ */
-    let sessioneInEditing = null;
-
-    async function caricaCalendario() {
+  async function caricaCalendario() {
+    const tbody = document.getElementById('calendarioBody');
+    try {
       const sessions = await fetch('/api/calendario').then(r => r.json());
-      const tbody = document.getElementById('calendarioBody');
       if (!sessions.length) {
         tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">📅</div>Nessuna sessione. Aggiungine una!</div></td></tr>`;
         return;
       }
       tbody.innerHTML = sessions.map(s => `
         <tr>
-          <td style="font-weight:700;white-space:nowrap">${s.data ? new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'}) : '—'}</td>
-          <td style="font-weight:700">${s.ora || '—'}</td>
+          <td style="font-weight:700;white-space:nowrap;">${s.data ? new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
+          <td style="white-space:nowrap;">${s.ora || '—'}</td>
           <td>
             <div class="prod-nome">${s.titolo}</div>
             ${s.note ? `<div class="prod-desc">${s.note}</div>` : ''}
           </td>
-          <td style="color:var(--sub);font-size:13px">${s.luogo || '—'}</td>
-          <td style="color:var(--sub);font-size:13px">${s.categoria || '—'}</td>
+          <td style="color:var(--sub);font-size:13px;">${s.luogo || '—'}</td>
+          <td style="color:var(--sub);font-size:13px;">${s.categoria || '—'}</td>
           <td>
             <div class="azioni">
-              <button class="btn-azione btn-edit"   onclick="apriModalModificaSessione('${s.id}')">✏️ Modifica</button>
-              <button class="btn-azione btn-delete" onclick="confermaEliminaSessione('${s.id}', '${s.titolo.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+              <button class="btn-azione btn-edit"   onclick="apriModalSessione('${s.id}')">✏️ Modifica</button>
+              <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">🗑️ Elimina</button>
             </div>
           </td>
         </tr>`).join('');
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore caricamento calendario.</div></td></tr>`;
     }
+  }
 
-    function parseOraAdminInizio(ora) {
-      if (!ora) return '18:00';
-      const sep = ora.includes('–') ? '–' : '-';
-      return ora.split(sep)[0].trim();
-    }
-    function parseOraAdminFine(ora) {
-      if (!ora) return '20:00';
-      const sep = ora.includes('–') ? '–' : '-';
-      const p = ora.split(sep);
-      return p[1] ? p[1].trim() : '';
-    }
+  async function apriModalSessione(id) {
+    sessioneInEditing = id;
+    document.getElementById('modalSessioneTitolo').textContent = id ? 'Modifica sessione' : 'Nuova sessione';
+    document.getElementById('sTitolo').value    = '';
+    document.getElementById('sData').value      = new Date().toISOString().slice(0,10);
+    document.getElementById('sOraInizio').value = '18:00';
+    document.getElementById('sOraFine').value   = '20:00';
+    document.getElementById('sLuogo').value     = '';
+    document.getElementById('sCategoria').value = '';
+    document.getElementById('sNote').value      = '';
 
-    function apriModalNuovaSessione() {
-      sessioneInEditing = null;
-      document.getElementById('modalSessioneTitolo').textContent = 'Nuova sessione';
-      document.getElementById('seTitolo').value      = '';
-      document.getElementById('seData').value        = new Date().toISOString().slice(0,10);
-      document.getElementById('seOraInizio').value   = '18:00';
-      document.getElementById('seOraFine').value     = '20:00';
-      document.getElementById('seLuogo').value       = '';
-      document.getElementById('seCategoria').value   = '';
-      document.getElementById('seNote').value        = '';
-      document.getElementById('modalSessioneOverlay').classList.add('aperto');
-    }
-
-    async function apriModalModificaSessione(id) {
+    if (id) {
       const sessions = await fetch('/api/calendario').then(r => r.json());
       const s = sessions.find(x => x.id === id);
-      if (!s) return;
-      sessioneInEditing = id;
-      document.getElementById('modalSessioneTitolo').textContent = 'Modifica sessione';
-      document.getElementById('seTitolo').value      = s.titolo;
-      document.getElementById('seData').value        = s.data;
-      document.getElementById('seOraInizio').value   = parseOraAdminInizio(s.ora);
-      document.getElementById('seOraFine').value     = parseOraAdminFine(s.ora);
-      document.getElementById('seLuogo').value       = s.luogo || '';
-      document.getElementById('seCategoria').value   = s.categoria || '';
-      document.getElementById('seNote').value        = s.note || '';
-      document.getElementById('modalSessioneOverlay').classList.add('aperto');
-    }
-
-    function chiudiModalSessione() { document.getElementById('modalSessioneOverlay').classList.remove('aperto'); }
-
-    async function salvaSessione() {
-      const titolo    = document.getElementById('seTitolo').value.trim();
-      const data      = document.getElementById('seData').value;
-      const inizio    = document.getElementById('seOraInizio').value;
-      const fine      = document.getElementById('seOraFine').value;
-      const ora       = fine ? `${inizio}–${fine}` : inizio;
-      const luogo     = document.getElementById('seLuogo').value.trim();
-      const categoria = document.getElementById('seCategoria').value.trim();
-      const note      = document.getElementById('seNote').value.trim();
-      if (!titolo || !data || !inizio) { toast('⚠️ Titolo, data e orario obbligatori'); return; }
-      const body = { titolo, data, ora, luogo, categoria, note };
-      const btn  = document.getElementById('btnSalvaSessione');
-      btn.disabled = true; btn.textContent = 'Salvataggio...';
-      try {
-        if (sessioneInEditing) {
-          await authFetch(`/api/calendario/${sessioneInEditing}`, { method: 'PUT', body: JSON.stringify(body) });
-          toast('✅ Sessione aggiornata');
-        } else {
-          await authFetch('/api/calendario', { method: 'POST', body: JSON.stringify(body) });
-          toast('✅ Sessione aggiunta');
-        }
-        chiudiModalSessione();
-        caricaCalendario();
-      } catch (err) {
-        toast('⚠️ Errore: ' + err.message);
-      } finally {
-        btn.disabled = false; btn.textContent = 'Salva sessione';
+      if (s) {
+        document.getElementById('sTitolo').value    = s.titolo;
+        document.getElementById('sData').value      = s.data || '';
+        document.getElementById('sOraInizio').value = parseOraInizio(s.ora);
+        document.getElementById('sOraFine').value   = parseOraFine(s.ora);
+        document.getElementById('sLuogo').value     = s.luogo || '';
+        document.getElementById('sCategoria').value = s.categoria || '';
+        document.getElementById('sNote').value      = s.note || '';
       }
     }
+    document.getElementById('modalSessione').classList.add('aperto');
+  }
 
-    document.getElementById('btnSalvaSessione').addEventListener('click', salvaSessione);
-
-    function confermaEliminaSessione(id, titolo) {
-      const overlay = document.createElement('div');
-      overlay.className = 'confirm-overlay';
-      overlay.innerHTML = `
-        <div class="confirm-box">
-          <div class="icon">🗑️</div>
-          <h3>Elimina sessione</h3>
-          <p>Sei sicuro di voler eliminare <strong>${titolo}</strong>?</p>
-          <div class="confirm-btns">
-            <button class="btn-conf-si" onclick="eliminaSessione('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
-            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
-          </div>
-        </div>`;
-      document.body.appendChild(overlay);
-    }
-
-    async function eliminaSessione(id, overlay) {
-      await authFetch(`/api/calendario/${id}`, { method: 'DELETE' });
-      overlay.remove();
-      toast('🗑️ Sessione eliminata');
+  async function salvaSessione() {
+    const titolo = document.getElementById('sTitolo').value.trim();
+    const data   = document.getElementById('sData').value;
+    const inizio = document.getElementById('sOraInizio').value;
+    const fine   = document.getElementById('sOraFine').value;
+    if (!titolo || !data || !inizio) { alert('Titolo, data e orario di inizio sono obbligatori.'); return; }
+    const ora = fine ? `${inizio}–${fine}` : inizio;
+    const btn = document.getElementById('btnSalvaSessione');
+    btn.disabled = true; btn.textContent = 'Salvataggio...';
+    try {
+      const body = { titolo, data, ora, luogo: document.getElementById('sLuogo').value.trim(), categoria: document.getElementById('sCategoria').value, note: document.getElementById('sNote').value.trim() };
+      const url    = sessioneInEditing ? `/api/calendario/${sessioneInEditing}` : '/api/calendario';
+      const method = sessioneInEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      chiudiModal('modalSessione');
       caricaCalendario();
+    } catch (err) {
+      alert('Errore: ' + err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salva';
     }
+  }
 
-    /* ══ TOAST ══ */
-    function toast(msg) {
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.classList.add('visibile');
-      setTimeout(() => t.classList.remove('visibile'), 3000);
+  async function eliminaSessione(id, titolo) {
+    if (!confirm(`Eliminare la sessione "${titolo}"?`)) return;
+    const res = await fetch(`/api/calendario/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaCalendario();
+    else alert('Errore durante l\'eliminazione.');
+  }
+
+  /* ══ UTENTI ══ */
+  async function caricaUtenti() {
+    const tbody = document.getElementById('utentiBody');
+    try {
+      const users = await fetch('/api/admin/users', { headers: headers() }).then(r => r.json());
+      if (!users.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">👥</div>Nessun utente registrato.</div></td></tr>`;
+        return;
+      }
+      const roleLabel = { user:'Utente', dirigente:'Dirigente', admin:'Admin' };
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>
+            <div class="prod-nome">${u.nome} ${u.cognome}</div>
+          </td>
+          <td style="color:var(--sub);font-size:13px;">${u.email}</td>
+          <td>
+            <select class="role-select" onchange="cambiaRuolo('${u.id}',this.value)">
+              <option value="user"      ${u.role==='user'      ?'selected':''}>Utente</option>
+              <option value="dirigente" ${u.role==='dirigente' ?'selected':''}>Dirigente</option>
+              <option value="admin"     ${u.role==='admin'     ?'selected':''}>Admin</option>
+            </select>
+          </td>
+          <td class="notif-badge">${u.notifiche ? '🔔 Attive' : '🔕 Off'}</td>
+          <td style="color:var(--sub);font-size:13px;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : '—'}</td>
+          <td>
+            <button class="btn-azione btn-delete" onclick="eliminaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+          </td>
+        </tr>`).join('');
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore caricamento utenti.</div></td></tr>`;
     }
+  }
 
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { chiudiModal(); chiudiModalNotizia(); chiudiModalSessione(); }
-    });
-  </script>
+  async function cambiaRuolo(id, role) {
+    const res = await fetch(`/api/admin/users/${id}/role`, { method:'PUT', headers: headers(), body: JSON.stringify({ role }) });
+    if (!res.ok) { alert('Errore aggiornamento ruolo.'); caricaUtenti(); }
+  }
 
+  async function eliminaUtente(id, nome) {
+    if (!confirm(`Eliminare l'utente "${nome}"?`)) return;
+    const res = await fetch(`/api/admin/users/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaUtenti();
+    else alert('Errore durante l\'eliminazione.');
+  }
+
+  /* ══ INIT ══ */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') doLogin();
+  });
+
+  // Chiudi modal cliccando l'overlay
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('aperto'); });
+  });
+
+  if (TOKEN) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('hdrUser').textContent = 'Admin';
+    caricaTutto();
+  }
+</script>
 </body>
 </html>

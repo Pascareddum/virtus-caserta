@@ -166,8 +166,8 @@
     }
 
     .nav-social a:hover { opacity: 0.8; transform: scale(1.1); }
-    .nav-social .s-fb { background: #1877f2; font-family: Arial, sans-serif; font-size: 16px; }
-    .nav-social .s-ig { background: linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%); }
+    .nav-social .s-fb, .nav-social .s-ig { background: none; }
+    .nav-social a img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
     /* ─── MODAL LOGIN / REGISTRAZIONE ─── */
     .modal-overlay {
@@ -570,6 +570,10 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.07);
       transition: transform 0.2s, box-shadow 0.2s;
       background: var(--bianco);
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
     }
 
     .notizia-card:hover {
@@ -1244,8 +1248,8 @@
     }
 
     .footer-social a:hover { opacity: 0.8; }
-    .footer-social .ig-btn { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); }
-    .footer-social .fb-btn { background: #1877f2; color: #fff; font-weight: 900; font-size: 17px; font-family: Arial, sans-serif; }
+    .footer-social .ig-btn, .footer-social .fb-btn { background: none; }
+    .footer-social a img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
     .footer-links { text-align: right; display: flex; flex-direction: column; gap: 8px; }
 
@@ -1341,7 +1345,6 @@
     <ul class="nav-menu">
       <li><a href="chiSiamo.html">Chi siamo</a></li>
       <li><a href="notizie.html">Notizie</a></li>
-      <li id="navAdminLink" style="display:none"><a href="admin.html">Gestione</a></li>
     </ul>
 
     <!-- Centro: logo -->
@@ -1355,8 +1358,8 @@
         <li><a href="shop.html">Shop</a></li>
       </ul>
       <div class="nav-social" style="margin-left:auto;">
-        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook">f</a>
-        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram">📸</a>
+        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook"><img src="facebook-icon.png" alt="Facebook"></a>
+        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram"><img src="instagram-icon.png" alt="Instagram"></a>
       </div>
     </div>
   </nav>
@@ -1516,7 +1519,7 @@
   <section id="instagram">
     <div class="container">
       <div class="instagram-header">
-        <div class="instagram-logo">📸</div>
+        <div class="instagram-logo"><img src="instagram-icon.png" alt="Instagram" style="width:30px;height:30px;object-fit:contain;"></div>
         <div class="instagram-header-testo">
           <h2>Instagram</h2>
           <span>@virtuscaserta</span>
@@ -1567,7 +1570,7 @@
             </div>
           </div>
           <div class="contatto-item">
-            <div class="contatto-icona" style="background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);">📸</div>
+            <div class="contatto-icona" style="padding:6px;"><img src="instagram-icon.png" alt="Instagram" style="width:100%;height:100%;object-fit:contain;display:block;"></div>
             <div class="contatto-testo">
               <strong>Instagram</strong>
               <span><a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.65);text-decoration:underline;">@virtuscaserta</a></span>
@@ -1662,8 +1665,8 @@
           <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
         </div>
         <div class="footer-social">
-          <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="fb-btn" title="Facebook">f</a>
-          <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram">📸</a>
+          <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="fb-btn" title="Facebook"><img src="facebook-icon.png" alt="Facebook"></a>
+          <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram"><img src="instagram-icon.png" alt="Instagram"></a>
         </div>
       </div>
 
@@ -1753,7 +1756,7 @@
         }
         _carouselTotal = notizie.length;
         track.innerHTML = notizie.map(n => `
-          <div class="notizia-card">
+          <a class="notizia-card" href="notizie.html#notizia-${n.id}">
             <div class="notizia-img ${n.colore || 'blu'}">
               ${n.immagine ? `<img src="${n.immagine}" alt="${n.titolo}">` : `<span style="font-size:48px">${coloreEmoji(n.colore)}</span>`}
             </div>
@@ -1762,7 +1765,7 @@
               <h3>${n.titolo}</h3>
               <p>${n.testo}</p>
             </div>
-          </div>`).join('');
+          </a>`).join('');
 
         if (_carouselTotal > 1) {
           nav.style.display = 'flex';
@@ -1910,7 +1913,7 @@
 
         const avatarEl = data.avatar
           ? `<img src="/api/proxy-image?url=${encodeURIComponent(data.avatar)}" class="ig-avatar-inner" alt="${data.username}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-          : `<div class="ig-avatar-inner">📸</div>`;
+          : `<div class="ig-avatar-inner" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);border-radius:50%;"><img src="instagram-icon.png" style="width:55%;height:55%;object-fit:contain;" alt="Instagram"></div>`;
 
         const profileBarHtml = `
           <div class="ig-profile-bar">
@@ -1947,7 +1950,7 @@
             <div class="ig-posts-grid">${postsHtml}</div>
             <div style="text-align:center">
               <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="btn-ig">
-                📸 Seguici su Instagram
+                <img src="instagram-icon.png" style="height:17px;vertical-align:middle;margin-right:7px;"> Seguici su Instagram
               </a>
             </div>`;
         } else {
@@ -1965,14 +1968,14 @@
             <div class="ig-posts-grid">${placeholders}</div>
             <div style="text-align:center">
               <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="btn-ig">
-                📸 Seguici su Instagram
+                <img src="instagram-icon.png" style="height:17px;vertical-align:middle;margin-right:7px;"> Seguici su Instagram
               </a>
             </div>`;
         }
       } catch {
         document.getElementById('igContent').innerHTML = `
           <div class="ig-no-session">
-            <div class="ig-big-icon">📸</div>
+            <div class="ig-big-icon"><img src="instagram-icon.png" style="width:64px;height:64px;object-fit:contain;" alt="Instagram"></div>
             <p>Avvia il server Node.js per caricare i post Instagram.</p>
             <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="btn-ig">
               Visita @virtuscaserta su Instagram
@@ -1988,8 +1991,6 @@
       const nome  = localStorage.getItem('vc_nome');
       const isGest = role === 'admin' || role === 'dirigente';
 
-      // navbar admin link
-      document.getElementById('navAdminLink').style.display = (token && isGest) ? '' : 'none';
       // bottone calendario (solo iscritti)
       const btnCal = document.getElementById('btnCalendario');
       if (btnCal) btnCal.style.display = token ? '' : 'none';
@@ -2037,7 +2038,6 @@
         localStorage.setItem('vc_nome',  data.nome);
         chiudiModal();
         aggiornaNavbar();
-        if (data.role === 'admin') window.location.href = 'admin.html';
       } catch {
         document.getElementById('loginError').textContent = 'Errore di rete. Riprova.';
       }
