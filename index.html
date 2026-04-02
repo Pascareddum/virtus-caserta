@@ -1373,9 +1373,10 @@
 
   <!-- NAVBAR -->
   <nav>
-    <!-- Sinistra: Chi siamo + altri link -->
+    <!-- Sinistra: Chi siamo + Notizie + altri link -->
     <ul class="nav-menu">
       <li><a href="chiSiamo.html">Chi siamo</a></li>
+      <li><a href="notizie.html">Notizie</a></li>
       <li id="navAdminLink" style="display:none"><a href="admin.html">Gestione</a></li>
     </ul>
 
@@ -2149,6 +2150,59 @@
     loadInstagram();
 
     aggiornaNavbar();
+
+    /* ── NOTIFICHE PARTITE IN CASA ── */
+    async function inizializzaNotifiche() {
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+
+      // Registra service worker
+      let reg;
+      try {
+        reg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+      } catch { return; }
+
+      // Chiedi permesso solo se non ancora deciso
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      if (Notification.permission !== 'granted') return;
+
+      // Carica partite
+      let partite = [];
+      try { partite = await fetch('/api/partite').then(r => r.json()); } catch { return; }
+
+      const notificate = JSON.parse(localStorage.getItem('vc_notificate') || '[]');
+      const now = Date.now();
+
+      partite.forEach(m => {
+        if (m.played || !m.timestamp) return;
+        if (!isVirtus(m.casa)) return;            // solo partite in casa
+        if (notificate.includes(m.id)) return;    // già pianificata
+
+        const matchMs  = m.timestamp;             // già in ms dal server
+        const notifyMs = matchMs - 60 * 60 * 1000; // 1 ora prima
+        const delay    = notifyMs - now;
+
+        if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) { // entro 7 giorni
+          const sw = reg.active || reg.waiting || reg.installing;
+          if (sw) {
+            sw.postMessage({
+              type:  'SCHEDULE_NOTIFICATION',
+              title: '🏐 Partita in casa tra 1 ora!',
+              body:  `${m.casa} vs ${m.ospite} – ${m.dataOra}`,
+              delay,
+              tag:   'partita-' + m.id,
+            });
+            notificate.push(m.id);
+          }
+        }
+      });
+
+      localStorage.setItem('vc_notificate', JSON.stringify(notificate));
+    }
+
+    inizializzaNotifiche();
 
     /* ── SELETTORE LUOGHI ── */
     function selezionaLuogo(idx) {

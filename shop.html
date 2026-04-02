@@ -435,11 +435,19 @@
     .prod-card .taglie { gap: 6px; }
     .prod-card .taglia-btn { width: 40px; height: 40px; font-size: 12px; }
 
+    .cart-label { }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .product-grid { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
       .cart-drawer { width: 100%; }
+    }
+    @media (max-width: 520px) {
+      nav { padding: 0 14px; }
+      .nav-back { display: none; }
+      .cart-btn { padding: 10px 14px; font-size: 13px; letter-spacing: 0; }
+      .cart-label { display: none; }
     }
   </style>
 </head>
@@ -449,15 +457,11 @@
   <nav>
     <a href="index.html" class="nav-logo">
       <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
-      <div class="nav-logo-testo">
-        <span>Virtus</span>
-        <span>Caserta</span>
-      </div>
     </a>
     <div class="nav-right">
       <a href="index.html" class="nav-back">← Sito principale</a>
       <button class="cart-btn" onclick="apriCarrello()">
-        🛒 Carrello
+        🛒 <span class="cart-label">Carrello</span>
         <span class="cart-count" id="cartCount">0</span>
       </button>
     </div>

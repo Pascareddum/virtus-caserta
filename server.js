@@ -427,6 +427,9 @@ app.post('/api/send-order-email', async (req, res) => {
 });
 
 /* ─── Instagram API ─── */
+const IG_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 ore
+let igCache = null; // { data, ts }
+
 async function fetchInstagramCookies() {
   const r = await fetch('https://www.instagram.com/', {
     headers: {
@@ -451,7 +454,7 @@ function buildCookieString(publicCookies, sessionId) {
   return Object.entries(all).map(([k, v]) => `${k}=${v}`).join('; ');
 }
 
-app.get('/api/instagram', async (req, res) => {
+app.get('/api/instagram', async (_req, res) => {
   if (!INSTAGRAM_SESSION_ID) {
     return res.json({
       source: 'static',
@@ -460,6 +463,12 @@ app.get('/api/instagram', async (req, res) => {
       message: 'Configura INSTAGRAM_SESSION_ID nel file .env per mostrare i post reali.',
       recentPosts: [],
     });
+  }
+
+  // Servi dalla cache se ancora valida
+  if (igCache && (Date.now() - igCache.ts) < IG_CACHE_TTL) {
+    console.log('[Instagram] Risposta dalla cache');
+    return res.json(igCache.data);
   }
 
   try {
@@ -519,7 +528,7 @@ app.get('/api/instagram', async (req, res) => {
       isVideo:   item.media_type === 2,
     }));
 
-    return res.json({
+    const result = {
       source:    'instagram_api',
       username:  user.username,
       fullName:  user.full_name,
@@ -529,10 +538,20 @@ app.get('/api/instagram', async (req, res) => {
       posts:     user.edge_owner_to_timeline_media?.count || 0,
       avatar:    user.profile_pic_url_hd || user.profile_pic_url,
       recentPosts: posts,
-    });
+    };
+
+    igCache = { data: result, ts: Date.now() };
+    return res.json(result);
 
   } catch (err) {
     console.log('[Instagram] Errore:', err.message);
+
+    // Se abbiamo una cache scaduta, meglio servirla che restituire vuoto
+    if (igCache) {
+      console.log('[Instagram] Servendo cache scaduta dopo errore');
+      return res.json({ ...igCache.data, cached: true });
+    }
+
     return res.json({
       source: 'static',
       username: INSTAGRAM_USERNAME,
