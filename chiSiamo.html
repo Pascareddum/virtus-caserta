@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chi siamo – Virtus Caserta</title>
+  <style>
+    :root {
+      --blu-scuro:  #0d2055;
+      --blu-medio:  #1535a8;
+      --blu-chiaro: #2a68d4;
+      --arancio:    #f57c00;
+      --arancio-chiaro: #ff9800;
+      --bianco:     #ffffff;
+      --grigio:     #f1f5f9;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { font-family:'Segoe UI',Arial,sans-serif; background:var(--grigio); color:#222; }
+
+    /* ── NAV ── */
+    nav {
+      position:fixed; top:0; left:0; width:100%; z-index:1000;
+      background:var(--blu-scuro);
+      box-shadow:0 2px 16px rgba(0,0,0,0.35);
+      display:flex; align-items:center;
+      height:76px; padding:0 40px; gap:0;
+    }
+
+    .nav-brand { display:flex; align-items:center; text-decoration:none; flex-shrink:0; }
+    .nav-brand img { height:50px; width:auto; object-fit:contain; display:block; }
+
+    .nav-menu {
+      display:flex; align-items:center; gap:36px;
+      list-style:none; flex:1; justify-content:center;
+    }
+
+    .nav-menu a {
+      text-decoration:none; color:rgba(255,255,255,0.82);
+      font-size:14px; font-weight:600; letter-spacing:1.5px;
+      text-transform:uppercase; padding:4px 0;
+      position:relative; transition:color 0.2s; white-space:nowrap;
+    }
+
+    .nav-menu a::after {
+      content:''; position:absolute; bottom:-2px; left:0;
+      width:0; height:2px; background:var(--arancio);
+      transition:width 0.25s ease;
+    }
+
+    .nav-menu a:hover, .nav-menu a.attivo { color:#fff; }
+    .nav-menu a:hover::after, .nav-menu a.attivo::after { width:100%; }
+
+    .nav-actions { display:flex; align-items:center; gap:14px; flex-shrink:0; }
+
+    .nav-social { display:flex; align-items:center; gap:10px; }
+    .nav-social a {
+      width:34px; height:34px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      text-decoration:none; font-size:15px; font-weight:900;
+      color:#fff; transition:opacity 0.2s, transform 0.15s;
+    }
+    .nav-social a:hover { opacity:0.8; transform:scale(1.1); }
+    .nav-social .s-fb { background:#1877f2; font-family:Arial,sans-serif; font-size:16px; }
+    .nav-social .s-ig { background:linear-gradient(45deg,#f09433 0%,#dc2743 50%,#bc1888 100%); }
+
+    /* ── HERO ── */
+    .hero {
+      background:linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
+      padding:140px 24px 80px;
+      text-align:center; color:#fff;
+    }
+    .hero h1 { font-size:clamp(32px,6vw,54px); font-weight:900; letter-spacing:3px; text-transform:uppercase; margin-bottom:12px; }
+    .hero p  { font-size:18px; color:rgba(255,255,255,0.75); max-width:560px; margin:0 auto; }
+
+    /* ── LAYOUT ── */
+    .container { max-width:1100px; margin:0 auto; padding:0 24px; }
+
+    section { padding:80px 0; }
+
+    .sezione-titolo { text-align:center; margin-bottom:56px; }
+    .etichetta {
+      display:inline-block; background:var(--arancio); color:#fff;
+      font-size:11px; font-weight:700; letter-spacing:3px;
+      text-transform:uppercase; padding:5px 16px; border-radius:20px; margin-bottom:14px;
+    }
+    .sezione-titolo h2 { font-size:clamp(26px,5vw,38px); font-weight:900; color:var(--blu-scuro); letter-spacing:2px; text-transform:uppercase; }
+    .sezione-titolo p  { margin-top:12px; font-size:16px; color:#555; max-width:560px; margin-left:auto; margin-right:auto; }
+
+    /* ── MISSIONE ── */
+    #missione { background:var(--bianco); }
+    .missione-grid {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:60px; align-items:center;
+    }
+    .missione-testo h3 { font-size:26px; font-weight:800; color:var(--blu-scuro); margin-bottom:18px; text-transform:uppercase; }
+    .missione-testo p  { font-size:16px; color:#555; line-height:1.8; margin-bottom:14px; }
+
+    /* ── STATS ── */
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .stat-card {
+      background:linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
+      border-radius:16px; padding:28px 20px; text-align:center; color:#fff;
+    }
+    .stat-card .numero {
+      font-size:42px; font-weight:900; color:var(--arancio-chiaro); line-height:1;
+    }
+    .stat-card .label {
+      font-size:13px; color:rgba(255,255,255,0.7); text-transform:uppercase; letter-spacing:1px; margin-top:6px;
+    }
+
+    .stats-grid.animata .stat-card { animation:statEntra 0.6s ease both; }
+    .stats-grid.animata .stat-card:nth-child(1) { animation-delay:0s; }
+    .stats-grid.animata .stat-card:nth-child(2) { animation-delay:0.12s; }
+    .stats-grid.animata .stat-card:nth-child(3) { animation-delay:0.24s; }
+    .stats-grid.animata .stat-card:nth-child(4) { animation-delay:0.36s; }
+    @keyframes statEntra {
+      from { opacity:0; transform:translateY(24px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── VALORI ── */
+    #valori { background:var(--grigio); }
+    .valori-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:24px; }
+    .valore-card {
+      background:var(--bianco); border-radius:18px; padding:32px 24px;
+      text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.06);
+      transition:transform 0.2s, box-shadow 0.2s;
+    }
+    .valore-card:hover { transform:translateY(-6px); box-shadow:0 12px 36px rgba(0,0,0,0.1); }
+    .valore-icona { font-size:36px; margin-bottom:14px; }
+    .valore-card h3 { font-size:16px; font-weight:800; color:var(--blu-scuro); text-transform:uppercase; margin-bottom:8px; }
+    .valore-card p  { font-size:14px; color:#666; line-height:1.6; }
+
+    /* ── STORIA ── */
+    #storia { background:var(--bianco); }
+    .storia-timeline { display:flex; flex-direction:column; gap:0; max-width:680px; margin:0 auto; }
+    .storia-item {
+      display:flex; gap:24px; padding-bottom:36px;
+      border-left:3px solid var(--blu-scuro); padding-left:28px; position:relative;
+    }
+    .storia-item::before {
+      content:''; position:absolute; left:-9px; top:4px;
+      width:15px; height:15px; border-radius:50%;
+      background:var(--arancio); border:3px solid var(--bianco);
+      box-shadow:0 0 0 3px var(--blu-scuro);
+    }
+    .storia-anno {
+      font-size:13px; font-weight:900; color:var(--arancio);
+      letter-spacing:2px; text-transform:uppercase; min-width:54px; padding-top:2px;
+    }
+    .storia-testo h4 { font-size:15px; font-weight:800; color:var(--blu-scuro); margin-bottom:4px; }
+    .storia-testo p  { font-size:14px; color:#666; line-height:1.6; }
+
+    /* ── CTA ── */
+    .cta-section {
+      background:linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
+      padding:80px 24px; text-align:center;
+    }
+    .cta-section h2 { font-size:32px; font-weight:900; color:#fff; text-transform:uppercase; margin-bottom:14px; }
+    .cta-section p  { color:rgba(255,255,255,0.75); font-size:16px; margin-bottom:32px; }
+    .btn-cta {
+      display:inline-block; background:var(--arancio); color:#fff;
+      font-size:15px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+      padding:14px 36px; border-radius:50px; text-decoration:none;
+      transition:background 0.2s, transform 0.2s;
+      box-shadow:0 4px 20px rgba(245,124,0,0.4);
+    }
+    .btn-cta:hover { background:#d4520a; transform:translateY(-2px); }
+
+    /* ── FOOTER ── */
+    footer { background:#0d1730; color:rgba(255,255,255,0.5); text-align:center; padding:28px 24px; font-size:14px; }
+    footer span { color:var(--arancio); }
+    footer .footer-social { display:flex; justify-content:center; gap:16px; margin-bottom:14px; }
+    footer .footer-social a { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; text-decoration:none; transition:opacity 0.2s; }
+    footer .footer-social a:hover { opacity:0.8; }
+    footer .footer-social .ig-btn { background:linear-gradient(45deg,#f09433,#dc2743,#bc1888); }
+
+    @media (max-width:768px) {
+      .missione-grid { grid-template-columns:1fr; gap:40px; }
+      nav { padding:0 20px; }
+      .nav-menu { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <a href="index.html" class="nav-brand">
+      <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    </a>
+    <ul class="nav-menu">
+      <li><a href="chiSiamo.html" class="attivo">Chi siamo</a></li>
+      <li><a href="shop.html">Shop</a></li>
+      <li><a href="calendario.html">Calendario</a></li>
+      <li><a href="index.html">Home</a></li>
+    </ul>
+    <div class="nav-actions">
+      <div class="nav-social">
+        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook">f</a>
+        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram">📸</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Chi siamo</h1>
+    <p>Una società nata dalla passione per la pallavolo e radicata nel territorio casertano.</p>
+  </div>
+
+  <!-- MISSIONE + STATS -->
+  <section id="missione">
+    <div class="container">
+      <div class="missione-grid">
+        <div class="missione-testo">
+          <h3>La nostra missione</h3>
+          <p>La Virtus Caserta è una realtà sportiva che promuove la pallavolo a tutti i livelli, dai giovani atleti in crescita alle squadre competitive. Crediamo nello sport come strumento di crescita personale e collettiva.</p>
+          <p>Il nostro obiettivo è formare atleti completi, sia sul campo che nella vita, attraverso valori di rispetto, impegno e spirito di squadra.</p>
+          <p>Siamo orgogliosi di rappresentare la città di Caserta in ogni competizione regionale e nazionale.</p>
+        </div>
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card">
+            <div class="numero" data-target="12" data-suffix="+">0</div>
+            <div class="label">Anni di attività</div>
+          </div>
+          <div class="stat-card">
+            <div class="numero" data-target="150" data-suffix="+">0</div>
+            <div class="label">Atleti tesserati</div>
+          </div>
+          <div class="stat-card">
+            <div class="numero" data-target="6" data-suffix="">0</div>
+            <div class="label">Squadre attive</div>
+          </div>
+          <div class="stat-card">
+            <div class="numero" data-target="30" data-suffix="+">0</div>
+            <div class="label">Trofei vinti</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VALORI -->
+  <section id="valori">
+    <div class="container">
+      <div class="sezione-titolo">
+        <div class="etichetta">Cosa ci guida</div>
+        <h2>I nostri valori</h2>
+        <p>I principi che ispirano ogni allenamento, ogni partita, ogni scelta.</p>
+      </div>
+      <div class="valori-grid">
+        <div class="valore-card">
+          <div class="valore-icona">🤝</div>
+          <h3>Rispetto</h3>
+          <p>Verso i compagni, gli avversari, i tecnici e le strutture. Il rispetto è la base di ogni rapporto sportivo sano.</p>
+        </div>
+        <div class="valore-card">
+          <div class="valore-icona">💪</div>
+          <h3>Impegno</h3>
+          <p>Ogni atleta dà il massimo in ogni allenamento. La costanza e la dedizione sono le chiavi per migliorare.</p>
+        </div>
+        <div class="valore-card">
+          <div class="valore-icona">🏐</div>
+          <h3>Squadra</h3>
+          <p>Il successo è collettivo. Vinciamo insieme, cresciamo insieme, affrontiamo le difficoltà insieme.</p>
+        </div>
+        <div class="valore-card">
+          <div class="valore-icona">🌱</div>
+          <h3>Crescita</h3>
+          <p>Formiamo persone prima ancora che atleti, con un percorso che punta allo sviluppo umano e sportivo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STORIA -->
+  <section id="storia">
+    <div class="container">
+      <div class="sezione-titolo">
+        <div class="etichetta">Le nostre tappe</div>
+        <h2>La nostra storia</h2>
+        <p>Un percorso di crescita costante, anno dopo anno.</p>
+      </div>
+      <div class="storia-timeline">
+        <div class="storia-item">
+          <div class="storia-anno">2012</div>
+          <div class="storia-testo">
+            <h4>Fondazione</h4>
+            <p>Nasce la Virtus Caserta da un gruppo di appassionati con il sogno di creare una realtà pallavolistica di riferimento nel territorio.</p>
+          </div>
+        </div>
+        <div class="storia-item">
+          <div class="storia-anno">2015</div>
+          <div class="storia-testo">
+            <h4>Primo settore giovanile</h4>
+            <p>Viene avviato il minivolley e il settore under, con i primi atleti formati interamente in casa.</p>
+          </div>
+        </div>
+        <div class="storia-item">
+          <div class="storia-anno">2018</div>
+          <div class="storia-testo">
+            <h4>Crescita e affiliazione FIPAV</h4>
+            <p>La società si afferma nel panorama regionale e ottiene il riconoscimento ufficiale con affiliazione FIPAV Caserta.</p>
+          </div>
+        </div>
+        <div class="storia-item">
+          <div class="storia-anno">2022</div>
+          <div class="storia-testo">
+            <h4>Serie C Campania</h4>
+            <p>La prima squadra conquista l'accesso al campionato di Serie C, traguardo storico per la società.</p>
+          </div>
+        </div>
+        <div class="storia-item" style="border-left:none; padding-bottom:0;">
+          <div class="storia-anno">Oggi</div>
+          <div class="storia-testo">
+            <h4>Oltre 150 atleti</h4>
+            <p>Sei squadre attive, quattro impianti, una famiglia che continua a crescere con passione e ambizione.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2>Entra a far parte della famiglia</h2>
+    <p>Hai una passione per la pallavolo? Vieni ad allenarti con noi. Tutte le età, tutti i livelli.</p>
+    <a href="index.html#contatti" class="btn-cta">Contattaci</a>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-social">
+      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram">📸</a>
+    </div>
+    <p>© 2026 <span>Virtus Caserta</span> – Società Sportiva Pallavolo · Affiliata <span>FIPAV</span></p>
+  </footer>
+
+  <script>
+    /* Counter animation */
+    const statsObserver = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const grid = e.target;
+        if (grid.dataset.animato) return;
+        grid.dataset.animato = '1';
+        grid.classList.add('animata');
+        grid.querySelectorAll('.numero[data-target]').forEach(el => {
+          const target = parseInt(el.dataset.target, 10);
+          const suffix = el.dataset.suffix || '';
+          const duration = 1400;
+          const start = performance.now();
+          function step(now) {
+            const p = Math.min((now - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - p, 3);
+            el.textContent = Math.round(ease * target) + suffix;
+            if (p < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        });
+      });
+    }, { threshold: 0.3 });
+
+    const sg = document.getElementById('statsGrid');
+    if (sg) statsObserver.observe(sg);
+  </script>
+</body>
+</html>

@@ -34,105 +34,305 @@
     /* ===== NAVBAR ===== */
     nav {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 1000;
+      top: 0; left: 0; width: 100%; z-index: 1000;
       background: var(--blu-scuro);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-      display: flex;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.35);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      height: 72px;
+      height: 76px;
+      padding: 0 40px;
     }
 
-    .nav-logo {
+    /* link principali — sinistra */
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      list-style: none;
+      justify-content: flex-end;
+    }
+
+    /* logo — centro */
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+
+    .nav-brand img {
+      height: 50px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    .nav-menu a {
+      text-decoration: none;
+      color: rgba(255,255,255,0.82);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 0;
+      position: relative;
+      transition: color 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-menu a::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0;
+      width: 0; height: 2px;
+      background: var(--arancio);
+      transition: width 0.25s ease;
+    }
+
+    .nav-menu a:hover,
+    .nav-menu a.attivo { color: var(--bianco); }
+
+    .nav-menu a:hover::after,
+    .nav-menu a.attivo::after { width: 100%; }
+
+    /* azioni — destra */
+    .nav-actions {
       display: flex;
       align-items: center;
       gap: 14px;
-      text-decoration: none;
+      justify-content: flex-start;
     }
 
-    .nav-logo img {
-      height: 54px;
-      width: auto;
-      object-fit: contain;
-    }
-
-    .nav-logo-testo {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.1;
-    }
-
-    .nav-logo-testo span:first-child {
-      font-size: 20px;
-      font-weight: 800;
+    .nav-login-btn {
+      background: var(--arancio);
       color: var(--bianco);
-      letter-spacing: 2px;
+      border: none;
+      border-radius: 50px;
+      padding: 8px 22px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
       text-transform: uppercase;
-    }
-
-    .nav-logo-testo span:last-child {
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--blu-chiaro);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      list-style: none;
-    }
-
-    .nav-links a {
+      cursor: pointer;
       text-decoration: none;
-      color: rgba(255,255,255,0.85);
-      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-login-btn:hover { background: #d4520a; }
+
+    .nav-logout-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50px;
+      padding: 7px 18px;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 8px 16px;
-      border-radius: 6px;
-      transition: background 0.2s, color 0.2s;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
     }
 
-    .nav-links a:hover {
-      background: var(--arancio);
+    .nav-logout-btn:hover {
+      border-color: rgba(255,255,255,0.7);
       color: var(--bianco);
     }
 
-    .nav-admin-btn {
-      border: 1px solid rgba(255,255,255,0.25) !important;
+    .nav-social {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    .nav-admin-btn:hover {
-      background: rgba(255,255,255,0.15) !important;
+    .nav-social a {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--bianco);
+      transition: opacity 0.2s, transform 0.15s;
+      flex-shrink: 0;
     }
 
-    .hamburger {
+    .nav-social a:hover { opacity: 0.8; transform: scale(1.1); }
+    .nav-social .s-fb { background: #1877f2; font-family: Arial, sans-serif; font-size: 16px; }
+    .nav-social .s-ig { background: linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%); }
+
+    /* ─── MODAL LOGIN / REGISTRAZIONE ─── */
+    .modal-overlay {
       display: none;
-      flex-direction: column;
-      gap: 5px;
-      cursor: pointer;
-      padding: 4px;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
     }
 
-    .hamburger span {
-      width: 26px;
-      height: 3px;
-      background: var(--bianco);
-      border-radius: 2px;
-      transition: 0.3s;
+    .modal-overlay.aperta {
+      display: flex;
     }
+
+    .modal-box {
+      background: var(--bianco);
+      border-radius: 20px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #9ca3af;
+      line-height: 1;
+    }
+
+    .modal-close:hover { color: var(--blu-scuro); }
+
+    .modal-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 28px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .modal-tab {
+      flex: 1;
+      background: none;
+      border: none;
+      padding: 12px 0;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #9ca3af;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .modal-tab.attiva {
+      color: var(--blu-scuro);
+      border-bottom-color: var(--arancio);
+    }
+
+    .modal-panel { display: none; }
+    .modal-panel.attivo { display: block; }
+
+    .modal-role-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .modal-role-btn {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: 10px;
+      border: 2px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 13px;
+      font-weight: 700;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .modal-role-btn.selezionato {
+      border-color: var(--blu-scuro);
+      background: var(--blu-scuro);
+      color: var(--bianco);
+    }
+
+    .modal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .modal-field label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #374151;
+    }
+
+    .modal-field input {
+      padding: 11px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .modal-field input:focus { border-color: var(--blu-scuro); }
+
+    .modal-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .modal-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--blu-scuro);
+      color: var(--bianco);
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+
+    .modal-submit:hover { background: var(--blu-medio); }
+
+    .modal-error {
+      color: #dc2626;
+      font-size: 13px;
+      margin-top: 10px;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .modal-success {
+      color: #16a34a;
+      font-size: 13px;
+      margin-top: 10px;
+      text-align: center;
+      min-height: 18px;
+    }
+
 
     /* ===== HERO ===== */
     .hero {
-      margin-top: 72px;
+      margin-top: 76px;
       min-height: calc(100vh - 72px);
       background: linear-gradient(135deg, var(--blu-scuro) 0%, var(--blu-medio) 60%, #1565c0 100%);
       display: flex;
@@ -290,61 +490,6 @@
       margin-right: auto;
     }
 
-    /* ===== CHI SIAMO ===== */
-    #chi-siamo {
-      background: var(--bianco);
-    }
-
-    .chi-siamo-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 60px;
-      align-items: center;
-    }
-
-    .chi-siamo-testo h3 {
-      font-size: 26px;
-      font-weight: 800;
-      color: var(--blu-scuro);
-      margin-bottom: 18px;
-      text-transform: uppercase;
-    }
-
-    .chi-siamo-testo p {
-      font-size: 16px;
-      color: #555;
-      line-height: 1.8;
-      margin-bottom: 14px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .stat-card {
-      background: linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
-      border-radius: 16px;
-      padding: 28px 20px;
-      text-align: center;
-      color: var(--bianco);
-    }
-
-    .stat-card .numero {
-      font-size: 42px;
-      font-weight: 900;
-      color: var(--arancio-chiaro);
-      line-height: 1;
-    }
-
-    .stat-card .label {
-      font-size: 13px;
-      color: rgba(255,255,255,0.7);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-top: 6px;
-    }
 
     /* ===== SQUADRE ===== */
     #squadre {
@@ -423,26 +568,88 @@
       margin: 3px 3px 3px 0;
     }
 
-    /* ===== NOTIZIE ===== */
+    /* ===== NOTIZIE CAROUSEL ===== */
     #notizie {
       background: var(--bianco);
     }
 
-    .notizie-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    .notizie-carousel {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .notizie-track {
+      display: flex;
       gap: 28px;
+      transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      will-change: transform;
     }
 
     .notizia-card {
+      flex: 0 0 calc(33.333% - 19px);
       border-radius: 18px;
       overflow: hidden;
       box-shadow: 0 4px 20px rgba(0,0,0,0.07);
-      transition: transform 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s;
+      background: var(--bianco);
     }
 
     .notizia-card:hover {
       transform: translateY(-4px);
+      box-shadow: 0 10px 32px rgba(13,32,85,0.13);
+    }
+
+    .notizie-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .notizie-btn {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--blu-scuro);
+      background: transparent;
+      color: var(--blu-scuro);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .notizie-btn:hover {
+      background: var(--blu-scuro);
+      color: var(--bianco);
+    }
+
+    .notizie-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .notizie-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--bordo, #e2e8f0);
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+      padding: 0;
+    }
+
+    .notizie-dot.attivo {
+      background: var(--blu-scuro);
+      transform: scale(1.35);
+    }
+
+    @media (max-width: 900px) {
+      .notizia-card { flex: 0 0 calc(50% - 14px); }
+    }
+
+    @media (max-width: 580px) {
+      .notizia-card { flex: 0 0 100%; }
     }
 
     .notizia-img {
@@ -848,6 +1055,7 @@
     .partita-risultato.win  { color: #16a34a; }
     .partita-risultato.loss { color: #dc2626; }
     .partita-risultato.prossima { font-size: 14px; color: #6b7280; font-weight: 600; }
+    .partita-risultato.rinviata { font-size: 13px; color: #b45309; font-weight: 700; background: #fef3c7; padding: 4px 10px; border-radius: 8px; }
 
     .partite-fipav-btn {
       display: inline-flex;
@@ -877,44 +1085,216 @@
       }
     }
 
+    /* ===== DOVE SIAMO ===== */
+    #dove-siamo { background: var(--grigio-chiaro); }
+
+    .luoghi-card {
+      background: var(--bianco);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 6px 32px rgba(13,32,85,0.10);
+      display: grid;
+      grid-template-columns: 280px 1fr;
+    }
+
+    .luoghi-sidebar {
+      background: var(--blu-scuro);
+      padding: 8px 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .luogo-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 24px;
+      cursor: pointer;
+      border-left: 4px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .luogo-item:hover { background: rgba(255,255,255,0.07); }
+
+    .luogo-item.attivo {
+      background: rgba(255,255,255,0.10);
+      border-left-color: var(--arancio);
+    }
+
+    .luogo-nome {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--bianco);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    .luogo-citta {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .luogo-apri {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.75);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .luogo-apri:hover { background: var(--arancio); color: var(--bianco); }
+
+    .luoghi-mappa {
+      position: relative;
+      min-height: 420px;
+    }
+
+    .luoghi-mappa iframe {
+      display: none;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .luoghi-mappa iframe.attiva { display: block; }
+
+    @media (max-width: 700px) {
+      .luoghi-card { grid-template-columns: 1fr; }
+      .luoghi-mappa { min-height: 280px; }
+      .luoghi-mappa iframe { position: relative; height: 280px; inset: auto; }
+    }
+
     /* ===== FOOTER ===== */
     footer {
       background: #0d1730;
       color: rgba(255,255,255,0.5);
-      text-align: center;
-      padding: 28px 24px;
       font-size: 14px;
     }
 
-    footer span {
-      color: var(--arancio);
+    .footer-top {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: start;
+      gap: 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 40px 36px;
     }
 
-    footer .footer-social {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      margin-bottom: 14px;
+    .footer-auth { display: flex; flex-direction: column; gap: 10px; }
+
+    .footer-auth-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 4px;
     }
 
-    footer .footer-social a {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      display: flex;
+    .footer-auth-logged { display: none; }
+
+    #footerAuthArea.logged .footer-auth-login  { display: none; }
+    #footerAuthArea.logged .footer-auth-logged { display: flex; align-items: center; gap: 12px; }
+
+    .footer-auth-nome {
+      color: var(--bianco);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .footer-btn {
+      display: inline-flex;
       align-items: center;
+      background: var(--arancio);
+      color: var(--bianco);
+      border: none;
+      border-radius: 50px;
+      padding: 8px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .footer-btn:hover { background: #d4520a; }
+
+    .footer-btn-outline {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.65);
+    }
+
+    .footer-btn-outline:hover { background: rgba(255,255,255,0.08); color: var(--bianco); }
+
+    .footer-center { text-align: center; }
+
+    .footer-logo img { height: 56px; width: auto; opacity: 0.85; margin-bottom: 12px; }
+
+    .footer-social {
+      display: flex;
       justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .footer-social a {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
       font-size: 18px;
       text-decoration: none;
       transition: opacity 0.2s;
     }
 
-    footer .footer-social a:hover {
-      opacity: 0.8;
+    .footer-social a:hover { opacity: 0.8; }
+    .footer-social .ig-btn { background: linear-gradient(45deg, #f09433, #dc2743, #bc1888); }
+    .footer-social .fb-btn { background: #1877f2; color: #fff; font-weight: 900; font-size: 17px; font-family: Arial, sans-serif; }
+
+    .footer-links { text-align: right; display: flex; flex-direction: column; gap: 8px; }
+
+    .footer-links a {
+      color: rgba(255,255,255,0.45);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: color 0.2s;
     }
 
-    footer .footer-social .ig-btn {
-      background: linear-gradient(45deg, #f09433, #dc2743, #bc1888);
+    .footer-links a:hover { color: rgba(255,255,255,0.85); }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.07);
+      text-align: center;
+      padding: 18px 24px;
+      font-size: 12px;
+    }
+
+    footer .footer-bottom span { color: var(--arancio); }
+
+    @media (max-width: 700px) {
+      .footer-top { grid-template-columns: 1fr; text-align: center; }
+      .footer-links { text-align: center; }
+      .footer-auth { align-items: center; }
     }
 
     /* ===== RESPONSIVE ===== */
@@ -932,38 +1312,11 @@
         justify-content: center;
       }
 
-      .nav-links {
-        display: none;
-        position: absolute;
-        top: 72px;
-        left: 0;
-        width: 100%;
-        background: var(--blu-scuro);
-        flex-direction: column;
-        padding: 16px 0;
-        gap: 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      }
+      nav { padding: 0 16px; height: 60px; }
+      .nav-brand img { height: 38px; }
+      .nav-menu { gap: 16px; }
+      .nav-menu a { font-size: 11px; letter-spacing: 0.8px; }
 
-      .nav-links.aperto {
-        display: flex;
-      }
-
-      .nav-links li {
-        width: 100%;
-      }
-
-      .nav-links a {
-        display: block;
-        padding: 12px 32px;
-        border-radius: 0;
-      }
-
-      .hamburger {
-        display: flex;
-      }
-
-      .chi-siamo-grid,
       .contatti-grid {
         grid-template-columns: 1fr;
       }
@@ -972,21 +1325,70 @@
 </head>
 <body>
 
+  <!-- MODAL LOGIN / REGISTRAZIONE -->
+  <div class="modal-overlay" id="modalLogin" onclick="chiudiModalSeOverlay(event)">
+    <div class="modal-box">
+      <button class="modal-close" onclick="chiudiModal()">✕</button>
+      <div class="modal-tabs">
+        <button class="modal-tab attiva" id="tabAccedi" onclick="switchTab('accedi')">Accedi</button>
+        <button class="modal-tab" id="tabRegistrati" onclick="switchTab('registrati')">Registrati</button>
+      </div>
+
+      <!-- PANNELLO ACCEDI -->
+      <div class="modal-panel attivo" id="panelAccedi">
+        <div class="modal-role-selector">
+          <button class="modal-role-btn selezionato" id="roleUtente" onclick="selectRole('utente')">👤 Utente</button>
+          <button class="modal-role-btn" id="roleAdmin" onclick="selectRole('admin')">🔐 Amministratore</button>
+        </div>
+        <div id="campiUtente">
+          <div class="modal-field"><label>Email</label><input type="email" id="loginEmail" placeholder="tua@email.com"></div>
+          <div class="modal-field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••"></div>
+        </div>
+        <div id="campiAdmin" style="display:none">
+          <div class="modal-field"><label>Username</label><input type="text" id="loginAdminUser" placeholder="admin"></div>
+          <div class="modal-field"><label>Password</label><input type="password" id="loginAdminPass" placeholder="••••••"></div>
+        </div>
+        <button class="modal-submit" onclick="submitLogin()">Accedi</button>
+        <div class="modal-error" id="loginError"></div>
+      </div>
+
+      <!-- PANNELLO REGISTRATI -->
+      <div class="modal-panel" id="panelRegistrati">
+        <div class="modal-row">
+          <div class="modal-field"><label>Nome</label><input type="text" id="regNome" placeholder="Mario"></div>
+          <div class="modal-field"><label>Cognome</label><input type="text" id="regCognome" placeholder="Rossi"></div>
+        </div>
+        <div class="modal-field"><label>Email</label><input type="email" id="regEmail" placeholder="tua@email.com"></div>
+        <div class="modal-field"><label>Password</label><input type="password" id="regPassword" placeholder="Almeno 6 caratteri"></div>
+        <button class="modal-submit" onclick="submitRegistrazione()">Crea account</button>
+        <div class="modal-error" id="regError"></div>
+        <div class="modal-success" id="regSuccess"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- NAVBAR -->
   <nav>
-    <a href="#home" class="nav-logo">
-      <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
-      <div class="nav-logo-testo">
-        <span>Virtus</span>
-        <span>Caserta</span>
-      </div>
-    </a>
-    <ul class="nav-links" id="navLinks">
-      <li><a href="shop.html">🛒 Shop</a></li>
-      <li><a href="admin.html" class="nav-admin-btn">🔐 Admin</a></li>
+    <!-- Sinistra: Chi siamo + altri link -->
+    <ul class="nav-menu">
+      <li><a href="chiSiamo.html">Chi siamo</a></li>
+      <li id="navAdminLink" style="display:none"><a href="admin.html">Gestione</a></li>
     </ul>
-    <div class="hamburger" id="hamburger" onclick="toggleMenu()">
-      <span></span><span></span><span></span>
+
+    <!-- Centro: logo -->
+    <a href="#home" class="nav-brand">
+      <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    </a>
+
+    <!-- Destra: Shop + social + hamburger -->
+    <div class="nav-actions">
+      <ul class="nav-menu" style="justify-content:flex-start;">
+        <li><a href="shop.html">Shop</a></li>
+      </ul>
+      <div class="nav-social" style="margin-left:auto;">
+        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook">f</a>
+        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram">📸</a>
+      </div>
     </div>
   </nav>
 
@@ -1001,43 +1403,7 @@
       <div class="hero-buttons">
         <a href="#squadre" class="btn-primary">Le nostre squadre</a>
         <a href="#contatti" class="btn-outline">Unisciti a noi</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- CHI SIAMO -->
-  <section id="chi-siamo">
-    <div class="container">
-      <div class="sezione-titolo">
-        <div class="etichetta">La nostra storia</div>
-        <h2>Chi siamo</h2>
-        <p>Una società nata dalla passione per la pallavolo e radicata nel territorio casertano.</p>
-      </div>
-      <div class="chi-siamo-grid">
-        <div class="chi-siamo-testo">
-          <h3>La nostra missione</h3>
-          <p>La Virtus Caserta è una realtà sportiva che promuove la pallavolo a tutti i livelli, dai giovani atleti in crescita alle squadre competitive. Crediamo nello sport come strumento di crescita personale e collettiva.</p>
-          <p>Il nostro obiettivo è formare atleti completi, sia sul campo che nella vita, attraverso valori di rispetto, impegno e spirito di squadra.</p>
-          <p>Siamo orgogliosi di rappresentare la città di Caserta in ogni competizione regionale e nazionale.</p>
-        </div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="numero">12+</div>
-            <div class="label">Anni di attività</div>
-          </div>
-          <div class="stat-card">
-            <div class="numero">150+</div>
-            <div class="label">Atleti tesserati</div>
-          </div>
-          <div class="stat-card">
-            <div class="numero">6</div>
-            <div class="label">Squadre attive</div>
-          </div>
-          <div class="stat-card">
-            <div class="numero">30+</div>
-            <div class="label">Trofei vinti</div>
-          </div>
-        </div>
+        <a href="calendario.html" class="btn-outline">Calendario allenamenti</a>
       </div>
     </div>
   </section>
@@ -1150,8 +1516,15 @@
         <h2>Ultime notizie</h2>
         <p>Rimani aggiornato su risultati, eventi e novità della Virtus Caserta.</p>
       </div>
-      <div class="notizie-grid" id="notizieGrid">
-        <div style="text-align:center;padding:40px;color:#9ca3af;grid-column:1/-1">Caricamento...</div>
+      <div class="notizie-carousel" id="notizieCarousel">
+        <div class="notizie-track" id="notizieTrack">
+          <div style="padding:40px;color:#9ca3af;width:100%;text-align:center">Caricamento...</div>
+        </div>
+      </div>
+      <div class="notizie-nav" id="notizieNav" style="display:none">
+        <button class="notizie-btn" id="notiziePrev" aria-label="Precedente">&#8592;</button>
+        <div class="notizie-dots" id="notizieDots"></div>
+        <button class="notizie-btn" id="notizieNext" aria-label="Successivo">&#8594;</button>
       </div>
     </div>
   </section>
@@ -1243,12 +1616,101 @@
     </div>
   </section>
 
+  <!-- DOVE SIAMO -->
+  <section id="dove-siamo">
+    <div class="container">
+      <div class="sezione-titolo">
+        <div class="etichetta">I nostri impianti</div>
+        <h2>Dove ci alleniamo</h2>
+        <p>Quattro strutture sul territorio casertano per accogliere tutti i nostri atleti.</p>
+      </div>
+
+      <div class="luoghi-card">
+
+        <!-- Sidebar selettore -->
+        <div class="luoghi-sidebar">
+          <div class="luogo-item attivo" onclick="selezionaLuogo(0)">
+            <div>
+              <div class="luogo-nome">Tenda di Abramo</div>
+              <div class="luogo-citta">Caserta</div>
+            </div>
+            <a href="https://www.google.com/maps/place/Parrocchia+S.+Augusto+Vescovo/@41.0799207,14.3516706,19.65z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+          </div>
+          <div class="luogo-item" onclick="selezionaLuogo(1)">
+            <div>
+              <div class="luogo-nome">Liceo Manzoni</div>
+              <div class="luogo-citta">Caserta</div>
+            </div>
+            <a href="https://www.google.com/maps/place/Liceo+Statale+Alessandro+Manzoni/@41.0787748,14.336116,16z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+          </div>
+          <div class="luogo-item" onclick="selezionaLuogo(2)">
+            <div>
+              <div class="luogo-nome">Palazzetto dello Sport</div>
+              <div class="luogo-citta">Casagiove</div>
+            </div>
+            <a href="https://www.google.com/maps/place/Palazzetto+dello+Sport/@41.0828219,14.3143262,16.8z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+          </div>
+          <div class="luogo-item" onclick="selezionaLuogo(3)">
+            <div>
+              <div class="luogo-nome">Scuola Media Mazzocchi</div>
+              <div class="luogo-citta">S. Maria Capua Vetere</div>
+            </div>
+            <a href="https://www.google.com/maps/place/Scuola+Media+Mazzocchi/@41.071582,14.32101,15z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+          </div>
+        </div>
+
+        <!-- Mappa -->
+        <div class="luoghi-mappa" id="luoghiMappa">
+          <iframe class="attiva" src="https://maps.google.com/maps?q=41.0794316,14.3519266&z=17&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Tenda di Abramo"></iframe>
+          <iframe src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Liceo Manzoni" data-src="https://maps.google.com/maps?q=41.0787708,14.3386909&z=17&output=embed"></iframe>
+          <iframe src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Palazzetto dello Sport" data-src="https://maps.google.com/maps?q=41.0829106,14.3169288&z=17&output=embed"></iframe>
+          <iframe src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Scuola Media Mazzocchi" data-src="https://maps.google.com/maps?q=41.0732619,14.2593343&z=17&output=embed"></iframe>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer>
-    <div class="footer-social">
-      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram @virtuscaserta">📸</a>
+    <div class="footer-top">
+
+      <!-- Auth -->
+      <div class="footer-auth" id="footerAuthArea">
+        <div class="footer-auth-title">Account</div>
+        <div class="footer-auth-login">
+          <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
+        </div>
+        <div class="footer-auth-logged">
+          <span class="footer-auth-nome" id="footerNome"></span>
+          <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
+        </div>
+      </div>
+
+      <!-- Logo centro -->
+      <div class="footer-center">
+        <div class="footer-logo">
+          <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+        </div>
+        <div class="footer-social">
+          <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="fb-btn" title="Facebook">f</a>
+          <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram">📸</a>
+        </div>
+      </div>
+
+      <!-- Link rapidi -->
+      <div class="footer-links">
+        <a href="chiSiamo.html">Chi siamo</a>
+        <a href="shop.html">Shop</a>
+        <a href="calendario.html">Calendario allenamenti</a>
+        <a href="#partite">Risultati & Calendario</a>
+        <a href="#contatti">Contatti</a>
+      </div>
+
     </div>
-    <p>© 2026 <span>Virtus Caserta</span> – Società Sportiva Pallavolo · P.IVA 00000000000 · Affiliata <span>FIPAV</span></p>
+    <div class="footer-bottom">
+      <p>© 2026 <span>Virtus Caserta</span> – Società Sportiva Pallavolo · P.IVA 00000000000 · Affiliata <span>FIPAV</span></p>
+    </div>
   </footer>
 
   <script>
@@ -1265,15 +1727,63 @@
       return Math.floor(diff / 86400) + ' giorni fa';
     }
 
+    /* ── NOTIZIE CAROUSEL ── */
+    let _carouselIdx = 0;
+    let _carouselPerView = 3;
+    let _carouselTotal = 0;
+    let _carouselTimer = null;
+
+    function carouselPerView() {
+      return window.innerWidth <= 580 ? 1 : window.innerWidth <= 900 ? 2 : 3;
+    }
+
+    function carouselMaxIdx() {
+      return Math.max(0, _carouselTotal - _carouselPerView);
+    }
+
+    function carouselGoto(idx) {
+      _carouselIdx = Math.max(0, Math.min(idx, carouselMaxIdx()));
+      const track = document.getElementById('notizieTrack');
+      if (!track) return;
+      const card = track.querySelector('.notizia-card');
+      if (!card) return;
+      const cardW = card.offsetWidth;
+      const gap = 28;
+      track.style.transform = `translateX(-${_carouselIdx * (cardW + gap)}px)`;
+      // dots
+      document.querySelectorAll('.notizie-dot').forEach((d, i) => {
+        d.classList.toggle('attivo', i === _carouselIdx);
+      });
+    }
+
+    function carouselBuildDots() {
+      _carouselPerView = carouselPerView();
+      const count = carouselMaxIdx() + 1;
+      const dotsEl = document.getElementById('notizieDots');
+      if (!dotsEl) return;
+      dotsEl.innerHTML = Array.from({length: count}, (_, i) =>
+        `<button class="notizie-dot ${i === _carouselIdx ? 'attivo' : ''}" onclick="carouselGoto(${i})" aria-label="Notizia ${i+1}"></button>`
+      ).join('');
+    }
+
+    function carouselAutoPlay() {
+      clearInterval(_carouselTimer);
+      _carouselTimer = setInterval(() => {
+        carouselGoto(_carouselIdx >= carouselMaxIdx() ? 0 : _carouselIdx + 1);
+      }, 5000);
+    }
+
     async function loadNotizie() {
-      const grid = document.getElementById('notizieGrid');
+      const track = document.getElementById('notizieTrack');
+      const nav   = document.getElementById('notizieNav');
       try {
         const notizie = await fetch('/api/notizie').then(r => r.json());
         if (!notizie.length) {
-          grid.innerHTML = '<p style="text-align:center;color:#9ca3af;grid-column:1/-1">Nessuna notizia disponibile.</p>';
+          track.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:40px">Nessuna notizia disponibile.</p>';
           return;
         }
-        grid.innerHTML = notizie.map(n => `
+        _carouselTotal = notizie.length;
+        track.innerHTML = notizie.map(n => `
           <div class="notizia-card">
             <div class="notizia-img ${n.colore || 'blu'}">
               ${n.immagine ? `<img src="${n.immagine}" alt="${n.titolo}">` : `<span style="font-size:48px">${coloreEmoji(n.colore)}</span>`}
@@ -1284,10 +1794,63 @@
               <p>${n.testo}</p>
             </div>
           </div>`).join('');
+
+        if (_carouselTotal > 1) {
+          nav.style.display = 'flex';
+          carouselBuildDots();
+          carouselGoto(0);
+          carouselAutoPlay();
+
+          document.getElementById('notiziePrev').onclick = () => { carouselGoto(_carouselIdx - 1); carouselAutoPlay(); };
+          document.getElementById('notizieNext').onclick = () => { carouselGoto(_carouselIdx + 1); carouselAutoPlay(); };
+
+          // pause on hover
+          const carousel = document.getElementById('notizieCarousel');
+          carousel.addEventListener('mouseenter', () => clearInterval(_carouselTimer));
+          carousel.addEventListener('mouseleave', carouselAutoPlay);
+
+          // touch support
+          let txStart = 0;
+          carousel.addEventListener('touchstart', e => { txStart = e.touches[0].clientX; }, {passive:true});
+          carousel.addEventListener('touchend', e => {
+            const dx = txStart - e.changedTouches[0].clientX;
+            if (Math.abs(dx) > 40) { carouselGoto(_carouselIdx + (dx > 0 ? 1 : -1)); carouselAutoPlay(); }
+          });
+
+          window.addEventListener('resize', () => { carouselBuildDots(); carouselGoto(_carouselIdx); });
+        }
       } catch {
-        grid.innerHTML = '<p style="text-align:center;color:#9ca3af;grid-column:1/-1">Impossibile caricare le notizie.</p>';
+        track.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:40px">Impossibile caricare le notizie.</p>';
       }
     }
+
+    /* ── COUNTER ANIMATION ── */
+    function animaContatori() {
+      const grid = document.getElementById('statsGrid');
+      if (!grid || grid.dataset.animato) return;
+      grid.dataset.animato = '1';
+      grid.classList.add('animata');
+      grid.querySelectorAll('.numero[data-target]').forEach(el => {
+        const target = parseInt(el.dataset.target, 10);
+        const suffix = el.dataset.suffix || '';
+        const duration = 1400;
+        const start = performance.now();
+        function step(now) {
+          const p = Math.min((now - start) / duration, 1);
+          // ease out cubic
+          const ease = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(ease * target) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    }
+
+    const statsObserver = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) animaContatori(); });
+    }, { threshold: 0.3 });
+    const statsGrid = document.getElementById('statsGrid');
+    if (statsGrid) statsObserver.observe(statsGrid);
 
     function coloreEmoji(c) {
       return c === 'arancio' ? '🎽' : c === 'azzurro' ? '🏅' : '🏐';
@@ -1298,6 +1861,7 @@
     }
 
     function matchResult(m) {
+      if (m.postponed) return `<div class="partita-risultato rinviata">⚠️ Gara rinviata</div>`;
       if (!m.played) return `<div class="partita-risultato prossima">da disputare</div>`;
       const parts = m.risultato.match(/(\d+)\s*-\s*(\d+)/);
       if (!parts) return `<div class="partita-risultato">${m.risultato}</div>`;
@@ -1448,20 +2012,122 @@
       }
     }
 
-    function toggleMenu() {
-      document.getElementById('navLinks').classList.toggle('aperto');
+    /* ─── AUTH ─── */
+    function aggiornaNavbar() {
+      const token = localStorage.getItem('vc_token');
+      const role  = localStorage.getItem('vc_role');
+      const nome  = localStorage.getItem('vc_nome');
+      const isGest = role === 'admin' || role === 'dirigente';
+
+      // navbar admin link
+      document.getElementById('navAdminLink').style.display = (token && isGest) ? '' : 'none';
+      // footer auth
+      const area = document.getElementById('footerAuthArea');
+      if (area) {
+        area.classList.toggle('logged', !!token);
+        const nomeEl = document.getElementById('footerNome');
+        if (nomeEl) nomeEl.textContent = nome || '';
+      }
     }
 
-    // Chiudi menu al click su link
-    document.querySelectorAll('.nav-links a').forEach(link => {
-      link.addEventListener('click', () => {
-        document.getElementById('navLinks').classList.remove('aperto');
-      });
+    function apriModal() {
+      document.getElementById('modalLogin').classList.add('aperta');
+      document.getElementById('loginError').textContent = '';
+    }
+
+    function chiudiModal() {
+      document.getElementById('modalLogin').classList.remove('aperta');
+    }
+
+    function chiudiModalSeOverlay(e) {
+      if (e.target === document.getElementById('modalLogin')) chiudiModal();
+    }
+
+    function switchTab(tab) {
+      const isAccedi = tab === 'accedi';
+      document.getElementById('tabAccedi').classList.toggle('attiva', isAccedi);
+      document.getElementById('tabRegistrati').classList.toggle('attiva', !isAccedi);
+      document.getElementById('panelAccedi').classList.toggle('attivo', isAccedi);
+      document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
+    }
+
+    let ruoloSelezionato = 'utente';
+    function selectRole(r) {
+      ruoloSelezionato = r;
+      document.getElementById('roleUtente').classList.toggle('selezionato', r === 'utente');
+      document.getElementById('roleAdmin').classList.toggle('selezionato', r === 'admin');
+      document.getElementById('campiUtente').style.display = r === 'utente' ? '' : 'none';
+      document.getElementById('campiAdmin').style.display  = r === 'admin'  ? '' : 'none';
+    }
+
+    async function submitLogin() {
+      document.getElementById('loginError').textContent = '';
+      let body;
+      if (ruoloSelezionato === 'admin') {
+        body = { tipo: 'admin', username: document.getElementById('loginAdminUser').value, password: document.getElementById('loginAdminPass').value };
+      } else {
+        body = { tipo: 'utente', email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value };
+      }
+      try {
+        const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) { document.getElementById('loginError').textContent = data.error; return; }
+        localStorage.setItem('vc_token', data.token);
+        localStorage.setItem('vc_role', data.role);
+        localStorage.setItem('vc_nome', data.nome);
+        chiudiModal();
+        aggiornaNavbar();
+        if (data.role === 'admin') window.location.href = 'admin.html';
+      } catch {
+        document.getElementById('loginError').textContent = 'Errore di rete. Riprova.';
+      }
+    }
+
+    async function submitRegistrazione() {
+      document.getElementById('regError').textContent = '';
+      document.getElementById('regSuccess').textContent = '';
+      const body = {
+        nome:     document.getElementById('regNome').value.trim(),
+        cognome:  document.getElementById('regCognome').value.trim(),
+        email:    document.getElementById('regEmail').value.trim(),
+        password: document.getElementById('regPassword').value,
+      };
+      try {
+        const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) { document.getElementById('regError').textContent = data.error; return; }
+        localStorage.setItem('vc_token', data.token);
+        localStorage.setItem('vc_role', data.role);
+        localStorage.setItem('vc_nome', data.nome);
+        chiudiModal();
+        aggiornaNavbar();
+      } catch {
+        document.getElementById('regError').textContent = 'Errore di rete. Riprova.';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('vc_token');
+      localStorage.removeItem('vc_role');
+      localStorage.removeItem('vc_nome');
+      aggiornaNavbar();
+    }
+
+    // Invio con Enter nei campi login
+    ['loginEmail','loginPassword','loginAdminUser','loginAdminPass'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submitLogin(); });
     });
+    ['regNome','regCognome','regEmail','regPassword'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submitRegistrazione(); });
+    });
+
+    aggiornaNavbar();
 
     // Highlight link attivo durante lo scroll
     const sezioni = document.querySelectorAll('section[id], .hero[id]');
-    const links = document.querySelectorAll('.nav-links a');
+    const links = document.querySelectorAll('.nav-right .nav-link, .nav-left .nav-link');
 
     window.addEventListener('scroll', () => {
       let corrente = '';
@@ -1477,6 +2143,23 @@
     loadNotizie();
     loadPartite();
     loadInstagram();
+
+    aggiornaNavbar();
+
+    /* ── SELETTORE LUOGHI ── */
+    function selezionaLuogo(idx) {
+      document.querySelectorAll('.luogo-item').forEach((el, i) => el.classList.toggle('attivo', i === idx));
+      const iframes = document.querySelectorAll('#luoghiMappa iframe');
+      iframes.forEach((f, i) => {
+        if (i === idx) {
+          // carica lazy se non ancora caricata
+          if (!f.src || f.src === window.location.href) f.src = f.dataset.src;
+          f.classList.add('attiva');
+        } else {
+          f.classList.remove('attiva');
+        }
+      });
+    }
   </script>
 
 </body>

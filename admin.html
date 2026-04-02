@@ -232,6 +232,17 @@
     .confirm-btns   { display:flex; gap:12px; justify-content:center; }
     .btn-conf-si  { padding:11px 28px; border-radius:50px; border:none; background:var(--rosso); color:var(--bianco); font-weight:700; cursor:pointer; }
     .btn-conf-no  { padding:11px 28px; border-radius:50px; border:2px solid var(--bordo); background:var(--bianco); color:var(--sub); font-weight:700; cursor:pointer; }
+
+    /* ── BADGE RUOLO ── */
+    .badge-ruolo { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+    .badge-ruolo.admin    { background:#ede9fe; color:#6d28d9; }
+    .badge-ruolo.dirigente{ background:#fef3c7; color:#b45309; }
+    .badge-ruolo.user     { background:#f1f5f9; color:var(--sub); }
+
+    .role-select { padding:6px 10px; border-radius:8px; border:2px solid var(--bordo); font-size:13px; font-weight:600; cursor:pointer; outline:none; }
+    .role-select:focus { border-color:var(--blu-m); }
+
+    .tab-only-admin { display:none; }
   </style>
 </head>
 <body>
@@ -273,9 +284,11 @@
     </header>
 
     <main>
-      <div class="tabs">
+      <div class="tabs" id="tabsBar">
         <button class="tab-btn attivo" onclick="switchTab('prodotti', this)">🛒 Prodotti</button>
         <button class="tab-btn"        onclick="switchTab('notizie',  this)">📰 Notizie</button>
+        <button class="tab-btn"        onclick="switchTab('calendario', this)">📅 Calendario</button>
+        <button class="tab-btn tab-only-admin" onclick="switchTab('utenti', this)">👥 Utenti</button>
       </div>
 
       <!-- TAB PRODOTTI -->
@@ -310,6 +323,43 @@
           <table>
             <thead><tr><th></th><th>Notizia</th><th>Data</th><th>Colore</th><th>Azioni</th></tr></thead>
             <tbody id="notizieBody">
+              <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB CALENDARIO -->
+      <div class="tab-panel" id="tabCalendario">
+        <div class="page-header">
+          <div>
+            <h2>Calendario allenamenti</h2>
+            <p>Gestisci le sessioni di allenamento</p>
+          </div>
+          <button class="btn-new" onclick="apriModalNuovaSessione()">＋ Nuova sessione</button>
+        </div>
+        <div class="prodotti-table">
+          <table>
+            <thead><tr><th>Data</th><th>Orario</th><th>Allenamento</th><th>Luogo</th><th>Categoria</th><th>Azioni</th></tr></thead>
+            <tbody id="calendarioBody">
+              <tr><td colspan="6"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB UTENTI (solo admin) -->
+      <div class="tab-panel" id="tabUtenti">
+        <div class="page-header">
+          <div>
+            <h2>Gestione utenti</h2>
+            <p>Visualizza e modifica i ruoli degli utenti registrati</p>
+          </div>
+        </div>
+        <div class="prodotti-table">
+          <table>
+            <thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th>Registrato</th><th>Azioni</th></tr></thead>
+            <tbody id="utentiBody">
               <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div>Caricamento...</div></td></tr>
             </tbody>
           </table>
@@ -419,12 +469,53 @@
     </div>
   </div>
 
+  <!-- ── MODAL SESSIONE CALENDARIO ── -->
+  <div class="modal-overlay" id="modalSessioneOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalSessioneTitolo">Nuova sessione</h3>
+        <button class="btn-close" onclick="chiudiModalSessione()">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Titolo *</label>
+        <input type="text" id="seTitolo" placeholder="Es. Allenamento Under 14">
+      </div>
+      <div class="modal form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>Data *</label>
+          <input type="date" id="seData">
+        </div>
+        <div class="form-group">
+          <label>Orario *</label>
+          <input type="time" id="seOra">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Luogo</label>
+        <input type="text" id="seLuogo" placeholder="Es. Palazzetto dello Sport">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <input type="text" id="seCategoria" placeholder="Es. Under 14 Femminile">
+      </div>
+      <div class="form-group">
+        <label>Note</label>
+        <textarea id="seNote" placeholder="Informazioni aggiuntive..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-annulla" onclick="chiudiModalSessione()">Annulla</button>
+        <button class="btn-salva" id="btnSalvaSessione">Salva sessione</button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
   <script>
     const TUTTE_TAGLIE = ['XS','S','M','L','XL','XXL','UNICA'];
-    let token = localStorage.getItem('vc_admin_token') || null;
+    let token = localStorage.getItem('vc_admin_token') || localStorage.getItem('vc_token') || null;
+    let currentRole = null;
     let prodottoInEditing = null;
     let taglieSelezionate = new Set(['S','M','L','XL']);
 
@@ -451,6 +542,7 @@
 
     function logout() {
       localStorage.removeItem('vc_admin_token');
+      localStorage.removeItem('vc_token');
       token = null;
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('loginScreen').style.display = 'flex';
@@ -459,19 +551,31 @@
     function mostraDashboard() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-      document.getElementById('headerUser').textContent = '👤 ' + (document.getElementById('loginUser').value || 'admin');
+      // Decodifica ruolo dal token
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        currentRole = payload.role;
+        const nome = payload.nome || document.getElementById('loginUser')?.value || 'Utente';
+        document.getElementById('headerUser').textContent = '👤 ' + nome + (currentRole === 'dirigente' ? ' (Dirigente)' : '');
+        // Mostra tab Utenti solo agli admin
+        document.querySelectorAll('.tab-only-admin').forEach(el => {
+          el.style.display = currentRole === 'admin' ? '' : 'none';
+        });
+      } catch { currentRole = 'admin'; }
       caricaProdotti();
     }
 
     /* ── Verifica token salvato all'avvio ── */
     if (token) {
       try {
-        // Decode payload (senza verificare firma, la fa il server)
         const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 > Date.now()) {
-          document.getElementById('headerUser').textContent = '👤 admin';
+        if (payload.exp * 1000 > Date.now() && (payload.role === 'admin' || payload.role === 'dirigente')) {
           mostraDashboard();
-        } else { localStorage.removeItem('vc_admin_token'); token = null; }
+        } else {
+          localStorage.removeItem('vc_admin_token');
+          localStorage.removeItem('vc_token');
+          token = null;
+        }
       } catch { localStorage.removeItem('vc_admin_token'); token = null; }
     }
 
@@ -579,7 +683,9 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('attivo'));
       btn.classList.add('attivo');
       document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('attivo');
-      if (tab === 'notizie') caricaNotizie();
+      if (tab === 'notizie')    caricaNotizie();
+      if (tab === 'calendario') caricaCalendario();
+      if (tab === 'utenti')     caricaUtenti();
     }
 
     /* ══ FOTO UPLOAD ══ */
@@ -787,6 +893,177 @@
       caricaNotizie();
     }
 
+    /* ══ UTENTI ══ */
+    async function caricaUtenti() {
+      const res = await authFetch('/api/admin/users');
+      if (!res.ok) { toast('⚠️ Accesso non autorizzato'); return; }
+      const users = await res.json();
+      const tbody = document.getElementById('utentiBody');
+      if (!users.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">👥</div>Nessun utente registrato.</div></td></tr>`;
+        return;
+      }
+      const roleLabel = { user: 'Utente', dirigente: 'Dirigente', admin: 'Admin' };
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td><div class="prod-nome">${u.nome} ${u.cognome}</div></td>
+          <td style="color:var(--sub);font-size:13px">${u.email}</td>
+          <td><span class="badge-ruolo ${u.role || 'user'}">${roleLabel[u.role || 'user'] || u.role}</span></td>
+          <td style="color:var(--sub);font-size:12px">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('it-IT') : '—'}</td>
+          <td>
+            <div class="azioni">
+              <select class="role-select" onchange="cambiaRuolo('${u.id}', this.value)">
+                <option value="user"       ${(u.role||'user')==='user'       ? 'selected' : ''}>👤 Utente</option>
+                <option value="dirigente"  ${(u.role||'user')==='dirigente'  ? 'selected' : ''}>🏅 Dirigente</option>
+                <option value="admin"      ${(u.role||'user')==='admin'      ? 'selected' : ''}>🔐 Admin</option>
+              </select>
+              <button class="btn-azione btn-delete" onclick="confermaEliminaUtente('${u.id}', '${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')">🗑️</button>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function cambiaRuolo(id, role) {
+      const res = await authFetch(`/api/admin/users/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) });
+      if (!res.ok) { toast('⚠️ Errore cambio ruolo'); return; }
+      toast('✅ Ruolo aggiornato');
+      caricaUtenti();
+    }
+
+    function confermaEliminaUtente(id, nome) {
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-box">
+          <div class="icon">🗑️</div>
+          <h3>Elimina utente</h3>
+          <p>Sei sicuro di voler eliminare <strong>${nome}</strong>?</p>
+          <div class="confirm-btns">
+            <button class="btn-conf-si" onclick="eliminaUtente('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
+            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function eliminaUtente(id, overlay) {
+      await authFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      overlay.remove();
+      toast('🗑️ Utente eliminato');
+      caricaUtenti();
+    }
+
+    /* ══ CALENDARIO ══ */
+    let sessioneInEditing = null;
+
+    async function caricaCalendario() {
+      const sessions = await fetch('/api/calendario').then(r => r.json());
+      const tbody = document.getElementById('calendarioBody');
+      if (!sessions.length) {
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">📅</div>Nessuna sessione. Aggiungine una!</div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = sessions.map(s => `
+        <tr>
+          <td style="font-weight:700;white-space:nowrap">${s.data ? new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'}) : '—'}</td>
+          <td style="font-weight:700">${s.ora || '—'}</td>
+          <td>
+            <div class="prod-nome">${s.titolo}</div>
+            ${s.note ? `<div class="prod-desc">${s.note}</div>` : ''}
+          </td>
+          <td style="color:var(--sub);font-size:13px">${s.luogo || '—'}</td>
+          <td style="color:var(--sub);font-size:13px">${s.categoria || '—'}</td>
+          <td>
+            <div class="azioni">
+              <button class="btn-azione btn-edit"   onclick="apriModalModificaSessione('${s.id}')">✏️ Modifica</button>
+              <button class="btn-azione btn-delete" onclick="confermaEliminaSessione('${s.id}', '${s.titolo.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    function apriModalNuovaSessione() {
+      sessioneInEditing = null;
+      document.getElementById('modalSessioneTitolo').textContent = 'Nuova sessione';
+      document.getElementById('seTitolo').value   = '';
+      document.getElementById('seData').value     = new Date().toISOString().slice(0,10);
+      document.getElementById('seOra').value      = '18:00';
+      document.getElementById('seLuogo').value    = '';
+      document.getElementById('seCategoria').value= '';
+      document.getElementById('seNote').value     = '';
+      document.getElementById('modalSessioneOverlay').classList.add('aperto');
+    }
+
+    async function apriModalModificaSessione(id) {
+      const sessions = await fetch('/api/calendario').then(r => r.json());
+      const s = sessions.find(x => x.id === id);
+      if (!s) return;
+      sessioneInEditing = id;
+      document.getElementById('modalSessioneTitolo').textContent = 'Modifica sessione';
+      document.getElementById('seTitolo').value    = s.titolo;
+      document.getElementById('seData').value      = s.data;
+      document.getElementById('seOra').value       = s.ora;
+      document.getElementById('seLuogo').value     = s.luogo || '';
+      document.getElementById('seCategoria').value = s.categoria || '';
+      document.getElementById('seNote').value      = s.note || '';
+      document.getElementById('modalSessioneOverlay').classList.add('aperto');
+    }
+
+    function chiudiModalSessione() { document.getElementById('modalSessioneOverlay').classList.remove('aperto'); }
+
+    async function salvaSessione() {
+      const titolo    = document.getElementById('seTitolo').value.trim();
+      const data      = document.getElementById('seData').value;
+      const ora       = document.getElementById('seOra').value;
+      const luogo     = document.getElementById('seLuogo').value.trim();
+      const categoria = document.getElementById('seCategoria').value.trim();
+      const note      = document.getElementById('seNote').value.trim();
+      if (!titolo || !data || !ora) { toast('⚠️ Titolo, data e ora obbligatori'); return; }
+      const body = { titolo, data, ora, luogo, categoria, note };
+      const btn  = document.getElementById('btnSalvaSessione');
+      btn.disabled = true; btn.textContent = 'Salvataggio...';
+      try {
+        if (sessioneInEditing) {
+          await authFetch(`/api/calendario/${sessioneInEditing}`, { method: 'PUT', body: JSON.stringify(body) });
+          toast('✅ Sessione aggiornata');
+        } else {
+          await authFetch('/api/calendario', { method: 'POST', body: JSON.stringify(body) });
+          toast('✅ Sessione aggiunta');
+        }
+        chiudiModalSessione();
+        caricaCalendario();
+      } catch (err) {
+        toast('⚠️ Errore: ' + err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Salva sessione';
+      }
+    }
+
+    document.getElementById('btnSalvaSessione').addEventListener('click', salvaSessione);
+
+    function confermaEliminaSessione(id, titolo) {
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-box">
+          <div class="icon">🗑️</div>
+          <h3>Elimina sessione</h3>
+          <p>Sei sicuro di voler eliminare <strong>${titolo}</strong>?</p>
+          <div class="confirm-btns">
+            <button class="btn-conf-si" onclick="eliminaSessione('${id}', this.closest('.confirm-overlay'))">Sì, elimina</button>
+            <button class="btn-conf-no" onclick="this.closest('.confirm-overlay').remove()">Annulla</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    async function eliminaSessione(id, overlay) {
+      await authFetch(`/api/calendario/${id}`, { method: 'DELETE' });
+      overlay.remove();
+      toast('🗑️ Sessione eliminata');
+      caricaCalendario();
+    }
+
     /* ══ TOAST ══ */
     function toast(msg) {
       const t = document.getElementById('toast');
@@ -795,7 +1072,7 @@
     }
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { chiudiModal(); chiudiModalNotizia(); }
+      if (e.key === 'Escape') { chiudiModal(); chiudiModalNotizia(); chiudiModalSessione(); }
     });
   </script>
 

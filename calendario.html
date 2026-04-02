@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendario Allenamenti – Virtus Caserta</title>
+  <style>
+    :root {
+      --blu:    #0d2055;
+      --arancio:#f57c00;
+      --bianco: #ffffff;
+      --grigio: #f2f2f7;
+      --bordo:  #e5e5ea;
+      --testo:  #1c1c1e;
+      --sub:    #8e8e93;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,'Segoe UI',Arial,sans-serif; background:var(--grigio); color:var(--testo); min-height:100vh; }
+
+    /* ── NAV ── */
+    nav {
+      position:fixed; top:0; left:0; width:100%; z-index:100;
+      background:var(--blu); height:72px;
+      display:grid; grid-template-columns:1fr auto 1fr;
+      align-items:center; padding:0 32px;
+      box-shadow:0 2px 12px rgba(0,0,0,.4);
+    }
+    .nav-left { display:flex; align-items:center; justify-content:flex-end; }
+    .nav-back { color:rgba(255,255,255,.8); text-decoration:none; font-size:13px; font-weight:600;
+      letter-spacing:1px; text-transform:uppercase; padding:8px 14px; border-radius:6px; transition:background .2s; }
+    .nav-back:hover { background:rgba(255,255,255,.12); }
+    .nav-brand { display:flex; align-items:center; justify-content:center; text-decoration:none; }
+    .nav-brand img { height:48px; width:auto; object-fit:contain; }
+    .nav-right { display:flex; align-items:center; justify-content:flex-start; }
+
+    /* ── HEADER MESE ── */
+    .cal-header {
+      margin-top:72px;
+      background:var(--blu);
+      padding:20px 20px 16px;
+      display:flex; align-items:center; justify-content:space-between;
+      color:var(--bianco);
+    }
+    .cal-header h2 { font-size:20px; font-weight:700; text-transform:capitalize; }
+    .cal-nav-btn {
+      background:rgba(255,255,255,.15); border:none; color:var(--bianco);
+      width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; transition:background .2s;
+    }
+    .cal-nav-btn:hover { background:rgba(255,255,255,.28); }
+
+    /* ── GRIGLIA CALENDARIO ── */
+    .cal-wrap {
+      background:var(--bianco);
+      border-radius:0 0 20px 20px;
+      overflow:hidden;
+      margin:0 0 12px;
+      box-shadow:0 2px 12px rgba(0,0,0,.07);
+    }
+    .giorni-settimana {
+      display:grid; grid-template-columns:repeat(7,1fr);
+      border-bottom:1px solid var(--bordo);
+    }
+    .giorni-settimana span {
+      text-align:center; padding:8px 0; font-size:11px; font-weight:700;
+      color:var(--sub); text-transform:uppercase; letter-spacing:.8px;
+    }
+    .giorni-settimana span:last-child { color:#dc2626; }
+
+    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+
+    .cal-day {
+      min-height:80px;
+      display:flex; flex-direction:column;
+      align-items:center; padding:6px 3px 5px;
+      cursor:pointer; transition:background .15s;
+      border-bottom:1px solid var(--bordo);
+      border-right:1px solid var(--bordo);
+      position:relative;
+    }
+    .cal-day:nth-child(7n) { border-right:none; }
+    .cal-day:hover { background:#f5f5f7; }
+    .cal-day.fuori-mese { cursor:default; background:#fafafa; }
+    .cal-day.fuori-mese:hover { background:#fafafa; }
+
+    .day-num {
+      width:28px; height:28px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:500; color:var(--testo);
+      flex-shrink:0; margin-bottom:4px;
+    }
+    .cal-day.fuori-mese .day-num { color:#c7c7cc; }
+    .cal-day.oggi .day-num { background:var(--arancio); color:var(--bianco); font-weight:700; }
+    .cal-day.selezionato .day-num { background:var(--blu); color:var(--bianco); font-weight:700; }
+    .cal-day.oggi.selezionato .day-num { background:var(--blu); }
+    .cal-day:not(.fuori-mese).domenica .day-num { color:#dc2626; }
+
+    /* chip evento nella cella */
+    .day-chips { display:flex; flex-direction:column; gap:3px; width:100%; }
+    .day-chip {
+      border-radius:4px; padding:2px 4px;
+      font-size:9px; font-weight:700; color:var(--bianco);
+      line-height:1.3; text-align:left; overflow:hidden;
+      white-space:nowrap; text-overflow:ellipsis;
+      width:100%;
+    }
+
+    /* colori per categoria */
+    .chip-u19   { background:#0d2055; }
+    .chip-u16   { background:#f57c00; }
+    .chip-u13   { background:#16a34a; }
+    .chip-prima { background:#7c3aed; }
+    .chip-altro { background:#64748b; }
+
+    /* ── PANEL DETTAGLIO ── */
+    .eventi-sezione {
+      max-width:540px; margin:0 auto; padding:0 16px 80px;
+    }
+    .eventi-data-label {
+      font-size:13px; font-weight:700; color:var(--sub);
+      text-transform:uppercase; letter-spacing:1px;
+      margin:20px 0 10px;
+    }
+    .eventi-vuoti {
+      background:var(--bianco); border-radius:14px;
+      padding:28px; text-align:center; color:var(--sub); font-size:14px;
+    }
+    .evento-card {
+      background:var(--bianco); border-radius:14px;
+      padding:16px 18px; margin-bottom:10px;
+      display:flex; align-items:stretch; gap:14px;
+      box-shadow:0 1px 4px rgba(0,0,0,.06);
+    }
+    .evento-striscia {
+      width:4px; border-radius:4px; flex-shrink:0;
+    }
+    .evento-body { flex:1; min-width:0; }
+    .evento-gruppo { font-size:16px; font-weight:800; color:var(--testo); margin-bottom:6px; }
+    .evento-riga   { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--sub); margin-bottom:3px; }
+
+    @media (max-width:480px) {
+      nav { padding:0 16px; height:60px; }
+      .nav-brand img { height:38px; }
+      .cal-header { padding:14px 14px 12px; }
+      .cal-day { min-height:64px; padding:4px 2px; }
+      .day-num { width:24px; height:24px; font-size:12px; }
+      .day-chip { font-size:8px; }
+      .eventi-sezione { padding:0 10px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-left">
+      <a href="index.html" class="nav-back">← Home</a>
+    </div>
+    <a href="index.html" class="nav-brand">
+      <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    </a>
+    <div class="nav-right"></div>
+  </nav>
+
+  <div class="cal-header">
+    <button class="cal-nav-btn" id="btnPrec">&#8249;</button>
+    <h2 id="meseAnno"></h2>
+    <button class="cal-nav-btn" id="btnSucc">&#8250;</button>
+  </div>
+
+  <div class="cal-wrap">
+    <div class="giorni-settimana">
+      <span>Lun</span><span>Mar</span><span>Mer</span>
+      <span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div class="eventi-sezione">
+    <div class="eventi-data-label" id="eventiLabel"></div>
+    <div id="eventiList"></div>
+  </div>
+
+  <script>
+    const MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+                  'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    const MESI_B = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    const GG = ['lun','mar','mer','gio','ven','sab','dom'];
+
+    let oggi = new Date(); oggi.setHours(0,0,0,0);
+    let viewAnno = oggi.getFullYear();
+    let viewMese = oggi.getMonth();
+    let selData  = null;
+    let mappa    = {};   // "YYYY-MM-DD" → [sessione, ...]
+
+    /* ── categoria → classe CSS chip ── */
+    function chipClass(cat) {
+      if (!cat) return 'chip-altro';
+      const c = cat.toLowerCase();
+      if (c.includes('19'))                        return 'chip-u19';
+      if (c.includes('16'))                        return 'chip-u16';
+      if (c.includes('13'))                        return 'chip-u13';
+      if (c.includes('prima') || c.includes('senior')) return 'chip-prima';
+      return 'chip-altro';
+    }
+    function chipColor(cat) {
+      if (!cat) return '#64748b';
+      const c = cat.toLowerCase();
+      if (c.includes('19'))  return '#0d2055';
+      if (c.includes('16'))  return '#f57c00';
+      if (c.includes('13'))  return '#16a34a';
+      if (c.includes('prima') || c.includes('senior')) return '#7c3aed';
+      return '#64748b';
+    }
+
+    /* "19:00–21:00" → { inizio:"19:00", fine:"21:00" } */
+    function parseOra(ora) {
+      if (!ora) return { inizio:'—', fine:'' };
+      const sep = ora.includes('–') ? '–' : (ora.includes('-') ? '-' : null);
+      if (sep) {
+        const p = ora.split(sep);
+        return { inizio: p[0].trim(), fine: p[1] ? p[1].trim() : '' };
+      }
+      return { inizio: ora.trim(), fine: '' };
+    }
+
+    /* label breve per chip: gruppo + ora inizio */
+    function chipLabel(s) {
+      const cat = s.categoria || s.titolo || '?';
+      const { inizio } = parseOra(s.ora);
+      return `${cat} ${inizio}`;
+    }
+
+    function dataKey(d) {
+      return d.getFullYear() + '-'
+        + String(d.getMonth()+1).padStart(2,'0') + '-'
+        + String(d.getDate()).padStart(2,'0');
+    }
+
+    /* ── Render griglia ── */
+    function renderCalendario() {
+      document.getElementById('meseAnno').textContent = MESI[viewMese] + ' ' + viewAnno;
+      const grid = document.getElementById('calGrid');
+      grid.innerHTML = '';
+
+      const primo = new Date(viewAnno, viewMese, 1);
+      const inizio = new Date(primo);
+      const dow0 = primo.getDay();
+      inizio.setDate(inizio.getDate() - (dow0 === 0 ? 6 : dow0 - 1));
+
+      const ultimo = new Date(viewAnno, viewMese + 1, 0);
+      const fine = new Date(ultimo);
+      const dowF = fine.getDay();
+      fine.setDate(fine.getDate() + (dowF === 0 ? 0 : 7 - dowF));
+
+      let cur = new Date(inizio);
+      while (cur <= fine) {
+        const d = new Date(cur);
+        const key = dataKey(d);
+        const sessioni = mappa[key] || [];
+        const fuori   = d.getMonth() !== viewMese;
+        const isOggi  = d.getTime() === oggi.getTime();
+        const isSel   = selData && d.getTime() === selData.getTime();
+        const isDom   = d.getDay() === 0;
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day'
+          + (fuori  ? ' fuori-mese' : '')
+          + (isOggi ? ' oggi' : '')
+          + (isSel  ? ' selezionato' : '')
+          + (!fuori && isDom ? ' domenica' : '');
+
+        const chips = (!fuori && sessioni.length)
+          ? `<div class="day-chips">${
+              sessioni.slice(0,3).map(s =>
+                `<div class="day-chip ${chipClass(s.categoria)}">${chipLabel(s)}</div>`
+              ).join('')
+            }</div>`
+          : '';
+
+        cell.innerHTML = `<div class="day-num">${d.getDate()}</div>${chips}`;
+
+        if (!fuori) cell.addEventListener('click', () => seleziona(d));
+        grid.appendChild(cell);
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      renderEventi();
+    }
+
+    function seleziona(d) {
+      selData = new Date(d);
+      renderCalendario();
+    }
+
+    /* ── Render dettaglio giorno ── */
+    function renderEventi() {
+      const label = document.getElementById('eventiLabel');
+      const lista = document.getElementById('eventiList');
+
+      if (!selData) {
+        label.textContent = '';
+        lista.innerHTML = '<div class="eventi-vuoti">Seleziona un giorno per vedere gli allenamenti.</div>';
+        return;
+      }
+
+      const key = dataKey(selData);
+      const sessioni = mappa[key] || [];
+      const dow = GG[(selData.getDay() + 6) % 7];
+      label.textContent = `${dow} ${selData.getDate()} ${MESI_B[selData.getMonth()]} ${selData.getFullYear()}`;
+
+      if (!sessioni.length) {
+        lista.innerHTML = '<div class="eventi-vuoti">Nessun allenamento programmato.</div>';
+        return;
+      }
+
+      lista.innerHTML = sessioni.map(s => {
+        const { inizio, fine } = parseOra(s.ora);
+        const orario = fine ? `${inizio} – ${fine}` : inizio;
+        return `
+          <div class="evento-card">
+            <div class="evento-striscia" style="background:${chipColor(s.categoria)};"></div>
+            <div class="evento-body">
+              <div class="evento-gruppo">${s.categoria || s.titolo}</div>
+              <div class="evento-riga">🕐 ${orario}</div>
+              ${s.luogo ? `<div class="evento-riga">📍 ${s.luogo}</div>` : ''}
+              ${s.note  ? `<div class="evento-riga">📝 ${s.note}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    document.getElementById('btnPrec').addEventListener('click', () => {
+      if (--viewMese < 0) { viewMese = 11; viewAnno--; }
+      renderCalendario();
+    });
+    document.getElementById('btnSucc').addEventListener('click', () => {
+      if (++viewMese > 11) { viewMese = 0; viewAnno++; }
+      renderCalendario();
+    });
+
+    async function carica() {
+      try {
+        const data = await fetch('/api/calendario').then(r => r.json());
+        data.forEach(s => {
+          if (!s.data) return;
+          if (!mappa[s.data]) mappa[s.data] = [];
+          mappa[s.data].push(s);
+        });
+      } catch { /* mostra comunque la griglia vuota */ }
+      selData = new Date(oggi);
+      renderCalendario();
+    }
+
+    carica();
+  </script>
+</body>
+</html>

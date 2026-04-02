@@ -44,31 +44,173 @@ const NOTIZIE_FILE = path.join(__dirname, 'notizie.json');
 function readNotizie()         { return JSON.parse(fs.readFileSync(NOTIZIE_FILE, 'utf8')); }
 function writeNotizie(notizie) { fs.writeFileSync(NOTIZIE_FILE, JSON.stringify(notizie, null, 2)); }
 
+/* ─── Helpers utenti ─── */
+const USERS_FILE = path.join(__dirname, 'users.json');
+function readUsers()        { try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { return []; } }
+function writeUsers(users)  { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); }
+
+/* ─── Helpers calendario allenamenti ─── */
+const CALENDARIO_FILE = path.join(__dirname, 'calendario.json');
+function readCalendario()          { try { return JSON.parse(fs.readFileSync(CALENDARIO_FILE, 'utf8')); } catch { return []; } }
+function writeCalendario(sessions) { fs.writeFileSync(CALENDARIO_FILE, JSON.stringify(sessions, null, 2)); }
+
 /* ─── Middleware auth admin ─── */
 const JWT_SECRET = process.env.JWT_SECRET || 'virtus_secret_fallback';
-function adminAuth(req, res, next) {
+
+function verifyToken(req) {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  if (!token) return res.status(401).json({ error: 'Non autenticato' });
-  try {
-    jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    res.status(401).json({ error: 'Token non valido o scaduto' });
-  }
+  if (!token) return null;
+  try { return jwt.verify(token, JWT_SECRET); } catch { return null; }
 }
 
-/* ─── Admin: login ─── */
+function adminAuth(req, res, next) {
+  const payload = verifyToken(req);
+  if (!payload) return res.status(401).json({ error: 'Non autenticato' });
+  if (payload.role !== 'admin') return res.status(403).json({ error: 'Accesso riservato agli amministratori' });
+  req.user = payload;
+  next();
+}
+
+function dirigenteAuth(req, res, next) {
+  const payload = verifyToken(req);
+  if (!payload) return res.status(401).json({ error: 'Non autenticato' });
+  if (payload.role !== 'admin' && payload.role !== 'dirigente')
+    return res.status(403).json({ error: 'Accesso riservato ad amministratori e dirigenti' });
+  req.user = payload;
+  next();
+}
+
+/* ─── Login unificato (admin + utente) ─── */
+app.post('/api/login', (req, res) => {
+  const { tipo, username, email, password } = req.body;
+
+  if (tipo === 'admin') {
+    if (
+      username === (process.env.ADMIN_USERNAME || 'admin') &&
+      password === (process.env.ADMIN_PASSWORD || 'virtus2026')
+    ) {
+      const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
+      return res.json({ token, role: 'admin', nome: 'Admin' });
+    }
+    return res.status(401).json({ error: 'Credenziali amministratore non valide' });
+  }
+
+  // Utente / dirigente
+  const users = readUsers();
+  const user = users.find(u => u.email === email);
+  if (!user) return res.status(401).json({ error: 'Email o password non validi' });
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  if (user.passwordHash !== hash) return res.status(401).json({ error: 'Email o password non validi' });
+  const role = user.role || 'user';
+  const token = jwt.sign({ role, id: user.id, nome: user.nome }, JWT_SECRET, { expiresIn: '24h' });
+  res.json({ token, role, nome: user.nome, cognome: user.cognome });
+});
+
+/* ─── Registrazione utente ─── */
+app.post('/api/register', (req, res) => {
+  const { nome, cognome, email, password } = req.body;
+  if (!nome || !cognome || !email || !password)
+    return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+  if (password.length < 6)
+    return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' });
+  const users = readUsers();
+  if (users.find(u => u.email === email))
+    return res.status(409).json({ error: 'Email già registrata' });
+  const crypto = require('crypto');
+  const newUser = {
+    id: Date.now().toString(),
+    nome: nome.trim(),
+    cognome: cognome.trim(),
+    email: email.trim().toLowerCase(),
+    passwordHash: crypto.createHash('sha256').update(password).digest('hex'),
+    createdAt: new Date().toISOString(),
+  };
+  users.push(newUser);
+  writeUsers(users);
+  const token = jwt.sign({ role: 'user', id: newUser.id, nome: newUser.nome }, JWT_SECRET, { expiresIn: '24h' });
+  res.status(201).json({ token, role: 'user', nome: newUser.nome, cognome: newUser.cognome });
+});
+
+/* ─── Admin: login (mantenuto per retrocompatibilità con admin.html) ─── */
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
   if (
     username === (process.env.ADMIN_USERNAME || 'admin') &&
     password === (process.env.ADMIN_PASSWORD || 'virtus2026')
   ) {
-    const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
+    const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
     return res.json({ token });
   }
   res.status(401).json({ error: 'Credenziali non valide' });
+});
+
+/* ─── Admin: lista utenti ─── */
+app.get('/api/admin/users', adminAuth, (_req, res) => {
+  const users = readUsers().map(({ passwordHash, ...u }) => u);
+  res.json(users);
+});
+
+/* ─── Admin: cambia ruolo utente ─── */
+app.put('/api/admin/users/:id/role', adminAuth, (req, res) => {
+  const { role } = req.body;
+  if (!['user', 'dirigente', 'admin'].includes(role))
+    return res.status(400).json({ error: 'Ruolo non valido' });
+  const users = readUsers();
+  const idx = users.findIndex(u => u.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Utente non trovato' });
+  users[idx].role = role;
+  writeUsers(users);
+  res.json({ success: true });
+});
+
+/* ─── Admin: elimina utente ─── */
+app.delete('/api/admin/users/:id', adminAuth, (req, res) => {
+  const users = readUsers();
+  const idx = users.findIndex(u => u.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Utente non trovato' });
+  users.splice(idx, 1);
+  writeUsers(users);
+  res.json({ success: true });
+});
+
+/* ─── Calendario: pubblico (lettura) ─── */
+app.get('/api/calendario', (_req, res) => {
+  res.json(readCalendario());
+});
+
+/* ─── Calendario: crea sessione (admin + dirigente) ─── */
+app.post('/api/calendario', dirigenteAuth, (req, res) => {
+  const { titolo, data, ora, luogo, categoria, note } = req.body;
+  if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
+  const sessions = readCalendario();
+  const nuova = { id: Date.now().toString(), titolo, data, ora, luogo: luogo || '', categoria: categoria || '', note: note || '' };
+  sessions.push(nuova);
+  sessions.sort((a, b) => (a.data + a.ora).localeCompare(b.data + b.ora));
+  writeCalendario(sessions);
+  res.status(201).json(nuova);
+});
+
+/* ─── Calendario: aggiorna sessione ─── */
+app.put('/api/calendario/:id', dirigenteAuth, (req, res) => {
+  const sessions = readCalendario();
+  const idx = sessions.findIndex(s => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Sessione non trovata' });
+  sessions[idx] = { ...sessions[idx], ...req.body, id: req.params.id };
+  sessions.sort((a, b) => (a.data + a.ora).localeCompare(b.data + b.ora));
+  writeCalendario(sessions);
+  res.json(sessions[idx]);
+});
+
+/* ─── Calendario: elimina sessione ─── */
+app.delete('/api/calendario/:id', dirigenteAuth, (req, res) => {
+  const sessions = readCalendario();
+  const idx = sessions.findIndex(s => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Sessione non trovata' });
+  sessions.splice(idx, 1);
+  writeCalendario(sessions);
+  res.json({ success: true });
 });
 
 /* ─── Prodotti: pubblico ─── */
@@ -439,6 +581,7 @@ function parseFipavMatches(html) {
       if (/^\d+$/.test(gara.trim()) && /\d{2}\/\d{2}\/\d{2}/.test(dataOra)) {
         const score = risultato.trim();
         const played = /\d\s*-\s*\d/.test(score);
+        const postponed = /rinviat/i.test(score);
 
         const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
         let timestamp = null;
@@ -466,6 +609,7 @@ function parseFipavMatches(html) {
           ospite: ospite.trim(),
           risultato: score,
           played,
+          postponed,
           categoria,
         });
       }
@@ -496,8 +640,10 @@ app.get('/api/partite', async (_req, res) => {
 
     all.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
+    const now     = Date.now();
     const past    = all.filter(m => m.played);
-    const future  = all.filter(m => !m.played);
+    // Le gare rinviate con data passata e senza risultato vengono escluse dalle prossime
+    const future  = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now);
 
     res.json({
       ultime:   past.slice(-3),
