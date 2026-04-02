@@ -282,6 +282,20 @@
   </div>
 
   <script>
+    /* ── Auth guard ── */
+    (function() {
+      if (!localStorage.getItem('vc_token')) {
+        document.body.innerHTML = `
+          <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f2f2f7;text-align:center;padding:24px;">
+            <img src="logo.png" alt="Virtus Caserta" style="height:80px;margin-bottom:24px;" onerror="this.style.display='none'">
+            <h2 style="font-size:22px;color:#0d2055;margin-bottom:10px;">Accesso riservato</h2>
+            <p style="color:#555;margin-bottom:28px;max-width:340px;">Il calendario degli allenamenti è riservato ai tesserati. Accedi con le tue credenziali per visualizzarlo.</p>
+            <a href="index.html" style="background:#0d2055;color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:700;font-size:15px;">Vai al login</a>
+          </div>`;
+        return;
+      }
+    })();
+
     const MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
                   'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
     const MESI_B = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];

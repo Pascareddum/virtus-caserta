@@ -109,6 +109,18 @@
       text-align:center; padding:60px 24px; color:var(--sub); font-size:16px;
     }
 
+    .news-share { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+    .share-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:12px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+      padding:6px 14px; border-radius:20px; border:none; cursor:pointer;
+      text-decoration:none; transition:opacity .2s;
+    }
+    .share-btn:hover { opacity:.82; }
+    .share-fb  { background:#1877f2; color:#fff; }
+    .share-copy { background:#e5e5ea; color:#333; }
+    .share-copy.copiato { background:#16a34a; color:#fff; }
+
     @media (max-width:600px) {
       nav { padding:0 16px; height:60px; }
       .nav-brand img { height:38px; }
@@ -161,6 +173,21 @@
       return 'cat-blu';
     }
 
+    function condividiSuFacebook(titolo) {
+      const url = encodeURIComponent(window.location.href);
+      const q   = encodeURIComponent(titolo);
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${q}`, '_blank', 'width=600,height=400');
+    }
+
+    function copiaLink(btn, titolo) {
+      const testo = `${titolo} – ${window.location.href}`;
+      navigator.clipboard.writeText(testo).then(() => {
+        btn.textContent = '✓ Copiato!';
+        btn.classList.add('copiato');
+        setTimeout(() => { btn.textContent = '🔗 Copia link'; btn.classList.remove('copiato'); }, 2000);
+      });
+    }
+
     async function carica() {
       const grid = document.getElementById('newsGrid');
       try {
@@ -169,11 +196,12 @@
           grid.innerHTML = '<div class="news-vuote">Nessuna notizia disponibile.</div>';
           return;
         }
-        grid.innerHTML = notizie.map(n => {
+        grid.innerHTML = notizie.map((n, i) => {
           const colore = COLORI[n.colore] || COLORI.blu;
           const img = n.immagine
             ? `<img src="${n.immagine}" alt="" class="news-img" loading="lazy">`
             : '';
+          const titoloSafe = (n.titolo || '').replace(/'/g, "\\'");
           return `
             <article class="news-card">
               <div class="news-accent" style="background:${colore};"></div>
@@ -185,6 +213,14 @@
                 </div>
                 <div class="news-titolo">${n.titolo}</div>
                 <div class="news-testo">${n.testo}</div>
+                <div class="news-share">
+                  <button class="share-btn share-fb" onclick="condividiSuFacebook('${titoloSafe}')">
+                    f&nbsp; Facebook
+                  </button>
+                  <button class="share-btn share-copy" id="copy-${i}" onclick="copiaLink(this,'${titoloSafe}')">
+                    🔗 Copia link
+                  </button>
+                </div>
               </div>
             </article>`;
         }).join('');

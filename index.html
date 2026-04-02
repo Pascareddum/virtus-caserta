@@ -239,32 +239,6 @@
     .modal-panel { display: none; }
     .modal-panel.attivo { display: block; }
 
-    .modal-role-selector {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .modal-role-btn {
-      flex: 1;
-      padding: 10px 0;
-      border-radius: 10px;
-      border: 2px solid #e2e8f0;
-      background: #f8fafc;
-      font-size: 13px;
-      font-weight: 700;
-      color: #6b7280;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-
-    .modal-role-btn.selezionato {
-      border-color: var(--blu-scuro);
-      background: var(--blu-scuro);
-      color: var(--bianco);
-    }
-
     .modal-field {
       display: flex;
       flex-direction: column;
@@ -1340,18 +1314,8 @@
 
       <!-- PANNELLO ACCEDI -->
       <div class="modal-panel attivo" id="panelAccedi">
-        <div class="modal-role-selector">
-          <button class="modal-role-btn selezionato" id="roleUtente" onclick="selectRole('utente')">👤 Utente</button>
-          <button class="modal-role-btn" id="roleAdmin" onclick="selectRole('admin')">🔐 Amministratore</button>
-        </div>
-        <div id="campiUtente">
-          <div class="modal-field"><label>Email</label><input type="email" id="loginEmail" placeholder="tua@email.com"></div>
-          <div class="modal-field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••"></div>
-        </div>
-        <div id="campiAdmin" style="display:none">
-          <div class="modal-field"><label>Username</label><input type="text" id="loginAdminUser" placeholder="admin"></div>
-          <div class="modal-field"><label>Password</label><input type="password" id="loginAdminPass" placeholder="••••••"></div>
-        </div>
+        <div class="modal-field"><label>Email</label><input type="email" id="loginEmail" placeholder="tua@email.com" autocomplete="email"></div>
+        <div class="modal-field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••" autocomplete="current-password"></div>
         <button class="modal-submit" onclick="submitLogin()">Accedi</button>
         <div class="modal-error" id="loginError"></div>
       </div>
@@ -1408,7 +1372,7 @@
       <div class="hero-buttons">
         <a href="#squadre" class="btn-primary">Le nostre squadre</a>
         <a href="#contatti" class="btn-outline">Unisciti a noi</a>
-        <a href="calendario.html" class="btn-outline">Calendario allenamenti</a>
+        <a href="calendario.html" class="btn-outline" id="btnCalendario" style="display:none">Calendario allenamenti</a>
       </div>
     </div>
   </section>
@@ -2026,6 +1990,9 @@
 
       // navbar admin link
       document.getElementById('navAdminLink').style.display = (token && isGest) ? '' : 'none';
+      // bottone calendario (solo iscritti)
+      const btnCal = document.getElementById('btnCalendario');
+      if (btnCal) btnCal.style.display = token ? '' : 'none';
       // footer auth
       const area = document.getElementById('footerAuthArea');
       if (area) {
@@ -2056,30 +2023,18 @@
       document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
     }
 
-    let ruoloSelezionato = 'utente';
-    function selectRole(r) {
-      ruoloSelezionato = r;
-      document.getElementById('roleUtente').classList.toggle('selezionato', r === 'utente');
-      document.getElementById('roleAdmin').classList.toggle('selezionato', r === 'admin');
-      document.getElementById('campiUtente').style.display = r === 'utente' ? '' : 'none';
-      document.getElementById('campiAdmin').style.display  = r === 'admin'  ? '' : 'none';
-    }
-
     async function submitLogin() {
       document.getElementById('loginError').textContent = '';
-      let body;
-      if (ruoloSelezionato === 'admin') {
-        body = { tipo: 'admin', username: document.getElementById('loginAdminUser').value, password: document.getElementById('loginAdminPass').value };
-      } else {
-        body = { tipo: 'utente', email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value };
-      }
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!email || !password) { document.getElementById('loginError').textContent = 'Inserisci email e password.'; return; }
       try {
-        const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const res  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
         const data = await res.json();
         if (!res.ok) { document.getElementById('loginError').textContent = data.error; return; }
         localStorage.setItem('vc_token', data.token);
-        localStorage.setItem('vc_role', data.role);
-        localStorage.setItem('vc_nome', data.nome);
+        localStorage.setItem('vc_role',  data.role);
+        localStorage.setItem('vc_nome',  data.nome);
         chiudiModal();
         aggiornaNavbar();
         if (data.role === 'admin') window.location.href = 'admin.html';
@@ -2119,7 +2074,7 @@
     }
 
     // Invio con Enter nei campi login
-    ['loginEmail','loginPassword','loginAdminUser','loginAdminPass'].forEach(id => {
+    ['loginEmail','loginPassword'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submitLogin(); });
     });
@@ -2210,8 +2165,10 @@
       const iframes = document.querySelectorAll('#luoghiMappa iframe');
       iframes.forEach((f, i) => {
         if (i === idx) {
-          // carica lazy se non ancora caricata
-          if (!f.src || f.src === window.location.href) f.src = f.dataset.src;
+          if (f.dataset.src && !f.dataset.caricato) {
+            f.src = f.dataset.src;
+            f.dataset.caricato = '1';
+          }
           f.classList.add('attiva');
         } else {
           f.classList.remove('attiva');

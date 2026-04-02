@@ -7,12 +7,15 @@ const Stripe     = require('stripe');
 const nodemailer = require('nodemailer');
 const jwt        = require('jsonwebtoken');
 const multer     = require('multer');
+const crypto     = require('crypto');
+const db         = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-const INSTAGRAM_USERNAME   = 'virtuscaserta';
-const INSTAGRAM_SESSION_ID = decodeURIComponent(process.env.INSTAGRAM_SESSION_ID || '');
+const JWT_SECRET             = process.env.JWT_SECRET || 'virtus_secret_2026';
+const INSTAGRAM_USERNAME     = 'virtuscaserta';
+const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || '';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
@@ -34,31 +37,9 @@ const upload = multer({
 });
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-/* ─── Helpers prodotti ─── */
-const PRODUCTS_FILE = path.join(__dirname, 'products.json');
-function readProducts()          { return JSON.parse(fs.readFileSync(PRODUCTS_FILE, 'utf8')); }
-function writeProducts(products) { fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2)); }
-
-/* ─── Helpers notizie ─── */
-const NOTIZIE_FILE = path.join(__dirname, 'notizie.json');
-function readNotizie()         { return JSON.parse(fs.readFileSync(NOTIZIE_FILE, 'utf8')); }
-function writeNotizie(notizie) { fs.writeFileSync(NOTIZIE_FILE, JSON.stringify(notizie, null, 2)); }
-
-/* ─── Helpers utenti ─── */
-const USERS_FILE = path.join(__dirname, 'users.json');
-function readUsers()        { try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { return []; } }
-function writeUsers(users)  { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); }
-
-/* ─── Helpers calendario allenamenti ─── */
-const CALENDARIO_FILE = path.join(__dirname, 'calendario.json');
-function readCalendario()          { try { return JSON.parse(fs.readFileSync(CALENDARIO_FILE, 'utf8')); } catch { return []; } }
-function writeCalendario(sessions) { fs.writeFileSync(CALENDARIO_FILE, JSON.stringify(sessions, null, 2)); }
-
-/* ─── Middleware auth admin ─── */
-const JWT_SECRET = process.env.JWT_SECRET || 'virtus_secret_fallback';
-
+/* ─── Auth middleware ─── */
 function verifyToken(req) {
-  const auth = req.headers.authorization || '';
+  const auth  = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!token) return null;
   try { return jwt.verify(token, JWT_SECRET); } catch { return null; }
@@ -81,180 +62,290 @@ function dirigenteAuth(req, res, next) {
   next();
 }
 
-/* ─── Login unificato (admin + utente) ─── */
-app.post('/api/login', (req, res) => {
-  const { tipo, username, email, password } = req.body;
+function userAuth(req, res, next) {
+  const payload = verifyToken(req);
+  if (!payload) return res.status(401).json({ error: 'Non autenticato' });
+  req.user = payload;
+  next();
+}
 
-  if (tipo === 'admin') {
-    if (
-      username === (process.env.ADMIN_USERNAME || 'admin') &&
-      password === (process.env.ADMIN_PASSWORD || 'virtus2026')
-    ) {
-      const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
-      return res.json({ token, role: 'admin', nome: 'Admin' });
-    }
-    return res.status(401).json({ error: 'Credenziali amministratore non valide' });
-  }
+/* ─── Login unificato ─── */
+// Accetta { email, password } per tutti (utenti e admin)
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori' });
 
-  // Utente / dirigente
-  const users = readUsers();
-  const user = users.find(u => u.email === email);
-  if (!user) return res.status(401).json({ error: 'Email o password non validi' });
-  const crypto = require('crypto');
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
-  if (user.passwordHash !== hash) return res.status(401).json({ error: 'Email o password non validi' });
-  const role = user.role || 'user';
-  const token = jwt.sign({ role, id: user.id, nome: user.nome }, JWT_SECRET, { expiresIn: '24h' });
-  res.json({ token, role, nome: user.nome, cognome: user.cognome });
-});
-
-/* ─── Registrazione utente ─── */
-app.post('/api/register', (req, res) => {
-  const { nome, cognome, email, password } = req.body;
-  if (!nome || !cognome || !email || !password)
-    return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' });
-  const users = readUsers();
-  if (users.find(u => u.email === email))
-    return res.status(409).json({ error: 'Email già registrata' });
-  const crypto = require('crypto');
-  const newUser = {
-    id: Date.now().toString(),
-    nome: nome.trim(),
-    cognome: cognome.trim(),
-    email: email.trim().toLowerCase(),
-    passwordHash: crypto.createHash('sha256').update(password).digest('hex'),
-    createdAt: new Date().toISOString(),
-  };
-  users.push(newUser);
-  writeUsers(users);
-  const token = jwt.sign({ role: 'user', id: newUser.id, nome: newUser.nome }, JWT_SECRET, { expiresIn: '24h' });
-  res.status(201).json({ token, role: 'user', nome: newUser.nome, cognome: newUser.cognome });
-});
-
-/* ─── Admin: login (mantenuto per retrocompatibilità con admin.html) ─── */
-app.post('/api/admin/login', (req, res) => {
-  const { username, password } = req.body;
+  // 1. Controlla credenziali admin da env
   if (
-    username === (process.env.ADMIN_USERNAME || 'admin') &&
+    email === process.env.ADMIN_EMAIL &&
     password === (process.env.ADMIN_PASSWORD || 'virtus2026')
   ) {
+    const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
+    return res.json({ token, role: 'admin', nome: 'Admin' });
+  }
+
+  // 2. Lookup nel DB
+  try {
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+    const user = result.rows[0];
+    if (!user) return res.status(401).json({ error: 'Email o password non validi' });
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
+    if (user.password_hash !== hash) return res.status(401).json({ error: 'Email o password non validi' });
+    const role  = user.role || 'user';
+    const token = jwt.sign({ role, id: user.id, nome: user.nome }, JWT_SECRET, { expiresIn: '24h' });
+    return res.json({ token, role, nome: user.nome, cognome: user.cognome });
+  } catch (err) {
+    console.error('[Login] Errore DB:', err.message);
+    return res.status(500).json({ error: 'Errore interno' });
+  }
+});
+
+/* ─── Admin: login (retrocompatibilità admin.html) ─── */
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  const validUser =
+    username === (process.env.ADMIN_USERNAME || 'admin') ||
+    username === process.env.ADMIN_EMAIL;
+  if (validUser && password === (process.env.ADMIN_PASSWORD || 'virtus2026')) {
     const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
     return res.json({ token });
   }
   res.status(401).json({ error: 'Credenziali non valide' });
 });
 
+/* ─── Registrazione utente ─── */
+app.post('/api/register', async (req, res) => {
+  const { nome, cognome, email, password } = req.body;
+  if (!nome || !cognome || !email || !password)
+    return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+  if (password.length < 6)
+    return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' });
+
+  try {
+    const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+    if (existing.rows.length) return res.status(409).json({ error: 'Email già registrata' });
+
+    const id           = Date.now().toString();
+    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    await db.query(
+      `INSERT INTO users (id, nome, cognome, email, password_hash, role, notifiche)
+       VALUES ($1,$2,$3,$4,$5,'user',true)`,
+      [id, nome.trim(), cognome.trim(), email.trim().toLowerCase(), passwordHash]
+    );
+
+    const token = jwt.sign({ role: 'user', id, nome: nome.trim() }, JWT_SECRET, { expiresIn: '24h' });
+    return res.status(201).json({ token, role: 'user', nome: nome.trim(), cognome: cognome.trim() });
+  } catch (err) {
+    console.error('[Register] Errore DB:', err.message);
+    return res.status(500).json({ error: 'Errore interno' });
+  }
+});
+
 /* ─── Admin: lista utenti ─── */
-app.get('/api/admin/users', adminAuth, (_req, res) => {
-  const users = readUsers().map(({ passwordHash, ...u }) => u);
-  res.json(users);
+app.get('/api/admin/users', adminAuth, async (_req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT id, nome, cognome, email, role, notifiche, created_at FROM users ORDER BY created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: cambia ruolo utente ─── */
-app.put('/api/admin/users/:id/role', adminAuth, (req, res) => {
+app.put('/api/admin/users/:id/role', adminAuth, async (req, res) => {
   const { role } = req.body;
   if (!['user', 'dirigente', 'admin'].includes(role))
     return res.status(400).json({ error: 'Ruolo non valido' });
-  const users = readUsers();
-  const idx = users.findIndex(u => u.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Utente non trovato' });
-  users[idx].role = role;
-  writeUsers(users);
-  res.json({ success: true });
+  try {
+    const result = await db.query(
+      'UPDATE users SET role=$1 WHERE id=$2 RETURNING id',
+      [role, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: elimina utente ─── */
-app.delete('/api/admin/users/:id', adminAuth, (req, res) => {
-  const users = readUsers();
-  const idx = users.findIndex(u => u.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Utente non trovato' });
-  users.splice(idx, 1);
-  writeUsers(users);
-  res.json({ success: true });
+app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
+  try {
+    const result = await db.query(
+      'DELETE FROM users WHERE id=$1 RETURNING id',
+      [req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-/* ─── Calendario: pubblico (lettura) ─── */
-app.get('/api/calendario', (_req, res) => {
-  res.json(readCalendario());
+/* ─── Calendario: pubblico ─── */
+app.get('/api/calendario', async (_req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM calendario ORDER BY data_str, ora');
+    const rows = result.rows.map(r => ({
+      id:        r.id,
+      titolo:    r.titolo,
+      data:      r.data_str,
+      ora:       r.ora,
+      luogo:     r.luogo,
+      categoria: r.categoria,
+      note:      r.note,
+    }));
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-/* ─── Calendario: crea sessione (admin + dirigente) ─── */
-app.post('/api/calendario', dirigenteAuth, (req, res) => {
+/* ─── Calendario: crea sessione ─── */
+app.post('/api/calendario', dirigenteAuth, async (req, res) => {
   const { titolo, data, ora, luogo, categoria, note } = req.body;
   if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
-  const sessions = readCalendario();
-  const nuova = { id: Date.now().toString(), titolo, data, ora, luogo: luogo || '', categoria: categoria || '', note: note || '' };
-  sessions.push(nuova);
-  sessions.sort((a, b) => (a.data + a.ora).localeCompare(b.data + b.ora));
-  writeCalendario(sessions);
-  res.status(201).json(nuova);
+  const id = Date.now().toString();
+  try {
+    await db.query(
+      `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [id, titolo, data, ora, luogo || '', categoria || '', note || '']
+    );
+    res.status(201).json({ id, titolo, data, ora, luogo: luogo || '', categoria: categoria || '', note: note || '' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Calendario: aggiorna sessione ─── */
-app.put('/api/calendario/:id', dirigenteAuth, (req, res) => {
-  const sessions = readCalendario();
-  const idx = sessions.findIndex(s => s.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Sessione non trovata' });
-  sessions[idx] = { ...sessions[idx], ...req.body, id: req.params.id };
-  sessions.sort((a, b) => (a.data + a.ora).localeCompare(b.data + b.ora));
-  writeCalendario(sessions);
-  res.json(sessions[idx]);
+app.put('/api/calendario/:id', dirigenteAuth, async (req, res) => {
+  const { titolo, data, ora, luogo, categoria, note } = req.body;
+  try {
+    const result = await db.query(
+      `UPDATE calendario
+       SET titolo=$1, data_str=$2, ora=$3, luogo=$4, categoria=$5, note=$6
+       WHERE id=$7
+       RETURNING *`,
+      [titolo, data, ora, luogo || '', categoria || '', note || '', req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    const r = result.rows[0];
+    res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, luogo: r.luogo, categoria: r.categoria, note: r.note });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Calendario: elimina sessione ─── */
-app.delete('/api/calendario/:id', dirigenteAuth, (req, res) => {
-  const sessions = readCalendario();
-  const idx = sessions.findIndex(s => s.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Sessione non trovata' });
-  sessions.splice(idx, 1);
-  writeCalendario(sessions);
-  res.json({ success: true });
+app.delete('/api/calendario/:id', dirigenteAuth, async (req, res) => {
+  try {
+    const result = await db.query('DELETE FROM calendario WHERE id=$1 RETURNING id', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Prodotti: pubblico ─── */
-app.get('/api/products', (_req, res) => {
-  res.json(readProducts());
+app.get('/api/products', async (_req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM products ORDER BY created_at');
+    const rows = result.rows.map(r => ({
+      id:          r.id,
+      nome:        r.nome,
+      descrizione: r.descrizione,
+      prezzo:      parseFloat(r.prezzo),
+      emoji:       r.emoji,
+      disponibile: r.disponibile,
+      taglie:      r.taglie,   // pg restituisce già array da JSONB
+      immagine:    r.immagine,
+    }));
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: aggiungi prodotto ─── */
-app.post('/api/admin/products', adminAuth, (req, res) => {
-  const { nome, descrizione, prezzo, emoji, taglie } = req.body;
+app.post('/api/admin/products', adminAuth, async (req, res) => {
+  const { nome, descrizione, prezzo, emoji, taglie, disponibile, immagine } = req.body;
   if (!nome || !prezzo) return res.status(400).json({ error: 'Nome e prezzo obbligatori' });
-  const products = readProducts();
-  const newProduct = {
-    id: Date.now().toString(),
-    nome,
-    descrizione: descrizione || '',
-    prezzo: parseFloat(prezzo),
-    emoji: emoji || '🏐',
-    disponibile: true,
-    taglie: taglie || ['S', 'M', 'L', 'XL'],
-  };
-  products.push(newProduct);
-  writeProducts(products);
-  res.status(201).json(newProduct);
+  const id = Date.now().toString();
+  try {
+    await db.query(
+      `INSERT INTO products (id, nome, descrizione, prezzo, emoji, disponibile, taglie, immagine)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [
+        id,
+        nome,
+        descrizione || '',
+        parseFloat(prezzo),
+        emoji || '🏐',
+        disponibile !== false,
+        JSON.stringify(taglie || ['S', 'M', 'L', 'XL']),
+        immagine || '',
+      ]
+    );
+    res.status(201).json({
+      id, nome, descrizione: descrizione || '', prezzo: parseFloat(prezzo),
+      emoji: emoji || '🏐', disponibile: disponibile !== false,
+      taglie: taglie || ['S', 'M', 'L', 'XL'], immagine: immagine || '',
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: aggiorna prodotto ─── */
-app.put('/api/admin/products/:id', adminAuth, (req, res) => {
-  const products = readProducts();
-  const idx = products.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Prodotto non trovato' });
-  products[idx] = { ...products[idx], ...req.body, id: req.params.id };
-  writeProducts(products);
-  res.json(products[idx]);
+app.put('/api/admin/products/:id', adminAuth, async (req, res) => {
+  const { nome, descrizione, prezzo, emoji, taglie, disponibile, immagine } = req.body;
+  try {
+    const result = await db.query(
+      `UPDATE products
+       SET nome=$1, descrizione=$2, prezzo=$3, emoji=$4, disponibile=$5, taglie=$6, immagine=$7
+       WHERE id=$8
+       RETURNING *`,
+      [
+        nome,
+        descrizione || '',
+        parseFloat(prezzo),
+        emoji || '🏐',
+        disponibile !== false,
+        JSON.stringify(taglie || ['S', 'M', 'L', 'XL']),
+        immagine || '',
+        req.params.id,
+      ]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Prodotto non trovato' });
+    const r = result.rows[0];
+    res.json({
+      id:          r.id,
+      nome:        r.nome,
+      descrizione: r.descrizione,
+      prezzo:      parseFloat(r.prezzo),
+      emoji:       r.emoji,
+      disponibile: r.disponibile,
+      taglie:      r.taglie,
+      immagine:    r.immagine,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: elimina prodotto ─── */
-app.delete('/api/admin/products/:id', adminAuth, (req, res) => {
-  const products = readProducts();
-  const idx = products.findIndex(p => p.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Prodotto non trovato' });
-  products.splice(idx, 1);
-  writeProducts(products);
-  res.json({ success: true });
+app.delete('/api/admin/products/:id', adminAuth, async (req, res) => {
+  try {
+    const result = await db.query('DELETE FROM products WHERE id=$1 RETURNING id', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Prodotto non trovato' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: upload foto ─── */
@@ -264,39 +355,69 @@ app.post('/api/admin/upload', adminAuth, upload.single('immagine'), (req, res) =
 });
 
 /* ─── Notizie: pubblico ─── */
-app.get('/api/notizie', (_req, res) => {
-  res.json(readNotizie());
+app.get('/api/notizie', async (_req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM notizie ORDER BY created_at DESC');
+    const rows = result.rows.map(r => ({
+      id:       r.id,
+      titolo:   r.titolo,
+      testo:    r.testo,
+      colore:   r.colore,
+      immagine: r.immagine,
+      data:     r.data_str,
+    }));
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: aggiungi notizia ─── */
-app.post('/api/admin/notizie', adminAuth, (req, res) => {
+app.post('/api/admin/notizie', adminAuth, async (req, res) => {
   const { titolo, testo, data, colore, immagine } = req.body;
   if (!titolo || !testo) return res.status(400).json({ error: 'Titolo e testo obbligatori' });
-  const notizie = readNotizie();
-  const nuova = { id: Date.now().toString(), titolo, testo, data: data || new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }), colore: colore || 'blu', immagine: immagine || '' };
-  notizie.unshift(nuova);
-  writeNotizie(notizie);
-  res.status(201).json(nuova);
+  const id      = Date.now().toString();
+  const dataStr = data || new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+  try {
+    await db.query(
+      `INSERT INTO notizie (id, titolo, testo, colore, immagine, data_str)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [id, titolo, testo, colore || 'blu', immagine || '', dataStr]
+    );
+    res.status(201).json({ id, titolo, testo, colore: colore || 'blu', immagine: immagine || '', data: dataStr });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: aggiorna notizia ─── */
-app.put('/api/admin/notizie/:id', adminAuth, (req, res) => {
-  const notizie = readNotizie();
-  const idx = notizie.findIndex(n => n.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Notizia non trovata' });
-  notizie[idx] = { ...notizie[idx], ...req.body, id: req.params.id };
-  writeNotizie(notizie);
-  res.json(notizie[idx]);
+app.put('/api/admin/notizie/:id', adminAuth, async (req, res) => {
+  const { titolo, testo, data, colore, immagine } = req.body;
+  try {
+    const result = await db.query(
+      `UPDATE notizie
+       SET titolo=$1, testo=$2, colore=$3, immagine=$4, data_str=$5
+       WHERE id=$6
+       RETURNING *`,
+      [titolo, testo, colore || 'blu', immagine || '', data || null, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Notizia non trovata' });
+    const r = result.rows[0];
+    res.json({ id: r.id, titolo: r.titolo, testo: r.testo, colore: r.colore, immagine: r.immagine, data: r.data_str });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Admin: elimina notizia ─── */
-app.delete('/api/admin/notizie/:id', adminAuth, (req, res) => {
-  const notizie = readNotizie();
-  const idx = notizie.findIndex(n => n.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Notizia non trovata' });
-  notizie.splice(idx, 1);
-  writeNotizie(notizie);
-  res.json({ success: true });
+app.delete('/api/admin/notizie/:id', adminAuth, async (req, res) => {
+  try {
+    const result = await db.query('DELETE FROM notizie WHERE id=$1 RETURNING id', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Notizia non trovata' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /* ─── Config pubblica ─── */
@@ -426,117 +547,60 @@ app.post('/api/send-order-email', async (req, res) => {
   }
 });
 
-/* ─── Instagram API ─── */
+/* ─── Instagram Basic Display API ─── */
 const IG_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 ore
 let igCache = null; // { data, ts }
 
-async function fetchInstagramCookies() {
-  const r = await fetch('https://www.instagram.com/', {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8',
-    },
-    redirect: 'follow',
-  });
-  const setCookies = r.headers.raw()['set-cookie'] || [];
-  const cookies = {};
-  setCookies.forEach(c => {
-    const [pair] = c.split(';');
-    const [k, v] = pair.split('=');
-    if (k && v) cookies[k.trim()] = v.trim();
-  });
-  return cookies;
-}
-
-function buildCookieString(publicCookies, sessionId) {
-  const dsUserId = sessionId.split(':')[0];
-  const all = { ...publicCookies, sessionid: sessionId, ds_user_id: dsUserId };
-  return Object.entries(all).map(([k, v]) => `${k}=${v}`).join('; ');
-}
-
 app.get('/api/instagram', async (_req, res) => {
-  if (!INSTAGRAM_SESSION_ID) {
+  if (!INSTAGRAM_ACCESS_TOKEN) {
     return res.json({
       source: 'static',
       username: INSTAGRAM_USERNAME,
       profileUrl: `https://www.instagram.com/${INSTAGRAM_USERNAME}/`,
-      message: 'Configura INSTAGRAM_SESSION_ID nel file .env per mostrare i post reali.',
+      message: 'Configura INSTAGRAM_ACCESS_TOKEN nel file .env per mostrare i post reali.',
       recentPosts: [],
     });
   }
 
-  // Servi dalla cache se ancora valida
   if (igCache && (Date.now() - igCache.ts) < IG_CACHE_TTL) {
     console.log('[Instagram] Risposta dalla cache');
     return res.json(igCache.data);
   }
 
   try {
-    const publicCookies = await fetchInstagramCookies();
-    const cookieStr = buildCookieString(publicCookies, INSTAGRAM_SESSION_ID);
-
-    const mobileUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram/304.0.0.31.113';
-    const hdrs = {
-      'User-Agent':  mobileUA,
-      'Accept':      '*/*',
-      'X-IG-App-ID': '936619743392459',
-      'Cookie':      cookieStr,
-    };
+    const token = INSTAGRAM_ACCESS_TOKEN;
+    const BASE   = 'https://graph.instagram.com';
 
     const profileRes = await fetch(
-      `https://www.instagram.com/api/v1/users/web_profile_info/?username=${INSTAGRAM_USERNAME}`,
-      {
-        headers: {
-          ...hdrs,
-          'User-Agent':       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Referer':          'https://www.instagram.com/',
-        },
-        redirect: 'follow',
-      }
+      `${BASE}/me?fields=id,username,account_type,media_count&access_token=${token}`
     );
-
     console.log('[Instagram] Status profilo:', profileRes.status);
     if (!profileRes.ok) throw new Error(`HTTP ${profileRes.status} (profilo)`);
+    const profile = await profileRes.json();
+    if (profile.error) throw new Error(profile.error.message);
 
-    const profileJson = await profileRes.json();
-    const user = profileJson?.data?.user;
-    if (!user) throw new Error('campo user non trovato');
-
-    const USER_ID = user.id;
-
-    const feedRes = await fetch(
-      `https://i.instagram.com/api/v1/feed/user/${USER_ID}/?count=3`,
-      { headers: hdrs, redirect: 'follow' }
+    const mediaRes = await fetch(
+      `${BASE}/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=3&access_token=${token}`
     );
+    console.log('[Instagram] Status media:', mediaRes.status);
+    if (!mediaRes.ok) throw new Error(`HTTP ${mediaRes.status} (media)`);
+    const mediaJson = await mediaRes.json();
+    if (mediaJson.error) throw new Error(mediaJson.error.message);
 
-    console.log('[Instagram] Status feed:', feedRes.status);
-    if (!feedRes.ok) throw new Error(`HTTP ${feedRes.status} (feed)`);
-
-    const feedJson = await feedRes.json();
-    const items = feedJson.items || [];
-
-    const posts = items.slice(0, 3).map(item => ({
-      id:        item.pk,
-      shortcode: item.code,
-      url:       `https://www.instagram.com/p/${item.code}/`,
-      thumbnail: item.image_versions2?.candidates?.[0]?.url || '',
-      caption:   item.caption?.text || '',
-      likes:     item.like_count || 0,
-      comments:  item.comment_count || 0,
-      timestamp: item.taken_at,
-      isVideo:   item.media_type === 2,
+    const posts = (mediaJson.data || []).map(item => ({
+      id:        item.id,
+      url:       item.permalink,
+      thumbnail: item.media_type === 'VIDEO' ? (item.thumbnail_url || '') : (item.media_url || ''),
+      caption:   item.caption || '',
+      timestamp: Math.floor(new Date(item.timestamp).getTime() / 1000),
+      isVideo:   item.media_type === 'VIDEO',
     }));
 
     const result = {
-      source:    'instagram_api',
-      username:  user.username,
-      fullName:  user.full_name,
-      bio:       user.biography,
-      followers: user.edge_followed_by?.count || 0,
-      following: user.edge_follow?.count || 0,
-      posts:     user.edge_owner_to_timeline_media?.count || 0,
-      avatar:    user.profile_pic_url_hd || user.profile_pic_url,
+      source:      'instagram_api',
+      username:    profile.username,
+      posts:       profile.media_count || 0,
+      profileUrl:  `https://www.instagram.com/${profile.username}/`,
       recentPosts: posts,
     };
 
@@ -545,20 +609,31 @@ app.get('/api/instagram', async (_req, res) => {
 
   } catch (err) {
     console.log('[Instagram] Errore:', err.message);
-
-    // Se abbiamo una cache scaduta, meglio servirla che restituire vuoto
     if (igCache) {
       console.log('[Instagram] Servendo cache scaduta dopo errore');
       return res.json({ ...igCache.data, cached: true });
     }
-
     return res.json({
-      source: 'static',
-      username: INSTAGRAM_USERNAME,
+      source:     'static',
+      username:   INSTAGRAM_USERNAME,
       profileUrl: `https://www.instagram.com/${INSTAGRAM_USERNAME}/`,
-      message: `Errore Instagram: ${err.message}`,
+      message:    `Errore Instagram: ${err.message}`,
       recentPosts: [],
     });
+  }
+});
+
+app.post('/api/instagram/refresh-token', async (_req, res) => {
+  if (!INSTAGRAM_ACCESS_TOKEN) return res.status(400).json({ error: 'Token non configurato' });
+  try {
+    const r = await fetch(
+      `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${INSTAGRAM_ACCESS_TOKEN}`
+    );
+    const json = await r.json();
+    if (json.error) throw new Error(json.error.message);
+    res.json({ access_token: json.access_token, expires_in: json.expires_in });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -570,7 +645,6 @@ function parseFipavMatches(html) {
     return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  // Pass 1: collect all <caption> category headings with their position in the HTML
   const categories = [];
   const capRe = /<caption[^>]*>([\s\S]*?)<\/caption>/gi;
   let capm;
@@ -581,7 +655,6 @@ function parseFipavMatches(html) {
     }
   }
 
-  // Pass 2: parse match rows and assign the nearest preceding category
   const matches = [];
   const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let rowMatch;
@@ -611,7 +684,6 @@ function parseFipavMatches(html) {
           dateFormatted = `${dd}/${mm}/20${yy} ${hh}:${min}`;
         }
 
-        // Find the last category whose position is before this row
         const rowPos = rowMatch.index;
         let categoria = '';
         for (const cat of categories) {
@@ -649,7 +721,6 @@ app.get('/api/partite', async (_req, res) => {
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const html = await r.text();
-    // DEBUG: mostra i 300 caratteri prima della prima partita
     const idx702 = html.indexOf('>702<');
     if (idx702 !== -1) console.log('[Partite] HTML prima di 702:', JSON.stringify(html.slice(Math.max(0, idx702 - 1000), idx702)));
 
@@ -659,10 +730,9 @@ app.get('/api/partite', async (_req, res) => {
 
     all.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
-    const now     = Date.now();
-    const past    = all.filter(m => m.played);
-    // Le gare rinviate con data passata e senza risultato vengono escluse dalle prossime
-    const future  = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now);
+    const now    = Date.now();
+    const past   = all.filter(m => m.played);
+    const future = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now);
 
     res.json({
       ultime:   past.slice(-3),
@@ -675,6 +745,7 @@ app.get('/api/partite', async (_req, res) => {
   }
 });
 
+/* ─── Proxy immagine ─── */
 app.get('/api/proxy-image', async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).send('Missing url');
@@ -694,11 +765,168 @@ app.get('/api/proxy-image', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server avviato su http://localhost:${PORT}`);
-  if (!INSTAGRAM_SESSION_ID) {
-    console.log('[Instagram] Nessun session ID configurato.');
-  } else {
-    console.log('[Instagram] Session ID rilevato e decodificato.');
+/* ─── Notifiche log (DB) ─── */
+async function readNotificheLog() {
+  try {
+    const result = await db.query('SELECT chiave FROM notifiche_log');
+    const obj = {};
+    for (const row of result.rows) obj[row.chiave] = true;
+    return obj;
+  } catch {
+    return {};
   }
+}
+
+async function writeNotificheLog(chiave) {
+  try {
+    await db.query(
+      'INSERT INTO notifiche_log (chiave) VALUES ($1) ON CONFLICT DO NOTHING',
+      [chiave]
+    );
+  } catch (err) {
+    console.log('[NotificheLog] Errore scrittura:', err.message);
+  }
+}
+
+/* ─── Notifiche email iscritti ─── */
+function isVirtus(nome) { return /virtus\s*caserta/i.test(nome || ''); }
+
+function creaTransporter() {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return null;
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
+}
+
+async function inviaEmailIscritti(subject, html) {
+  const transporter = creaTransporter();
+  if (!transporter) return;
+  try {
+    const result = await db.query("SELECT email FROM users WHERE notifiche = true AND email IS NOT NULL AND email <> ''");
+    const users = result.rows;
+    if (!users.length) return;
+    const to = users.map(u => u.email).join(',');
+    await transporter.sendMail({
+      from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
+      bcc: to,
+      subject,
+      html,
+    });
+    console.log(`[Notifiche] Email inviata a ${users.length} iscritti: "${subject}"`);
+  } catch (err) {
+    console.log('[Notifiche] Errore invio email:', err.message);
+  }
+}
+
+async function controllaPartiteEInvia() {
+  try {
+    const r = await fetch(`http://localhost:${PORT}/api/partite`);
+    if (!r.ok) return;
+    const { ultime, prossime } = await r.json();
+    const log  = await readNotificheLog();
+    const now  = Date.now();
+    const TRE_ORE = 3 * 60 * 60 * 1000;
+    const FINESTRA = 8 * 60 * 1000; // ±8 min
+
+    for (const m of (prossime || [])) {
+      if (!m.timestamp) continue;
+      const chiave = `promemoria_${m.id}`;
+      if (log[chiave]) continue;
+      const distanza = m.timestamp - now;
+      if (distanza > TRE_ORE - FINESTRA && distanza < TRE_ORE + FINESTRA) {
+        const luogo = isVirtus(m.casa) ? 'in casa' : 'in trasferta';
+        await inviaEmailIscritti(
+          `🏐 Partita tra 3 ore – ${m.casa} vs ${m.ospite}`,
+          `<p>Ciao!</p>
+           <p>Tra meno di 3 ore la <strong>Virtus Caserta</strong> scende in campo <strong>${luogo}</strong>.</p>
+           <p><strong>${m.casa} vs ${m.ospite}</strong><br>${m.dataOra}${m.categoria ? ' · ' + m.categoria : ''}</p>
+           <p>Forza Virtus! 🏐</p>
+           <hr><small><a href="https://virtuscaserta.it">virtuscaserta.it</a></small>`
+        );
+        await writeNotificheLog(chiave);
+      }
+    }
+
+    for (const m of (ultime || [])) {
+      if (!m.played || !m.risultato) continue;
+      const chiave = `vittoria_${m.id}`;
+      if (log[chiave]) continue;
+
+      const parti = m.risultato.match(/(\d+)\s*[-–]\s*(\d+)/);
+      if (!parti) continue;
+      const [, setA, setB] = parti.map((v, i) => i === 0 ? v : parseInt(v));
+      const homeWin = parseInt(setA) > parseInt(setB);
+      const vittoria = (isVirtus(m.casa) && homeWin) || (isVirtus(m.ospite) && !homeWin);
+
+      if (vittoria) {
+        await inviaEmailIscritti(
+          `🏆 Vittoria! ${m.casa} ${m.risultato} ${m.ospite}`,
+          `<p>Ciao!</p>
+           <p>La <strong>Virtus Caserta</strong> ha vinto! 🎉</p>
+           <p><strong>${m.casa} ${m.risultato} ${m.ospite}</strong><br>${m.dataOra}${m.categoria ? ' · ' + m.categoria : ''}</p>
+           <p>Grande prestazione! Forza Virtus! 🏐</p>
+           <hr><small><a href="https://virtuscaserta.it">virtuscaserta.it</a></small>`
+        );
+      }
+      await writeNotificheLog(chiave);
+    }
+  } catch (err) {
+    console.log('[Notifiche] Errore controllo partite:', err.message);
+  }
+}
+
+/* ─── Notifiche utente ─── */
+app.post('/api/utente/notifiche', userAuth, async (req, res) => {
+  const { attiva } = req.body;
+  try {
+    const result = await db.query(
+      'UPDATE users SET notifiche=$1 WHERE id=$2 RETURNING notifiche',
+      [!!attiva, req.user.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    res.json({ notifiche: result.rows[0].notifiche });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/utente/notifiche', userAuth, async (req, res) => {
+  try {
+    const result = await db.query('SELECT notifiche FROM users WHERE id=$1', [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    res.json({ notifiche: result.rows[0].notifiche !== false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Startup ─── */
+db.init().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server avviato su http://localhost:${PORT}`);
+    if (!INSTAGRAM_ACCESS_TOKEN) {
+      console.log('[Instagram] Nessun access token configurato.');
+    } else {
+      console.log('[Instagram] Access token rilevato.');
+    }
+    setTimeout(() => {
+      controllaPartiteEInvia();
+      setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
+    }, 15000);
+  });
+}).catch(err => {
+  console.error('[DB] Errore inizializzazione:', err.message);
+  app.listen(PORT, () => {
+    console.log(`Server avviato (senza DB) su http://localhost:${PORT}`);
+    if (!INSTAGRAM_ACCESS_TOKEN) {
+      console.log('[Instagram] Nessun access token configurato.');
+    } else {
+      console.log('[Instagram] Access token rilevato.');
+    }
+    setTimeout(() => {
+      controllaPartiteEInvia();
+      setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
+    }, 15000);
+  });
 });
