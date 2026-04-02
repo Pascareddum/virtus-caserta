@@ -59,6 +59,7 @@
       align-items: center;
       justify-content: center;
       text-decoration: none;
+      padding: 0 28px;
     }
 
     .nav-brand img {
@@ -66,7 +67,10 @@
       width: auto;
       object-fit: contain;
       display: block;
+      transition: transform 0.25s ease;
     }
+
+    .nav-brand:hover img { transform: scale(1.1); }
 
     .nav-menu a {
       text-decoration: none;

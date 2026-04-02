@@ -138,6 +138,53 @@
     .evento-gruppo { font-size:16px; font-weight:800; color:var(--testo); margin-bottom:6px; }
     .evento-riga   { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--sub); margin-bottom:3px; }
 
+    /* ── FAB admin ── */
+    .fab {
+      display:none;
+      position:fixed; bottom:28px; right:28px; z-index:200;
+      width:56px; height:56px; border-radius:50%;
+      background:var(--arancio); color:var(--bianco);
+      border:none; font-size:28px; cursor:pointer;
+      box-shadow:0 4px 18px rgba(0,0,0,.25);
+      align-items:center; justify-content:center;
+      transition:transform .2s, box-shadow .2s;
+    }
+    .fab:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(0,0,0,.3); }
+
+    /* ── MODAL AGGIUNGI ── */
+    .modal-overlay {
+      display:none; position:fixed; inset:0; z-index:500;
+      background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px;
+    }
+    .modal-overlay.aperta { display:flex; }
+    .modal-box {
+      background:var(--bianco); border-radius:20px; padding:28px 24px;
+      width:100%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+    .modal-hdr h3 { font-size:18px; font-weight:800; color:var(--testo); }
+    .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--sub); line-height:1; }
+    .mf { display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
+    .mf label { font-size:11px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; }
+    .mf input, .mf select, .mf textarea {
+      padding:10px 12px; border:1.5px solid var(--bordo); border-radius:10px;
+      font-size:14px; font-family:inherit; outline:none; width:100%; transition:border-color .2s;
+    }
+    .mf input:focus, .mf select:focus, .mf textarea:focus { border-color:var(--blu); }
+    .mf textarea { resize:vertical; min-height:60px; }
+    .mf-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .modal-ftr { display:flex; gap:10px; margin-top:6px; }
+    .btn-annulla {
+      flex:1; padding:12px; border:1.5px solid var(--bordo); background:none;
+      border-radius:50px; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s;
+    }
+    .btn-annulla:hover { background:var(--grigio); }
+    .btn-salva {
+      flex:2; padding:12px; border:none; background:var(--blu); color:var(--bianco);
+      border-radius:50px; font-size:14px; font-weight:700; cursor:pointer; transition:background .2s;
+    }
+    .btn-salva:hover { background:#1535a8; }
+
     @media (max-width:480px) {
       nav { padding:0 16px; height:60px; }
       .nav-brand img { height:38px; }
@@ -178,6 +225,60 @@
   <div class="eventi-sezione">
     <div class="eventi-data-label" id="eventiLabel"></div>
     <div id="eventiList"></div>
+  </div>
+
+  <!-- FAB solo admin/dirigente -->
+  <button class="fab" id="fabAggiungi" title="Aggiungi allenamento" onclick="apriModal()">＋</button>
+
+  <!-- MODAL AGGIUNGI ALLENAMENTO -->
+  <div class="modal-overlay" id="modalOverlay" onclick="chiudiModalSeOverlay(event)">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <h3>Nuovo allenamento</h3>
+        <button class="modal-close" onclick="chiudiModal()">✕</button>
+      </div>
+      <div class="mf">
+        <label>Titolo *</label>
+        <input type="text" id="mTitolo" placeholder="Es. Allenamento Under 19">
+      </div>
+      <div class="mf">
+        <label>Data *</label>
+        <input type="date" id="mData">
+      </div>
+      <div class="mf-grid">
+        <div class="mf">
+          <label>Inizio *</label>
+          <input type="time" id="mInizio">
+        </div>
+        <div class="mf">
+          <label>Fine *</label>
+          <input type="time" id="mFine">
+        </div>
+      </div>
+      <div class="mf">
+        <label>Luogo</label>
+        <input type="text" id="mLuogo" placeholder="Es. Tenda di Abramo, Caserta">
+      </div>
+      <div class="mf">
+        <label>Categoria</label>
+        <select id="mCategoria">
+          <option value="">— Seleziona —</option>
+          <option value="Under 19">Under 19</option>
+          <option value="Under 16">Under 16</option>
+          <option value="Under 13">Under 13</option>
+          <option value="Prima Squadra">Prima Squadra</option>
+          <option value="Altro">Altro</option>
+        </select>
+      </div>
+      <div class="mf">
+        <label>Note</label>
+        <textarea id="mNote" placeholder="Informazioni aggiuntive..."></textarea>
+      </div>
+      <div class="modal-ftr">
+        <button class="btn-annulla" onclick="chiudiModal()">Annulla</button>
+        <button class="btn-salva" id="btnSalva" onclick="salva()">Aggiungi</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -352,6 +453,73 @@
     }
 
     carica();
+
+    /* ── FAB visibilità ── */
+    function aggiornaFab() {
+      const role = localStorage.getItem('vc_role');
+      const token = localStorage.getItem('vc_token');
+      const fab = document.getElementById('fabAggiungi');
+      if (token && (role === 'admin' || role === 'dirigente')) {
+        fab.style.display = 'flex';
+      }
+    }
+    aggiornaFab();
+
+    /* ── Modal ── */
+    function apriModal() {
+      const oggi = new Date().toISOString().slice(0,10);
+      document.getElementById('mTitolo').value   = '';
+      document.getElementById('mData').value     = selData ? dataKey(selData) : oggi;
+      document.getElementById('mInizio').value   = '18:00';
+      document.getElementById('mFine').value     = '20:00';
+      document.getElementById('mLuogo').value    = '';
+      document.getElementById('mCategoria').value= '';
+      document.getElementById('mNote').value     = '';
+      document.getElementById('modalOverlay').classList.add('aperta');
+    }
+
+    function chiudiModal() {
+      document.getElementById('modalOverlay').classList.remove('aperta');
+    }
+
+    function chiudiModalSeOverlay(e) {
+      if (e.target === document.getElementById('modalOverlay')) chiudiModal();
+    }
+
+    async function salva() {
+      const titolo    = document.getElementById('mTitolo').value.trim();
+      const data      = document.getElementById('mData').value;
+      const inizio    = document.getElementById('mInizio').value;
+      const fine      = document.getElementById('mFine').value;
+      const luogo     = document.getElementById('mLuogo').value.trim();
+      const categoria = document.getElementById('mCategoria').value;
+      const note      = document.getElementById('mNote').value.trim();
+      if (!titolo || !data || !inizio) { alert('Titolo, data e orario di inizio sono obbligatori.'); return; }
+      const ora = fine ? `${inizio}–${fine}` : inizio;
+      const btn = document.getElementById('btnSalva');
+      btn.disabled = true; btn.textContent = 'Salvataggio...';
+      try {
+        const token = localStorage.getItem('vc_token');
+        const res = await fetch('/api/calendario', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ titolo, data, ora, luogo, categoria, note })
+        });
+        if (!res.ok) throw new Error('Errore server');
+        const nuova = await res.json();
+        if (!mappa[nuova.data]) mappa[nuova.data] = [];
+        mappa[nuova.data].push(nuova);
+        chiudiModal();
+        selData = new Date(nuova.data + 'T00:00:00');
+        viewAnno = selData.getFullYear();
+        viewMese = selData.getMonth();
+        renderCalendario();
+      } catch (err) {
+        alert('Errore durante il salvataggio: ' + err.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Aggiungi';
+      }
+    }
   </script>
 </body>
 </html>

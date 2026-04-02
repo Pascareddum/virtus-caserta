@@ -480,14 +480,18 @@
         <label>Titolo *</label>
         <input type="text" id="seTitolo" placeholder="Es. Allenamento Under 14">
       </div>
-      <div class="modal form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="modal form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
         <div class="form-group">
           <label>Data *</label>
           <input type="date" id="seData">
         </div>
         <div class="form-group">
-          <label>Orario *</label>
-          <input type="time" id="seOra">
+          <label>Inizio *</label>
+          <input type="time" id="seOraInizio">
+        </div>
+        <div class="form-group">
+          <label>Fine *</label>
+          <input type="time" id="seOraFine">
         </div>
       </div>
       <div class="form-group">
@@ -982,15 +986,28 @@
         </tr>`).join('');
     }
 
+    function parseOraAdminInizio(ora) {
+      if (!ora) return '18:00';
+      const sep = ora.includes('–') ? '–' : '-';
+      return ora.split(sep)[0].trim();
+    }
+    function parseOraAdminFine(ora) {
+      if (!ora) return '20:00';
+      const sep = ora.includes('–') ? '–' : '-';
+      const p = ora.split(sep);
+      return p[1] ? p[1].trim() : '';
+    }
+
     function apriModalNuovaSessione() {
       sessioneInEditing = null;
       document.getElementById('modalSessioneTitolo').textContent = 'Nuova sessione';
-      document.getElementById('seTitolo').value   = '';
-      document.getElementById('seData').value     = new Date().toISOString().slice(0,10);
-      document.getElementById('seOra').value      = '18:00';
-      document.getElementById('seLuogo').value    = '';
-      document.getElementById('seCategoria').value= '';
-      document.getElementById('seNote').value     = '';
+      document.getElementById('seTitolo').value      = '';
+      document.getElementById('seData').value        = new Date().toISOString().slice(0,10);
+      document.getElementById('seOraInizio').value   = '18:00';
+      document.getElementById('seOraFine').value     = '20:00';
+      document.getElementById('seLuogo').value       = '';
+      document.getElementById('seCategoria').value   = '';
+      document.getElementById('seNote').value        = '';
       document.getElementById('modalSessioneOverlay').classList.add('aperto');
     }
 
@@ -1000,12 +1017,13 @@
       if (!s) return;
       sessioneInEditing = id;
       document.getElementById('modalSessioneTitolo').textContent = 'Modifica sessione';
-      document.getElementById('seTitolo').value    = s.titolo;
-      document.getElementById('seData').value      = s.data;
-      document.getElementById('seOra').value       = s.ora;
-      document.getElementById('seLuogo').value     = s.luogo || '';
-      document.getElementById('seCategoria').value = s.categoria || '';
-      document.getElementById('seNote').value      = s.note || '';
+      document.getElementById('seTitolo').value      = s.titolo;
+      document.getElementById('seData').value        = s.data;
+      document.getElementById('seOraInizio').value   = parseOraAdminInizio(s.ora);
+      document.getElementById('seOraFine').value     = parseOraAdminFine(s.ora);
+      document.getElementById('seLuogo').value       = s.luogo || '';
+      document.getElementById('seCategoria').value   = s.categoria || '';
+      document.getElementById('seNote').value        = s.note || '';
       document.getElementById('modalSessioneOverlay').classList.add('aperto');
     }
 
@@ -1014,11 +1032,13 @@
     async function salvaSessione() {
       const titolo    = document.getElementById('seTitolo').value.trim();
       const data      = document.getElementById('seData').value;
-      const ora       = document.getElementById('seOra').value;
+      const inizio    = document.getElementById('seOraInizio').value;
+      const fine      = document.getElementById('seOraFine').value;
+      const ora       = fine ? `${inizio}–${fine}` : inizio;
       const luogo     = document.getElementById('seLuogo').value.trim();
       const categoria = document.getElementById('seCategoria').value.trim();
       const note      = document.getElementById('seNote').value.trim();
-      if (!titolo || !data || !ora) { toast('⚠️ Titolo, data e ora obbligatori'); return; }
+      if (!titolo || !data || !inizio) { toast('⚠️ Titolo, data e orario obbligatori'); return; }
       const body = { titolo, data, ora, luogo, categoria, note };
       const btn  = document.getElementById('btnSalvaSessione');
       btn.disabled = true; btn.textContent = 'Salvataggio...';
