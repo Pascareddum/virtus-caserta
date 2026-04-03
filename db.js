@@ -20,14 +20,16 @@ function query(text, params) {
 async function createTables() {
   await query(`
     CREATE TABLE IF NOT EXISTS users (
-      id           VARCHAR PRIMARY KEY,
-      nome         VARCHAR NOT NULL,
-      cognome      VARCHAR NOT NULL,
-      email        VARCHAR UNIQUE NOT NULL,
-      password_hash VARCHAR NOT NULL,
-      role         VARCHAR DEFAULT 'user',
-      notifiche    BOOLEAN DEFAULT true,
-      created_at   TIMESTAMPTZ DEFAULT NOW()
+      id                 VARCHAR PRIMARY KEY,
+      nome               VARCHAR NOT NULL,
+      cognome            VARCHAR NOT NULL,
+      email              VARCHAR UNIQUE NOT NULL,
+      password_hash      VARCHAR NOT NULL,
+      role               VARCHAR DEFAULT 'user',
+      notifiche          BOOLEAN DEFAULT true,
+      email_verificata   BOOLEAN DEFAULT false,
+      verification_token VARCHAR,
+      created_at         TIMESTAMPTZ DEFAULT NOW()
     );
   `);
 
@@ -59,14 +61,15 @@ async function createTables() {
 
   await query(`
     CREATE TABLE IF NOT EXISTS calendario (
-      id         VARCHAR PRIMARY KEY,
-      titolo     VARCHAR NOT NULL,
-      data_str   VARCHAR NOT NULL,
-      ora        VARCHAR NOT NULL,
-      luogo      VARCHAR DEFAULT '',
-      categoria  VARCHAR DEFAULT '',
-      note       TEXT    DEFAULT '',
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      id                      VARCHAR PRIMARY KEY,
+      titolo                  VARCHAR NOT NULL,
+      data_str                VARCHAR NOT NULL,
+      ora                     VARCHAR NOT NULL,
+      luogo                   VARCHAR DEFAULT '',
+      categoria               VARCHAR DEFAULT '',
+      note                    TEXT    DEFAULT '',
+      ripetizione_settimanale BOOLEAN DEFAULT false,
+      created_at              TIMESTAMPTZ DEFAULT NOW()
     );
   `);
 
@@ -76,6 +79,11 @@ async function createTables() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+
+  // Aggiornamenti schema per DB già esistenti
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verificata BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR`);
+  await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
 }
 
 /* ─── Migrazione da JSON ─── */

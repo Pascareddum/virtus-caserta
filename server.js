@@ -91,6 +91,9 @@ app.post('/api/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Email o password non validi' });
     const hash = crypto.createHash('sha256').update(password).digest('hex');
     if (user.password_hash !== hash) return res.status(401).json({ error: 'Email o password non validi' });
+    if (!user.email_verificata && process.env.EMAIL_USER) {
+      return res.status(401).json({ error: 'Verifica prima la tua email. Controlla la casella di posta.' });
+    }
     const role  = user.role || 'user';
     const token = jwt.sign({ role, id: user.id, nome: user.nome }, JWT_SECRET, { expiresIn: '24h' });
     return res.json({ token, role, nome: user.nome, cognome: user.cognome });
@@ -127,17 +130,47 @@ app.post('/api/register', async (req, res) => {
 
     const id           = Date.now().toString();
     const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    const emailConfigured = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    const verificationToken = emailConfigured ? crypto.randomBytes(32).toString('hex') : null;
+    const emailVerificata   = !emailConfigured; // se email non configurata, verifica automatica
+
     await db.query(
-      `INSERT INTO users (id, nome, cognome, email, password_hash, role, notifiche)
-       VALUES ($1,$2,$3,$4,$5,'user',true)`,
-      [id, nome.trim(), cognome.trim(), email.trim().toLowerCase(), passwordHash]
+      `INSERT INTO users (id, nome, cognome, email, password_hash, role, notifiche, email_verificata, verification_token)
+       VALUES ($1,$2,$3,$4,$5,'user',true,$6,$7)`,
+      [id, nome.trim(), cognome.trim(), email.trim().toLowerCase(), passwordHash, emailVerificata, verificationToken]
     );
+
+    if (emailConfigured) {
+      const host = req.get('host');
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const link = `${protocol}://${host}/api/verify-email/${verificationToken}`;
+      await inviaEmailVerifica(email.trim().toLowerCase(), nome.trim(), link);
+      return res.status(201).json({ message: 'Controlla la tua email per confermare la registrazione.' });
+    }
 
     const token = jwt.sign({ role: 'user', id, nome: nome.trim() }, JWT_SECRET, { expiresIn: '24h' });
     return res.status(201).json({ token, role: 'user', nome: nome.trim(), cognome: cognome.trim() });
   } catch (err) {
     console.error('[Register] Errore DB:', err.message);
     return res.status(500).json({ error: 'Errore interno' });
+  }
+});
+
+/* ─── Verifica email ─── */
+app.get('/api/verify-email/:token', async (req, res) => {
+  try {
+    const result = await db.query(
+      'UPDATE users SET email_verificata=true, verification_token=NULL WHERE verification_token=$1 RETURNING id',
+      [req.params.token]
+    );
+    if (!result.rows.length) {
+      return res.send(`<!DOCTYPE html><html lang="it"><body style="font-family:Arial;text-align:center;padding:60px">
+        <h2>Link non valido o già utilizzato</h2>
+        <a href="/index.html">Torna alla home</a></body></html>`);
+    }
+    return res.redirect('/index.html?verified=1');
+  } catch (err) {
+    return res.status(500).send('Errore interno');
   }
 });
 
@@ -156,7 +189,7 @@ app.get('/api/admin/users', adminAuth, async (_req, res) => {
 /* ─── Admin: cambia ruolo utente ─── */
 app.put('/api/admin/users/:id/role', adminAuth, async (req, res) => {
   const { role } = req.body;
-  if (!['user', 'dirigente', 'admin'].includes(role))
+  if (!['user', 'atleta', 'allenatore', 'dirigente', 'admin'].includes(role))
     return res.status(400).json({ error: 'Ruolo non valido' });
   try {
     const result = await db.query(
@@ -205,10 +238,31 @@ app.get('/api/calendario', async (_req, res) => {
 
 /* ─── Calendario: crea sessione ─── */
 app.post('/api/calendario', dirigenteAuth, async (req, res) => {
-  const { titolo, data, ora, luogo, categoria, note } = req.body;
+  const { titolo, data, ora, luogo, categoria, note, ripetizione_settimanale, data_fine_ripetizione } = req.body;
   if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
-  const id = Date.now().toString();
   try {
+    // Ripetizione settimanale: crea sessioni per ogni settimana fino a data_fine
+    if (ripetizione_settimanale && data_fine_ripetizione && data_fine_ripetizione >= data) {
+      const sessioni = [];
+      let currentDate = new Date(data + 'T00:00:00');
+      const endDate   = new Date(data_fine_ripetizione + 'T00:00:00');
+      let i = 0;
+      while (currentDate <= endDate) {
+        const id      = Date.now().toString() + '_' + i;
+        const dataStr = currentDate.toISOString().slice(0, 10);
+        await db.query(
+          `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [id, titolo, dataStr, ora, luogo || '', categoria || '', note || '']
+        );
+        sessioni.push({ id, titolo, data: dataStr, ora });
+        currentDate.setDate(currentDate.getDate() + 7);
+        i++;
+      }
+      return res.status(201).json({ sessioni, count: sessioni.length });
+    }
+    // Sessione singola
+    const id = Date.now().toString();
     await db.query(
       `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note)
        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
@@ -765,6 +819,43 @@ app.get('/api/proxy-image', async (req, res) => {
   }
 });
 
+/* ─── Email verifica registrazione ─── */
+async function inviaEmailVerifica(email, nome, link) {
+  const transporter = creaTransporter();
+  if (!transporter) return;
+  try {
+    await transporter.sendMail({
+      from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Conferma la tua registrazione – Virtus Caserta',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+          <div style="background:#0d2055;padding:28px 24px;text-align:center">
+            <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+            <p style="color:#f57c00;margin:6px 0 0;font-size:14px">Conferma registrazione</p>
+          </div>
+          <div style="padding:32px 24px">
+            <p style="font-size:16px">Ciao <strong>${nome}</strong>,</p>
+            <p>Grazie per esserti registrato! Clicca il bottone qui sotto per confermare la tua email e attivare l'account.</p>
+            <p style="text-align:center;margin:32px 0">
+              <a href="${link}" style="background:#f57c00;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;font-size:15px">
+                Conferma email
+              </a>
+            </p>
+            <p style="font-size:13px;color:#6b7280">Se il bottone non funziona, copia questo link nel browser:<br><a href="${link}" style="color:#1535a8">${link}</a></p>
+            <p style="font-size:13px;color:#6b7280;margin-top:24px">Se non hai richiesto questa registrazione, ignora questa email.</p>
+          </div>
+          <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#9ca3af">
+            © 2026 Virtus Caserta – Società Sportiva Pallavolo
+          </div>
+        </div>`,
+    });
+    console.log(`[Email] Verifica inviata a ${email}`);
+  } catch (err) {
+    console.log('[Email] Errore invio verifica:', err.message);
+  }
+}
+
 /* ─── Notifiche log (DB) ─── */
 async function readNotificheLog() {
   try {
@@ -876,6 +967,57 @@ async function controllaPartiteEInvia() {
   }
 }
 
+/* ─── Reminder allenamenti ─── */
+async function controllaAllenamentiEInvia() {
+  try {
+    const result = await db.query('SELECT * FROM calendario ORDER BY data_str, ora');
+    const log    = await readNotificheLog();
+    const now    = Date.now();
+    const TRE_ORE  = 3 * 60 * 60 * 1000;
+    const FINESTRA = 8 * 60 * 1000;
+
+    for (const s of result.rows) {
+      if (!s.data_str || !s.ora) continue;
+      const oraInizio = s.ora.split('–')[0].split('-')[0].trim();
+      const ts = new Date(`${s.data_str}T${oraInizio}:00`).getTime();
+      if (isNaN(ts)) continue;
+
+      const chiave = `allenamento_${s.id}`;
+      if (log[chiave]) continue;
+
+      const distanza = ts - now;
+      if (distanza > TRE_ORE - FINESTRA && distanza < TRE_ORE + FINESTRA) {
+        const cat   = s.categoria ? ` – ${s.categoria}` : '';
+        const oraFmt = s.ora;
+        const luogo = s.luogo ? ` · ${s.luogo}` : '';
+        await inviaEmailIscritti(
+          `🏐 Allenamento tra 3 ore${cat}`,
+          `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+             <div style="background:#0d2055;padding:24px;text-align:center">
+               <h1 style="color:#fff;margin:0;font-size:20px">VIRTUS CASERTA</h1>
+             </div>
+             <div style="padding:28px 24px">
+               <p style="font-size:16px">Ciao!</p>
+               <p>Tra <strong>3 ore</strong> inizia l'allenamento:</p>
+               <p style="background:#f0f4ff;border-left:4px solid #f57c00;padding:14px 18px;border-radius:6px;margin:20px 0">
+                 <strong>${s.titolo}${cat}</strong><br>
+                 🕐 ${oraFmt}${luogo}
+               </p>
+               <p>A presto! Forza Virtus! 🏐</p>
+             </div>
+             <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
+               © 2026 Virtus Caserta · <a href="https://virtuscaserta.it" style="color:#1535a8">virtuscaserta.it</a>
+             </div>
+           </div>`
+        );
+        await writeNotificheLog(chiave);
+      }
+    }
+  } catch (err) {
+    console.log('[Allenamenti] Errore reminder:', err.message);
+  }
+}
+
 /* ─── Notifiche utente ─── */
 app.post('/api/utente/notifiche', userAuth, async (req, res) => {
   const { attiva } = req.body;
@@ -912,7 +1054,9 @@ db.init().then(() => {
     }
     setTimeout(() => {
       controllaPartiteEInvia();
+      controllaAllenamentiEInvia();
       setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
+      setInterval(controllaAllenamentiEInvia, 5 * 60 * 1000);
     }, 15000);
   });
 }).catch(err => {
@@ -926,7 +1070,9 @@ db.init().then(() => {
     }
     setTimeout(() => {
       controllaPartiteEInvia();
+      controllaAllenamentiEInvia();
       setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
+      setInterval(controllaAllenamentiEInvia, 5 * 60 * 1000);
     }, 15000);
   });
 });

@@ -227,7 +227,7 @@
 <!-- LOGIN -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
-    <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
     <h2>Area Gestione</h2>
     <p>Accedi con le credenziali amministratore</p>
     <div class="login-field">
@@ -246,7 +246,7 @@
 <!-- HEADER -->
 <header>
   <div class="hdr-left">
-    <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
     <span>Gestione</span>
   </div>
   <div class="hdr-right">
@@ -487,6 +487,16 @@
       <div class="mf">
         <label>Note</label>
         <textarea id="sNote" placeholder="Informazioni aggiuntive..."></textarea>
+      </div>
+      <div class="mf" id="ripetizioneWrap">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--testo);cursor:pointer;">
+          <input type="checkbox" id="sRipetizione" onchange="toggleRipetizione(this)" style="width:16px;height:16px;accent-color:var(--blu);cursor:pointer;">
+          Ripetizione settimanale
+        </label>
+      </div>
+      <div class="mf" id="dataFineWrap" style="display:none">
+        <label>Data fine ripetizione *</label>
+        <input type="date" id="sDataFine">
       </div>
     </div>
     <div class="modal-ftr">
@@ -847,6 +857,10 @@
     }
   }
 
+  function toggleRipetizione(cb) {
+    document.getElementById('dataFineWrap').style.display = cb.checked ? 'block' : 'none';
+  }
+
   async function apriModalSessione(id) {
     sessioneInEditing = id;
     document.getElementById('modalSessioneTitolo').textContent = id ? 'Modifica sessione' : 'Nuova sessione';
@@ -857,6 +871,10 @@
     document.getElementById('sLuogo').value     = '';
     document.getElementById('sCategoria').value = '';
     document.getElementById('sNote').value      = '';
+    document.getElementById('sRipetizione').checked = false;
+    document.getElementById('sDataFine').value  = '';
+    document.getElementById('dataFineWrap').style.display = 'none';
+    document.getElementById('ripetizioneWrap').style.display = id ? 'none' : 'block';
 
     if (id) {
       const sessions = await fetch('/api/calendario').then(r => r.json());
@@ -881,15 +899,27 @@
     const fine   = document.getElementById('sOraFine').value;
     if (!titolo || !data || !inizio) { alert('Titolo, data e orario di inizio sono obbligatori.'); return; }
     const ora = fine ? `${inizio}–${fine}` : inizio;
+    const ripetizione = !sessioneInEditing && document.getElementById('sRipetizione').checked;
+    const dataFine    = document.getElementById('sDataFine').value;
+    if (ripetizione && !dataFine) { alert('Inserisci la data di fine per la ripetizione settimanale.'); return; }
     const btn = document.getElementById('btnSalvaSessione');
     btn.disabled = true; btn.textContent = 'Salvataggio...';
     try {
-      const body = { titolo, data, ora, luogo: document.getElementById('sLuogo').value.trim(), categoria: document.getElementById('sCategoria').value, note: document.getElementById('sNote').value.trim() };
+      const body = {
+        titolo, data, ora,
+        luogo:     document.getElementById('sLuogo').value.trim(),
+        categoria: document.getElementById('sCategoria').value,
+        note:      document.getElementById('sNote').value.trim(),
+        ripetizione_settimanale: ripetizione,
+        data_fine_ripetizione:   ripetizione ? dataFine : undefined,
+      };
       const url    = sessioneInEditing ? `/api/calendario/${sessioneInEditing}` : '/api/calendario';
       const method = sessioneInEditing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      const result = await res.json();
       chiudiModal('modalSessione');
+      if (result.count > 1) alert(`Aggiunte ${result.count} sessioni settimanali.`);
       caricaCalendario();
     } catch (err) {
       alert('Errore: ' + err.message);
@@ -924,6 +954,8 @@
           <td>
             <select class="role-select" onchange="cambiaRuolo('${u.id}',this.value)">
               <option value="user"      ${u.role==='user'      ?'selected':''}>Utente</option>
+              <option value="atleta"    ${u.role==='atleta'    ?'selected':''}>Atleta</option>
+              <option value="allenatore"${u.role==='allenatore'?'selected':''}>Allenatore</option>
               <option value="dirigente" ${u.role==='dirigente' ?'selected':''}>Dirigente</option>
               <option value="admin"     ${u.role==='admin'     ?'selected':''}>Admin</option>
             </select>

@@ -9,8 +9,8 @@ self.addEventListener('message', event => {
   setTimeout(() => {
     self.registration.showNotification(title, {
       body,
-      icon:  '/logo.png',
-      badge: '/logo.png',
+      icon:  '/images/logo.png',
+      badge: '/images/logo.png',
       tag,
       renotify: false,
     });

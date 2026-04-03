@@ -456,12 +456,12 @@
   <!-- NAVBAR -->
   <nav>
     <a href="index.html" class="nav-logo">
-      <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+      <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
     </a>
     <div class="nav-right">
       <a href="index.html" class="nav-back">← Home</a>
       <button class="cart-btn" onclick="apriCarrello()">
-        🛒 <span class="cart-label">Carrello</span>
+        <img src="images/carrello-icon.png" alt="Carrello" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;"> <span class="cart-label">Carrello</span>
         <span class="cart-count" id="cartCount">0</span>
       </button>
     </div>
@@ -505,7 +505,7 @@
   <div class="cart-overlay" id="cartOverlay" onclick="chiudiCarrello()"></div>
   <div class="cart-drawer" id="cartDrawer">
     <div class="cart-header">
-      <h2>🛒 Il tuo carrello</h2>
+      <h2><img src="images/carrello-icon.png" alt="Carrello" style="width:22px;height:22px;vertical-align:middle;object-fit:contain;margin-right:8px;"> Il tuo carrello</h2>
       <button class="close-btn" onclick="chiudiCarrello()">✕</button>
     </div>
     <div class="cart-items" id="cartItems">

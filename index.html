@@ -1330,8 +1330,10 @@
           <div class="modal-field"><label>Nome</label><input type="text" id="regNome" placeholder="Mario"></div>
           <div class="modal-field"><label>Cognome</label><input type="text" id="regCognome" placeholder="Rossi"></div>
         </div>
-        <div class="modal-field"><label>Email</label><input type="email" id="regEmail" placeholder="tua@email.com"></div>
-        <div class="modal-field"><label>Password</label><input type="password" id="regPassword" placeholder="Almeno 6 caratteri"></div>
+        <div class="modal-field"><label>Email</label><input type="email" id="regEmail" placeholder="tua@email.com" autocomplete="email"></div>
+        <div class="modal-field"><label>Conferma Email</label><input type="email" id="regEmailConferma" placeholder="Ripeti email"></div>
+        <div class="modal-field"><label>Password</label><input type="password" id="regPassword" placeholder="Almeno 6 caratteri" autocomplete="new-password"></div>
+        <div class="modal-field"><label>Conferma Password</label><input type="password" id="regPasswordConferma" placeholder="Ripeti password" autocomplete="new-password"></div>
         <button class="modal-submit" onclick="submitRegistrazione()">Crea account</button>
         <div class="modal-error" id="regError"></div>
         <div class="modal-success" id="regSuccess"></div>
@@ -1349,7 +1351,7 @@
 
     <!-- Centro: logo -->
     <a href="#home" class="nav-brand">
-      <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+      <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
     </a>
 
     <!-- Destra: Shop + social + hamburger -->
@@ -1358,8 +1360,8 @@
         <li><a href="shop.html">Shop</a></li>
       </ul>
       <div class="nav-social" style="margin-left:auto;">
-        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook"><img src="facebook-icon.png" alt="Facebook"></a>
-        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram"><img src="instagram-icon.png" alt="Instagram"></a>
+        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
       </div>
     </div>
   </nav>
@@ -1367,7 +1369,7 @@
   <!-- HERO -->
   <section id="home" class="hero">
     <div class="hero-content">
-      <img src="logo.png" alt="Virtus Caserta" style="height:160px;width:auto;margin-bottom:24px;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.5));">
+      <img src="images/logo.png" alt="Virtus Caserta" style="height:160px;width:auto;margin-bottom:24px;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.5));">
       <!-- <div class="hero-badge">Pallavolo · Caserta</div> -->
       <h1><span>Virtus</span><br>Caserta</h1>
       <div class="hero-sub">Società Sportiva di Pallavolo</div>
@@ -1519,7 +1521,7 @@
   <section id="instagram">
     <div class="container">
       <div class="instagram-header">
-        <div class="instagram-logo"><img src="instagram-icon.png" alt="Instagram" style="width:30px;height:30px;object-fit:contain;"></div>
+        <div class="instagram-logo"><img src="images/instagram-icon.png" alt="Instagram" style="width:30px;height:30px;object-fit:contain;"></div>
         <div class="instagram-header-testo">
           <h2>Instagram</h2>
           <span>@virtuscaserta</span>
@@ -1542,35 +1544,35 @@
       <div class="contatti-grid">
         <div class="contatto-info">
           <div class="contatto-item">
-            <div class="contatto-icona">📍</div>
+            <div class="contatto-icona"><img src="images/posizione-icon.png" alt="Posizione" style="width:100%;height:100%;object-fit:contain;display:block;"></div>
             <div class="contatto-testo">
               <strong>Palazzetto dello Sport</strong>
               <span>Via dello Sport, 1 – Caserta (CE)</span>
             </div>
           </div>
           <div class="contatto-item">
-            <div class="contatto-icona">📞</div>
+            <div class="contatto-icona"><img src="images/telefono-icon.png" alt="Telefono" style="width:100%;height:100%;object-fit:contain;display:block;"></div>
             <div class="contatto-testo">
               <strong>Telefono</strong>
               <span>+39 0823 000 000</span>
             </div>
           </div>
           <div class="contatto-item">
-            <div class="contatto-icona">✉️</div>
+            <div class="contatto-icona"><img src="images/mail-icon.png" alt="Email" style="width:100%;height:100%;object-fit:contain;display:block;"></div>
             <div class="contatto-testo">
               <strong>Email</strong>
               <span>info@virtuscaserta.it</span>
             </div>
           </div>
           <div class="contatto-item">
-            <div class="contatto-icona">🕐</div>
+            <div class="contatto-icona"><img src="images/orologio-icon.png" alt="Orario" style="width:100%;height:100%;object-fit:contain;display:block;"></div>
             <div class="contatto-testo">
               <strong>Orari allenamenti</strong>
               <span>Lun/Mer/Ven: 18:00 – 20:00<br>Sab: 10:00 – 12:00</span>
             </div>
           </div>
           <div class="contatto-item">
-            <div class="contatto-icona" style="padding:6px;"><img src="instagram-icon.png" alt="Instagram" style="width:100%;height:100%;object-fit:contain;display:block;"></div>
+            <div class="contatto-icona" style="padding:6px;"><img src="images/instagram-icon.png" alt="Instagram" style="width:100%;height:100%;object-fit:contain;display:block;"></div>
             <div class="contatto-testo">
               <strong>Instagram</strong>
               <span><a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" style="color:rgba(255,255,255,0.65);text-decoration:underline;">@virtuscaserta</a></span>
@@ -1655,6 +1657,7 @@
         </div>
         <div class="footer-auth-logged">
           <span class="footer-auth-nome" id="footerNome"></span>
+          <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
           <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
         </div>
       </div>
@@ -1662,11 +1665,11 @@
       <!-- Logo centro -->
       <div class="footer-center">
         <div class="footer-logo">
-          <img src="logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+          <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
         </div>
         <div class="footer-social">
-          <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="fb-btn" title="Facebook"><img src="facebook-icon.png" alt="Facebook"></a>
-          <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram"><img src="instagram-icon.png" alt="Instagram"></a>
+          <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="fb-btn" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+          <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
         </div>
       </div>
 
@@ -1674,7 +1677,6 @@
       <div class="footer-links">
         <a href="chiSiamo.html">Chi siamo</a>
         <a href="shop.html">Shop</a>
-        <a href="calendario.html">Calendario allenamenti</a>
         <a href="#partite">Risultati & Calendario</a>
         <a href="#contatti">Contatti</a>
       </div>
@@ -1913,7 +1915,7 @@
 
         const avatarEl = data.avatar
           ? `<img src="/api/proxy-image?url=${encodeURIComponent(data.avatar)}" class="ig-avatar-inner" alt="${data.username}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
-          : `<div class="ig-avatar-inner" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);border-radius:50%;"><img src="instagram-icon.png" style="width:55%;height:55%;object-fit:contain;" alt="Instagram"></div>`;
+          : `<div class="ig-avatar-inner" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);border-radius:50%;"><img src="images/instagram-icon.png" style="width:55%;height:55%;object-fit:contain;" alt="Instagram"></div>`;
 
         const profileBarHtml = `
           <div class="ig-profile-bar">
@@ -1950,7 +1952,7 @@
             <div class="ig-posts-grid">${postsHtml}</div>
             <div style="text-align:center">
               <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="btn-ig">
-                <img src="instagram-icon.png" style="height:17px;vertical-align:middle;margin-right:7px;"> Seguici su Instagram
+                <img src="images/instagram-icon.png" style="height:17px;vertical-align:middle;margin-right:7px;"> Seguici su Instagram
               </a>
             </div>`;
         } else {
@@ -1968,14 +1970,14 @@
             <div class="ig-posts-grid">${placeholders}</div>
             <div style="text-align:center">
               <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="btn-ig">
-                <img src="instagram-icon.png" style="height:17px;vertical-align:middle;margin-right:7px;"> Seguici su Instagram
+                <img src="images/instagram-icon.png" style="height:17px;vertical-align:middle;margin-right:7px;"> Seguici su Instagram
               </a>
             </div>`;
         }
       } catch {
         document.getElementById('igContent').innerHTML = `
           <div class="ig-no-session">
-            <div class="ig-big-icon"><img src="instagram-icon.png" style="width:64px;height:64px;object-fit:contain;" alt="Instagram"></div>
+            <div class="ig-big-icon"><img src="images/instagram-icon.png" style="width:64px;height:64px;object-fit:contain;" alt="Instagram"></div>
             <p>Avvia il server Node.js per caricare i post Instagram.</p>
             <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="btn-ig">
               Visita @virtuscaserta su Instagram
@@ -1991,15 +1993,14 @@
       const nome  = localStorage.getItem('vc_nome');
       const isGest = role === 'admin' || role === 'dirigente';
 
-      // bottone calendario (solo iscritti)
-      const btnCal = document.getElementById('btnCalendario');
-      if (btnCal) btnCal.style.display = token ? '' : 'none';
       // footer auth
       const area = document.getElementById('footerAuthArea');
       if (area) {
         area.classList.toggle('logged', !!token);
         const nomeEl = document.getElementById('footerNome');
         if (nomeEl) nomeEl.textContent = nome || '';
+        const adminLink = document.getElementById('footerAdminLink');
+        if (adminLink) adminLink.style.display = (role === 'admin' || role === 'dirigente') ? '' : 'none';
       }
     }
 
@@ -2044,25 +2045,49 @@
     }
 
     async function submitRegistrazione() {
-      document.getElementById('regError').textContent = '';
-      document.getElementById('regSuccess').textContent = '';
-      const body = {
-        nome:     document.getElementById('regNome').value.trim(),
-        cognome:  document.getElementById('regCognome').value.trim(),
-        email:    document.getElementById('regEmail').value.trim(),
-        password: document.getElementById('regPassword').value,
-      };
+      const errEl = document.getElementById('regError');
+      const okEl  = document.getElementById('regSuccess');
+      errEl.textContent = '';
+      okEl.textContent  = '';
+
+      const nome             = document.getElementById('regNome').value.trim();
+      const cognome          = document.getElementById('regCognome').value.trim();
+      const email            = document.getElementById('regEmail').value.trim();
+      const emailConferma    = document.getElementById('regEmailConferma').value.trim();
+      const password         = document.getElementById('regPassword').value;
+      const passwordConferma = document.getElementById('regPasswordConferma').value;
+
+      if (!nome || !cognome || !email || !emailConferma || !password || !passwordConferma) {
+        errEl.textContent = 'Compila tutti i campi.'; return;
+      }
+      if (email !== emailConferma) {
+        errEl.textContent = 'Le email non coincidono.'; return;
+      }
+      if (password !== passwordConferma) {
+        errEl.textContent = 'Le password non coincidono.'; return;
+      }
       try {
-        const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const res  = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, cognome, email, password }) });
         const data = await res.json();
-        if (!res.ok) { document.getElementById('regError').textContent = data.error; return; }
+        if (!res.ok) { errEl.textContent = data.error; return; }
+
+        // Caso: email di verifica inviata
+        if (data.message) {
+          okEl.textContent = data.message;
+          ['regNome','regCognome','regEmail','regEmailConferma','regPassword','regPasswordConferma'].forEach(id => {
+            document.getElementById(id).value = '';
+          });
+          return;
+        }
+
+        // Caso: registrazione diretta (email non configurata)
         localStorage.setItem('vc_token', data.token);
-        localStorage.setItem('vc_role', data.role);
-        localStorage.setItem('vc_nome', data.nome);
+        localStorage.setItem('vc_role',  data.role);
+        localStorage.setItem('vc_nome',  data.nome);
         chiudiModal();
         aggiornaNavbar();
       } catch {
-        document.getElementById('regError').textContent = 'Errore di rete. Riprova.';
+        errEl.textContent = 'Errore di rete. Riprova.';
       }
     }
 
@@ -2078,12 +2103,21 @@
       const el = document.getElementById(id);
       if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submitLogin(); });
     });
-    ['regNome','regCognome','regEmail','regPassword'].forEach(id => {
+    ['regNome','regCognome','regEmail','regEmailConferma','regPassword','regPasswordConferma'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submitRegistrazione(); });
     });
 
     aggiornaNavbar();
+
+    // Mostra messaggio se email appena verificata
+    if (new URLSearchParams(window.location.search).get('verified') === '1') {
+      apriModal();
+      const okEl = document.getElementById('loginError');
+      okEl.style.color = '#16a34a';
+      okEl.textContent = 'Email confermata! Ora puoi accedere.';
+      window.history.replaceState({}, '', window.location.pathname);
+    }
 
     // Highlight link attivo durante lo scroll
     const sezioni = document.querySelectorAll('section[id], .hero[id]');
