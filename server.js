@@ -47,8 +47,11 @@ const registerLimiter = rateLimit({
 });
 
 /* ─── Multer upload ─── */
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR      = path.join(__dirname, 'uploads');
+const CERT_DIR         = path.join(__dirname, 'uploads', 'certificati');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
+if (!fs.existsSync(CERT_DIR))    fs.mkdirSync(CERT_DIR);
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
@@ -57,6 +60,16 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
 });
+
+const uploadCertificato = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, CERT_DIR),
+    filename:    (_req,  file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf'),
+});
+
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 /* ─── Auth middleware ─── */
@@ -134,6 +147,9 @@ app.post('/api/login', loginLimiter, async (req, res) => {
     }
 
     if (!passwordValid) return res.status(401).json({ error: 'Email o password non validi' });
+    if (user.attivo === false) {
+      return res.status(403).json({ error: 'Account sospeso. Contatta l\'amministratore.' });
+    }
     if (!user.email_verificata && process.env.EMAIL_USER) {
       return res.status(401).json({ error: 'Verifica prima la tua email. Controlla la casella di posta.' });
     }
@@ -319,7 +335,11 @@ app.post('/api/reset-password', async (req, res) => {
 app.get('/api/utente/profilo', userAuth, async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, nome, cognome, email, role, notifiche, email_verificata, created_at, last_login FROM users WHERE id=$1',
+      `SELECT id, nome, cognome, email, role, notifiche, email_verificata,
+              data_nascita, codice_fiscale, telefono,
+              certificato_medico_url, certificato_medico_scadenza,
+              created_at, last_login
+       FROM users WHERE id=$1`,
       [req.user.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
@@ -330,8 +350,12 @@ app.get('/api/utente/profilo', userAuth, async (req, res) => {
 });
 
 app.put('/api/utente/profilo', userAuth, async (req, res) => {
-  const { nome, cognome, password_attuale, nuova_password } = req.body;
+  const { nome, cognome, telefono, data_nascita, codice_fiscale, password_attuale, nuova_password } = req.body;
   if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
+
+  if (codice_fiscale && !/^[A-Z0-9]{16}$/i.test(codice_fiscale)) {
+    return res.status(400).json({ error: 'Codice fiscale non valido (deve essere 16 caratteri alfanumerici)' });
+  }
 
   try {
     const result = await db.query('SELECT * FROM users WHERE id=$1', [req.user.id]);
@@ -354,10 +378,46 @@ app.put('/api/utente/profilo', userAuth, async (req, res) => {
     }
 
     await db.query(
-      'UPDATE users SET nome=$1, cognome=$2, password_hash=$3 WHERE id=$4',
-      [nome.trim(), cognome.trim(), nuovoHash, req.user.id]
+      `UPDATE users
+       SET nome=$1, cognome=$2, password_hash=$3, telefono=$4, data_nascita=$5, codice_fiscale=$6
+       WHERE id=$7`,
+      [
+        nome.trim(),
+        cognome.trim(),
+        nuovoHash,
+        telefono ? telefono.trim() : null,
+        data_nascita || null,
+        codice_fiscale ? codice_fiscale.toUpperCase() : null,
+        req.user.id,
+      ]
     );
     res.json({ message: 'Profilo aggiornato con successo.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Upload certificato medico ─── */
+app.post('/api/utente/certificato', userAuth, uploadCertificato.single('certificato'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nessun file ricevuto' });
+  const { scadenza } = req.body;
+  if (!scadenza) return res.status(400).json({ error: 'Data di scadenza obbligatoria' });
+  if (new Date(scadenza) <= new Date()) return res.status(400).json({ error: 'La data di scadenza non può essere nel passato' });
+
+  try {
+    // Elimina il vecchio certificato dal disco se esiste
+    const old = await db.query('SELECT certificato_medico_url FROM users WHERE id=$1', [req.user.id]);
+    if (old.rows[0]?.certificato_medico_url) {
+      const oldPath = path.join(__dirname, old.rows[0].certificato_medico_url);
+      fs.unlink(oldPath, () => {});
+    }
+
+    const url = '/uploads/certificati/' + req.file.filename;
+    await db.query(
+      'UPDATE users SET certificato_medico_url=$1, certificato_medico_scadenza=$2 WHERE id=$3',
+      [url, scadenza, req.user.id]
+    );
+    res.json({ url, scadenza });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -367,7 +427,10 @@ app.put('/api/utente/profilo', userAuth, async (req, res) => {
 app.get('/api/admin/users', adminAuth, async (_req, res) => {
   try {
     const result = await db.query(
-      'SELECT id, nome, cognome, email, role, notifiche, created_at FROM users ORDER BY created_at DESC'
+      `SELECT id, nome, cognome, email, role, notifiche, attivo, note_admin,
+              data_nascita, codice_fiscale, telefono,
+              certificato_medico_scadenza, last_login, created_at
+       FROM users ORDER BY created_at DESC`
     );
     res.json(result.rows);
   } catch (err) {
@@ -401,6 +464,82 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Admin: sospendi/riattiva utente ─── */
+app.put('/api/admin/users/:id/attivo', adminAuth, async (req, res) => {
+  const { attivo, note_admin } = req.body;
+  if (typeof attivo !== 'boolean') return res.status(400).json({ error: 'Il campo attivo deve essere true o false' });
+  try {
+    const result = await db.query(
+      'UPDATE users SET attivo=$1, note_admin=$2 WHERE id=$3 RETURNING id',
+      [attivo, note_admin !== undefined ? note_admin : null, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    res.json({ success: true, attivo });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Presenze: segna (dirigente/admin) ─── */
+app.post('/api/presenze', dirigenteAuth, async (req, res) => {
+  const { presenze } = req.body; // [{ user_id, sessione_id, presente }]
+  if (!Array.isArray(presenze) || !presenze.length)
+    return res.status(400).json({ error: 'Array presenze obbligatorio' });
+  try {
+    let count = 0;
+    for (let i = 0; i < presenze.length; i++) {
+      const { user_id, sessione_id, presente } = presenze[i];
+      if (!user_id || !sessione_id) continue;
+      const id = Date.now().toString() + '_' + i;
+      await db.query(
+        `INSERT INTO presenze (id, user_id, sessione_id, presente)
+         VALUES ($1,$2,$3,$4)
+         ON CONFLICT (user_id, sessione_id) DO UPDATE SET presente=$4`,
+        [id, user_id, sessione_id, presente !== false]
+      );
+      count++;
+    }
+    res.json({ success: true, count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Presenze: lista per sessione (dirigente/admin) ─── */
+app.get('/api/presenze/:sessione_id', dirigenteAuth, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT p.user_id, u.nome, u.cognome, p.presente, p.created_at
+       FROM presenze p
+       JOIN users u ON u.id = p.user_id
+       WHERE p.sessione_id = $1
+       ORDER BY u.cognome, u.nome`,
+      [req.params.sessione_id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Presenze: storico personale (utente) ─── */
+app.get('/api/utente/presenze', userAuth, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT p.presente, p.created_at,
+              c.id AS sessione_id, c.titolo, c.data_str, c.ora, c.luogo, c.categoria
+       FROM presenze p
+       JOIN calendario c ON c.id = p.sessione_id
+       WHERE p.user_id = $1
+       ORDER BY c.data_str DESC, c.ora DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -688,9 +827,79 @@ app.post('/api/create-payment-intent', async (req, res) => {
   }
 });
 
+/* ─── Ordini: storico utente ─── */
+app.get('/api/utente/ordini', userAuth, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT id, nome, cognome, indirizzo, citta, cap, items, totale, spedizione, metodo, stato, created_at
+       FROM ordini WHERE user_id=$1 ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Ordini: tutti (admin) ─── */
+app.get('/api/admin/ordini', adminAuth, async (req, res) => {
+  try {
+    const { stato } = req.query;
+    const params = [];
+    const where  = stato ? 'WHERE stato=$1' : '';
+    if (stato) params.push(stato);
+    const result = await db.query(
+      `SELECT * FROM ordini ${where} ORDER BY created_at DESC`,
+      params
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Ordini: aggiorna stato (admin) ─── */
+app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
+  const { stato } = req.body;
+  const statiValidi = ['ricevuto', 'in lavorazione', 'spedito', 'consegnato', 'annullato'];
+  if (!statiValidi.includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
+  try {
+    const result = await db.query(
+      'UPDATE ordini SET stato=$1 WHERE id=$2 RETURNING id',
+      [stato, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Ordine non trovato' });
+    res.json({ success: true, stato });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ─── Invio email ordine ─── */
 app.post('/api/send-order-email', async (req, res) => {
   const { nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo, orderId } = req.body;
+
+  // Salva ordine nel DB (non bloccante)
+  try {
+    const userPayload = verifyToken(req);
+    const dbOrderId   = orderId || Date.now().toString();
+    await db.query(
+      `INSERT INTO ordini (id, user_id, nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [
+        dbOrderId,
+        userPayload?.id || null,
+        nome, cognome, email,
+        indirizzo || '', citta || '', cap || '',
+        JSON.stringify(items || []),
+        parseFloat(totale) || 0,
+        parseFloat(spedizione) || 0,
+        metodo || '',
+      ]
+    );
+  } catch (dbErr) {
+    console.log('[Ordini] Errore salvataggio DB:', dbErr.message);
+  }
 
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.log('[Email] Credenziali mancanti – email non inviata');
@@ -1232,6 +1441,71 @@ app.get('/api/utente/notifiche', userAuth, async (req, res) => {
   }
 });
 
+/* ─── Alert certificati medici in scadenza ─── */
+async function controllaCertificatiInScadenza() {
+  try {
+    const transporter = creaTransporter();
+    if (!transporter) return;
+
+    const result = await db.query(
+      `SELECT id, nome, email, certificato_medico_scadenza
+       FROM users
+       WHERE certificato_medico_scadenza IS NOT NULL
+         AND notifiche = true
+         AND email IS NOT NULL AND email <> ''
+         AND attivo = true`
+    );
+
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    const log = await readNotificheLog();
+
+    for (const u of result.rows) {
+      const scadenza = new Date(u.certificato_medico_scadenza);
+      scadenza.setHours(0, 0, 0, 0);
+      const giorni = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+      const annoMese = `${scadenza.getFullYear()}-${String(scadenza.getMonth() + 1).padStart(2, '0')}`;
+
+      for (const soglia of [30, 7]) {
+        if (giorni !== soglia) continue;
+        const chiave = `cert_scad_${soglia}_${u.id}_${annoMese}`;
+        if (log[chiave]) continue;
+
+        const urgenza = soglia === 7 ? '⚠️ URGENTE – ' : '';
+        await transporter.sendMail({
+          from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
+          to: u.email,
+          subject: `${urgenza}Certificato medico in scadenza tra ${soglia} giorni – Virtus Caserta`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+              <div style="background:#0d2055;padding:28px 24px;text-align:center">
+                <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+                <p style="color:#f57c00;margin:6px 0 0;font-size:14px">Avviso certificato medico</p>
+              </div>
+              <div style="padding:32px 24px">
+                <p style="font-size:16px">Ciao <strong>${u.nome}</strong>,</p>
+                <p>Il tuo certificato medico scade tra <strong>${soglia} giorni</strong> (${scadenza.toLocaleDateString('it-IT')}).</p>
+                <p style="background:#fff3cd;border-left:4px solid #f57c00;padding:14px 18px;border-radius:6px">
+                  Ricordati di rinnovarlo prima della scadenza per poter continuare ad allenarti regolarmente.
+                </p>
+                <p style="font-size:13px;color:#6b7280;margin-top:24px">
+                  Puoi caricare il nuovo certificato dal tuo profilo sul sito.
+                </p>
+              </div>
+              <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#9ca3af">
+                © 2026 Virtus Caserta – Società Sportiva Pallavolo
+              </div>
+            </div>`,
+        });
+        await writeNotificheLog(chiave);
+        console.log(`[Certificati] Alert ${soglia}gg inviato a ${u.email}`);
+      }
+    }
+  } catch (err) {
+    console.log('[Certificati] Errore controllo scadenze:', err.message);
+  }
+}
+
 /* ─── Startup ─── */
 db.init().then(() => {
   app.listen(PORT, () => {
@@ -1244,8 +1518,10 @@ db.init().then(() => {
     setTimeout(() => {
       controllaPartiteEInvia();
       controllaAllenamentiEInvia();
+      controllaCertificatiInScadenza();
       setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
       setInterval(controllaAllenamentiEInvia, 5 * 60 * 1000);
+      setInterval(controllaCertificatiInScadenza, 6 * 60 * 60 * 1000);
     }, 15000);
   });
 }).catch(err => {
@@ -1260,8 +1536,10 @@ db.init().then(() => {
     setTimeout(() => {
       controllaPartiteEInvia();
       controllaAllenamentiEInvia();
+      controllaCertificatiInScadenza();
       setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
       setInterval(controllaAllenamentiEInvia, 5 * 60 * 1000);
+      setInterval(controllaCertificatiInScadenza, 6 * 60 * 60 * 1000);
     }, 15000);
   });
 });

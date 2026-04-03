@@ -33,6 +33,13 @@ async function createTables() {
       password_reset_token        VARCHAR,
       password_reset_expires      TIMESTAMPTZ,
       last_login                  TIMESTAMPTZ,
+      data_nascita                DATE,
+      codice_fiscale              VARCHAR(16),
+      telefono                    VARCHAR(20),
+      attivo                      BOOLEAN DEFAULT true,
+      note_admin                  TEXT,
+      certificato_medico_url      VARCHAR,
+      certificato_medico_scadenza DATE,
       created_at                  TIMESTAMPTZ DEFAULT NOW()
     );
   `);
@@ -84,6 +91,36 @@ async function createTables() {
     );
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS presenze (
+      id          VARCHAR PRIMARY KEY,
+      user_id     VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      sessione_id VARCHAR NOT NULL REFERENCES calendario(id) ON DELETE CASCADE,
+      presente    BOOLEAN DEFAULT true,
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user_id, sessione_id)
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS ordini (
+      id         VARCHAR PRIMARY KEY,
+      user_id    VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+      nome       VARCHAR NOT NULL,
+      cognome    VARCHAR NOT NULL,
+      email      VARCHAR NOT NULL,
+      indirizzo  VARCHAR,
+      citta      VARCHAR,
+      cap        VARCHAR,
+      items      JSONB NOT NULL,
+      totale     NUMERIC(10,2) NOT NULL,
+      spedizione NUMERIC(10,2) DEFAULT 0,
+      metodo     VARCHAR,
+      stato      VARCHAR DEFAULT 'ricevuto',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   // Aggiornamenti schema per DB già esistenti
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verificata BOOLEAN DEFAULT false`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR`);
@@ -91,6 +128,13 @@ async function createTables() {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMPTZ`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS data_nascita DATE`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS codice_fiscale VARCHAR(16)`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telefono VARCHAR(20)`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS attivo BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS note_admin TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS certificato_medico_url VARCHAR`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS certificato_medico_scadenza DATE`);
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
 }
 
