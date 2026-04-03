@@ -20,16 +20,20 @@ function query(text, params) {
 async function createTables() {
   await query(`
     CREATE TABLE IF NOT EXISTS users (
-      id                 VARCHAR PRIMARY KEY,
-      nome               VARCHAR NOT NULL,
-      cognome            VARCHAR NOT NULL,
-      email              VARCHAR UNIQUE NOT NULL,
-      password_hash      VARCHAR NOT NULL,
-      role               VARCHAR DEFAULT 'user',
-      notifiche          BOOLEAN DEFAULT true,
-      email_verificata   BOOLEAN DEFAULT false,
-      verification_token VARCHAR,
-      created_at         TIMESTAMPTZ DEFAULT NOW()
+      id                          VARCHAR PRIMARY KEY,
+      nome                        VARCHAR NOT NULL,
+      cognome                     VARCHAR NOT NULL,
+      email                       VARCHAR UNIQUE NOT NULL,
+      password_hash               VARCHAR NOT NULL,
+      role                        VARCHAR DEFAULT 'user',
+      notifiche                   BOOLEAN DEFAULT true,
+      email_verificata            BOOLEAN DEFAULT false,
+      verification_token          VARCHAR,
+      verification_token_expires  TIMESTAMPTZ,
+      password_reset_token        VARCHAR,
+      password_reset_expires      TIMESTAMPTZ,
+      last_login                  TIMESTAMPTZ,
+      created_at                  TIMESTAMPTZ DEFAULT NOW()
     );
   `);
 
@@ -83,6 +87,10 @@ async function createTables() {
   // Aggiornamenti schema per DB già esistenti
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verificata BOOLEAN DEFAULT false`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token VARCHAR`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMPTZ`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMPTZ`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ`);
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
 }
 

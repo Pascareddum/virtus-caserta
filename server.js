@@ -8,12 +8,18 @@ const nodemailer = require('nodemailer');
 const jwt        = require('jsonwebtoken');
 const multer     = require('multer');
 const crypto     = require('crypto');
+const bcrypt     = require('bcryptjs');
+const rateLimit  = require('express-rate-limit');
 const db         = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-const JWT_SECRET             = process.env.JWT_SECRET || 'virtus_secret_2026';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('[ERRORE CRITICO] JWT_SECRET non configurato. Imposta JWT_SECRET nel file .env prima di avviare in produzione.');
+  process.exit(1);
+}
+const JWT_SECRET             = process.env.JWT_SECRET || 'virtus_secret_2026_dev';
 const INSTAGRAM_USERNAME     = 'virtuscaserta';
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || '';
 
@@ -23,6 +29,22 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 app.use(express.static(path.join(__dirname)));
 app.use(express.json());
+
+/* ─── Rate limiting ─── */
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minuti
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppi tentativi. Riprova tra 15 minuti.' },
+});
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 ora
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppi tentativi di registrazione. Riprova tra un\'ora.' },
+});
 
 /* ─── Multer upload ─── */
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -71,15 +93,22 @@ function userAuth(req, res, next) {
 
 /* ─── Login unificato ─── */
 // Accetta { email, password } per tutti (utenti e admin)
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori' });
 
-  // 1. Controlla credenziali admin da env
-  if (
-    email === process.env.ADMIN_EMAIL &&
-    password === (process.env.ADMIN_PASSWORD || 'virtus2026')
-  ) {
+  // 1. Controlla credenziali admin da env (timing-safe)
+  const adminEmail    = process.env.ADMIN_EMAIL || '';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'virtus2026';
+  const emailMatch    = adminEmail && crypto.timingSafeEqual(
+    Buffer.from(email.trim().toLowerCase()),
+    Buffer.from(adminEmail.toLowerCase())
+  );
+  const passMatch = crypto.timingSafeEqual(
+    Buffer.from(password.padEnd(64)),
+    Buffer.from(adminPassword.padEnd(64))
+  );
+  if (emailMatch && passMatch) {
     const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
     return res.json({ token, role: 'admin', nome: 'Admin' });
   }
@@ -89,11 +118,27 @@ app.post('/api/login', async (req, res) => {
     const result = await db.query('SELECT * FROM users WHERE email = $1', [email.trim().toLowerCase()]);
     const user = result.rows[0];
     if (!user) return res.status(401).json({ error: 'Email o password non validi' });
-    const hash = crypto.createHash('sha256').update(password).digest('hex');
-    if (user.password_hash !== hash) return res.status(401).json({ error: 'Email o password non validi' });
+
+    // Supporto doppio hash: bcrypt (nuovo) e SHA-256 (legacy)
+    let passwordValid = false;
+    if (user.password_hash.startsWith('$2')) {
+      passwordValid = await bcrypt.compare(password, user.password_hash);
+    } else {
+      const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
+      passwordValid = legacyHash === user.password_hash;
+      if (passwordValid) {
+        // Aggiorna a bcrypt silenziosamente
+        const newHash = await bcrypt.hash(password, 12);
+        await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [newHash, user.id]);
+      }
+    }
+
+    if (!passwordValid) return res.status(401).json({ error: 'Email o password non validi' });
     if (!user.email_verificata && process.env.EMAIL_USER) {
       return res.status(401).json({ error: 'Verifica prima la tua email. Controlla la casella di posta.' });
     }
+
+    await db.query('UPDATE users SET last_login=NOW() WHERE id=$1', [user.id]);
     const role  = user.role || 'user';
     const token = jwt.sign({ role, id: user.id, nome: user.nome }, JWT_SECRET, { expiresIn: '24h' });
     return res.json({ token, role, nome: user.nome, cognome: user.cognome });
@@ -104,12 +149,17 @@ app.post('/api/login', async (req, res) => {
 });
 
 /* ─── Admin: login (retrocompatibilità admin.html) ─── */
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
+  const adminPassword = process.env.ADMIN_PASSWORD || 'virtus2026';
   const validUser =
     username === (process.env.ADMIN_USERNAME || 'admin') ||
     username === process.env.ADMIN_EMAIL;
-  if (validUser && password === (process.env.ADMIN_PASSWORD || 'virtus2026')) {
+  const passMatch = password && crypto.timingSafeEqual(
+    Buffer.from(password.padEnd(64)),
+    Buffer.from(adminPassword.padEnd(64))
+  );
+  if (validUser && passMatch) {
     const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
     return res.json({ token });
   }
@@ -117,7 +167,7 @@ app.post('/api/admin/login', (req, res) => {
 });
 
 /* ─── Registrazione utente ─── */
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', registerLimiter, async (req, res) => {
   const { nome, cognome, email, password } = req.body;
   if (!nome || !cognome || !email || !password)
     return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
@@ -129,15 +179,18 @@ app.post('/api/register', async (req, res) => {
     if (existing.rows.length) return res.status(409).json({ error: 'Email già registrata' });
 
     const id           = Date.now().toString();
-    const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+    const passwordHash = await bcrypt.hash(password, 12);
     const emailConfigured = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
     const verificationToken = emailConfigured ? crypto.randomBytes(32).toString('hex') : null;
     const emailVerificata   = !emailConfigured; // se email non configurata, verifica automatica
+    const verificationExpires = verificationToken
+      ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 ore
+      : null;
 
     await db.query(
-      `INSERT INTO users (id, nome, cognome, email, password_hash, role, notifiche, email_verificata, verification_token)
-       VALUES ($1,$2,$3,$4,$5,'user',true,$6,$7)`,
-      [id, nome.trim(), cognome.trim(), email.trim().toLowerCase(), passwordHash, emailVerificata, verificationToken]
+      `INSERT INTO users (id, nome, cognome, email, password_hash, role, notifiche, email_verificata, verification_token, verification_token_expires)
+       VALUES ($1,$2,$3,$4,$5,'user',true,$6,$7,$8)`,
+      [id, nome.trim(), cognome.trim(), email.trim().toLowerCase(), passwordHash, emailVerificata, verificationToken, verificationExpires]
     );
 
     if (emailConfigured) {
@@ -160,17 +213,153 @@ app.post('/api/register', async (req, res) => {
 app.get('/api/verify-email/:token', async (req, res) => {
   try {
     const result = await db.query(
-      'UPDATE users SET email_verificata=true, verification_token=NULL WHERE verification_token=$1 RETURNING id',
+      `UPDATE users
+       SET email_verificata=true, verification_token=NULL, verification_token_expires=NULL
+       WHERE verification_token=$1
+         AND (verification_token_expires IS NULL OR verification_token_expires > NOW())
+       RETURNING id`,
       [req.params.token]
     );
     if (!result.rows.length) {
       return res.send(`<!DOCTYPE html><html lang="it"><body style="font-family:Arial;text-align:center;padding:60px">
-        <h2>Link non valido o già utilizzato</h2>
+        <h2>Link non valido, già utilizzato o scaduto</h2>
+        <p>Registrati di nuovo o richiedi un nuovo link di verifica.</p>
         <a href="/index.html">Torna alla home</a></body></html>`);
     }
     return res.redirect('/index.html?verified=1');
   } catch (err) {
     return res.status(500).send('Errore interno');
+  }
+});
+
+/* ─── Forgot password ─── */
+app.post('/api/forgot-password', loginLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email obbligatoria' });
+
+  // Risposta sempre uguale per non rivelare se l'email esiste
+  const genericOk = { message: 'Se l\'email è registrata riceverai un link per reimpostare la password.' };
+
+  try {
+    const result = await db.query('SELECT id, nome FROM users WHERE email=$1', [email.trim().toLowerCase()]);
+    if (!result.rows.length) return res.json(genericOk);
+
+    const user  = result.rows[0];
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 ora
+
+    await db.query(
+      'UPDATE users SET password_reset_token=$1, password_reset_expires=$2 WHERE id=$3',
+      [token, expires, user.id]
+    );
+
+    const transporter = creaTransporter();
+    if (transporter) {
+      const host     = req.get('host');
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const link     = `${protocol}://${host}/reset-password.html?token=${token}`;
+      await transporter.sendMail({
+        from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
+        to: email.trim().toLowerCase(),
+        subject: 'Reimposta la tua password – Virtus Caserta',
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+            <div style="background:#0d2055;padding:28px 24px;text-align:center">
+              <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+              <p style="color:#f57c00;margin:6px 0 0;font-size:14px">Reimposta password</p>
+            </div>
+            <div style="padding:32px 24px">
+              <p style="font-size:16px">Ciao <strong>${user.nome}</strong>,</p>
+              <p>Hai richiesto di reimpostare la password. Clicca il bottone qui sotto (valido per 1 ora):</p>
+              <p style="text-align:center;margin:32px 0">
+                <a href="${link}" style="background:#f57c00;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;font-size:15px">
+                  Reimposta password
+                </a>
+              </p>
+              <p style="font-size:13px;color:#6b7280">Se non hai richiesto questa operazione, ignora questa email.</p>
+            </div>
+          </div>`,
+      });
+      console.log(`[Password] Reset inviato a ${email}`);
+    }
+
+    return res.json(genericOk);
+  } catch (err) {
+    console.error('[ForgotPassword] Errore:', err.message);
+    return res.status(500).json({ error: 'Errore interno' });
+  }
+});
+
+/* ─── Reset password ─── */
+app.post('/api/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token e nuova password obbligatori' });
+  if (password.length < 6) return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' });
+
+  try {
+    const result = await db.query(
+      'SELECT id FROM users WHERE password_reset_token=$1 AND password_reset_expires > NOW()',
+      [token]
+    );
+    if (!result.rows.length) return res.status(400).json({ error: 'Link non valido o scaduto' });
+
+    const newHash = await bcrypt.hash(password, 12);
+    await db.query(
+      'UPDATE users SET password_hash=$1, password_reset_token=NULL, password_reset_expires=NULL WHERE id=$2',
+      [newHash, result.rows[0].id]
+    );
+    return res.json({ message: 'Password reimpostata con successo.' });
+  } catch (err) {
+    console.error('[ResetPassword] Errore:', err.message);
+    return res.status(500).json({ error: 'Errore interno' });
+  }
+});
+
+/* ─── Profilo utente ─── */
+app.get('/api/utente/profilo', userAuth, async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT id, nome, cognome, email, role, notifiche, email_verificata, created_at, last_login FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/utente/profilo', userAuth, async (req, res) => {
+  const { nome, cognome, password_attuale, nuova_password } = req.body;
+  if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
+
+  try {
+    const result = await db.query('SELECT * FROM users WHERE id=$1', [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    const user = result.rows[0];
+
+    let nuovoHash = user.password_hash;
+    if (nuova_password) {
+      if (!password_attuale) return res.status(400).json({ error: 'Inserisci la password attuale per cambiarla' });
+      if (nuova_password.length < 6) return res.status(400).json({ error: 'La nuova password deve essere di almeno 6 caratteri' });
+
+      let valid = false;
+      if (user.password_hash.startsWith('$2')) {
+        valid = await bcrypt.compare(password_attuale, user.password_hash);
+      } else {
+        valid = crypto.createHash('sha256').update(password_attuale).digest('hex') === user.password_hash;
+      }
+      if (!valid) return res.status(401).json({ error: 'Password attuale non corretta' });
+      nuovoHash = await bcrypt.hash(nuova_password, 12);
+    }
+
+    await db.query(
+      'UPDATE users SET nome=$1, cognome=$2, password_hash=$3 WHERE id=$4',
+      [nome.trim(), cognome.trim(), nuovoHash, req.user.id]
+    );
+    res.json({ message: 'Profilo aggiornato con successo.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
