@@ -215,10 +215,53 @@
     .notif-badge { font-size:11px; }
 
     @media (max-width:640px) {
-      .tabs-bar { overflow-x:auto; }
+      header { padding:0 12px; }
+      .hdr-left span { display:none; }
+      .hdr-user { display:none; }
+      .btn-home { display:none; }
+      .tabs-bar { overflow-x:auto; padding:0 12px; }
+      .tab-btn { padding:12px 14px; font-size:13px; }
       .mf-row, .mf-row3 { grid-template-columns:1fr; }
-      header { padding:0 16px; }
-      .pannello { padding:16px; }
+      .pannello { padding:12px; }
+
+      /* Tabelle → card layout */
+      .card-table { background:transparent; box-shadow:none; border-radius:0; overflow:visible; }
+      table, tbody { display:block; width:100%; }
+      thead { display:none; }
+      tbody tr {
+        display:block;
+        background:#fff;
+        border-radius:12px;
+        margin-bottom:10px;
+        padding:10px 14px;
+        box-shadow:0 1px 6px rgba(0,0,0,.07);
+        border:none !important;
+      }
+      td {
+        display:flex;
+        align-items:flex-start;
+        gap:8px;
+        padding:5px 0;
+        font-size:13px;
+        border:none !important;
+      }
+      td::before {
+        content:attr(data-label);
+        font-size:11px;
+        font-weight:700;
+        color:var(--sub);
+        text-transform:uppercase;
+        letter-spacing:.5px;
+        min-width:76px;
+        flex-shrink:0;
+        padding-top:2px;
+      }
+      td[data-label=""] { display:none; }
+      td[data-label="Azioni"]::before { display:none; }
+      td[data-label="Azioni"] { padding-top:8px; }
+      .azioni { flex-wrap:wrap; gap:6px; }
+      .empty-state td { display:block; }
+      .empty-state td::before { display:none; }
     }
   </style>
 </head>
@@ -600,15 +643,15 @@
       }
       tbody.innerHTML = products.map(p => `
         <tr>
-          <td class="prod-emoji">${p.emoji || '🏐'}</td>
-          <td>
+          <td class="prod-emoji" data-label="">${p.emoji || '🏐'}</td>
+          <td data-label="Prodotto">
             <div class="prod-nome">${p.nome}</div>
             <div class="prod-desc">${p.descrizione || ''}</div>
           </td>
-          <td><strong>€ ${parseFloat(p.prezzo).toFixed(2)}</strong></td>
-          <td>${(p.taglie || []).map(t => `<span class="taglia-chip">${t}</span>`).join('')}</td>
-          <td><span class="badge ${p.disponibile ? 'badge-verde' : 'badge-rosso'}">${p.disponibile ? 'Disponibile' : 'Non disp.'}</span></td>
-          <td>
+          <td data-label="Prezzo"><strong>€ ${parseFloat(p.prezzo).toFixed(2)}</strong></td>
+          <td data-label="Taglie">${(p.taglie || []).map(t => `<span class="taglia-chip">${t}</span>`).join('')}</td>
+          <td data-label="Stato"><span class="badge ${p.disponibile ? 'badge-verde' : 'badge-rosso'}">${p.disponibile ? 'Disponibile' : 'Non disp.'}</span></td>
+          <td data-label="Azioni">
             <div class="azioni">
               <button class="btn-azione btn-edit"   onclick="apriModalProdotto('${p.id}')">✏️ Modifica</button>
               <button class="btn-azione btn-delete" onclick="eliminaProdotto('${p.id}','${p.nome.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
@@ -719,14 +762,14 @@
       }
       tbody.innerHTML = notizie.map(n => `
         <tr>
-          <td style="font-size:26px;text-align:center;">${n.immagine ? `<img src="${n.immagine}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;">` : (n.colore==='arancio'?'🟠':n.colore==='azzurro'?'🩵':'🔵')}</td>
-          <td>
+          <td data-label="" style="font-size:26px;text-align:center;">${n.immagine ? `<img src="${n.immagine}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;">` : (n.colore==='arancio'?'🟠':n.colore==='azzurro'?'🩵':'🔵')}</td>
+          <td data-label="Titolo">
             <div class="prod-nome">${n.titolo}</div>
             <div class="prod-desc">${(n.testo||'').slice(0,80)}${(n.testo||'').length>80?'…':''}</div>
           </td>
-          <td><span class="badge ${COLORI_BADGE[n.colore]||'badge-blu'}">${COLORI_LABEL[n.colore]||'Notizia'}</span></td>
-          <td style="color:var(--sub);font-size:13px;">${n.data||'—'}</td>
-          <td>
+          <td data-label="Categoria"><span class="badge ${COLORI_BADGE[n.colore]||'badge-blu'}">${COLORI_LABEL[n.colore]||'Notizia'}</span></td>
+          <td data-label="Data" style="color:var(--sub);font-size:13px;">${n.data||'—'}</td>
+          <td data-label="Azioni">
             <div class="azioni">
               <button class="btn-azione btn-edit"   onclick="apriModalNotizia('${n.id}')">✏️ Modifica</button>
               <button class="btn-azione btn-delete" onclick="eliminaNotizia('${n.id}','${(n.titolo||'').replace(/'/g,"\\'")}')">🗑️ Elimina</button>
@@ -837,15 +880,15 @@
       }
       tbody.innerHTML = sessions.map(s => `
         <tr>
-          <td style="font-weight:700;white-space:nowrap;">${s.data ? new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
-          <td style="white-space:nowrap;">${s.ora || '—'}</td>
-          <td>
+          <td data-label="Data" style="font-weight:700;white-space:nowrap;">${s.data ? new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
+          <td data-label="Orario" style="white-space:nowrap;">${s.ora || '—'}</td>
+          <td data-label="Titolo">
             <div class="prod-nome">${s.titolo}</div>
             ${s.note ? `<div class="prod-desc">${s.note}</div>` : ''}
           </td>
-          <td style="color:var(--sub);font-size:13px;">${s.luogo || '—'}</td>
-          <td style="color:var(--sub);font-size:13px;">${s.categoria || '—'}</td>
-          <td>
+          <td data-label="Luogo" style="color:var(--sub);font-size:13px;">${s.luogo || '—'}</td>
+          <td data-label="Categoria" style="color:var(--sub);font-size:13px;">${s.categoria || '—'}</td>
+          <td data-label="Azioni">
             <div class="azioni">
               <button class="btn-azione btn-edit"   onclick="apriModalSessione('${s.id}')">✏️ Modifica</button>
               <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">🗑️ Elimina</button>
@@ -947,11 +990,11 @@
       const roleLabel = { user:'Utente', dirigente:'Dirigente', admin:'Admin' };
       tbody.innerHTML = users.map(u => `
         <tr>
-          <td>
+          <td data-label="Nome">
             <div class="prod-nome">${u.nome} ${u.cognome}</div>
           </td>
-          <td style="color:var(--sub);font-size:13px;">${u.email}</td>
-          <td>
+          <td data-label="Email" style="color:var(--sub);font-size:13px;">${u.email}</td>
+          <td data-label="Ruolo">
             <select class="role-select" onchange="cambiaRuolo('${u.id}',this.value)">
               <option value="user"      ${u.role==='user'      ?'selected':''}>Utente</option>
               <option value="atleta"    ${u.role==='atleta'    ?'selected':''}>Atleta</option>
@@ -960,9 +1003,9 @@
               <option value="admin"     ${u.role==='admin'     ?'selected':''}>Admin</option>
             </select>
           </td>
-          <td class="notif-badge">${u.notifiche ? '🔔 Attive' : '🔕 Off'}</td>
-          <td style="color:var(--sub);font-size:13px;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : '—'}</td>
-          <td>
+          <td data-label="Notifiche" class="notif-badge">${u.notifiche ? '🔔 Attive' : '🔕 Off'}</td>
+          <td data-label="Iscritto" style="color:var(--sub);font-size:13px;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : '—'}</td>
+          <td data-label="Azioni">
             <button class="btn-azione btn-delete" onclick="eliminaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')">🗑️ Elimina</button>
           </td>
         </tr>`).join('');
