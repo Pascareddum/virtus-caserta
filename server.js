@@ -8,8 +8,9 @@ const nodemailer = require('nodemailer');
 const jwt        = require('jsonwebtoken');
 const multer     = require('multer');
 const crypto     = require('crypto');
-const rateLimit  = require('express-rate-limit');
-const db         = require('./db');
+const rateLimit      = require('express-rate-limit');
+const cookieParser   = require('cookie-parser');
+const db             = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -26,8 +27,46 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
-app.use(express.static(path.join(__dirname)));
+app.use(cookieParser());
 app.use(express.json());
+
+/* ─── Pagine: URL puliti e protezione admin ─── */
+const sendPage = (file) => (_req, res) => res.sendFile(path.join(__dirname, file));
+
+function adminCookieCheck(req, res, next) {
+  const token = req.cookies.vc_admin_session;
+  if (!token) return res.redirect('/admin-login');
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (payload.role !== 'admin') return res.redirect('/admin-login');
+    next();
+  } catch {
+    res.clearCookie('vc_admin_session');
+    return res.redirect('/admin-login');
+  }
+}
+
+// Redirect da URL .html a URL puliti
+app.get('/index.html',          (_req, res) => res.redirect(301, '/'));
+app.get('/chiSiamo.html',       (_req, res) => res.redirect(301, '/chi-siamo'));
+app.get('/notizie.html',        (_req, res) => res.redirect(301, '/notizie'));
+app.get('/calendario.html',     (_req, res) => res.redirect(301, '/calendario'));
+app.get('/shop.html',           (_req, res) => res.redirect(301, '/shop'));
+app.get('/admin.html',          adminCookieCheck, sendPage('admin.html'));
+app.get('/admin-login.html',    (_req, res) => res.redirect(301, '/admin-login'));
+app.get('/reset-password.html', (_req, res) => res.redirect(301, '/reset-password'));
+
+// URL puliti
+app.get('/',               sendPage('index.html'));
+app.get('/chi-siamo',      sendPage('chiSiamo.html'));
+app.get('/notizie',        sendPage('notizie.html'));
+app.get('/calendario',     sendPage('calendario.html'));
+app.get('/shop',           sendPage('shop.html'));
+app.get('/admin',          adminCookieCheck, sendPage('admin.html'));
+app.get('/admin-login',    sendPage('admin-login.html'));
+app.get('/reset-password', sendPage('reset-password.html'));
+
+app.use(express.static(path.join(__dirname)));
 
 /* ─── Rate limiting ─── */
 const loginLimiter = rateLimit({
@@ -82,9 +121,21 @@ app.post('/api/admin/login', loginLimiter, (req, res) => {
   );
   if (validUser && passMatch) {
     const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
+    res.cookie('vc_admin_session', token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: 8 * 60 * 60 * 1000, // 8 ore
+      secure: process.env.NODE_ENV === 'production',
+    });
     return res.json({ token });
   }
   res.status(401).json({ error: 'Credenziali non valide' });
+});
+
+/* ─── Logout admin ─── */
+app.post('/api/admin/logout', (_req, res) => {
+  res.clearCookie('vc_admin_session');
+  res.json({ success: true });
 });
 
 /* ─── Calendario: pubblico ─── */

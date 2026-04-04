@@ -538,11 +538,11 @@
     }
   }
 
-  function logout() {
+  async function logout() {
     localStorage.removeItem('vc_admin_token');
     TOKEN = '';
-    document.getElementById('loginOverlay').style.display = 'flex';
-    document.getElementById('loginPass').value = '';
+    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
+    location.href = '/admin-login';
   }
 
   /* ══ TABS ══ */

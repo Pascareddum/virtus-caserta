@@ -1,14 +1,41 @@
 'use strict';
 const { Pool } = require('pg');
-const fs       = require('fs');
-const path     = require('path');
 
 /* ─── Pool ─── */
+// Converte l'URL Supabase diretto nel connection pooler (IPv4, più affidabile su Windows)
+// db.[ref].supabase.co:5432  →  aws-0-[region].pooler.supabase.com:6543
+function buildPoolConfig(url) {
+  if (!url) return null;
+
+  // Se è già un URL del pooler, parsa con parametri separati per gestire il punto nell'username
+  const poolerMatch = url.match(/^postgresql?:\/\/([^:]+):([^@]+)@(aws-\d+-[\w-]+\.pooler\.supabase\.com):(\d+)\/(\w+)/);
+  if (poolerMatch) {
+    const [, user, password, host, port, database] = poolerMatch;
+    return { user, password, host, port: parseInt(port), database, ssl: { rejectUnauthorized: false } };
+  }
+
+  // URL diretto Supabase: converti in pooler usando la variabile SUPABASE_REGION (default: eu-central-1)
+  const directMatch = url.match(/^postgresql?:\/\/([^:]+):([^@]+)@db\.([\w]+)\.supabase\.co/);
+  if (directMatch) {
+    const [, , password, ref] = directMatch;
+    const region = process.env.SUPABASE_REGION || 'eu-central-1';
+    console.log(`[DB] Connessione via pooler IPv4 (${region})`);
+    return {
+      user:     'postgres.' + ref,
+      password,
+      host:     `aws-0-${region}.pooler.supabase.com`,
+      port:     6543,
+      database: 'postgres',
+      ssl:      { rejectUnauthorized: false },
+    };
+  }
+
+  // Qualsiasi altro URL (es. locale): usa come stringa di connessione
+  return { connectionString: url.replace(/[?&]sslmode=\w+/g, ''), ssl: { rejectUnauthorized: false } };
+}
+
 const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    })
+  ? new Pool(buildPoolConfig(process.env.DATABASE_URL))
   : null;
 
 function query(text, params) {
@@ -80,80 +107,10 @@ async function createTables() {
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
 }
 
-/* ─── Migrazione da JSON ─── */
-async function migrateFromJson() {
-  /* Products */
-  const productsFile = path.join(__dirname, 'products.json');
-  if (fs.existsSync(productsFile)) {
-    try {
-      const products = JSON.parse(fs.readFileSync(productsFile, 'utf8'));
-      for (const p of products) {
-        await query(
-          `INSERT INTO products (id, nome, descrizione, prezzo, emoji, disponibile, taglie, immagine)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-           ON CONFLICT DO NOTHING`,
-          [
-            p.id,
-            p.nome,
-            p.descrizione || '',
-            parseFloat(p.prezzo),
-            p.emoji || '🏐',
-            p.disponibile !== false,
-            JSON.stringify(p.taglie || ['S', 'M', 'L', 'XL']),
-            p.immagine || '',
-          ]
-        );
-      }
-      console.log(`[DB] Migrati ${products.length} prodotti da products.json`);
-    } catch (err) {
-      console.log('[DB] Errore migrazione products.json:', err.message);
-    }
-  }
-
-  /* Notizie */
-  const notizieFile = path.join(__dirname, 'notizie.json');
-  if (fs.existsSync(notizieFile)) {
-    try {
-      const notizie = JSON.parse(fs.readFileSync(notizieFile, 'utf8'));
-      for (const n of notizie) {
-        await query(
-          `INSERT INTO notizie (id, titolo, testo, colore, immagine, data_str)
-           VALUES ($1,$2,$3,$4,$5,$6)
-           ON CONFLICT DO NOTHING`,
-          [n.id, n.titolo, n.testo, n.colore || 'blu', n.immagine || '', n.data || null]
-        );
-      }
-      console.log(`[DB] Migrate ${notizie.length} notizie da notizie.json`);
-    } catch (err) {
-      console.log('[DB] Errore migrazione notizie.json:', err.message);
-    }
-  }
-
-  /* Calendario */
-  const calendarioFile = path.join(__dirname, 'calendario.json');
-  if (fs.existsSync(calendarioFile)) {
-    try {
-      const sessioni = JSON.parse(fs.readFileSync(calendarioFile, 'utf8'));
-      for (const s of sessioni) {
-        await query(
-          `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note)
-           VALUES ($1,$2,$3,$4,$5,$6,$7)
-           ON CONFLICT DO NOTHING`,
-          [s.id, s.titolo, s.data, s.ora, s.luogo || '', s.categoria || '', s.note || '']
-        );
-      }
-      console.log(`[DB] Migrate ${sessioni.length} sessioni da calendario.json`);
-    } catch (err) {
-      console.log('[DB] Errore migrazione calendario.json:', err.message);
-    }
-  }
-}
-
 /* ─── Init ─── */
 async function init() {
   if (!pool) throw new Error('DATABASE_URL non configurata');
   await createTables();
-  await migrateFromJson();
   console.log('[DB] Inizializzazione completata');
 }
 

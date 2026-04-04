@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accesso Admin – Virtus Caserta</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0d2055;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+      text-align: center;
+    }
+    .logo { height: 64px; margin-bottom: 20px; }
+    h2 { font-size: 20px; font-weight: 800; color: #0d2055; margin-bottom: 6px; }
+    p  { font-size: 13px; color: #8e8e93; margin-bottom: 28px; }
+    .field { margin-bottom: 14px; text-align: left; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: #8e8e93; text-transform: uppercase;
+      letter-spacing: .8px; margin-bottom: 5px;
+    }
+    .field input {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid #e5e5ea; border-radius: 10px;
+      font-size: 14px; outline: none; transition: border-color .2s;
+    }
+    .field input:focus { border-color: #0d2055; }
+    button {
+      width: 100%; padding: 13px;
+      background: #0d2055; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: background .2s; margin-top: 6px;
+    }
+    button:hover { background: #1535a8; }
+    .error { color: #dc2626; font-size: 13px; margin-top: 10px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img class="logo" src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    <h2>Pannello Admin</h2>
+    <p>Virtus Caserta – Accesso riservato</p>
+    <form onsubmit="doLogin(event)">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="user" autocomplete="username" required />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="pass" autocomplete="current-password" required />
+      </div>
+      <button type="submit">Accedi</button>
+    </form>
+    <div class="error" id="err"></div>
+  </div>
+
+  <script>
+    async function doLogin(e) {
+      e.preventDefault();
+      const err = document.getElementById('err');
+      err.textContent = '';
+      try {
+        const res  = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('user').value.trim(),
+            password: document.getElementById('pass').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { err.textContent = data.error; return; }
+        localStorage.setItem('vc_admin_token', data.token);
+        location.href = '/admin.html';
+      } catch {
+        err.textContent = 'Errore di rete. Riprova.';
+      }
+    }
+  </script>
+</body>
+</html>
