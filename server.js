@@ -27,6 +27,7 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
+app.set('trust proxy', 1);
 app.use(cookieParser());
 app.use(express.json());
 
