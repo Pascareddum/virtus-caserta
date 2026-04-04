@@ -8,7 +8,6 @@ const nodemailer = require('nodemailer');
 const jwt        = require('jsonwebtoken');
 const multer     = require('multer');
 const crypto     = require('crypto');
-const bcrypt     = require('bcryptjs');
 const rateLimit  = require('express-rate-limit');
 const db         = require('./db');
 
@@ -32,26 +31,16 @@ app.use(express.json());
 
 /* ─── Rate limiting ─── */
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minuti
+  windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Troppi tentativi. Riprova tra 15 minuti.' },
 });
-const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 ora
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Troppi tentativi di registrazione. Riprova tra un\'ora.' },
-});
 
 /* ─── Multer upload ─── */
-const UPLOADS_DIR      = path.join(__dirname, 'uploads');
-const CERT_DIR         = path.join(__dirname, 'uploads', 'certificati');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
-if (!fs.existsSync(CERT_DIR))    fs.mkdirSync(CERT_DIR);
-
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
@@ -60,16 +49,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
 });
-
-const uploadCertificato = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, CERT_DIR),
-    filename:    (_req,  file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')),
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf'),
-});
-
 app.use('/uploads', express.static(UPLOADS_DIR));
 
 /* ─── Auth middleware ─── */
@@ -88,90 +67,16 @@ function adminAuth(req, res, next) {
   next();
 }
 
-function dirigenteAuth(req, res, next) {
-  const payload = verifyToken(req);
-  if (!payload) return res.status(401).json({ error: 'Non autenticato' });
-  if (payload.role !== 'admin' && payload.role !== 'dirigente')
-    return res.status(403).json({ error: 'Accesso riservato ad amministratori e dirigenti' });
-  req.user = payload;
-  next();
-}
-
-function userAuth(req, res, next) {
-  const payload = verifyToken(req);
-  if (!payload) return res.status(401).json({ error: 'Non autenticato' });
-  req.user = payload;
-  next();
-}
-
-/* ─── Login unificato ─── */
-// Accetta { email, password } per tutti (utenti e admin)
-app.post('/api/login', loginLimiter, async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori' });
-
-  // 1. Controlla credenziali admin da env (timing-safe)
-  const adminEmail    = process.env.ADMIN_EMAIL || '';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'virtus2026';
-  const emailMatch    = adminEmail && crypto.timingSafeEqual(
-    Buffer.from(email.trim().toLowerCase()),
-    Buffer.from(adminEmail.toLowerCase())
-  );
-  const passMatch = crypto.timingSafeEqual(
-    Buffer.from(password.padEnd(64)),
-    Buffer.from(adminPassword.padEnd(64))
-  );
-  if (emailMatch && passMatch) {
-    const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
-    return res.json({ token, role: 'admin', nome: 'Admin' });
-  }
-
-  // 2. Lookup nel DB
-  try {
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [email.trim().toLowerCase()]);
-    const user = result.rows[0];
-    if (!user) return res.status(401).json({ error: 'Email o password non validi' });
-
-    // Supporto doppio hash: bcrypt (nuovo) e SHA-256 (legacy)
-    let passwordValid = false;
-    if (user.password_hash.startsWith('$2')) {
-      passwordValid = await bcrypt.compare(password, user.password_hash);
-    } else {
-      const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
-      passwordValid = legacyHash === user.password_hash;
-      if (passwordValid) {
-        // Aggiorna a bcrypt silenziosamente
-        const newHash = await bcrypt.hash(password, 12);
-        await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [newHash, user.id]);
-      }
-    }
-
-    if (!passwordValid) return res.status(401).json({ error: 'Email o password non validi' });
-    if (user.attivo === false) {
-      return res.status(403).json({ error: 'Account sospeso. Contatta l\'amministratore.' });
-    }
-    if (!user.email_verificata && process.env.EMAIL_USER) {
-      return res.status(401).json({ error: 'Verifica prima la tua email. Controlla la casella di posta.' });
-    }
-
-    await db.query('UPDATE users SET last_login=NOW() WHERE id=$1', [user.id]);
-    const role  = user.role || 'user';
-    const token = jwt.sign({ role, id: user.id, nome: user.nome }, JWT_SECRET, { expiresIn: '24h' });
-    return res.json({ token, role, nome: user.nome, cognome: user.cognome });
-  } catch (err) {
-    console.error('[Login] Errore DB:', err.message);
-    return res.status(500).json({ error: 'Errore interno' });
-  }
-});
-
-/* ─── Admin: login (retrocompatibilità admin.html) ─── */
+/* ─── Login admin ─── */
 app.post('/api/admin/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username e password obbligatori' });
+
   const adminPassword = process.env.ADMIN_PASSWORD || 'virtus2026';
   const validUser =
     username === (process.env.ADMIN_USERNAME || 'admin') ||
     username === process.env.ADMIN_EMAIL;
-  const passMatch = password && crypto.timingSafeEqual(
+  const passMatch = crypto.timingSafeEqual(
     Buffer.from(password.padEnd(64)),
     Buffer.from(adminPassword.padEnd(64))
   );
@@ -180,369 +85,6 @@ app.post('/api/admin/login', loginLimiter, (req, res) => {
     return res.json({ token });
   }
   res.status(401).json({ error: 'Credenziali non valide' });
-});
-
-/* ─── Registrazione utente ─── */
-app.post('/api/register', registerLimiter, async (req, res) => {
-  const { nome, cognome, email, password } = req.body;
-  if (!nome || !cognome || !email || !password)
-    return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' });
-
-  try {
-    const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
-    if (existing.rows.length) return res.status(409).json({ error: 'Email già registrata' });
-
-    const id           = Date.now().toString();
-    const passwordHash = await bcrypt.hash(password, 12);
-    const emailConfigured = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
-    const verificationToken = emailConfigured ? crypto.randomBytes(32).toString('hex') : null;
-    const emailVerificata   = !emailConfigured; // se email non configurata, verifica automatica
-    const verificationExpires = verificationToken
-      ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 ore
-      : null;
-
-    await db.query(
-      `INSERT INTO users (id, nome, cognome, email, password_hash, role, notifiche, email_verificata, verification_token, verification_token_expires)
-       VALUES ($1,$2,$3,$4,$5,'user',true,$6,$7,$8)`,
-      [id, nome.trim(), cognome.trim(), email.trim().toLowerCase(), passwordHash, emailVerificata, verificationToken, verificationExpires]
-    );
-
-    if (emailConfigured) {
-      const host = req.get('host');
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const link = `${protocol}://${host}/api/verify-email/${verificationToken}`;
-      await inviaEmailVerifica(email.trim().toLowerCase(), nome.trim(), link);
-      return res.status(201).json({ message: 'Controlla la tua email per confermare la registrazione.' });
-    }
-
-    const token = jwt.sign({ role: 'user', id, nome: nome.trim() }, JWT_SECRET, { expiresIn: '24h' });
-    return res.status(201).json({ token, role: 'user', nome: nome.trim(), cognome: cognome.trim() });
-  } catch (err) {
-    console.error('[Register] Errore DB:', err.message);
-    return res.status(500).json({ error: 'Errore interno' });
-  }
-});
-
-/* ─── Verifica email ─── */
-app.get('/api/verify-email/:token', async (req, res) => {
-  try {
-    const result = await db.query(
-      `UPDATE users
-       SET email_verificata=true, verification_token=NULL, verification_token_expires=NULL
-       WHERE verification_token=$1
-         AND (verification_token_expires IS NULL OR verification_token_expires > NOW())
-       RETURNING id`,
-      [req.params.token]
-    );
-    if (!result.rows.length) {
-      return res.send(`<!DOCTYPE html><html lang="it"><body style="font-family:Arial;text-align:center;padding:60px">
-        <h2>Link non valido, già utilizzato o scaduto</h2>
-        <p>Registrati di nuovo o richiedi un nuovo link di verifica.</p>
-        <a href="/index.html">Torna alla home</a></body></html>`);
-    }
-    return res.redirect('/index.html?verified=1');
-  } catch (err) {
-    return res.status(500).send('Errore interno');
-  }
-});
-
-/* ─── Forgot password ─── */
-app.post('/api/forgot-password', loginLimiter, async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ error: 'Email obbligatoria' });
-
-  // Risposta sempre uguale per non rivelare se l'email esiste
-  const genericOk = { message: 'Se l\'email è registrata riceverai un link per reimpostare la password.' };
-
-  try {
-    const result = await db.query('SELECT id, nome FROM users WHERE email=$1', [email.trim().toLowerCase()]);
-    if (!result.rows.length) return res.json(genericOk);
-
-    const user  = result.rows[0];
-    const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 ora
-
-    await db.query(
-      'UPDATE users SET password_reset_token=$1, password_reset_expires=$2 WHERE id=$3',
-      [token, expires, user.id]
-    );
-
-    const transporter = creaTransporter();
-    if (transporter) {
-      const host     = req.get('host');
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const link     = `${protocol}://${host}/reset-password.html?token=${token}`;
-      await transporter.sendMail({
-        from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
-        to: email.trim().toLowerCase(),
-        subject: 'Reimposta la tua password – Virtus Caserta',
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
-            <div style="background:#0d2055;padding:28px 24px;text-align:center">
-              <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
-              <p style="color:#f57c00;margin:6px 0 0;font-size:14px">Reimposta password</p>
-            </div>
-            <div style="padding:32px 24px">
-              <p style="font-size:16px">Ciao <strong>${user.nome}</strong>,</p>
-              <p>Hai richiesto di reimpostare la password. Clicca il bottone qui sotto (valido per 1 ora):</p>
-              <p style="text-align:center;margin:32px 0">
-                <a href="${link}" style="background:#f57c00;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;font-size:15px">
-                  Reimposta password
-                </a>
-              </p>
-              <p style="font-size:13px;color:#6b7280">Se non hai richiesto questa operazione, ignora questa email.</p>
-            </div>
-          </div>`,
-      });
-      console.log(`[Password] Reset inviato a ${email}`);
-    }
-
-    return res.json(genericOk);
-  } catch (err) {
-    console.error('[ForgotPassword] Errore:', err.message);
-    return res.status(500).json({ error: 'Errore interno' });
-  }
-});
-
-/* ─── Reset password ─── */
-app.post('/api/reset-password', async (req, res) => {
-  const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ error: 'Token e nuova password obbligatori' });
-  if (password.length < 6) return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' });
-
-  try {
-    const result = await db.query(
-      'SELECT id FROM users WHERE password_reset_token=$1 AND password_reset_expires > NOW()',
-      [token]
-    );
-    if (!result.rows.length) return res.status(400).json({ error: 'Link non valido o scaduto' });
-
-    const newHash = await bcrypt.hash(password, 12);
-    await db.query(
-      'UPDATE users SET password_hash=$1, password_reset_token=NULL, password_reset_expires=NULL WHERE id=$2',
-      [newHash, result.rows[0].id]
-    );
-    return res.json({ message: 'Password reimpostata con successo.' });
-  } catch (err) {
-    console.error('[ResetPassword] Errore:', err.message);
-    return res.status(500).json({ error: 'Errore interno' });
-  }
-});
-
-/* ─── Profilo utente ─── */
-app.get('/api/utente/profilo', userAuth, async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT id, nome, cognome, email, role, notifiche, email_verificata,
-              data_nascita, codice_fiscale, telefono,
-              certificato_medico_url, certificato_medico_scadenza,
-              created_at, last_login
-       FROM users WHERE id=$1`,
-      [req.user.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/utente/profilo', userAuth, async (req, res) => {
-  const { nome, cognome, telefono, data_nascita, codice_fiscale, password_attuale, nuova_password } = req.body;
-  if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
-
-  if (codice_fiscale && !/^[A-Z0-9]{16}$/i.test(codice_fiscale)) {
-    return res.status(400).json({ error: 'Codice fiscale non valido (deve essere 16 caratteri alfanumerici)' });
-  }
-
-  try {
-    const result = await db.query('SELECT * FROM users WHERE id=$1', [req.user.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
-    const user = result.rows[0];
-
-    let nuovoHash = user.password_hash;
-    if (nuova_password) {
-      if (!password_attuale) return res.status(400).json({ error: 'Inserisci la password attuale per cambiarla' });
-      if (nuova_password.length < 6) return res.status(400).json({ error: 'La nuova password deve essere di almeno 6 caratteri' });
-
-      let valid = false;
-      if (user.password_hash.startsWith('$2')) {
-        valid = await bcrypt.compare(password_attuale, user.password_hash);
-      } else {
-        valid = crypto.createHash('sha256').update(password_attuale).digest('hex') === user.password_hash;
-      }
-      if (!valid) return res.status(401).json({ error: 'Password attuale non corretta' });
-      nuovoHash = await bcrypt.hash(nuova_password, 12);
-    }
-
-    await db.query(
-      `UPDATE users
-       SET nome=$1, cognome=$2, password_hash=$3, telefono=$4, data_nascita=$5, codice_fiscale=$6
-       WHERE id=$7`,
-      [
-        nome.trim(),
-        cognome.trim(),
-        nuovoHash,
-        telefono ? telefono.trim() : null,
-        data_nascita || null,
-        codice_fiscale ? codice_fiscale.toUpperCase() : null,
-        req.user.id,
-      ]
-    );
-    res.json({ message: 'Profilo aggiornato con successo.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Upload certificato medico ─── */
-app.post('/api/utente/certificato', userAuth, uploadCertificato.single('certificato'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nessun file ricevuto' });
-  const { scadenza } = req.body;
-  if (!scadenza) return res.status(400).json({ error: 'Data di scadenza obbligatoria' });
-  if (new Date(scadenza) <= new Date()) return res.status(400).json({ error: 'La data di scadenza non può essere nel passato' });
-
-  try {
-    // Elimina il vecchio certificato dal disco se esiste
-    const old = await db.query('SELECT certificato_medico_url FROM users WHERE id=$1', [req.user.id]);
-    if (old.rows[0]?.certificato_medico_url) {
-      const oldPath = path.join(__dirname, old.rows[0].certificato_medico_url);
-      fs.unlink(oldPath, () => {});
-    }
-
-    const url = '/uploads/certificati/' + req.file.filename;
-    await db.query(
-      'UPDATE users SET certificato_medico_url=$1, certificato_medico_scadenza=$2 WHERE id=$3',
-      [url, scadenza, req.user.id]
-    );
-    res.json({ url, scadenza });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Admin: lista utenti ─── */
-app.get('/api/admin/users', adminAuth, async (_req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT id, nome, cognome, email, role, notifiche, attivo, note_admin,
-              data_nascita, codice_fiscale, telefono,
-              certificato_medico_scadenza, last_login, created_at
-       FROM users ORDER BY created_at DESC`
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Admin: cambia ruolo utente ─── */
-app.put('/api/admin/users/:id/role', adminAuth, async (req, res) => {
-  const { role } = req.body;
-  if (!['user', 'atleta', 'allenatore', 'dirigente', 'admin'].includes(role))
-    return res.status(400).json({ error: 'Ruolo non valido' });
-  try {
-    const result = await db.query(
-      'UPDATE users SET role=$1 WHERE id=$2 RETURNING id',
-      [role, req.params.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Admin: elimina utente ─── */
-app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
-  try {
-    const result = await db.query(
-      'DELETE FROM users WHERE id=$1 RETURNING id',
-      [req.params.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Admin: sospendi/riattiva utente ─── */
-app.put('/api/admin/users/:id/attivo', adminAuth, async (req, res) => {
-  const { attivo, note_admin } = req.body;
-  if (typeof attivo !== 'boolean') return res.status(400).json({ error: 'Il campo attivo deve essere true o false' });
-  try {
-    const result = await db.query(
-      'UPDATE users SET attivo=$1, note_admin=$2 WHERE id=$3 RETURNING id',
-      [attivo, note_admin !== undefined ? note_admin : null, req.params.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
-    res.json({ success: true, attivo });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Presenze: segna (dirigente/admin) ─── */
-app.post('/api/presenze', dirigenteAuth, async (req, res) => {
-  const { presenze } = req.body; // [{ user_id, sessione_id, presente }]
-  if (!Array.isArray(presenze) || !presenze.length)
-    return res.status(400).json({ error: 'Array presenze obbligatorio' });
-  try {
-    let count = 0;
-    for (let i = 0; i < presenze.length; i++) {
-      const { user_id, sessione_id, presente } = presenze[i];
-      if (!user_id || !sessione_id) continue;
-      const id = Date.now().toString() + '_' + i;
-      await db.query(
-        `INSERT INTO presenze (id, user_id, sessione_id, presente)
-         VALUES ($1,$2,$3,$4)
-         ON CONFLICT (user_id, sessione_id) DO UPDATE SET presente=$4`,
-        [id, user_id, sessione_id, presente !== false]
-      );
-      count++;
-    }
-    res.json({ success: true, count });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Presenze: lista per sessione (dirigente/admin) ─── */
-app.get('/api/presenze/:sessione_id', dirigenteAuth, async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT p.user_id, u.nome, u.cognome, p.presente, p.created_at
-       FROM presenze p
-       JOIN users u ON u.id = p.user_id
-       WHERE p.sessione_id = $1
-       ORDER BY u.cognome, u.nome`,
-      [req.params.sessione_id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Presenze: storico personale (utente) ─── */
-app.get('/api/utente/presenze', userAuth, async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT p.presente, p.created_at,
-              c.id AS sessione_id, c.titolo, c.data_str, c.ora, c.luogo, c.categoria
-       FROM presenze p
-       JOIN calendario c ON c.id = p.sessione_id
-       WHERE p.user_id = $1
-       ORDER BY c.data_str DESC, c.ora DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 /* ─── Calendario: pubblico ─── */
@@ -565,11 +107,10 @@ app.get('/api/calendario', async (_req, res) => {
 });
 
 /* ─── Calendario: crea sessione ─── */
-app.post('/api/calendario', dirigenteAuth, async (req, res) => {
+app.post('/api/calendario', adminAuth, async (req, res) => {
   const { titolo, data, ora, luogo, categoria, note, ripetizione_settimanale, data_fine_ripetizione } = req.body;
   if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
   try {
-    // Ripetizione settimanale: crea sessioni per ogni settimana fino a data_fine
     if (ripetizione_settimanale && data_fine_ripetizione && data_fine_ripetizione >= data) {
       const sessioni = [];
       let currentDate = new Date(data + 'T00:00:00');
@@ -589,7 +130,6 @@ app.post('/api/calendario', dirigenteAuth, async (req, res) => {
       }
       return res.status(201).json({ sessioni, count: sessioni.length });
     }
-    // Sessione singola
     const id = Date.now().toString();
     await db.query(
       `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note)
@@ -603,7 +143,7 @@ app.post('/api/calendario', dirigenteAuth, async (req, res) => {
 });
 
 /* ─── Calendario: aggiorna sessione ─── */
-app.put('/api/calendario/:id', dirigenteAuth, async (req, res) => {
+app.put('/api/calendario/:id', adminAuth, async (req, res) => {
   const { titolo, data, ora, luogo, categoria, note } = req.body;
   try {
     const result = await db.query(
@@ -622,7 +162,7 @@ app.put('/api/calendario/:id', dirigenteAuth, async (req, res) => {
 });
 
 /* ─── Calendario: elimina sessione ─── */
-app.delete('/api/calendario/:id', dirigenteAuth, async (req, res) => {
+app.delete('/api/calendario/:id', adminAuth, async (req, res) => {
   try {
     const result = await db.query('DELETE FROM calendario WHERE id=$1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
@@ -643,7 +183,7 @@ app.get('/api/products', async (_req, res) => {
       prezzo:      parseFloat(r.prezzo),
       emoji:       r.emoji,
       disponibile: r.disponibile,
-      taglie:      r.taglie,   // pg restituisce già array da JSONB
+      taglie:      r.taglie,
       immagine:    r.immagine,
     }));
     res.json(rows);
@@ -661,16 +201,8 @@ app.post('/api/admin/products', adminAuth, async (req, res) => {
     await db.query(
       `INSERT INTO products (id, nome, descrizione, prezzo, emoji, disponibile, taglie, immagine)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [
-        id,
-        nome,
-        descrizione || '',
-        parseFloat(prezzo),
-        emoji || '🏐',
-        disponibile !== false,
-        JSON.stringify(taglie || ['S', 'M', 'L', 'XL']),
-        immagine || '',
-      ]
+      [id, nome, descrizione || '', parseFloat(prezzo), emoji || '🏐', disponibile !== false,
+       JSON.stringify(taglie || ['S', 'M', 'L', 'XL']), immagine || '']
     );
     res.status(201).json({
       id, nome, descrizione: descrizione || '', prezzo: parseFloat(prezzo),
@@ -691,28 +223,14 @@ app.put('/api/admin/products/:id', adminAuth, async (req, res) => {
        SET nome=$1, descrizione=$2, prezzo=$3, emoji=$4, disponibile=$5, taglie=$6, immagine=$7
        WHERE id=$8
        RETURNING *`,
-      [
-        nome,
-        descrizione || '',
-        parseFloat(prezzo),
-        emoji || '🏐',
-        disponibile !== false,
-        JSON.stringify(taglie || ['S', 'M', 'L', 'XL']),
-        immagine || '',
-        req.params.id,
-      ]
+      [nome, descrizione || '', parseFloat(prezzo), emoji || '🏐', disponibile !== false,
+       JSON.stringify(taglie || ['S', 'M', 'L', 'XL']), immagine || '', req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Prodotto non trovato' });
     const r = result.rows[0];
     res.json({
-      id:          r.id,
-      nome:        r.nome,
-      descrizione: r.descrizione,
-      prezzo:      parseFloat(r.prezzo),
-      emoji:       r.emoji,
-      disponibile: r.disponibile,
-      taglie:      r.taglie,
-      immagine:    r.immagine,
+      id: r.id, nome: r.nome, descrizione: r.descrizione, prezzo: parseFloat(r.prezzo),
+      emoji: r.emoji, disponibile: r.disponibile, taglie: r.taglie, immagine: r.immagine,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -741,12 +259,7 @@ app.get('/api/notizie', async (_req, res) => {
   try {
     const result = await db.query('SELECT * FROM notizie ORDER BY created_at DESC');
     const rows = result.rows.map(r => ({
-      id:       r.id,
-      titolo:   r.titolo,
-      testo:    r.testo,
-      colore:   r.colore,
-      immagine: r.immagine,
-      data:     r.data_str,
+      id: r.id, titolo: r.titolo, testo: r.testo, colore: r.colore, immagine: r.immagine, data: r.data_str,
     }));
     res.json(rows);
   } catch (err) {
@@ -762,8 +275,7 @@ app.post('/api/admin/notizie', adminAuth, async (req, res) => {
   const dataStr = data || new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
   try {
     await db.query(
-      `INSERT INTO notizie (id, titolo, testo, colore, immagine, data_str)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
+      `INSERT INTO notizie (id, titolo, testo, colore, immagine, data_str) VALUES ($1,$2,$3,$4,$5,$6)`,
       [id, titolo, testo, colore || 'blu', immagine || '', dataStr]
     );
     res.status(201).json({ id, titolo, testo, colore: colore || 'blu', immagine: immagine || '', data: dataStr });
@@ -777,10 +289,7 @@ app.put('/api/admin/notizie/:id', adminAuth, async (req, res) => {
   const { titolo, testo, data, colore, immagine } = req.body;
   try {
     const result = await db.query(
-      `UPDATE notizie
-       SET titolo=$1, testo=$2, colore=$3, immagine=$4, data_str=$5
-       WHERE id=$6
-       RETURNING *`,
+      `UPDATE notizie SET titolo=$1, testo=$2, colore=$3, immagine=$4, data_str=$5 WHERE id=$6 RETURNING *`,
       [titolo, testo, colore || 'blu', immagine || '', data || null, req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Notizia non trovata' });
@@ -827,20 +336,6 @@ app.post('/api/create-payment-intent', async (req, res) => {
   }
 });
 
-/* ─── Ordini: storico utente ─── */
-app.get('/api/utente/ordini', userAuth, async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT id, nome, cognome, indirizzo, citta, cap, items, totale, spedizione, metodo, stato, created_at
-       FROM ordini WHERE user_id=$1 ORDER BY created_at DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 /* ─── Ordini: tutti (admin) ─── */
 app.get('/api/admin/ordini', adminAuth, async (req, res) => {
   try {
@@ -848,10 +343,7 @@ app.get('/api/admin/ordini', adminAuth, async (req, res) => {
     const params = [];
     const where  = stato ? 'WHERE stato=$1' : '';
     if (stato) params.push(stato);
-    const result = await db.query(
-      `SELECT * FROM ordini ${where} ORDER BY created_at DESC`,
-      params
-    );
+    const result = await db.query(`SELECT * FROM ordini ${where} ORDER BY created_at DESC`, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -864,10 +356,7 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
   const statiValidi = ['ricevuto', 'in lavorazione', 'spedito', 'consegnato', 'annullato'];
   if (!statiValidi.includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
   try {
-    const result = await db.query(
-      'UPDATE ordini SET stato=$1 WHERE id=$2 RETURNING id',
-      [stato, req.params.id]
-    );
+    const result = await db.query('UPDATE ordini SET stato=$1 WHERE id=$2 RETURNING id', [stato, req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Ordine non trovato' });
     res.json({ success: true, stato });
   } catch (err) {
@@ -881,21 +370,12 @@ app.post('/api/send-order-email', async (req, res) => {
 
   // Salva ordine nel DB (non bloccante)
   try {
-    const userPayload = verifyToken(req);
-    const dbOrderId   = orderId || Date.now().toString();
+    const dbOrderId = orderId || Date.now().toString();
     await db.query(
-      `INSERT INTO ordini (id, user_id, nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-      [
-        dbOrderId,
-        userPayload?.id || null,
-        nome, cognome, email,
-        indirizzo || '', citta || '', cap || '',
-        JSON.stringify(items || []),
-        parseFloat(totale) || 0,
-        parseFloat(spedizione) || 0,
-        metodo || '',
-      ]
+      `INSERT INTO ordini (id, nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [dbOrderId, nome, cognome, email, indirizzo || '', citta || '', cap || '',
+       JSON.stringify(items || []), parseFloat(totale) || 0, parseFloat(spedizione) || 0, metodo || '']
     );
   } catch (dbErr) {
     console.log('[Ordini] Errore salvataggio DB:', dbErr.message);
@@ -940,7 +420,6 @@ app.post('/api/send-order-email', async (req, res) => {
         <div style="padding:32px 24px">
           <p style="font-size:16px">Ciao <strong>${nome}</strong>,</p>
           <p>Il tuo ordine è stato ricevuto con successo${orderId ? ` (<strong>#${orderId}</strong>)` : ''}.</p>
-
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Riepilogo ordine</h3>
           <table style="width:100%;border-collapse:collapse;font-size:14px">
             <thead><tr style="background:#f8fafc">
@@ -957,14 +436,11 @@ app.post('/api/send-order-email', async (req, res) => {
           <p style="text-align:right;font-size:18px;font-weight:bold;color:#0d2055">
             Totale: € ${Number(totale).toFixed(2)}
           </p>
-
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Indirizzo di spedizione</h3>
           <p>${nome} ${cognome}<br>${indirizzo}<br>${cap} ${citta}</p>
-
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Metodo di pagamento</h3>
           <p>${metodiLabel[metodo] || metodo}</p>
           ${bonificoHtml}
-
           <p style="color:#9ca3af;font-size:13px;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px">
             Consegna prevista entro 3–5 giorni lavorativi.<br>
             Per assistenza scrivi a <a href="mailto:info@virtuscaserta.it" style="color:#1535a8">info@virtuscaserta.it</a>
@@ -1000,8 +476,8 @@ app.post('/api/send-order-email', async (req, res) => {
 });
 
 /* ─── Instagram Basic Display API ─── */
-const IG_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 ore
-let igCache = null; // { data, ts }
+const IG_CACHE_TTL = 2 * 60 * 60 * 1000;
+let igCache = null;
 
 app.get('/api/instagram', async (_req, res) => {
   if (!INSTAGRAM_ACCESS_TOKEN) {
@@ -1015,26 +491,17 @@ app.get('/api/instagram', async (_req, res) => {
   }
 
   if (igCache && (Date.now() - igCache.ts) < IG_CACHE_TTL) {
-    console.log('[Instagram] Risposta dalla cache');
     return res.json(igCache.data);
   }
 
   try {
-    const token = INSTAGRAM_ACCESS_TOKEN;
-    const BASE   = 'https://graph.instagram.com';
-
-    const profileRes = await fetch(
-      `${BASE}/me?fields=id,username,account_type,media_count&access_token=${token}`
-    );
-    console.log('[Instagram] Status profilo:', profileRes.status);
+    const BASE = 'https://graph.instagram.com';
+    const profileRes = await fetch(`${BASE}/me?fields=id,username,account_type,media_count&access_token=${INSTAGRAM_ACCESS_TOKEN}`);
     if (!profileRes.ok) throw new Error(`HTTP ${profileRes.status} (profilo)`);
     const profile = await profileRes.json();
     if (profile.error) throw new Error(profile.error.message);
 
-    const mediaRes = await fetch(
-      `${BASE}/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=3&access_token=${token}`
-    );
-    console.log('[Instagram] Status media:', mediaRes.status);
+    const mediaRes = await fetch(`${BASE}/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=3&access_token=${INSTAGRAM_ACCESS_TOKEN}`);
     if (!mediaRes.ok) throw new Error(`HTTP ${mediaRes.status} (media)`);
     const mediaJson = await mediaRes.json();
     if (mediaJson.error) throw new Error(mediaJson.error.message);
@@ -1049,28 +516,20 @@ app.get('/api/instagram', async (_req, res) => {
     }));
 
     const result = {
-      source:      'instagram_api',
-      username:    profile.username,
-      posts:       profile.media_count || 0,
-      profileUrl:  `https://www.instagram.com/${profile.username}/`,
+      source: 'instagram_api', username: profile.username,
+      posts: profile.media_count || 0,
+      profileUrl: `https://www.instagram.com/${profile.username}/`,
       recentPosts: posts,
     };
-
     igCache = { data: result, ts: Date.now() };
     return res.json(result);
-
   } catch (err) {
     console.log('[Instagram] Errore:', err.message);
-    if (igCache) {
-      console.log('[Instagram] Servendo cache scaduta dopo errore');
-      return res.json({ ...igCache.data, cached: true });
-    }
+    if (igCache) return res.json({ ...igCache.data, cached: true });
     return res.json({
-      source:     'static',
-      username:   INSTAGRAM_USERNAME,
+      source: 'static', username: INSTAGRAM_USERNAME,
       profileUrl: `https://www.instagram.com/${INSTAGRAM_USERNAME}/`,
-      message:    `Errore Instagram: ${err.message}`,
-      recentPosts: [],
+      message: `Errore Instagram: ${err.message}`, recentPosts: [],
     });
   }
 });
@@ -1078,9 +537,7 @@ app.get('/api/instagram', async (_req, res) => {
 app.post('/api/instagram/refresh-token', async (_req, res) => {
   if (!INSTAGRAM_ACCESS_TOKEN) return res.status(400).json({ error: 'Token non configurato' });
   try {
-    const r = await fetch(
-      `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${INSTAGRAM_ACCESS_TOKEN}`
-    );
+    const r = await fetch(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${INSTAGRAM_ACCESS_TOKEN}`);
     const json = await r.json();
     if (json.error) throw new Error(json.error.message);
     res.json({ access_token: json.access_token, expires_in: json.expires_in });
@@ -1096,37 +553,28 @@ function parseFipavMatches(html) {
   function stripTags(s) {
     return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
   }
-
   const categories = [];
   const capRe = /<caption[^>]*>([\s\S]*?)<\/caption>/gi;
   let capm;
   while ((capm = capRe.exec(html)) !== null) {
     const text = stripTags(capm[1]).trim();
-    if (text.length > 4 && /[a-zA-Z]/.test(text)) {
-      categories.push({ pos: capm.index, text });
-    }
+    if (text.length > 4 && /[a-zA-Z]/.test(text)) categories.push({ pos: capm.index, text });
   }
-
   const matches = [];
   const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let rowMatch;
-
   while ((rowMatch = rowRe.exec(html)) !== null) {
     const row = rowMatch[1];
     const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
     const tds = [];
     let tdMatch;
-    while ((tdMatch = tdRe.exec(row)) !== null) {
-      tds.push(stripTags(tdMatch[1]));
-    }
-
+    while ((tdMatch = tdRe.exec(row)) !== null) tds.push(stripTags(tdMatch[1]));
     if (tds.length >= 6) {
       const [gara, giornata, dataOra, casa, ospite, risultato] = tds;
       if (/^\d+$/.test(gara.trim()) && /\d{2}\/\d{2}\/\d{2}/.test(dataOra)) {
         const score = risultato.trim();
         const played = /\d\s*-\s*\d/.test(score);
         const postponed = /rinviat/i.test(score);
-
         const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
         let timestamp = null;
         let dateFormatted = dataOra.trim();
@@ -1135,30 +583,16 @@ function parseFipavMatches(html) {
           timestamp = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
           dateFormatted = `${dd}/${mm}/20${yy} ${hh}:${min}`;
         }
-
         const rowPos = rowMatch.index;
         let categoria = '';
         for (const cat of categories) {
           if (cat.pos < rowPos) categoria = cat.text;
           else break;
         }
-
-        matches.push({
-          id: gara.trim(),
-          giornata: giornata.trim(),
-          dataOra: dateFormatted,
-          timestamp,
-          casa: casa.trim(),
-          ospite: ospite.trim(),
-          risultato: score,
-          played,
-          postponed,
-          categoria,
-        });
+        matches.push({ id: gara.trim(), giornata: giornata.trim(), dataOra: dateFormatted, timestamp, casa: casa.trim(), ospite: ospite.trim(), risultato: score, played, postponed, categoria });
       }
     }
   }
-
   return matches;
 }
 
@@ -1173,24 +607,12 @@ app.get('/api/partite', async (_req, res) => {
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const html = await r.text();
-    const idx702 = html.indexOf('>702<');
-    if (idx702 !== -1) console.log('[Partite] HTML prima di 702:', JSON.stringify(html.slice(Math.max(0, idx702 - 1000), idx702)));
-
     const all = parseFipavMatches(html);
-    console.log('[Partite] match trovati:', all.length);
-    console.log('[Partite] prime 3 categorie:', all.slice(0, 3).map(m => `"${m.categoria}"`));
-
     all.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
     const now    = Date.now();
     const past   = all.filter(m => m.played);
     const future = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now);
-
-    res.json({
-      ultime:   past.slice(-3),
-      prossime: future.slice(0, 3),
-      fipavUrl: FIPAV_URL,
-    });
+    res.json({ ultime: past.slice(-3), prossime: future.slice(0, 3), fipavUrl: FIPAV_URL });
   } catch (err) {
     console.log('[Partite] Errore:', err.message);
     res.status(500).json({ error: err.message });
@@ -1217,329 +639,15 @@ app.get('/api/proxy-image', async (req, res) => {
   }
 });
 
-/* ─── Email verifica registrazione ─── */
-async function inviaEmailVerifica(email, nome, link) {
-  const transporter = creaTransporter();
-  if (!transporter) return;
-  try {
-    await transporter.sendMail({
-      from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Conferma la tua registrazione – Virtus Caserta',
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
-          <div style="background:#0d2055;padding:28px 24px;text-align:center">
-            <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
-            <p style="color:#f57c00;margin:6px 0 0;font-size:14px">Conferma registrazione</p>
-          </div>
-          <div style="padding:32px 24px">
-            <p style="font-size:16px">Ciao <strong>${nome}</strong>,</p>
-            <p>Grazie per esserti registrato! Clicca il bottone qui sotto per confermare la tua email e attivare l'account.</p>
-            <p style="text-align:center;margin:32px 0">
-              <a href="${link}" style="background:#f57c00;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;font-size:15px">
-                Conferma email
-              </a>
-            </p>
-            <p style="font-size:13px;color:#6b7280">Se il bottone non funziona, copia questo link nel browser:<br><a href="${link}" style="color:#1535a8">${link}</a></p>
-            <p style="font-size:13px;color:#6b7280;margin-top:24px">Se non hai richiesto questa registrazione, ignora questa email.</p>
-          </div>
-          <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#9ca3af">
-            © 2026 Virtus Caserta – Società Sportiva Pallavolo
-          </div>
-        </div>`,
-    });
-    console.log(`[Email] Verifica inviata a ${email}`);
-  } catch (err) {
-    console.log('[Email] Errore invio verifica:', err.message);
-  }
-}
-
-/* ─── Notifiche log (DB) ─── */
-async function readNotificheLog() {
-  try {
-    const result = await db.query('SELECT chiave FROM notifiche_log');
-    const obj = {};
-    for (const row of result.rows) obj[row.chiave] = true;
-    return obj;
-  } catch {
-    return {};
-  }
-}
-
-async function writeNotificheLog(chiave) {
-  try {
-    await db.query(
-      'INSERT INTO notifiche_log (chiave) VALUES ($1) ON CONFLICT DO NOTHING',
-      [chiave]
-    );
-  } catch (err) {
-    console.log('[NotificheLog] Errore scrittura:', err.message);
-  }
-}
-
-/* ─── Notifiche email iscritti ─── */
-function isVirtus(nome) { return /virtus\s*caserta/i.test(nome || ''); }
-
-function creaTransporter() {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return null;
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
-}
-
-async function inviaEmailIscritti(subject, html) {
-  const transporter = creaTransporter();
-  if (!transporter) return;
-  try {
-    const result = await db.query("SELECT email FROM users WHERE notifiche = true AND email IS NOT NULL AND email <> ''");
-    const users = result.rows;
-    if (!users.length) return;
-    const to = users.map(u => u.email).join(',');
-    await transporter.sendMail({
-      from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
-      bcc: to,
-      subject,
-      html,
-    });
-    console.log(`[Notifiche] Email inviata a ${users.length} iscritti: "${subject}"`);
-  } catch (err) {
-    console.log('[Notifiche] Errore invio email:', err.message);
-  }
-}
-
-async function controllaPartiteEInvia() {
-  try {
-    const r = await fetch(`http://localhost:${PORT}/api/partite`);
-    if (!r.ok) return;
-    const { ultime, prossime } = await r.json();
-    const log  = await readNotificheLog();
-    const now  = Date.now();
-    const TRE_ORE = 3 * 60 * 60 * 1000;
-    const FINESTRA = 8 * 60 * 1000; // ±8 min
-
-    for (const m of (prossime || [])) {
-      if (!m.timestamp) continue;
-      const chiave = `promemoria_${m.id}`;
-      if (log[chiave]) continue;
-      const distanza = m.timestamp - now;
-      if (distanza > TRE_ORE - FINESTRA && distanza < TRE_ORE + FINESTRA) {
-        const luogo = isVirtus(m.casa) ? 'in casa' : 'in trasferta';
-        await inviaEmailIscritti(
-          `🏐 Partita tra 3 ore – ${m.casa} vs ${m.ospite}`,
-          `<p>Ciao!</p>
-           <p>Tra meno di 3 ore la <strong>Virtus Caserta</strong> scende in campo <strong>${luogo}</strong>.</p>
-           <p><strong>${m.casa} vs ${m.ospite}</strong><br>${m.dataOra}${m.categoria ? ' · ' + m.categoria : ''}</p>
-           <p>Forza Virtus! 🏐</p>
-           <hr><small><a href="https://virtuscaserta.it">virtuscaserta.it</a></small>`
-        );
-        await writeNotificheLog(chiave);
-      }
-    }
-
-    for (const m of (ultime || [])) {
-      if (!m.played || !m.risultato) continue;
-      const chiave = `vittoria_${m.id}`;
-      if (log[chiave]) continue;
-
-      const parti = m.risultato.match(/(\d+)\s*[-–]\s*(\d+)/);
-      if (!parti) continue;
-      const [, setA, setB] = parti.map((v, i) => i === 0 ? v : parseInt(v));
-      const homeWin = parseInt(setA) > parseInt(setB);
-      const vittoria = (isVirtus(m.casa) && homeWin) || (isVirtus(m.ospite) && !homeWin);
-
-      if (vittoria) {
-        await inviaEmailIscritti(
-          `🏆 Vittoria! ${m.casa} ${m.risultato} ${m.ospite}`,
-          `<p>Ciao!</p>
-           <p>La <strong>Virtus Caserta</strong> ha vinto! 🎉</p>
-           <p><strong>${m.casa} ${m.risultato} ${m.ospite}</strong><br>${m.dataOra}${m.categoria ? ' · ' + m.categoria : ''}</p>
-           <p>Grande prestazione! Forza Virtus! 🏐</p>
-           <hr><small><a href="https://virtuscaserta.it">virtuscaserta.it</a></small>`
-        );
-      }
-      await writeNotificheLog(chiave);
-    }
-  } catch (err) {
-    console.log('[Notifiche] Errore controllo partite:', err.message);
-  }
-}
-
-/* ─── Reminder allenamenti ─── */
-async function controllaAllenamentiEInvia() {
-  try {
-    const result = await db.query('SELECT * FROM calendario ORDER BY data_str, ora');
-    const log    = await readNotificheLog();
-    const now    = Date.now();
-    const TRE_ORE  = 3 * 60 * 60 * 1000;
-    const FINESTRA = 8 * 60 * 1000;
-
-    for (const s of result.rows) {
-      if (!s.data_str || !s.ora) continue;
-      const oraInizio = s.ora.split('–')[0].split('-')[0].trim();
-      const ts = new Date(`${s.data_str}T${oraInizio}:00`).getTime();
-      if (isNaN(ts)) continue;
-
-      const chiave = `allenamento_${s.id}`;
-      if (log[chiave]) continue;
-
-      const distanza = ts - now;
-      if (distanza > TRE_ORE - FINESTRA && distanza < TRE_ORE + FINESTRA) {
-        const cat   = s.categoria ? ` – ${s.categoria}` : '';
-        const oraFmt = s.ora;
-        const luogo = s.luogo ? ` · ${s.luogo}` : '';
-        await inviaEmailIscritti(
-          `🏐 Allenamento tra 3 ore${cat}`,
-          `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-             <div style="background:#0d2055;padding:24px;text-align:center">
-               <h1 style="color:#fff;margin:0;font-size:20px">VIRTUS CASERTA</h1>
-             </div>
-             <div style="padding:28px 24px">
-               <p style="font-size:16px">Ciao!</p>
-               <p>Tra <strong>3 ore</strong> inizia l'allenamento:</p>
-               <p style="background:#f0f4ff;border-left:4px solid #f57c00;padding:14px 18px;border-radius:6px;margin:20px 0">
-                 <strong>${s.titolo}${cat}</strong><br>
-                 🕐 ${oraFmt}${luogo}
-               </p>
-               <p>A presto! Forza Virtus! 🏐</p>
-             </div>
-             <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
-               © 2026 Virtus Caserta · <a href="https://virtuscaserta.it" style="color:#1535a8">virtuscaserta.it</a>
-             </div>
-           </div>`
-        );
-        await writeNotificheLog(chiave);
-      }
-    }
-  } catch (err) {
-    console.log('[Allenamenti] Errore reminder:', err.message);
-  }
-}
-
-/* ─── Notifiche utente ─── */
-app.post('/api/utente/notifiche', userAuth, async (req, res) => {
-  const { attiva } = req.body;
-  try {
-    const result = await db.query(
-      'UPDATE users SET notifiche=$1 WHERE id=$2 RETURNING notifiche',
-      [!!attiva, req.user.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
-    res.json({ notifiche: result.rows[0].notifiche });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/utente/notifiche', userAuth, async (req, res) => {
-  try {
-    const result = await db.query('SELECT notifiche FROM users WHERE id=$1', [req.user.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
-    res.json({ notifiche: result.rows[0].notifiche !== false });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ─── Alert certificati medici in scadenza ─── */
-async function controllaCertificatiInScadenza() {
-  try {
-    const transporter = creaTransporter();
-    if (!transporter) return;
-
-    const result = await db.query(
-      `SELECT id, nome, email, certificato_medico_scadenza
-       FROM users
-       WHERE certificato_medico_scadenza IS NOT NULL
-         AND notifiche = true
-         AND email IS NOT NULL AND email <> ''
-         AND attivo = true`
-    );
-
-    const oggi = new Date();
-    oggi.setHours(0, 0, 0, 0);
-    const log = await readNotificheLog();
-
-    for (const u of result.rows) {
-      const scadenza = new Date(u.certificato_medico_scadenza);
-      scadenza.setHours(0, 0, 0, 0);
-      const giorni = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
-      const annoMese = `${scadenza.getFullYear()}-${String(scadenza.getMonth() + 1).padStart(2, '0')}`;
-
-      for (const soglia of [30, 7]) {
-        if (giorni !== soglia) continue;
-        const chiave = `cert_scad_${soglia}_${u.id}_${annoMese}`;
-        if (log[chiave]) continue;
-
-        const urgenza = soglia === 7 ? '⚠️ URGENTE – ' : '';
-        await transporter.sendMail({
-          from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
-          to: u.email,
-          subject: `${urgenza}Certificato medico in scadenza tra ${soglia} giorni – Virtus Caserta`,
-          html: `
-            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
-              <div style="background:#0d2055;padding:28px 24px;text-align:center">
-                <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
-                <p style="color:#f57c00;margin:6px 0 0;font-size:14px">Avviso certificato medico</p>
-              </div>
-              <div style="padding:32px 24px">
-                <p style="font-size:16px">Ciao <strong>${u.nome}</strong>,</p>
-                <p>Il tuo certificato medico scade tra <strong>${soglia} giorni</strong> (${scadenza.toLocaleDateString('it-IT')}).</p>
-                <p style="background:#fff3cd;border-left:4px solid #f57c00;padding:14px 18px;border-radius:6px">
-                  Ricordati di rinnovarlo prima della scadenza per poter continuare ad allenarti regolarmente.
-                </p>
-                <p style="font-size:13px;color:#6b7280;margin-top:24px">
-                  Puoi caricare il nuovo certificato dal tuo profilo sul sito.
-                </p>
-              </div>
-              <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#9ca3af">
-                © 2026 Virtus Caserta – Società Sportiva Pallavolo
-              </div>
-            </div>`,
-        });
-        await writeNotificheLog(chiave);
-        console.log(`[Certificati] Alert ${soglia}gg inviato a ${u.email}`);
-      }
-    }
-  } catch (err) {
-    console.log('[Certificati] Errore controllo scadenze:', err.message);
-  }
-}
-
 /* ─── Startup ─── */
 db.init().then(() => {
   app.listen(PORT, () => {
     console.log(`Server avviato su http://localhost:${PORT}`);
-    if (!INSTAGRAM_ACCESS_TOKEN) {
-      console.log('[Instagram] Nessun access token configurato.');
-    } else {
-      console.log('[Instagram] Access token rilevato.');
-    }
-    setTimeout(() => {
-      controllaPartiteEInvia();
-      controllaAllenamentiEInvia();
-      controllaCertificatiInScadenza();
-      setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
-      setInterval(controllaAllenamentiEInvia, 5 * 60 * 1000);
-      setInterval(controllaCertificatiInScadenza, 6 * 60 * 60 * 1000);
-    }, 15000);
+    if (!INSTAGRAM_ACCESS_TOKEN) console.log('[Instagram] Nessun access token configurato.');
   });
 }).catch(err => {
   console.error('[DB] Errore inizializzazione:', err.message);
   app.listen(PORT, () => {
     console.log(`Server avviato (senza DB) su http://localhost:${PORT}`);
-    if (!INSTAGRAM_ACCESS_TOKEN) {
-      console.log('[Instagram] Nessun access token configurato.');
-    } else {
-      console.log('[Instagram] Access token rilevato.');
-    }
-    setTimeout(() => {
-      controllaPartiteEInvia();
-      controllaAllenamentiEInvia();
-      controllaCertificatiInScadenza();
-      setInterval(controllaPartiteEInvia, 5 * 60 * 1000);
-      setInterval(controllaAllenamentiEInvia, 5 * 60 * 1000);
-      setInterval(controllaCertificatiInScadenza, 6 * 60 * 60 * 1000);
-    }, 15000);
   });
 });
