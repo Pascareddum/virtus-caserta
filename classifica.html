@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classifica – Virtus Caserta</title>
+  <meta name="description" content="Classifiche FIPAV delle categorie di Virtus Caserta.">
+  <meta property="og:title" content="Classifica – Virtus Caserta">
+  <meta property="og:image" content="/images/logo.png">
+  <style>
+    :root{--blu:#0d2055;--blu-m:#1535a8;--arancio:#f57c00;--grigio:#f1f5f9;--verde:#16a34a;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:var(--grigio);color:#222;}
+    nav{position:fixed;top:0;left:0;width:100%;z-index:1000;background:var(--blu);box-shadow:0 2px 16px rgba(0,0,0,.35);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:76px;padding:0 40px;}
+    .nav-menu{display:flex;align-items:center;gap:36px;list-style:none;justify-content:flex-end;}
+    .nav-brand{display:flex;align-items:center;justify-content:center;text-decoration:none;padding:0 28px;}
+    .nav-brand img{height:50px;object-fit:contain;}
+    .nav-menu a{text-decoration:none;color:rgba(255,255,255,.82);font-size:14px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;}
+    .nav-menu a.attivo,.nav-menu a:hover{color:#fff;}
+    .nav-actions{display:flex;align-items:center;gap:14px;justify-content:flex-start;}
+    .nav-social a img{width:34px;height:34px;object-fit:contain;filter:brightness(0) invert(1);}
+    .hero{background:linear-gradient(135deg,var(--blu),var(--blu-m));padding:140px 24px 80px;text-align:center;color:#fff;}
+    .hero h1{font-size:clamp(28px,5vw,48px);font-weight:900;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;}
+    .hero p{font-size:16px;color:rgba(255,255,255,.75);max-width:540px;margin:0 auto;}
+    .container{max-width:900px;margin:0 auto;padding:0 24px;}
+    section{padding:72px 0;}
+    .sezione-titolo{text-align:center;margin-bottom:48px;}
+    .etichetta{display:inline-block;background:var(--arancio);color:#fff;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:14px;}
+    .sezione-titolo h2{font-size:clamp(20px,4vw,32px);font-weight:900;color:var(--blu);letter-spacing:2px;text-transform:uppercase;}
+
+    /* Tab bar categorie */
+    .tab-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:40px;justify-content:center;}
+    .tab-btn{padding:9px 20px;border-radius:20px;border:1.5px solid #d1d5db;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#555;transition:all .15s;white-space:nowrap;}
+    .tab-btn.on,.tab-btn:hover{background:var(--blu);border-color:var(--blu);color:#fff;}
+
+    /* Classifica table */
+    .classifica-block{display:none;}
+    .classifica-block.attivo{display:block;}
+    .classifica-titolo{font-size:18px;font-weight:900;color:var(--blu);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:20px;}
+    .tbl-wrap{overflow-x:auto;border-radius:14px;box-shadow:0 2px 16px rgba(0,0,0,.06);}
+    table{width:100%;border-collapse:collapse;background:#fff;font-size:13px;}
+    thead th{background:var(--blu);color:#fff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:12px 10px;text-align:center;white-space:nowrap;}
+    thead th.th-squadra{text-align:left;padding-left:14px;}
+    tbody tr{border-bottom:1px solid #f0f4f8;transition:background .12s;}
+    tbody tr:last-child{border-bottom:none;}
+    tbody tr:hover{background:#f8fafc;}
+    tbody tr.virtus{background:#fff8f0;}
+    tbody tr.virtus td{font-weight:800;}
+    td{padding:11px 10px;text-align:center;color:#374151;}
+    td.td-pos{font-weight:900;color:var(--blu);width:40px;}
+    td.td-squadra{text-align:left;padding-left:14px;font-weight:700;color:var(--blu);display:flex;align-items:center;gap:10px;min-width:180px;}
+    td.td-squadra img{width:32px;height:32px;object-fit:contain;border:1px solid #e5e7eb;border-radius:4px;padding:2px;flex-shrink:0;}
+    td.td-punti{font-weight:900;color:var(--blu);font-size:15px;}
+    .pos-medal{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:13px;font-weight:900;}
+    .pos-1{background:#ffd700;color:#7a5800;}
+    .pos-2{background:#c0c0c0;color:#555;}
+    .pos-3{background:#cd7f32;color:#fff;}
+
+    .fipav-link{display:inline-flex;align-items:center;gap:8px;background:var(--blu);color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:9px 22px;border-radius:50px;margin-top:20px;transition:background .15s;}
+    .fipav-link:hover{background:var(--blu-m);}
+
+    .errore{text-align:center;padding:48px 24px;color:#888;font-size:15px;}
+    .loading{text-align:center;padding:48px;color:#9ca3af;font-size:15px;}
+    footer{background:var(--blu);color:rgba(255,255,255,.5);text-align:center;padding:24px;font-size:13px;}
+    footer a{color:rgba(255,255,255,.4);text-decoration:none;}
+    @media(max-width:600px){nav{padding:0 16px;}.nav-menu a{font-size:11px;}td.td-squadra{min-width:130px;}}
+  </style>
+</head>
+<body>
+<nav>
+  <ul class="nav-menu">
+    <li><a href="/chi-siamo">Chi siamo</a></li>
+    <li><a href="/squadra">Squadra</a></li>
+  </ul>
+  <a href="/" class="nav-brand"><img src="images/logo.png" alt="Virtus Caserta" loading="lazy"></a>
+  <div class="nav-actions">
+    <ul class="nav-menu" style="justify-content:flex-start;">
+      <li><a href="/risultati">Risultati</a></li>
+      <li><a href="/shop">Shop</a></li>
+    </ul>
+    <div class="nav-social" style="display:flex;gap:10px;margin-left:auto;">
+      <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener"><img src="images/facebook-icon.png" alt="Facebook"></a>
+      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener"><img src="images/instagram-icon.png" alt="Instagram"></a>
+    </div>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Classifiche</h1>
+  <p>Le classifiche aggiornate di tutte le categorie FIPAV.</p>
+</div>
+
+<section>
+  <div class="container">
+    <div class="sezione-titolo">
+      <div class="etichetta">FIPAV Caserta</div>
+      <h2>Classifiche per categoria</h2>
+    </div>
+    <div class="tab-bar" id="tabBar"></div>
+    <div id="classificheContent"><div class="loading">Caricamento…</div></div>
+  </div>
+</section>
+
+<footer><p>© 2026 Virtus Caserta ASD · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a></p></footer>
+
+<script>
+  function isVirtus(nome) { return /virtus\s*caserta/i.test(nome); }
+
+  function medalHtml(pos) {
+    if (pos === '1') return `<span class="pos-medal pos-1">1</span>`;
+    if (pos === '2') return `<span class="pos-medal pos-2">2</span>`;
+    if (pos === '3') return `<span class="pos-medal pos-3">3</span>`;
+    return `<span style="font-weight:900;color:var(--blu)">${pos}</span>`;
+  }
+
+  function renderClassifica(data) {
+    if (!data.squadre.length) return '<div class="errore">Nessun dato disponibile.</div>';
+    const rows = data.squadre.map(s => {
+      const virtus = isVirtus(s.squadra);
+      return `
+        <tr${virtus ? ' class="virtus"' : ''}>
+          <td class="td-pos">${medalHtml(s.pos)}</td>
+          <td class="td-squadra">
+            <img src="${s.logo}" alt="${s.squadra}" onerror="this.style.display='none'">
+            ${s.squadra}${virtus ? ' ⚡' : ''}
+          </td>
+          <td class="td-punti">${s.punti}</td>
+          <td>${s.pg}</td>
+          <td>${s.pv}</td>
+          <td>${s.pp}</td>
+          <td>${s.sf}</td>
+          <td>${s.ss}</td>
+          <td>${s.qs}</td>
+          <td>${s.pf}</td>
+          <td>${s.ps}</td>
+          <td>${s.penal}</td>
+        </tr>`;
+    }).join('');
+    return `
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pos.</th>
+              <th class="th-squadra">Squadra</th>
+              <th title="Punti">Pt</th>
+              <th title="Partite Giocate">PG</th>
+              <th title="Partite Vinte">PV</th>
+              <th title="Partite Perse">PP</th>
+              <th title="Set Fatti">SF</th>
+              <th title="Set Subiti">SS</th>
+              <th title="Quoziente Set">QS</th>
+              <th title="Punti Fatti">PF</th>
+              <th title="Punti Subiti">PS</th>
+              <th title="Penalità">Pen.</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="text-align:center">
+        <a href="${data.url}" target="_blank" rel="noopener" class="fipav-link">🏆 Vedi su FIPAV</a>
+      </div>`;
+  }
+
+  const cache = {};
+
+  async function mostraTab(cid, blockId) {
+    // Deactivate all
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.classifica-block').forEach(b => b.classList.remove('attivo'));
+
+    document.querySelector(`[data-cid="${cid}"]`).classList.add('on');
+    const block = document.getElementById(blockId);
+    block.classList.add('attivo');
+
+    if (cache[cid]) return; // already loaded
+
+    block.innerHTML = '<div class="loading">Caricamento classifica…</div>';
+    try {
+      const data = await fetch(`/api/classifica/${cid}`).then(r => r.json());
+      if (data.error) throw new Error(data.error);
+      cache[cid] = true;
+      block.innerHTML = renderClassifica(data);
+    } catch (err) {
+      block.innerHTML = `<div class="errore">Impossibile caricare la classifica: ${err.message}</div>`;
+    }
+  }
+
+  async function carica() {
+    const cont = document.getElementById('classificheContent');
+    const tabBar = document.getElementById('tabBar');
+    try {
+      const data = await fetch('/api/partite/tutte').then(r => r.json());
+      if (data.error) throw new Error(data.error);
+
+      const categorieCid = Object.entries(data.gruppi)
+        .filter(([, v]) => v.cid)
+        .map(([cat, v]) => ({ cat, cid: v.cid }));
+
+      if (!categorieCid.length) {
+        cont.innerHTML = '<div class="errore">Nessuna categoria con classifica disponibile.</div>';
+        return;
+      }
+
+      // Build tabs + empty blocks
+      tabBar.innerHTML = categorieCid.map((c, i) =>
+        `<button class="tab-btn${i === 0 ? ' on' : ''}" data-cid="${c.cid}" onclick="mostraTab('${c.cid}','block-${c.cid}')">${c.cat}</button>`
+      ).join('');
+
+      cont.innerHTML = categorieCid.map(c =>
+        `<div class="classifica-block" id="block-${c.cid}"></div>`
+      ).join('');
+
+      // Load first tab
+      const first = categorieCid[0];
+      await mostraTab(first.cid, `block-${first.cid}`);
+
+      // Check if URL has ?cid= param
+      const params = new URLSearchParams(location.search);
+      const cidParam = params.get('cid');
+      if (cidParam && categorieCid.find(c => c.cid === cidParam)) {
+        await mostraTab(cidParam, `block-${cidParam}`);
+      }
+    } catch (err) {
+      cont.innerHTML = `<div class="errore">Impossibile caricare i dati: ${err.message}</div>`;
+    }
+  }
+
+  carica();
+</script>
+<script src="common.js"></script>
+</body>
+</html>

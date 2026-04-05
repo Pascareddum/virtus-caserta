@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /admin-login
+Disallow: /api/
+Disallow: /ordine-confermato
+Disallow: /reset-password
+
+Sitemap: https://virtus-caserta.it/sitemap.xml

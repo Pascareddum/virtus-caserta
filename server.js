@@ -48,24 +48,41 @@ function adminCookieCheck(req, res, next) {
 }
 
 // Redirect da URL .html a URL puliti
-app.get('/index.html',          (_req, res) => res.redirect(301, '/'));
-app.get('/chiSiamo.html',       (_req, res) => res.redirect(301, '/chi-siamo'));
-app.get('/notizie.html',        (_req, res) => res.redirect(301, '/notizie'));
-app.get('/calendario.html',     (_req, res) => res.redirect(301, '/calendario'));
-app.get('/shop.html',           (_req, res) => res.redirect(301, '/shop'));
-app.get('/admin.html',          adminCookieCheck, sendPage('admin.html'));
-app.get('/admin-login.html',    (_req, res) => res.redirect(301, '/admin-login'));
-app.get('/reset-password.html', (_req, res) => res.redirect(301, '/reset-password'));
+app.get('/index.html',              (_req, res) => res.redirect(301, '/'));
+app.get('/chiSiamo.html',           (_req, res) => res.redirect(301, '/chi-siamo'));
+app.get('/notizie.html',            (_req, res) => res.redirect(301, '/notizie'));
+app.get('/calendario.html',         (_req, res) => res.redirect(301, '/calendario'));
+app.get('/shop.html',               (_req, res) => res.redirect(301, '/shop'));
+app.get('/admin.html',              adminCookieCheck, sendPage('admin.html'));
+app.get('/admin-login.html',        (_req, res) => res.redirect(301, '/admin-login'));
+app.get('/reset-password.html',     (_req, res) => res.redirect(301, '/reset-password'));
+app.get('/squadra.html',            (_req, res) => res.redirect(301, '/squadra'));
+app.get('/galleria.html',           (_req, res) => res.redirect(301, '/galleria'));
+app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/iscrizione'));
+app.get('/sponsor.html',            (_req, res) => res.redirect(301, '/sponsor'));
+app.get('/risultati.html',          (_req, res) => res.redirect(301, '/risultati'));
+app.get('/privacy.html',            (_req, res) => res.redirect(301, '/privacy'));
+app.get('/termini.html',            (_req, res) => res.redirect(301, '/termini'));
+app.get('/ordine-confermato.html',  (_req, res) => res.redirect(301, '/ordine-confermato'));
 
 // URL puliti
-app.get('/',               sendPage('index.html'));
-app.get('/chi-siamo',      sendPage('chiSiamo.html'));
-app.get('/notizie',        sendPage('notizie.html'));
-app.get('/calendario',     sendPage('calendario.html'));
-app.get('/shop',           sendPage('shop.html'));
-app.get('/admin',          adminCookieCheck, sendPage('admin.html'));
-app.get('/admin-login',    sendPage('admin-login.html'));
-app.get('/reset-password', sendPage('reset-password.html'));
+app.get('/',                sendPage('index.html'));
+app.get('/chi-siamo',       sendPage('chiSiamo.html'));
+app.get('/notizie',         sendPage('notizie.html'));
+app.get('/calendario',      sendPage('calendario.html'));
+app.get('/shop',            sendPage('shop.html'));
+app.get('/admin',           adminCookieCheck, sendPage('admin.html'));
+app.get('/admin-login',     sendPage('admin-login.html'));
+app.get('/reset-password',  sendPage('reset-password.html'));
+app.get('/squadra',         sendPage('squadra.html'));
+app.get('/galleria',        sendPage('galleria.html'));
+app.get('/iscrizione',      sendPage('iscrizione.html'));
+app.get('/sponsor',         sendPage('sponsor.html'));
+app.get('/risultati',       sendPage('risultati.html'));
+app.get('/classifica',      sendPage('classifica.html'));
+app.get('/privacy',         sendPage('privacy.html'));
+app.get('/termini',         sendPage('termini.html'));
+app.get('/ordine-confermato', sendPage('ordine-confermato.html'));
 
 app.use(express.static(path.join(__dirname)));
 
@@ -256,6 +273,7 @@ app.post('/api/admin/products', adminAuth, async (req, res) => {
       [id, nome, descrizione || '', parseFloat(prezzo), emoji || '🏐', disponibile !== false,
        JSON.stringify(taglie || ['S', 'M', 'L', 'XL']), immagine || '']
     );
+    await logActivity('Prodotto aggiunto', nome);
     res.status(201).json({
       id, nome, descrizione: descrizione || '', prezzo: parseFloat(prezzo),
       emoji: emoji || '🏐', disponibile: disponibile !== false,
@@ -280,6 +298,7 @@ app.put('/api/admin/products/:id', adminAuth, async (req, res) => {
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Prodotto non trovato' });
     const r = result.rows[0];
+    await logActivity('Prodotto modificato', r.nome);
     res.json({
       id: r.id, nome: r.nome, descrizione: r.descrizione, prezzo: parseFloat(r.prezzo),
       emoji: r.emoji, disponibile: r.disponibile, taglie: r.taglie, immagine: r.immagine,
@@ -292,8 +311,9 @@ app.put('/api/admin/products/:id', adminAuth, async (req, res) => {
 /* ─── Admin: elimina prodotto ─── */
 app.delete('/api/admin/products/:id', adminAuth, async (req, res) => {
   try {
-    const result = await db.query('DELETE FROM products WHERE id=$1 RETURNING id', [req.params.id]);
+    const result = await db.query('DELETE FROM products WHERE id=$1 RETURNING id,nome', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Prodotto non trovato' });
+    await logActivity('Prodotto eliminato', result.rows[0].nome);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -330,6 +350,7 @@ app.post('/api/admin/notizie', adminAuth, async (req, res) => {
       `INSERT INTO notizie (id, titolo, testo, colore, immagine, data_str) VALUES ($1,$2,$3,$4,$5,$6)`,
       [id, titolo, testo, colore || 'blu', immagine || '', dataStr]
     );
+    await logActivity('Notizia aggiunta', titolo);
     res.status(201).json({ id, titolo, testo, colore: colore || 'blu', immagine: immagine || '', data: dataStr });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -346,6 +367,7 @@ app.put('/api/admin/notizie/:id', adminAuth, async (req, res) => {
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Notizia non trovata' });
     const r = result.rows[0];
+    await logActivity('Notizia modificata', r.titolo);
     res.json({ id: r.id, titolo: r.titolo, testo: r.testo, colore: r.colore, immagine: r.immagine, data: r.data_str });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -355,8 +377,9 @@ app.put('/api/admin/notizie/:id', adminAuth, async (req, res) => {
 /* ─── Admin: elimina notizia ─── */
 app.delete('/api/admin/notizie/:id', adminAuth, async (req, res) => {
   try {
-    const result = await db.query('DELETE FROM notizie WHERE id=$1 RETURNING id', [req.params.id]);
+    const result = await db.query('DELETE FROM notizie WHERE id=$1 RETURNING id,titolo', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Notizia non trovata' });
+    await logActivity('Notizia eliminata', result.rows[0].titolo);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -388,6 +411,76 @@ app.post('/api/create-payment-intent', async (req, res) => {
   }
 });
 
+/* ─── Log attività ─── */
+async function logActivity(azione, dettaglio = '') {
+  try {
+    await db.query('INSERT INTO log_attivita (azione, dettaglio) VALUES ($1,$2)', [azione, dettaglio]);
+  } catch {}
+}
+
+/* ─── Stats dashboard ─── */
+app.get('/api/admin/stats', adminAuth, async (_req, res) => {
+  try {
+    const [prodotti, notizie, eventi, ordiniRaw] = await Promise.all([
+      db.query('SELECT COUNT(*) FROM products'),
+      db.query('SELECT COUNT(*) FROM notizie'),
+      db.query('SELECT COUNT(*) FROM calendario'),
+      db.query(`SELECT stato, COUNT(*) FROM ordini GROUP BY stato`),
+    ]);
+    const ordini = {};
+    for (const r of ordiniRaw.rows) ordini[r.stato] = parseInt(r.count);
+    res.json({
+      prodotti:  parseInt(prodotti.rows[0].count),
+      notizie:   parseInt(notizie.rows[0].count),
+      eventi:    parseInt(eventi.rows[0].count),
+      ordini,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Impostazioni sito ─── */
+app.get('/api/admin/impostazioni', adminAuth, async (_req, res) => {
+  try {
+    const result = await db.query('SELECT chiave, valore FROM impostazioni');
+    const obj = {};
+    for (const r of result.rows) obj[r.chiave] = r.valore;
+    res.json(obj);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/impostazioni', adminAuth, async (req, res) => {
+  try {
+    const campi = ['nome_associazione','telefono','email_contatto','indirizzo','iban','p_iva'];
+    for (const chiave of campi) {
+      if (req.body[chiave] !== undefined) {
+        await db.query(
+          `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ($1,$2,NOW())
+           ON CONFLICT (chiave) DO UPDATE SET valore=$2, updated_at=NOW()`,
+          [chiave, req.body[chiave]]
+        );
+      }
+    }
+    await logActivity('Impostazioni aggiornate', Object.keys(req.body).join(', '));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Log attività (admin) ─── */
+app.get('/api/admin/log', adminAuth, async (_req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM log_attivita ORDER BY created_at DESC LIMIT 100');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ─── Ordini: tutti (admin) ─── */
 app.get('/api/admin/ordini', adminAuth, async (req, res) => {
   try {
@@ -408,8 +501,55 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
   const statiValidi = ['ricevuto', 'in lavorazione', 'spedito', 'consegnato', 'annullato'];
   if (!statiValidi.includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
   try {
-    const result = await db.query('UPDATE ordini SET stato=$1 WHERE id=$2 RETURNING id', [stato, req.params.id]);
+    const result = await db.query(
+      'UPDATE ordini SET stato=$1 WHERE id=$2 RETURNING *',
+      [stato, req.params.id]
+    );
     if (!result.rows.length) return res.status(404).json({ error: 'Ordine non trovato' });
+    const ordine = result.rows[0];
+    await logActivity('Stato ordine aggiornato', `Ordine #${ordine.id} → ${stato}`);
+
+    // Email notifica cliente
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS && ordine.email) {
+      const statiLabel = {
+        'ricevuto':       '📦 Ordine ricevuto',
+        'in lavorazione': '🔧 In lavorazione',
+        'spedito':        '🚚 Spedito',
+        'consegnato':     '✅ Consegnato',
+        'annullato':      '❌ Annullato',
+      };
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      });
+      const html = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+          <div style="background:#0d2055;padding:24px;text-align:center">
+            <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+            <p style="color:#ff9800;margin:6px 0 0;font-size:13px">AGGIORNAMENTO ORDINE</p>
+          </div>
+          <div style="padding:28px 24px">
+            <p>Ciao <strong>${ordine.nome}</strong>,</p>
+            <p>Il tuo ordine <strong>#${ordine.id}</strong> è stato aggiornato:</p>
+            <div style="background:#f0f9ff;border-left:4px solid #0d2055;padding:16px;border-radius:4px;margin:16px 0;font-size:18px;font-weight:bold">
+              ${statiLabel[stato] || stato}
+            </div>
+            ${stato === 'spedito' ? '<p>Il tuo pacco è in viaggio! Riceverai la consegna entro 2–3 giorni lavorativi.</p>' : ''}
+            ${stato === 'consegnato' ? '<p>Speriamo che tu sia soddisfatto del tuo acquisto. Grazie per aver scelto Virtus Caserta!</p>' : ''}
+            ${stato === 'annullato' ? '<p>Per informazioni contatta <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a></p>' : ''}
+          </div>
+          <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
+            © 2026 Virtus Caserta – Società Sportiva Pallavolo
+          </div>
+        </div>`;
+      transporter.sendMail({
+        from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
+        to: ordine.email,
+        subject: `Aggiornamento ordine #${ordine.id} – ${statiLabel[stato] || stato}`,
+        html,
+      }).catch(e => console.log('[Email ordine] Errore:', e.message));
+    }
+
     res.json({ success: true, stato });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -601,32 +741,71 @@ app.post('/api/instagram/refresh-token', async (_req, res) => {
 /* ─── FIPAV Partite ─── */
 const FIPAV_URL = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA';
 
+const FIPAV_BASE = 'https://caserta.portalefipav.net';
+
 function parseFipavMatches(html) {
   function stripTags(s) {
     return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
   }
+  function decodeEntities(s) {
+    return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
+  }
+
+  // Parse categories + classifica links from captions
   const categories = [];
   const capRe = /<caption[^>]*>([\s\S]*?)<\/caption>/gi;
   let capm;
   while ((capm = capRe.exec(html)) !== null) {
-    const text = stripTags(capm[1]).trim();
-    if (text.length > 4 && /[a-zA-Z]/.test(text)) categories.push({ pos: capm.index, text });
+    const capHtml = capm[1];
+    const text = stripTags(capHtml).trim();
+    const clMatch = capHtml.match(/href="(\/classifica\.aspx\?CId=(\d+))"/i);
+    if (text.length > 4 && /[a-zA-Z]/.test(text)) {
+      categories.push({
+        pos: capm.index,
+        text,
+        classificaUrl: clMatch ? FIPAV_BASE + clMatch[1] : null,
+        cid: clMatch ? clMatch[2] : null,
+      });
+    }
   }
+
   const matches = [];
   const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let rowMatch;
   while ((rowMatch = rowRe.exec(html)) !== null) {
     const row = rowMatch[1];
     const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    const tds = [];
+    const tdRaws = [];
     let tdMatch;
-    while ((tdMatch = tdRe.exec(row)) !== null) tds.push(stripTags(tdMatch[1]));
-    if (tds.length >= 6) {
+    while ((tdMatch = tdRe.exec(row)) !== null) tdRaws.push(tdMatch[1]);
+    if (tdRaws.length >= 6) {
+      const tds = tdRaws.map(stripTags);
       const [gara, giornata, dataOra, casa, ospite, risultato] = tds;
       if (/^\d+$/.test(gara.trim()) && /\d{2}\/\d{2}\/\d{2}/.test(dataOra)) {
         const score = risultato.trim();
         const played = /\d\s*-\s*\d/.test(score);
         const postponed = /rinviat/i.test(score);
+
+        // Parziali: <span class="parziali">25-14</span> in td[6]
+        const parziali = [];
+        if (tdRaws[6]) {
+          const spanRe = /<span[^>]*class="parziali"[^>]*>([^<]+)<\/span>/gi;
+          let sm;
+          while ((sm = spanRe.exec(tdRaws[6])) !== null) parziali.push(sm[1].trim());
+        }
+
+        // Luogo: in title attr of info img in last td
+        let luogo = '';
+        const lastRaw = tdRaws[tdRaws.length - 1] || '';
+        const titleMatch = lastRaw.match(/img[^>]+src="[^"]*info_16[^"]*"[^>]+title="([^"]+)"/i)
+                        || lastRaw.match(/title="([^"]+)"[^>]*img[^>]+src="[^"]*info_16[^"]*"/i);
+        if (titleMatch) {
+          luogo = stripTags(decodeEntities(titleMatch[1])).replace(/\s+/g, ' ').trim();
+          // Remove arbitro designation text
+          luogo = luogo.replace(/Arbitro designato.*/i, '').trim();
+        }
+
         const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
         let timestamp = null;
         let dateFormatted = dataOra.trim();
@@ -635,38 +814,130 @@ function parseFipavMatches(html) {
           timestamp = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
           dateFormatted = `${dd}/${mm}/20${yy} ${hh}:${min}`;
         }
+
         const rowPos = rowMatch.index;
-        let categoria = '';
+        let categoria = '', classificaUrl = null, cid = null;
         for (const cat of categories) {
-          if (cat.pos < rowPos) categoria = cat.text;
+          if (cat.pos < rowPos) { categoria = cat.text; classificaUrl = cat.classificaUrl; cid = cat.cid; }
           else break;
         }
-        matches.push({ id: gara.trim(), giornata: giornata.trim(), dataOra: dateFormatted, timestamp, casa: casa.trim(), ospite: ospite.trim(), risultato: score, played, postponed, categoria });
+
+        matches.push({
+          id: gara.trim(), giornata: giornata.trim(), dataOra: dateFormatted, timestamp,
+          casa: casa.trim(), ospite: ospite.trim(), risultato: score, played, postponed,
+          categoria, classificaUrl, cid, luogo, parziali,
+        });
       }
     }
   }
   return matches;
 }
 
+async function fetchFipavAll() {
+  const r = await fetch(FIPAV_URL, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'it-IT,it;q=0.9',
+    },
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const html = await r.text();
+  const all = parseFipavMatches(html);
+  all.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  return all;
+}
+
 app.get('/api/partite', async (_req, res) => {
   try {
-    const r = await fetch(FIPAV_URL, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'it-IT,it;q=0.9',
-      },
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const html = await r.text();
-    const all = parseFipavMatches(html);
-    all.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    const all    = await fetchFipavAll();
     const now    = Date.now();
     const past   = all.filter(m => m.played);
     const future = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now);
     res.json({ ultime: past.slice(-3), prossime: future.slice(0, 3), fipavUrl: FIPAV_URL });
   } catch (err) {
     console.log('[Partite] Errore:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/partite/tutte', async (_req, res) => {
+  try {
+    const all = await fetchFipavAll();
+    const gruppi = {};
+    all.forEach(m => {
+      const cat = m.categoria || 'Altre partite';
+      if (!gruppi[cat]) gruppi[cat] = { classificaUrl: m.classificaUrl, cid: m.cid, partite: [] };
+      gruppi[cat].partite.push(m);
+    });
+    res.json({ gruppi, fipavUrl: FIPAV_URL });
+  } catch (err) {
+    console.log('[Partite/tutte] Errore:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/classifica/:cid', async (req, res) => {
+  const { cid } = req.params;
+  if (!/^\d+$/.test(cid)) return res.status(400).json({ error: 'CId non valido' });
+  try {
+    const r = await fetch(`${FIPAV_BASE}/classifica.aspx?CId=${cid}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'it-IT,it;q=0.9',
+      },
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const html = await r.text();
+
+    function stripTags(s) {
+      return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    // Title
+    const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    const titolo = titleMatch ? stripTags(titleMatch[1]).trim() : '';
+
+    // Rows
+    const squadre = [];
+    const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let rowMatch;
+    while ((rowMatch = rowRe.exec(html)) !== null) {
+      const row = rowMatch[1];
+      const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+      const tds = [];
+      let tdm;
+      while ((tdm = tdRe.exec(row)) !== null) tds.push(stripTags(tdm[1]));
+      if (tds.length >= 13 && /^\d+$/.test(tds[0].trim())) {
+        // Extract logo src from raw td[1]
+        const td1Raw = row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi);
+        let logo = '';
+        if (td1Raw && td1Raw[1]) {
+          const srcMatch = td1Raw[1].match(/src="([^"]+)"/i);
+          if (srcMatch) logo = FIPAV_BASE + srcMatch[1];
+        }
+        squadre.push({
+          pos: tds[0].trim(),
+          squadra: tds[1].trim(),
+          logo,
+          punti: tds[2].trim(),
+          pg: tds[3].trim(),
+          pv: tds[4].trim(),
+          pp: tds[5].trim(),
+          sf: tds[6].trim(),
+          ss: tds[7].trim(),
+          qs: tds[8].trim(),
+          pf: tds[9].trim(),
+          ps: tds[10].trim(),
+          qp: tds[11].trim(),
+          penal: tds[12].trim(),
+        });
+      }
+    }
+    res.json({ titolo, cid, squadre, url: `${FIPAV_BASE}/classifica.aspx?CId=${cid}` });
+  } catch (err) {
+    console.log('[Classifica] Errore:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -689,6 +960,254 @@ app.get('/api/proxy-image', async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
+});
+
+/* ─── Squadra ─── */
+app.get('/api/squadra', async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM squadra WHERE attiva=true ORDER BY numero ASC NULLS LAST, cognome');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/admin/squadra', adminAuth, async (req, res) => {
+  const { nome, cognome, numero, ruolo, foto, bio, sesso } = req.body;
+  if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
+  const id = Date.now().toString();
+  try {
+    await db.query(`INSERT INTO squadra (id,nome,cognome,numero,ruolo,foto,bio,sesso) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [id, nome, cognome, numero || null, ruolo || '', foto || '', bio || '', sesso || 'Femminile']);
+    await logActivity('Giocatrice aggiunta', `${nome} ${cognome}`);
+    res.status(201).json({ id, nome, cognome, numero, ruolo, foto, bio, sesso });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/admin/squadra/:id', adminAuth, async (req, res) => {
+  const { nome, cognome, numero, ruolo, foto, bio, attiva, sesso } = req.body;
+  try {
+    const r = await db.query(
+      `UPDATE squadra SET nome=$1,cognome=$2,numero=$3,ruolo=$4,foto=$5,bio=$6,attiva=$7,sesso=$8 WHERE id=$9 RETURNING *`,
+      [nome, cognome, numero || null, ruolo || '', foto || '', bio || '', attiva !== false, sesso || 'Femminile', req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Giocatrice non trovata' });
+    await logActivity('Giocatrice modificata', `${nome} ${cognome}`);
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.delete('/api/admin/squadra/:id', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM squadra WHERE id=$1 RETURNING nome,cognome', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovata' });
+    await logActivity('Giocatrice eliminata', `${r.rows[0].nome} ${r.rows[0].cognome}`);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/* ─── Galleria ─── */
+app.get('/api/galleria', async (req, res) => {
+  try {
+    const { album } = req.query;
+    const r = album
+      ? await db.query('SELECT * FROM galleria WHERE album=$1 ORDER BY created_at DESC', [album])
+      : await db.query('SELECT * FROM galleria ORDER BY created_at DESC');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.get('/api/galleria/albums', async (_req, res) => {
+  try {
+    const r = await db.query('SELECT DISTINCT album FROM galleria ORDER BY album');
+    res.json(r.rows.map(row => row.album));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/admin/galleria', adminAuth, async (req, res) => {
+  const { album, titolo, immagine } = req.body;
+  if (!immagine) return res.status(400).json({ error: 'Immagine obbligatoria' });
+  const id = Date.now().toString();
+  try {
+    await db.query(`INSERT INTO galleria (id,album,titolo,immagine) VALUES ($1,$2,$3,$4)`,
+      [id, album || 'Generale', titolo || '', immagine]);
+    await logActivity('Foto aggiunta in galleria', album || 'Generale');
+    res.status(201).json({ id, album, titolo, immagine });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.delete('/api/admin/galleria/:id', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM galleria WHERE id=$1 RETURNING id', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovata' });
+    await logActivity('Foto eliminata dalla galleria', req.params.id);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/* ─── Iscrizioni ─── */
+const iscrizioniLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Troppi invii. Riprova tra un\'ora.' } });
+app.post('/api/iscrizioni', iscrizioniLimiter, async (req, res) => {
+  const { nome, cognome, email, telefono, eta, categoria, messaggio } = req.body;
+  if (!nome || !cognome || !email) return res.status(400).json({ error: 'Nome, cognome ed email obbligatori' });
+  const id = Date.now().toString();
+  try {
+    await db.query(`INSERT INTO iscrizioni (id,nome,cognome,email,telefono,eta,categoria,messaggio) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [id, nome, cognome, email, telefono || '', eta || null, categoria || '', messaggio || '']);
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const t = nodemailer.createTransport({ service:'gmail', auth:{ user:process.env.EMAIL_USER, pass:process.env.EMAIL_PASS } });
+      t.sendMail({
+        from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
+        to: process.env.EMAIL_ADMIN || process.env.EMAIL_USER,
+        subject: `Nuova iscrizione da ${nome} ${cognome}`,
+        html: `<p><b>Nome:</b> ${nome} ${cognome}<br><b>Email:</b> ${email}<br><b>Tel:</b> ${telefono || '—'}<br><b>Età:</b> ${eta || '—'}<br><b>Categoria:</b> ${categoria || '—'}<br><b>Messaggio:</b> ${messaggio || '—'}</p>`,
+      }).catch(() => {});
+    }
+    await logActivity('Nuova iscrizione', `${nome} ${cognome} – ${email}`);
+    res.status(201).json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.get('/api/admin/iscrizioni', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM iscrizioni ORDER BY created_at DESC');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/admin/iscrizioni/:id/stato', adminAuth, async (req, res) => {
+  const { stato } = req.body;
+  try {
+    await db.query('UPDATE iscrizioni SET stato=$1 WHERE id=$2', [stato, req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/* ─── Sponsor ─── */
+app.get('/api/sponsor', async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM sponsor WHERE attivo=true ORDER BY livello, nome');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/admin/sponsor', adminAuth, async (req, res) => {
+  const { nome, logo, url, livello } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  const id = Date.now().toString();
+  try {
+    await db.query(`INSERT INTO sponsor (id,nome,logo,url,livello) VALUES ($1,$2,$3,$4,$5)`,
+      [id, nome, logo || '', url || '', livello || 'standard']);
+    await logActivity('Sponsor aggiunto', nome);
+    res.status(201).json({ id, nome, logo, url, livello });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
+  const { nome, logo, url, livello, attivo } = req.body;
+  try {
+    const r = await db.query(
+      `UPDATE sponsor SET nome=$1,logo=$2,url=$3,livello=$4,attivo=$5 WHERE id=$6 RETURNING *`,
+      [nome, logo || '', url || '', livello || 'standard', attivo !== false, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    await logActivity('Sponsor modificato', nome);
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.delete('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM sponsor WHERE id=$1 RETURNING nome', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    await logActivity('Sponsor eliminato', r.rows[0].nome);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/* ─── Risultati ─── */
+app.get('/api/risultati', async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM risultati ORDER BY data_str DESC');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/admin/risultati', adminAuth, async (req, res) => {
+  const { data, avversario, set_noi, set_loro, categoria, tipo } = req.body;
+  if (!data || !avversario || set_noi == null || set_loro == null) return res.status(400).json({ error: 'Campi obbligatori mancanti' });
+  const id = Date.now().toString();
+  try {
+    await db.query(`INSERT INTO risultati (id,data_str,avversario,set_noi,set_loro,categoria,tipo) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [id, data, avversario, parseInt(set_noi), parseInt(set_loro), categoria || '', tipo || 'campionato']);
+    await logActivity('Risultato aggiunto', `vs ${avversario} ${set_noi}-${set_loro}`);
+    res.status(201).json({ id, data_str: data, avversario, set_noi, set_loro, categoria, tipo });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.put('/api/admin/risultati/:id', adminAuth, async (req, res) => {
+  const { data, avversario, set_noi, set_loro, categoria, tipo } = req.body;
+  try {
+    const r = await db.query(
+      `UPDATE risultati SET data_str=$1,avversario=$2,set_noi=$3,set_loro=$4,categoria=$5,tipo=$6 WHERE id=$7 RETURNING *`,
+      [data, avversario, parseInt(set_noi), parseInt(set_loro), categoria || '', tipo || 'campionato', req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.delete('/api/admin/risultati/:id', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM risultati WHERE id=$1 RETURNING avversario', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    await logActivity('Risultato eliminato', `vs ${r.rows[0].avversario}`);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/* ─── Export ordini CSV ─── */
+app.get('/api/admin/ordini/export', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM ordini ORDER BY created_at DESC');
+    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = ['ID','Nome','Cognome','Email','Indirizzo','Città','CAP','Articoli','Totale','Spedizione','Metodo','Stato','Data'].join(';');
+    const rows = r.rows.map(o => [
+      o.id, o.nome, o.cognome, o.email, o.indirizzo, o.citta, o.cap,
+      (o.items || []).map(i => `${i.nome} ${i.taglia} x${i.qty}`).join(' | '),
+      o.totale, o.spedizione, o.metodo, o.stato,
+      o.created_at ? new Date(o.created_at).toLocaleDateString('it-IT') : '',
+    ].map(esc).join(';')).join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="ordini-${new Date().toISOString().slice(0,10)}.csv"`);
+    res.send('\uFEFF' + header + '\n' + rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/* ─── Push notifications ─── */
+let webpush = null;
+try {
+  webpush = require('web-push');
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(`mailto:${process.env.EMAIL_USER || 'admin@virtuscaserta.it'}`,
+      process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+  } else { webpush = null; }
+} catch { webpush = null; }
+
+app.get('/api/push/vapid-key', (_req, res) => {
+  res.json({ key: process.env.VAPID_PUBLIC_KEY || null });
+});
+app.post('/api/push/subscribe', async (req, res) => {
+  const { endpoint, keys } = req.body;
+  if (!endpoint || !keys) return res.status(400).json({ error: 'Dati subscription mancanti' });
+  try {
+    await db.query(
+      `INSERT INTO push_subscriptions (endpoint, keys) VALUES ($1,$2)
+       ON CONFLICT (endpoint) DO UPDATE SET keys=$2`,
+      [endpoint, JSON.stringify(keys)]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+app.post('/api/admin/push/send', adminAuth, async (req, res) => {
+  if (!webpush) return res.status(503).json({ error: 'Push non configurato (VAPID keys mancanti)' });
+  const { titolo, messaggio, url } = req.body;
+  try {
+    const subs = await db.query('SELECT * FROM push_subscriptions');
+    const payload = JSON.stringify({ titolo, messaggio, url: url || '/' });
+    let ok = 0, fail = 0;
+    for (const sub of subs.rows) {
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
+        ok++;
+      } catch (e) {
+        fail++;
+        if (e.statusCode === 410) await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1', [sub.endpoint]);
+      }
+    }
+    await logActivity('Push notification inviata', `${titolo} → ${ok} recapitate, ${fail} fallite`);
+    res.json({ success: true, ok, fail });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 /* ─── Startup ─── */

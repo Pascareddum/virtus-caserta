@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ordine Confermato – Virtus Caserta</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root{--blu:#0d2055;--arancio:#f57c00;--verde:#16a34a;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#222;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+    .card{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.1);padding:48px 40px;max-width:520px;width:100%;text-align:center;}
+    .check{width:80px;height:80px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:40px;}
+    h1{font-size:26px;font-weight:900;color:var(--blu);margin-bottom:8px;}
+    .ordine-id{font-size:13px;color:#888;margin-bottom:24px;}
+    .ordine-id strong{color:var(--blu);}
+    p{font-size:15px;color:#555;line-height:1.7;margin-bottom:16px;}
+    .passi{background:#f8fafc;border-radius:12px;padding:20px 24px;text-align:left;margin:24px 0;}
+    .passo{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #e5e7eb;}
+    .passo:last-child{border-bottom:none;}
+    .passo-num{width:28px;height:28px;border-radius:50%;background:var(--blu);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+    .passo-testo{font-size:14px;color:#444;line-height:1.5;}
+    .btn{display:inline-block;background:var(--arancio);color:#fff;text-decoration:none;padding:13px 32px;border-radius:10px;font-size:15px;font-weight:700;margin-top:8px;transition:background .2s;}
+    .btn:hover{background:#e56c00;}
+    .btn-outline{background:#fff;color:var(--blu);border:2px solid var(--blu);margin-left:10px;}
+    .btn-outline:hover{background:var(--blu);color:#fff;}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="check">✅</div>
+  <h1>Ordine confermato!</h1>
+  <p class="ordine-id">Numero ordine: <strong id="orderId">—</strong></p>
+  <p>Grazie per il tuo acquisto! Abbiamo inviato una email di conferma con il riepilogo del tuo ordine.</p>
+
+  <div class="passi">
+    <div class="passo">
+      <div class="passo-num">1</div>
+      <div class="passo-testo"><strong>Conferma ricevuta</strong><br>Email inviata con il riepilogo</div>
+    </div>
+    <div class="passo">
+      <div class="passo-num">2</div>
+      <div class="passo-testo"><strong>Preparazione</strong><br>Prepariamo il tuo ordine entro 3–5 giorni lavorativi</div>
+    </div>
+    <div class="passo">
+      <div class="passo-num">3</div>
+      <div class="passo-testo"><strong>Spedizione</strong><br>Riceverai un'email quando il pacco è in viaggio</div>
+    </div>
+    <div class="passo">
+      <div class="passo-num">4</div>
+      <div class="passo-testo"><strong>Consegna</strong><br>Stima 2–4 giorni dalla spedizione</div>
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:#888;">Per assistenza scrivi a <a href="mailto:info@virtuscaserta.it" style="color:var(--arancio)">info@virtuscaserta.it</a></p>
+
+  <div style="margin-top:24px;">
+    <a href="/" class="btn">← Torna alla Home</a>
+    <a href="/shop" class="btn btn-outline">Continua lo shopping</a>
+  </div>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  if (id) document.getElementById('orderId').textContent = '#' + id;
+</script>
+<script src="common.js"></script>
+</body>
+</html>

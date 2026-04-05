@@ -103,8 +103,112 @@ async function createTables() {
     );
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS squadra (
+      id         VARCHAR PRIMARY KEY,
+      nome       VARCHAR NOT NULL,
+      cognome    VARCHAR NOT NULL,
+      numero     INTEGER,
+      ruolo      VARCHAR DEFAULT '',
+      foto       VARCHAR DEFAULT '',
+      bio        TEXT    DEFAULT '',
+      attiva     BOOLEAN DEFAULT true,
+      sesso      VARCHAR DEFAULT 'Femminile',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS galleria (
+      id         VARCHAR PRIMARY KEY,
+      album      VARCHAR DEFAULT 'Generale',
+      titolo     VARCHAR DEFAULT '',
+      immagine   VARCHAR NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS iscrizioni (
+      id         VARCHAR PRIMARY KEY,
+      nome       VARCHAR NOT NULL,
+      cognome    VARCHAR NOT NULL,
+      email      VARCHAR NOT NULL,
+      telefono   VARCHAR DEFAULT '',
+      eta        INTEGER,
+      categoria  VARCHAR DEFAULT '',
+      messaggio  TEXT    DEFAULT '',
+      stato      VARCHAR DEFAULT 'nuova',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS sponsor (
+      id         VARCHAR PRIMARY KEY,
+      nome       VARCHAR NOT NULL,
+      logo       VARCHAR DEFAULT '',
+      url        VARCHAR DEFAULT '',
+      livello    VARCHAR DEFAULT 'standard',
+      attivo     BOOLEAN DEFAULT true,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS risultati (
+      id          VARCHAR PRIMARY KEY,
+      data_str    VARCHAR NOT NULL,
+      avversario  VARCHAR NOT NULL,
+      set_noi     INTEGER NOT NULL,
+      set_loro    INTEGER NOT NULL,
+      categoria   VARCHAR DEFAULT '',
+      tipo        VARCHAR DEFAULT 'campionato',
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id         SERIAL PRIMARY KEY,
+      endpoint   TEXT UNIQUE NOT NULL,
+      keys       JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS impostazioni (
+      chiave     VARCHAR PRIMARY KEY,
+      valore     TEXT    DEFAULT '',
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS log_attivita (
+      id         SERIAL PRIMARY KEY,
+      azione     VARCHAR NOT NULL,
+      dettaglio  TEXT    DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   // Aggiornamenti schema per DB già esistenti
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE squadra ADD COLUMN IF NOT EXISTS sesso VARCHAR DEFAULT 'Femminile'`);
+
+  // Valori default impostazioni
+  await query(`
+    INSERT INTO impostazioni (chiave, valore) VALUES
+      ('nome_associazione', 'Virtus Caserta ASD'),
+      ('telefono',          ''),
+      ('email_contatto',    ''),
+      ('indirizzo',         ''),
+      ('iban',              'IT00 X000 0000 0000 0000 0000 000'),
+      ('p_iva',             '00000000000')
+    ON CONFLICT (chiave) DO NOTHING;
+  `);
 }
 
 /* ─── Init ─── */

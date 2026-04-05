@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestione – Virtus Caserta</title>
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
   <style>
     :root {
       --blu:     #0d2055;
@@ -201,6 +203,62 @@
     .btn-salva:hover { background:#e56c00; }
     .btn-salva:disabled { opacity:.6; cursor:not-allowed; }
 
+    /* ── DASHBOARD ── */
+    .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+    .stat-card {
+      background:#fff; border-radius:16px; padding:20px 22px;
+      box-shadow:0 2px 12px rgba(0,0,0,.06); display:flex; flex-direction:column; gap:6px;
+    }
+    .stat-card .s-label { font-size:11px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:.8px; }
+    .stat-card .s-val   { font-size:32px; font-weight:800; color:var(--blu); line-height:1; }
+    .stat-card .s-sub   { font-size:12px; color:var(--sub); }
+    .stat-card .s-icon  { font-size:28px; margin-bottom:4px; }
+    .ordini-mini { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
+    .ordini-mini-hdr { padding:16px 20px; border-bottom:1px solid var(--bordo); font-size:15px; font-weight:800; color:var(--blu); }
+    .ordine-riga { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--bordo); font-size:13px; }
+    .ordine-riga:last-child { border-bottom:none; }
+
+    /* ── ORDINI ── */
+    .filtro-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .filtro-btn {
+      padding:7px 16px; border-radius:20px; border:1.5px solid var(--bordo);
+      background:#fff; font-size:12px; font-weight:700; cursor:pointer;
+      color:var(--sub); transition:all .15s;
+    }
+    .filtro-btn.on { background:var(--blu); border-color:var(--blu); color:#fff; }
+    .stato-select {
+      padding:5px 9px; border-radius:8px; border:1.5px solid var(--bordo);
+      font-size:12px; font-weight:600; background:#fff; cursor:pointer;
+    }
+    .badge-ricevuto     { background:#dbeafe; color:#1d4ed8; }
+    .badge-lavorazione  { background:#fef9c3; color:#854d0e; }
+    .badge-spedito      { background:#ffedd5; color:#c2410c; }
+    .badge-consegnato   { background:#dcfce7; color:#15803d; }
+    .badge-annullato    { background:#fee2e2; color:#b91c1c; }
+    .ordine-items { font-size:12px; color:var(--sub); margin-top:3px; }
+
+    /* ── IMPOSTAZIONI ── */
+    .impost-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+    /* ── LOG ── */
+    .log-riga { display:flex; align-items:flex-start; gap:14px; padding:11px 0; border-bottom:1px solid var(--bordo); font-size:13px; }
+    .log-riga:last-child { border-bottom:none; }
+    .log-time { font-size:11px; color:var(--sub); white-space:nowrap; min-width:120px; }
+    .log-azione { font-weight:700; color:var(--testo); }
+    .log-dettaglio { color:var(--sub); font-size:12px; margin-top:1px; }
+
+    /* ── ANTEPRIMA NOTIZIA ── */
+    .preview-card {
+      background:#fff; border-radius:14px; overflow:hidden;
+      box-shadow:0 4px 20px rgba(0,0,0,.12); max-width:420px; margin:0 auto;
+    }
+    .preview-img { width:100%; height:180px; object-fit:cover; display:none; }
+    .preview-body { padding:20px; }
+    .preview-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-bottom:10px; }
+    .preview-titolo { font-size:18px; font-weight:800; color:var(--blu); margin-bottom:8px; }
+    .preview-testo  { font-size:14px; color:#444; line-height:1.6; }
+    .preview-data   { font-size:12px; color:var(--sub); margin-top:10px; }
+
     /* ── UTENTI ── */
     .role-select {
       padding:6px 10px; border-radius:8px; border:1.5px solid var(--bordo);
@@ -249,6 +307,9 @@
         flex-shrink:0;
         padding-top:2px;
       }
+      .stat-grid { grid-template-columns:1fr 1fr; }
+      .impost-grid { grid-template-columns:1fr; }
+      .impost-grid .mf[style*="grid-column"] { grid-column:auto; }
       td[data-label=""] { display:none; }
       td[data-label="Azioni"]::before { display:none; }
       td[data-label="Azioni"] { padding-top:8px; }
@@ -295,14 +356,56 @@
 
 <!-- TABS -->
 <div class="tabs-bar">
-  <button class="tab-btn attivo" onclick="switchTab('prodotti')">🛒 Prodotti</button>
+  <button class="tab-btn attivo" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab-btn"        onclick="switchTab('prodotti')">🛒 Prodotti</button>
   <button class="tab-btn"        onclick="switchTab('notizie')">📰 Notizie</button>
   <button class="tab-btn"        onclick="switchTab('calendario')">📅 Calendario</button>
+  <button class="tab-btn"        onclick="switchTab('ordini')">📦 Ordini</button>
+  <button class="tab-btn"        onclick="switchTab('squadra')">🏐 Squadra</button>
+  <button class="tab-btn"        onclick="switchTab('galleria')">🖼️ Galleria</button>
+  <button class="tab-btn"        onclick="switchTab('iscrizioni')">📝 Iscrizioni</button>
+  <button class="tab-btn"        onclick="switchTab('sponsor')">🤝 Sponsor</button>
+  <button class="tab-btn"        onclick="switchTab('risultati')">🏆 Risultati</button>
+  <button class="tab-btn"        onclick="switchTab('impostazioni')">⚙️ Impostazioni</button>
+  <button class="tab-btn"        onclick="switchTab('log')">📋 Log</button>
   <button class="tab-btn"        onclick="switchTab('utenti')">👥 Utenti</button>
 </div>
 
+<!-- ══ DASHBOARD ══ -->
+<div class="pannello attivo" id="pan-dashboard">
+  <div class="toolbar"><h2>Dashboard</h2></div>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="s-icon">🛒</div>
+      <div class="s-label">Prodotti</div>
+      <div class="s-val" id="statProdotti">—</div>
+      <div class="s-sub" id="statProdottiSub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="s-icon">📰</div>
+      <div class="s-label">Notizie</div>
+      <div class="s-val" id="statNotizie">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-icon">📅</div>
+      <div class="s-label">Sessioni</div>
+      <div class="s-val" id="statEventi">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-icon">📦</div>
+      <div class="s-label">Ordini ricevuti</div>
+      <div class="s-val" id="statOrdini">—</div>
+      <div class="s-sub" id="statOrdiniSub"></div>
+    </div>
+  </div>
+  <div class="ordini-mini">
+    <div class="ordini-mini-hdr">Ultimi ordini</div>
+    <div id="dashOrdini"><div class="empty-state" style="padding:24px;text-align:center;color:var(--sub);">Nessun ordine.</div></div>
+  </div>
+</div>
+
 <!-- ══ PRODOTTI ══ -->
-<div class="pannello attivo" id="pan-prodotti">
+<div class="pannello" id="pan-prodotti">
   <div class="toolbar">
     <h2>Prodotti</h2>
     <button class="btn-aggiungi" onclick="apriModalProdotto(null)">+ Aggiungi prodotto</button>
@@ -383,6 +486,192 @@
   </div>
 </div>
 
+<!-- ══ ORDINI ══ -->
+<div class="pannello" id="pan-ordini">
+  <div class="toolbar">
+    <h2>Ordini</h2>
+    <button class="btn-aggiungi" style="background:#16a34a;" onclick="esportaOrdiniCSV()">📥 Esporta CSV</button>
+  </div>
+  <div class="filtro-bar" id="filtriBarra">
+    <button class="filtro-btn on" onclick="filtraOrdini('')">Tutti</button>
+    <button class="filtro-btn" onclick="filtraOrdini('ricevuto')">📦 Ricevuto</button>
+    <button class="filtro-btn" onclick="filtraOrdini('in lavorazione')">🔧 In lavorazione</button>
+    <button class="filtro-btn" onclick="filtraOrdini('spedito')">🚚 Spedito</button>
+    <button class="filtro-btn" onclick="filtraOrdini('consegnato')">✅ Consegnato</button>
+    <button class="filtro-btn" onclick="filtraOrdini('annullato')">❌ Annullato</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th>Ordine</th>
+        <th>Cliente</th>
+        <th>Articoli</th>
+        <th>Totale</th>
+        <th>Data</th>
+        <th>Stato</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="ordiniBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ SQUADRA ══ -->
+<div class="pannello" id="pan-squadra">
+  <div class="toolbar">
+    <h2>Squadra</h2>
+    <button class="btn-aggiungi" onclick="apriModalGiocatrice(null)">+ Aggiungi giocatrice</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th style="width:54px"></th>
+        <th>Nome</th>
+        <th>Numero</th>
+        <th>Ruolo</th>
+        <th>Stato</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="squadraBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ GALLERIA ══ -->
+<div class="pannello" id="pan-galleria">
+  <div class="toolbar">
+    <h2>Galleria</h2>
+    <button class="btn-aggiungi" onclick="apriModalFoto()">+ Aggiungi foto</button>
+  </div>
+  <div class="filtro-bar" id="filtroAlbum"></div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th style="width:80px">Foto</th>
+        <th>Album</th>
+        <th>Titolo</th>
+        <th>Data</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="galleriaBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ ISCRIZIONI ══ -->
+<div class="pannello" id="pan-iscrizioni">
+  <div class="toolbar"><h2>Iscrizioni</h2></div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Categoria</th>
+        <th>Data</th>
+        <th>Stato</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="iscrizioniBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ SPONSOR ══ -->
+<div class="pannello" id="pan-sponsor">
+  <div class="toolbar">
+    <h2>Sponsor</h2>
+    <button class="btn-aggiungi" onclick="apriModalSponsor(null)">+ Aggiungi sponsor</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th style="width:80px">Logo</th>
+        <th>Nome</th>
+        <th>Livello</th>
+        <th>Stato</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="sponsorBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ RISULTATI ══ -->
+<div class="pannello" id="pan-risultati">
+  <div class="toolbar">
+    <h2>Risultati</h2>
+    <button class="btn-aggiungi" onclick="apriModalRisultato(null)">+ Aggiungi risultato</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th>Data</th>
+        <th>Avversario</th>
+        <th>Risultato</th>
+        <th>Categoria</th>
+        <th>Tipo</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="risultatiBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ IMPOSTAZIONI ══ -->
+<div class="pannello" id="pan-impostazioni">
+  <div class="toolbar">
+    <h2>Impostazioni sito</h2>
+    <button class="btn-aggiungi" onclick="salvaImpostazioni()">💾 Salva</button>
+  </div>
+  <div class="card-table" style="padding:24px;">
+    <div class="impost-grid">
+      <div class="mf">
+        <label>Nome associazione</label>
+        <input type="text" id="iNome" placeholder="Virtus Caserta ASD">
+      </div>
+      <div class="mf">
+        <label>P.IVA / Cod. Fiscale</label>
+        <input type="text" id="iPiva" placeholder="00000000000">
+      </div>
+      <div class="mf">
+        <label>Telefono</label>
+        <input type="text" id="iTelefono" placeholder="+39 000 000 0000">
+      </div>
+      <div class="mf">
+        <label>Email contatto</label>
+        <input type="email" id="iEmail" placeholder="info@virtuscaserta.it">
+      </div>
+      <div class="mf" style="grid-column:1/-1">
+        <label>Indirizzo</label>
+        <input type="text" id="iIndirizzo" placeholder="Via Roma 1, Caserta">
+      </div>
+      <div class="mf" style="grid-column:1/-1">
+        <label>IBAN (bonifici shop)</label>
+        <input type="text" id="iIban" placeholder="IT00 X000 0000 0000 0000 0000 000">
+      </div>
+    </div>
+    <div id="impostMsg" style="margin-top:14px;font-size:13px;min-height:18px;"></div>
+
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--bordo);">
+      <h3 style="font-size:16px;font-weight:800;color:var(--blu);margin-bottom:16px;">🔔 Invia notifica push</h3>
+      <div class="impost-grid">
+        <div class="mf"><label>Titolo</label><input type="text" id="pushTitolo" placeholder="Es. Nuova notizia!"></div>
+        <div class="mf"><label>URL destinazione</label><input type="text" id="pushUrl" placeholder="/notizie"></div>
+        <div class="mf" style="grid-column:1/-1"><label>Messaggio</label><input type="text" id="pushMsg" placeholder="Testo della notifica..."></div>
+      </div>
+      <button class="btn-aggiungi" style="margin-top:12px;" onclick="inviaPush(document.getElementById('pushTitolo').value, document.getElementById('pushMsg').value, document.getElementById('pushUrl').value)">Invia push</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOG ATTIVITÀ ══ -->
+<div class="pannello" id="pan-log">
+  <div class="toolbar"><h2>Log attività</h2></div>
+  <div class="card-table" style="padding:8px 20px;" id="logContainer">
+    <div class="empty-state" style="padding:32px;text-align:center;color:var(--sub);">Nessuna attività registrata.</div>
+  </div>
+</div>
+
 <!-- MODAL PRODOTTO -->
 <div class="modal-overlay" id="modalProdotto">
   <div class="modal-box">
@@ -450,7 +739,8 @@
       </div>
       <div class="mf">
         <label>Testo *</label>
-        <textarea id="nTesto" placeholder="Contenuto della notizia..." style="min-height:120px;"></textarea>
+        <div id="quillEditor" style="min-height:140px;border-radius:10px;font-size:14px;"></div>
+        <textarea id="nTesto" style="display:none;"></textarea>
       </div>
       <div class="mf-row">
         <div class="mf">
@@ -475,7 +765,29 @@
     </div>
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalNotizia')">Annulla</button>
+      <button class="btn-annulla" onclick="anteprimaNotizia()" style="color:var(--blu);border-color:var(--blu);">👁 Anteprima</button>
       <button class="btn-salva" id="btnSalvaNotizia" onclick="salvaNotizia()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ANTEPRIMA NOTIZIA -->
+<div class="modal-overlay" id="modalAnteprima">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-hdr">
+      <h3>Anteprima notizia</h3>
+      <button class="modal-close" onclick="chiudiModal('modalAnteprima')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-bottom:20px;">
+      <div class="preview-card">
+        <img id="prevImg" class="preview-img" alt="">
+        <div class="preview-body">
+          <span id="prevBadge" class="preview-badge"></span>
+          <div id="prevTitolo" class="preview-titolo"></div>
+          <div id="prevTesto" class="preview-testo"></div>
+          <div id="prevData" class="preview-data"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -543,12 +855,172 @@
   </div>
 </div>
 
+<!-- MODAL GIOCATRICE -->
+<div class="modal-overlay" id="modalGiocatrice">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modalGiocatriceTitolo">Nuova giocatrice</h3>
+      <button class="modal-close" onclick="chiudiModal('modalGiocatrice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf-row">
+        <div class="mf"><label>Nome *</label><input type="text" id="gNome" placeholder="Maria"></div>
+        <div class="mf"><label>Cognome *</label><input type="text" id="gCognome" placeholder="Rossi"></div>
+      </div>
+      <div class="mf-row">
+        <div class="mf"><label>Numero maglia</label><input type="number" id="gNumero" min="1" max="99" placeholder="10"></div>
+        <div class="mf">
+          <label>Ruolo</label>
+          <select id="gRuolo">
+            <option value="">— Seleziona —</option>
+            <option>Palleggiatrice</option><option>Opposto</option><option>Schiacciatrice</option>
+            <option>Centrale</option><option>Libero</option><option>Staff</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf">
+        <label>Squadra</label>
+        <select id="gSesso">
+          <option value="Femminile">Femminile</option>
+          <option value="Maschile">Maschile</option>
+        </select>
+      </div>
+      <div class="mf"><label>Foto (URL o upload)</label>
+        <input type="file" id="gFotoFile" accept="image/*" onchange="anteprima('gFotoFile','gFotoPreview')">
+        <img id="gFotoPreview" class="img-preview">
+        <input type="hidden" id="gFoto">
+      </div>
+      <div class="mf"><label>Bio</label><textarea id="gBio" placeholder="Breve descrizione..."></textarea></div>
+      <div class="mf">
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;color:var(--testo);font-size:13px;cursor:pointer;">
+          <input type="checkbox" id="gAttiva" checked style="width:16px;height:16px;accent-color:var(--blu);">
+          Attiva (visibile nel sito)
+        </label>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalGiocatrice')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaGiocatrice" onclick="salvaGiocatrice()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOTO GALLERIA -->
+<div class="modal-overlay" id="modalFoto">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3>Aggiungi foto</h3>
+      <button class="modal-close" onclick="chiudiModal('modalFoto')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf"><label>Album</label><input type="text" id="fAlbum" placeholder="Es. Gara vs Napoli" list="albumSuggest">
+        <datalist id="albumSuggest"></datalist>
+      </div>
+      <div class="mf"><label>Titolo (opzionale)</label><input type="text" id="fTitolo" placeholder="Descrizione breve"></div>
+      <div class="mf"><label>Foto *</label>
+        <input type="file" id="fFotoFile" accept="image/*" onchange="anteprima('fFotoFile','fFotoPreview')">
+        <img id="fFotoPreview" class="img-preview">
+        <input type="hidden" id="fImmagine">
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalFoto')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaFoto" onclick="salvaFoto()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SPONSOR -->
+<div class="modal-overlay" id="modalSponsor">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modalSponsorTitolo">Nuovo sponsor</h3>
+      <button class="modal-close" onclick="chiudiModal('modalSponsor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf"><label>Nome *</label><input type="text" id="sNome" placeholder="Nome azienda"></div>
+      <div class="mf"><label>Logo</label>
+        <input type="file" id="sLogoFile" accept="image/*" onchange="anteprima('sLogoFile','sLogoPreview')">
+        <img id="sLogoPreview" class="img-preview">
+        <input type="hidden" id="sLogo">
+      </div>
+      <div class="mf"><label>URL sito</label><input type="url" id="sUrl" placeholder="https://"></div>
+      <div class="mf">
+        <label>Livello</label>
+        <select id="sLivello">
+          <option value="standard">Standard</option>
+          <option value="principale">Principale ⭐</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalSponsor')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaSponsor" onclick="salvaSponsor()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RISULTATO -->
+<div class="modal-overlay" id="modalRisultato">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modalRisultatoTitolo">Nuovo risultato</h3>
+      <button class="modal-close" onclick="chiudiModal('modalRisultato')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mf-row">
+        <div class="mf"><label>Data *</label><input type="date" id="rData"></div>
+        <div class="mf"><label>Tipo</label>
+          <select id="rTipo"><option value="campionato">Campionato</option><option value="coppa">Coppa</option><option value="amichevole">Amichevole</option><option value="playoff">Playoff</option></select>
+        </div>
+      </div>
+      <div class="mf"><label>Avversario *</label><input type="text" id="rAvversario" placeholder="Es. Pallavolo Napoli"></div>
+      <div class="mf-row">
+        <div class="mf"><label>Set Virtus *</label><input type="number" id="rSetNoi" min="0" max="5" placeholder="3"></div>
+        <div class="mf"><label>Set avversario *</label><input type="number" id="rSetLoro" min="0" max="5" placeholder="1"></div>
+      </div>
+      <div class="mf"><label>Categoria</label>
+        <select id="rCategoria">
+          <option value="">— Seleziona —</option>
+          <option>Under 13</option><option>Under 16</option><option>Under 19</option><option>Prima Squadra</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalRisultato')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaRisultato" onclick="salvaRisultato()">Salva</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  /* ── Quill WYSIWYG ── */
+  let quill = null;
+  document.addEventListener('DOMContentLoaded', () => {
+    quill = new Quill('#quillEditor', {
+      theme: 'snow',
+      modules: { toolbar: [
+        [{ header: [2,3,false] }],
+        ['bold','italic','underline'],
+        [{ list:'ordered' },{ list:'bullet' }],
+        ['link'],
+        ['clean'],
+      ]},
+      placeholder: 'Scrivi il contenuto della notizia…',
+    });
+    quill.on('text-change', () => {
+      document.getElementById('nTesto').value = quill.root.innerHTML;
+    });
+  });
+
   const TUTTE_TAGLIE = ['XS','S','M','L','XL','XXL','XXXL'];
   let TOKEN = localStorage.getItem('vc_admin_token') || '';
   let prodottoInEditing  = null;
   let notiziaInEditing   = null;
   let sessioneInEditing  = null;
+  let giocatriceInEditing = null;
+  let sponsorInEditing   = null;
+  let risultatoInEditing = null;
   let taglieSelezionate  = new Set(['S','M','L','XL']);
 
   /* ══ AUTH ══ */
@@ -585,22 +1057,31 @@
   /* ══ TABS ══ */
   function switchTab(nome) {
     document.querySelectorAll('.tab-btn').forEach((b,i) => {
-      const nomi = ['prodotti','notizie','calendario','utenti'];
+      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','galleria','iscrizioni','sponsor','risultati','impostazioni','log','utenti'];
       b.classList.toggle('attivo', nomi[i] === nome);
     });
     document.querySelectorAll('.pannello').forEach(p => p.classList.remove('attivo'));
     document.getElementById('pan-'+nome).classList.add('attivo');
-    if (nome === 'prodotti')  caricaProdotti();
-    if (nome === 'notizie')   caricaNotizie();
-    if (nome === 'calendario') caricaCalendario();
-    if (nome === 'utenti')    caricaUtenti();
+    if (nome === 'dashboard')   caricaDashboard();
+    if (nome === 'prodotti')    caricaProdotti();
+    if (nome === 'notizie')     caricaNotizie();
+    if (nome === 'calendario')  caricaCalendario();
+    if (nome === 'ordini')      caricaOrdini();
+    if (nome === 'squadra')     caricaSquadra();
+    if (nome === 'galleria')    caricaGalleriaAdmin();
+    if (nome === 'iscrizioni')  caricaIscrizioni();
+    if (nome === 'sponsor')     caricaSponsor();
+    if (nome === 'risultati')   caricaRisultati();
+    if (nome === 'impostazioni') caricaImpostazioni();
+    if (nome === 'log')         caricaLog();
+    if (nome === 'utenti')      caricaUtenti();
   }
 
   function caricaTutto() {
+    caricaDashboard();
     caricaProdotti();
     caricaNotizie();
     caricaCalendario();
-    caricaUtenti();
   }
 
   /* ══ MODAL ══ */
@@ -780,6 +1261,7 @@
     document.getElementById('modalNotiziaTitolo').textContent = id ? 'Modifica notizia' : 'Nuova notizia';
     document.getElementById('nTitolo').value  = '';
     document.getElementById('nTesto').value   = '';
+    if (quill) quill.root.innerHTML = '';
     document.getElementById('nColore').value  = 'blu';
     document.getElementById('nData').value    = new Date().toISOString().slice(0,10);
     document.getElementById('nImmagine').value = '';
@@ -792,6 +1274,7 @@
       if (n) {
         document.getElementById('nTitolo').value  = n.titolo;
         document.getElementById('nTesto').value   = n.testo;
+        if (quill) quill.root.innerHTML = n.testo || '';
         document.getElementById('nColore').value  = n.colore || 'blu';
         document.getElementById('nData').value    = n.data ? isoDate(n.data) : '';
         document.getElementById('nImmagine').value = n.immagine || '';
@@ -1032,8 +1515,514 @@
 
   if (TOKEN) {
     document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('hdrUser').textContent = 'Admin';
+    document.getElementById('hdrUser').textContent = 'Benvenuto, Admin';
     caricaTutto();
+  }
+
+  /* ══ DASHBOARD ══ */
+  async function caricaDashboard() {
+    try {
+      const s = await fetch('/api/admin/stats', { headers: headers() }).then(r => r.json());
+      document.getElementById('statProdotti').textContent = s.prodotti ?? '—';
+      document.getElementById('statNotizie').textContent  = s.notizie  ?? '—';
+      document.getElementById('statEventi').textContent   = s.eventi   ?? '—';
+      const totOrdini = Object.values(s.ordini || {}).reduce((a, b) => a + b, 0);
+      document.getElementById('statOrdini').textContent = totOrdini;
+      const sub = [];
+      if (s.ordini?.ricevuto)      sub.push(`${s.ordini.ricevuto} nuovi`);
+      if (s.ordini?.spedito)       sub.push(`${s.ordini.spedito} spediti`);
+      if (s.ordini?.['in lavorazione']) sub.push(`${s.ordini['in lavorazione']} in lavorazione`);
+      document.getElementById('statOrdiniSub').textContent = sub.join(' · ');
+
+      const ordini = await fetch('/api/admin/ordini', { headers: headers() }).then(r => r.json());
+      const recenti = (ordini || []).slice(0, 5);
+      const cont = document.getElementById('dashOrdini');
+      if (!recenti.length) {
+        cont.innerHTML = '<div class="empty-state" style="padding:24px;text-align:center;color:var(--sub);">Nessun ordine.</div>';
+        return;
+      }
+      cont.innerHTML = recenti.map(o => `
+        <div class="ordine-riga">
+          <div>
+            <strong>#${o.id}</strong> — ${o.nome} ${o.cognome}
+            <div class="ordine-items">${(o.items||[]).map(i => i.nome).join(', ')}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <strong>€ ${Number(o.totale).toFixed(2)}</strong>
+            <span class="badge ${statoBadge(o.stato)}">${o.stato}</span>
+          </div>
+        </div>`).join('');
+    } catch {}
+  }
+
+  /* ══ ORDINI ══ */
+  let filtroStatoCorrente = '';
+
+  function statoBadge(stato) {
+    return {
+      'ricevuto':       'badge-ricevuto',
+      'in lavorazione': 'badge-lavorazione',
+      'spedito':        'badge-spedito',
+      'consegnato':     'badge-consegnato',
+      'annullato':      'badge-annullato',
+    }[stato] || 'badge-blu';
+  }
+
+  async function caricaOrdini(stato) {
+    if (stato !== undefined) filtroStatoCorrente = stato;
+    document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('on'));
+    const idx = ['','ricevuto','in lavorazione','spedito','consegnato','annullato'].indexOf(filtroStatoCorrente);
+    if (idx >= 0) document.querySelectorAll('.filtro-btn')[idx]?.classList.add('on');
+
+    const tbody = document.getElementById('ordiniBody');
+    try {
+      const url = filtroStatoCorrente ? `/api/admin/ordini?stato=${encodeURIComponent(filtroStatoCorrente)}` : '/api/admin/ordini';
+      const ordini = await fetch(url, { headers: headers() }).then(r => r.json());
+      if (!ordini.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div>Nessun ordine trovato.</div></td></tr>`;
+        return;
+      }
+      tbody.innerHTML = ordini.map(o => `
+        <tr>
+          <td data-label="Ordine"><strong>#${o.id.slice(-6)}</strong></td>
+          <td data-label="Cliente">
+            <div class="prod-nome">${o.nome} ${o.cognome}</div>
+            <div class="prod-desc">${o.email}</div>
+          </td>
+          <td data-label="Articoli">
+            <div class="ordine-items">${(o.items||[]).map(i => `${i.nome} (${i.taglia}, ×${i.qty})`).join('<br>')}</div>
+          </td>
+          <td data-label="Totale"><strong>€ ${Number(o.totale).toFixed(2)}</strong></td>
+          <td data-label="Data" style="color:var(--sub);font-size:13px;">${o.created_at ? new Date(o.created_at).toLocaleDateString('it-IT') : '—'}</td>
+          <td data-label="Stato"><span class="badge ${statoBadge(o.stato)}">${o.stato}</span></td>
+          <td data-label="Azioni">
+            <div class="azioni">
+              <select class="stato-select" onchange="aggiornaStatoOrdine('${o.id}', this.value)">
+                <option value="ricevuto"       ${o.stato==='ricevuto'       ?'selected':''}>📦 Ricevuto</option>
+                <option value="in lavorazione" ${o.stato==='in lavorazione' ?'selected':''}>🔧 In lavorazione</option>
+                <option value="spedito"        ${o.stato==='spedito'        ?'selected':''}>🚚 Spedito</option>
+                <option value="consegnato"     ${o.stato==='consegnato'     ?'selected':''}>✅ Consegnato</option>
+                <option value="annullato"      ${o.stato==='annullato'      ?'selected':''}>❌ Annullato</option>
+              </select>
+            </div>
+          </td>
+        </tr>`).join('');
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">Errore caricamento ordini.</div></td></tr>`;
+    }
+  }
+
+  function filtraOrdini(stato) {
+    filtroStatoCorrente = stato;
+    caricaOrdini();
+  }
+
+  async function aggiornaStatoOrdine(id, stato) {
+    const res = await fetch(`/api/admin/ordini/${id}/stato`, {
+      method: 'PUT', headers: headers(), body: JSON.stringify({ stato }),
+    });
+    if (!res.ok) { alert('Errore aggiornamento stato.'); caricaOrdini(); }
+    else caricaDashboard();
+  }
+
+  /* ══ ANTEPRIMA NOTIZIA ══ */
+  const COLORI_PREVIEW = {
+    blu:    { badge:'badge-blu',    label:'Notizia' },
+    arancio:{ badge:'badge-arancio',label:'Comunicato' },
+    azzurro:{ badge:'badge-azzurro',label:'Risultato' },
+  };
+
+  function anteprimaNotizia() {
+    const titolo  = document.getElementById('nTitolo').value.trim();
+    const testo   = document.getElementById('nTesto').value.trim();
+    const colore  = document.getElementById('nColore').value;
+    const data    = document.getElementById('nData').value;
+    const imgSrc  = document.getElementById('nImgPreview').src;
+    const imgVis  = document.getElementById('nImgPreview').style.display !== 'none';
+    const cfg     = COLORI_PREVIEW[colore] || COLORI_PREVIEW.blu;
+
+    document.getElementById('prevTitolo').textContent = titolo || '(nessun titolo)';
+    document.getElementById('prevTesto').textContent  = testo  || '(nessun testo)';
+    document.getElementById('prevData').textContent   = data ? new Date(data+'T12:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}) : '';
+    const badge = document.getElementById('prevBadge');
+    badge.textContent  = cfg.label;
+    badge.className    = `preview-badge badge ${cfg.badge}`;
+    const img = document.getElementById('prevImg');
+    if (imgVis && imgSrc) { img.src = imgSrc; img.style.display = 'block'; }
+    else                  { img.style.display = 'none'; }
+
+    document.getElementById('modalAnteprima').classList.add('aperto');
+  }
+
+  /* ══ IMPOSTAZIONI ══ */
+  async function caricaImpostazioni() {
+    try {
+      const s = await fetch('/api/admin/impostazioni', { headers: headers() }).then(r => r.json());
+      document.getElementById('iNome').value      = s.nome_associazione || '';
+      document.getElementById('iTelefono').value  = s.telefono || '';
+      document.getElementById('iEmail').value     = s.email_contatto || '';
+      document.getElementById('iIndirizzo').value = s.indirizzo || '';
+      document.getElementById('iIban').value      = s.iban || '';
+      document.getElementById('iPiva').value      = s.p_iva || '';
+    } catch {}
+  }
+
+  async function salvaImpostazioni() {
+    const body = {
+      nome_associazione: document.getElementById('iNome').value.trim(),
+      telefono:          document.getElementById('iTelefono').value.trim(),
+      email_contatto:    document.getElementById('iEmail').value.trim(),
+      indirizzo:         document.getElementById('iIndirizzo').value.trim(),
+      iban:              document.getElementById('iIban').value.trim(),
+      p_iva:             document.getElementById('iPiva').value.trim(),
+    };
+    const msg = document.getElementById('impostMsg');
+    try {
+      const res = await fetch('/api/admin/impostazioni', { method:'PUT', headers: headers(), body: JSON.stringify(body) });
+      if (res.ok) { msg.style.color = 'var(--verde)'; msg.textContent = '✅ Impostazioni salvate.'; }
+      else        { msg.style.color = 'var(--rosso)'; msg.textContent = '❌ Errore nel salvataggio.'; }
+    } catch {
+      msg.style.color = 'var(--rosso)'; msg.textContent = '❌ Errore di rete.';
+    }
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  }
+
+  /* ══ LOG ATTIVITÀ ══ */
+  async function caricaLog() {
+    const cont = document.getElementById('logContainer');
+    try {
+      const log = await fetch('/api/admin/log', { headers: headers() }).then(r => r.json());
+      if (!log.length) {
+        cont.innerHTML = '<div class="empty-state" style="padding:32px;text-align:center;color:var(--sub);">Nessuna attività registrata.</div>';
+        return;
+      }
+      cont.innerHTML = log.map(l => `
+        <div class="log-riga">
+          <div class="log-time">${new Date(l.created_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+          <div>
+            <div class="log-azione">${l.azione}</div>
+            ${l.dettaglio ? `<div class="log-dettaglio">${l.dettaglio}</div>` : ''}
+          </div>
+        </div>`).join('');
+    } catch {
+      cont.innerHTML = '<div class="empty-state" style="padding:32px;text-align:center;color:var(--rosso);">Errore caricamento log.</div>';
+    }
+  }
+
+  /* ══ SQUADRA ══ */
+  async function caricaSquadra() {
+    const tbody = document.getElementById('squadraBody');
+    try {
+      const list = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🏐</div>Nessuna giocatrice.</div></td></tr>`; return; }
+      tbody.innerHTML = list.map(g => `
+        <tr>
+          <td data-label="">${g.foto ? `<img src="${g.foto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" loading="lazy">` : '🏐'}</td>
+          <td data-label="Nome"><div class="prod-nome">${g.nome} ${g.cognome}</div></td>
+          <td data-label="Numero">${g.numero ? '#'+g.numero : '—'}</td>
+          <td data-label="Ruolo" style="color:var(--sub);font-size:13px;">${g.ruolo || '—'}</td>
+          <td data-label="Stato"><span class="badge ${g.attiva ? 'badge-verde':'badge-rosso'}">${g.attiva?'Attiva':'Inattiva'}</span></td>
+          <td data-label="Azioni"><div class="azioni">
+            <button class="btn-azione btn-edit" onclick="apriModalGiocatrice('${g.id}')">✏️ Modifica</button>
+            <button class="btn-azione btn-delete" onclick="eliminaGiocatrice('${g.id}','${(g.nome+' '+g.cognome).replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+          </div></td>
+        </tr>`).join('');
+    } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
+  }
+
+  async function apriModalGiocatrice(id) {
+    giocatriceInEditing = id;
+    document.getElementById('modalGiocatriceTitolo').textContent = id ? 'Modifica giocatrice' : 'Nuova giocatrice';
+    ['gNome','gCognome','gNumero','gBio','gFoto'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('gAttiva').checked = true;
+    document.getElementById('gSesso').value = 'Femminile';
+    document.getElementById('gFotoPreview').style.display = 'none';
+    if (id) {
+      const list = await fetch('/api/squadra').then(r => r.json());
+      const g = list.find(x => x.id === id);
+      if (g) {
+        document.getElementById('gNome').value    = g.nome;
+        document.getElementById('gCognome').value = g.cognome;
+        document.getElementById('gNumero').value  = g.numero || '';
+        document.getElementById('gRuolo').value   = g.ruolo || '';
+        document.getElementById('gBio').value     = g.bio || '';
+        document.getElementById('gFoto').value    = g.foto || '';
+        document.getElementById('gSesso').value   = g.sesso || 'Femminile';
+        document.getElementById('gAttiva').checked = g.attiva;
+        if (g.foto) { document.getElementById('gFotoPreview').src = g.foto; document.getElementById('gFotoPreview').style.display = 'block'; }
+      }
+    }
+    document.getElementById('modalGiocatrice').classList.add('aperto');
+  }
+
+  async function salvaGiocatrice() {
+    const nome    = document.getElementById('gNome').value.trim();
+    const cognome = document.getElementById('gCognome').value.trim();
+    if (!nome || !cognome) { alert('Nome e cognome obbligatori.'); return; }
+    const btn = document.getElementById('btnSalvaGiocatrice');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    try {
+      let foto = document.getElementById('gFoto').value;
+      const uploadUrl = await uploadImmagine('gFotoFile');
+      if (uploadUrl) foto = uploadUrl;
+      const body = { nome, cognome, numero: document.getElementById('gNumero').value || null, ruolo: document.getElementById('gRuolo').value, bio: document.getElementById('gBio').value, foto, attiva: document.getElementById('gAttiva').checked, sesso: document.getElementById('gSesso').value };
+      const url    = giocatriceInEditing ? `/api/admin/squadra/${giocatriceInEditing}` : '/api/admin/squadra';
+      const method = giocatriceInEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      chiudiModal('modalGiocatrice'); caricaSquadra();
+    } catch (err) { alert('Errore: '+err.message); }
+    finally { btn.disabled = false; btn.textContent = 'Salva'; }
+  }
+
+  async function eliminaGiocatrice(id, nome) {
+    if (!confirm(`Eliminare ${nome}?`)) return;
+    const res = await fetch(`/api/admin/squadra/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaSquadra(); else alert('Errore eliminazione.');
+  }
+
+  /* ══ GALLERIA ══ */
+  async function caricaGalleriaAdmin() {
+    const tbody = document.getElementById('galleriaBody');
+    try {
+      const list = await fetch('/api/galleria', { headers: headers() }).then(r => r.json());
+      // Popola album suggerimenti
+      const albums = [...new Set(list.map(f => f.album))];
+      document.getElementById('albumSuggest').innerHTML = albums.map(a => `<option value="${a}">`).join('');
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">🖼️</div>Nessuna foto.</div></td></tr>`; return; }
+      tbody.innerHTML = list.map(f => `
+        <tr>
+          <td data-label=""><img src="${f.immagine}" style="width:64px;height:48px;object-fit:cover;border-radius:8px;" loading="lazy"></td>
+          <td data-label="Album"><span class="badge badge-blu">${f.album}</span></td>
+          <td data-label="Titolo">${f.titolo || '—'}</td>
+          <td data-label="Data" style="color:var(--sub);font-size:13px;">${f.created_at ? new Date(f.created_at).toLocaleDateString('it-IT') : '—'}</td>
+          <td data-label="Azioni"><button class="btn-azione btn-delete" onclick="eliminaFoto('${f.id}')">🗑️ Elimina</button></td>
+        </tr>`).join('');
+    } catch { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Errore.</div></td></tr>`; }
+  }
+
+  function apriModalFoto() {
+    document.getElementById('fAlbum').value = '';
+    document.getElementById('fTitolo').value = '';
+    document.getElementById('fImmagine').value = '';
+    document.getElementById('fFotoPreview').style.display = 'none';
+    document.getElementById('fFotoFile').value = '';
+    document.getElementById('modalFoto').classList.add('aperto');
+  }
+
+  async function salvaFoto() {
+    const btn = document.getElementById('btnSalvaFoto');
+    btn.disabled = true; btn.textContent = 'Caricamento…';
+    try {
+      const uploadUrl = await uploadImmagine('fFotoFile');
+      const immagine = uploadUrl || document.getElementById('fImmagine').value;
+      if (!immagine) { alert('Carica un\'immagine.'); return; }
+      const body = { album: document.getElementById('fAlbum').value.trim() || 'Generale', titolo: document.getElementById('fTitolo').value.trim(), immagine };
+      const res = await fetch('/api/admin/galleria', { method:'POST', headers: headers(), body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      chiudiModal('modalFoto'); caricaGalleriaAdmin();
+    } catch (err) { alert('Errore: '+err.message); }
+    finally { btn.disabled = false; btn.textContent = 'Salva'; }
+  }
+
+  async function eliminaFoto(id) {
+    if (!confirm('Eliminare questa foto?')) return;
+    const res = await fetch(`/api/admin/galleria/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaGalleriaAdmin(); else alert('Errore eliminazione.');
+  }
+
+  /* ══ ISCRIZIONI ══ */
+  async function caricaIscrizioni() {
+    const tbody = document.getElementById('iscrizioniBody');
+    try {
+      const list = await fetch('/api/admin/iscrizioni', { headers: headers() }).then(r => r.json());
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">📝</div>Nessuna iscrizione.</div></td></tr>`; return; }
+      const statoBadge = { nuova:'badge-arancio', contattata:'badge-blu', accettata:'badge-verde', rifiutata:'badge-rosso' };
+      tbody.innerHTML = list.map(i => `
+        <tr>
+          <td data-label="Nome"><div class="prod-nome">${i.nome} ${i.cognome}</div><div class="prod-desc">${i.telefono||''}</div></td>
+          <td data-label="Email" style="font-size:13px;color:var(--sub);">${i.email}</td>
+          <td data-label="Categoria">${i.categoria||'—'}</td>
+          <td data-label="Data" style="font-size:13px;color:var(--sub);">${i.created_at ? new Date(i.created_at).toLocaleDateString('it-IT') : '—'}</td>
+          <td data-label="Stato"><span class="badge ${statoBadge[i.stato]||'badge-blu'}">${i.stato}</span></td>
+          <td data-label="Azioni">
+            <select class="stato-select" onchange="aggiornaStatoIscrizione('${i.id}',this.value)">
+              <option ${i.stato==='nuova'?'selected':''} value="nuova">Nuova</option>
+              <option ${i.stato==='contattata'?'selected':''} value="contattata">Contattata</option>
+              <option ${i.stato==='accettata'?'selected':''} value="accettata">Accettata</option>
+              <option ${i.stato==='rifiutata'?'selected':''} value="rifiutata">Rifiutata</option>
+            </select>
+          </td>
+        </tr>`).join('');
+    } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
+  }
+
+  async function aggiornaStatoIscrizione(id, stato) {
+    await fetch(`/api/admin/iscrizioni/${id}/stato`, { method:'PUT', headers: headers(), body: JSON.stringify({ stato }) });
+  }
+
+  /* ══ SPONSOR ══ */
+  async function caricaSponsor() {
+    const tbody = document.getElementById('sponsorBody');
+    try {
+      const list = await fetch('/api/sponsor').then(r => r.json());
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">🤝</div>Nessuno sponsor.</div></td></tr>`; return; }
+      tbody.innerHTML = list.map(s => `
+        <tr>
+          <td data-label="">${s.logo ? `<img src="${s.logo}" style="height:36px;max-width:80px;object-fit:contain;" loading="lazy">` : '🏢'}</td>
+          <td data-label="Nome"><div class="prod-nome">${s.nome}</div>${s.url?`<div class="prod-desc">${s.url}</div>`:''}</td>
+          <td data-label="Livello"><span class="badge badge-blu">${s.livello}</span></td>
+          <td data-label="Stato"><span class="badge ${s.attivo?'badge-verde':'badge-rosso'}">${s.attivo?'Attivo':'Inattivo'}</span></td>
+          <td data-label="Azioni"><div class="azioni">
+            <button class="btn-azione btn-edit" onclick="apriModalSponsor('${s.id}')">✏️ Modifica</button>
+            <button class="btn-azione btn-delete" onclick="eliminaSponsor('${s.id}','${s.nome.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+          </div></td>
+        </tr>`).join('');
+    } catch { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Errore.</div></td></tr>`; }
+  }
+
+  async function apriModalSponsor(id) {
+    sponsorInEditing = id;
+    document.getElementById('modalSponsorTitolo').textContent = id ? 'Modifica sponsor' : 'Nuovo sponsor';
+    ['sNome','sUrl','sLogo'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('sLivello').value = 'standard';
+    document.getElementById('sLogoPreview').style.display = 'none';
+    if (id) {
+      const list = await fetch('/api/sponsor').then(r => r.json());
+      const s = list.find(x => x.id === id);
+      if (s) {
+        document.getElementById('sNome').value    = s.nome;
+        document.getElementById('sUrl').value     = s.url || '';
+        document.getElementById('sLogo').value    = s.logo || '';
+        document.getElementById('sLivello').value = s.livello || 'standard';
+        if (s.logo) { document.getElementById('sLogoPreview').src = s.logo; document.getElementById('sLogoPreview').style.display = 'block'; }
+      }
+    }
+    document.getElementById('modalSponsor').classList.add('aperto');
+  }
+
+  async function salvaSponsor() {
+    const nome = document.getElementById('sNome').value.trim();
+    if (!nome) { alert('Nome obbligatorio.'); return; }
+    const btn = document.getElementById('btnSalvaSponsor');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    try {
+      let logo = document.getElementById('sLogo').value;
+      const uploadUrl = await uploadImmagine('sLogoFile');
+      if (uploadUrl) logo = uploadUrl;
+      const body = { nome, logo, url: document.getElementById('sUrl').value.trim(), livello: document.getElementById('sLivello').value };
+      const url    = sponsorInEditing ? `/api/admin/sponsor/${sponsorInEditing}` : '/api/admin/sponsor';
+      const method = sponsorInEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      chiudiModal('modalSponsor'); caricaSponsor();
+    } catch (err) { alert('Errore: '+err.message); }
+    finally { btn.disabled = false; btn.textContent = 'Salva'; }
+  }
+
+  async function eliminaSponsor(id, nome) {
+    if (!confirm(`Eliminare ${nome}?`)) return;
+    const res = await fetch(`/api/admin/sponsor/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaSponsor(); else alert('Errore.');
+  }
+
+  /* ══ RISULTATI ══ */
+  async function caricaRisultati() {
+    const tbody = document.getElementById('risultatiBody');
+    try {
+      const list = await fetch('/api/risultati').then(r => r.json());
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🏆</div>Nessun risultato.</div></td></tr>`; return; }
+      tbody.innerHTML = list.map(r => {
+        const vittoria = r.set_noi > r.set_loro;
+        const label = vittoria ? 'badge-verde' : r.set_noi < r.set_loro ? 'badge-rosso' : 'badge-arancio';
+        const esito  = vittoria ? 'Vittoria' : r.set_noi < r.set_loro ? 'Sconfitta' : 'Pareggio';
+        return `
+          <tr>
+            <td data-label="Data" style="font-weight:700;">${r.data_str ? new Date(r.data_str+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'}</td>
+            <td data-label="Avversario"><div class="prod-nome">${r.avversario}</div></td>
+            <td data-label="Risultato"><strong>${r.set_noi} – ${r.set_loro}</strong> <span class="badge ${label}">${esito}</span></td>
+            <td data-label="Categoria" style="color:var(--sub);font-size:13px;">${r.categoria||'—'}</td>
+            <td data-label="Tipo" style="color:var(--sub);font-size:13px;">${r.tipo||'—'}</td>
+            <td data-label="Azioni"><div class="azioni">
+              <button class="btn-azione btn-edit" onclick="apriModalRisultato('${r.id}')">✏️ Modifica</button>
+              <button class="btn-azione btn-delete" onclick="eliminaRisultato('${r.id}','${r.avversario.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+            </div></td>
+          </tr>`;
+      }).join('');
+    } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
+  }
+
+  async function apriModalRisultato(id) {
+    risultatoInEditing = id;
+    document.getElementById('modalRisultatoTitolo').textContent = id ? 'Modifica risultato' : 'Nuovo risultato';
+    document.getElementById('rData').value      = new Date().toISOString().slice(0,10);
+    document.getElementById('rAvversario').value = '';
+    document.getElementById('rSetNoi').value    = '';
+    document.getElementById('rSetLoro').value   = '';
+    document.getElementById('rCategoria').value = '';
+    document.getElementById('rTipo').value      = 'campionato';
+    if (id) {
+      const list = await fetch('/api/risultati').then(r => r.json());
+      const r = list.find(x => x.id === id);
+      if (r) {
+        document.getElementById('rData').value       = r.data_str || '';
+        document.getElementById('rAvversario').value = r.avversario;
+        document.getElementById('rSetNoi').value     = r.set_noi;
+        document.getElementById('rSetLoro').value    = r.set_loro;
+        document.getElementById('rCategoria').value  = r.categoria || '';
+        document.getElementById('rTipo').value       = r.tipo || 'campionato';
+      }
+    }
+    document.getElementById('modalRisultato').classList.add('aperto');
+  }
+
+  async function salvaRisultato() {
+    const avversario = document.getElementById('rAvversario').value.trim();
+    const set_noi    = document.getElementById('rSetNoi').value;
+    const set_loro   = document.getElementById('rSetLoro').value;
+    if (!avversario || set_noi === '' || set_loro === '') { alert('Campi obbligatori mancanti.'); return; }
+    const btn = document.getElementById('btnSalvaRisultato');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    try {
+      const body = { data: document.getElementById('rData').value, avversario, set_noi, set_loro, categoria: document.getElementById('rCategoria').value, tipo: document.getElementById('rTipo').value };
+      const url    = risultatoInEditing ? `/api/admin/risultati/${risultatoInEditing}` : '/api/admin/risultati';
+      const method = risultatoInEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      chiudiModal('modalRisultato'); caricaRisultati();
+    } catch (err) { alert('Errore: '+err.message); }
+    finally { btn.disabled = false; btn.textContent = 'Salva'; }
+  }
+
+  async function eliminaRisultato(id, avversario) {
+    if (!confirm(`Eliminare la partita vs ${avversario}?`)) return;
+    const res = await fetch(`/api/admin/risultati/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaRisultati(); else alert('Errore.');
+  }
+
+  /* ══ PUSH NOTIFICATION (admin) ══ */
+  async function inviaPush(titolo, messaggio, url) {
+    const res = await fetch('/api/admin/push/send', {
+      method:'POST', headers: headers(), body: JSON.stringify({ titolo, messaggio, url }),
+    });
+    const d = await res.json();
+    if (res.ok) alert(`✅ Push inviata: ${d.ok} recapitate`);
+    else alert('❌ ' + d.error);
+  }
+
+  /* ══ EXPORT CSV ORDINI ══ */
+  function esportaOrdiniCSV() {
+    const link = document.createElement('a');
+    link.href = '/api/admin/ordini/export';
+    link.download = '';
+    // Passa token nell'URL non è sicuro; usiamo fetch con blob
+    fetch('/api/admin/ordini/export', { headers: headers() })
+      .then(r => r.blob())
+      .then(blob => {
+        link.href = URL.createObjectURL(blob);
+        link.download = `ordini-${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
+      });
   }
 </script>
 </body>
