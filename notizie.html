@@ -62,7 +62,7 @@
     }
     .nav-social a:hover { opacity:.8; transform:scale(1.1); }
     .nav-social .s-fb, .nav-social .s-ig { background:none; }
-    .nav-social a img { width:100%; height:100%; object-fit:contain; display:block; }
+    .nav-social a img { width:100%; height:100%; object-fit:contain; display:block; filter:brightness(0) invert(1); }
 
     /* ── HERO ── */
     .hero {
@@ -172,15 +172,18 @@
 
   <nav>
     <ul class="nav-menu">
-      <li><a href="chiSiamo.html">Chi siamo</a></li>
-      <li><a href="notizie.html" class="attivo">Notizie</a></li>
+      <li><a href="/chi-siamo">Chi siamo</a></li>
+      <li><a href="/notizie" class="attivo">Notizie</a></li>
+      <li><a href="/squadra">Squadra</a></li>
     </ul>
-    <a href="index.html" class="nav-brand">
+    <a href="/" class="nav-brand">
       <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
     </a>
     <div class="nav-actions">
       <ul class="nav-menu" style="justify-content:flex-start;">
-        <li><a href="shop.html">Shop</a></li>
+        <li><a href="/risultati">Risultati</a></li>
+        <li><a href="/shop">Shop</a></li>
+        <li><a href="/staff">Staff</a></li>
       </ul>
       <div class="nav-social">
         <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>

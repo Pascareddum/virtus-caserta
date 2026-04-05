@@ -80,6 +80,7 @@ app.get('/iscrizione',      sendPage('iscrizione.html'));
 app.get('/sponsor',         sendPage('sponsor.html'));
 app.get('/risultati',       sendPage('risultati.html'));
 app.get('/classifica',      sendPage('classifica.html'));
+app.get('/staff',           sendPage('staff.html'));
 app.get('/privacy',         sendPage('privacy.html'));
 app.get('/termini',         sendPage('termini.html'));
 app.get('/ordine-confermato', sendPage('ordine-confermato.html'));
