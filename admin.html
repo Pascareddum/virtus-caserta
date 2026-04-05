@@ -68,12 +68,6 @@
       cursor:pointer; transition:background .2s;
     }
     .btn-logout:hover { background:rgba(255,255,255,.22); }
-    .btn-home {
-      background:var(--arancio); color:#fff; border:none;
-      padding:7px 16px; border-radius:8px; font-size:13px; font-weight:600;
-      cursor:pointer; text-decoration:none; transition:background .2s;
-    }
-    .btn-home:hover { background:#e56c00; }
 
     /* ── TABS ── */
     .tabs-bar {
@@ -218,7 +212,6 @@
       header { padding:0 12px; }
       .hdr-left span { display:none; }
       .hdr-user { display:none; }
-      .btn-home { display:none; }
       .tabs-bar { overflow-x:auto; padding:0 12px; }
       .tab-btn { padding:12px 14px; font-size:13px; }
       .mf-row, .mf-row3 { grid-template-columns:1fr; }
@@ -289,12 +282,13 @@
 <!-- HEADER -->
 <header>
   <div class="hdr-left">
-    <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
-    <span>Gestione</span>
+    <a href="/" style="display:flex;align-items:center;gap:16px;text-decoration:none;">
+      <img src="images/logo.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+      <span>Gestione</span>
+    </a>
   </div>
   <div class="hdr-right">
     <span class="hdr-user" id="hdrUser"></span>
-    <a href="index.html" class="btn-home">← Home</a>
     <button class="btn-logout" onclick="logout()">Esci</button>
   </div>
 </header>
@@ -574,7 +568,7 @@
       TOKEN = data.token;
       localStorage.setItem('vc_admin_token', TOKEN);
       document.getElementById('loginOverlay').style.display = 'none';
-      document.getElementById('hdrUser').textContent = 'Admin';
+      document.getElementById('hdrUser').textContent = 'Benvenuto, Admin';
       caricaTutto();
     } catch {
       document.getElementById('loginError').textContent = 'Errore di rete. Riprova.';
