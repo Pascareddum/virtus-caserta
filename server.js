@@ -740,33 +740,43 @@ app.post('/api/instagram/refresh-token', async (_req, res) => {
 });
 
 /* ─── FIPAV Partite ─── */
-const FIPAV_URL = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA';
+const FIPAV_CASERTA_BASE   = 'https://caserta.portalefipav.net';
+const FIPAV_CAMPANIA_BASE  = 'https://www.fipavcampania.it';
+const FIPAV_CASERTA_URL    = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA';
+const FIPAV_CAMPANIA_URL   = 'https://www.fipavcampania.it/risultati-classifiche.aspx?ComitatoId=15&StId=2277&DataDa=&StatoGara=&CId=&SId=5150&PId=1078&btFiltro=CERCA';
+const FIPAV_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml',
+  'Accept-Language': 'it-IT,it;q=0.9',
+};
 
-const FIPAV_BASE = 'https://caserta.portalefipav.net';
+function stripTagsFipav(s) {
+  return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function decodeEntitiesFipav(s) {
+  return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#\d+;/g, ' ').replace(/&nbsp;/g, ' ');
+}
 
-function parseFipavMatches(html) {
-  function stripTags(s) {
-    return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-  }
-  function decodeEntities(s) {
-    return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-            .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
-  }
-
-  // Parse categories + classifica links from captions
+// Parse matches from a FIPAV risultati-classifiche page.
+// baseUrl: 'https://caserta.portalefipav.net' or 'https://www.fipavcampania.it'
+// fonte:   'caserta' | 'campania'
+function parseFipavMatches(html, baseUrl, fonte) {
+  // ── Categories + classifica links from <caption> ──
   const categories = [];
   const capRe = /<caption[^>]*>([\s\S]*?)<\/caption>/gi;
   let capm;
   while ((capm = capRe.exec(html)) !== null) {
     const capHtml = capm[1];
-    const text = stripTags(capHtml).trim();
+    const text = stripTagsFipav(capHtml).trim();
     const clMatch = capHtml.match(/href="(\/classifica\.aspx\?CId=(\d+))"/i);
     if (text.length > 4 && /[a-zA-Z]/.test(text)) {
       categories.push({
         pos: capm.index,
         text,
-        classificaUrl: clMatch ? FIPAV_BASE + clMatch[1] : null,
-        cid: clMatch ? clMatch[2] : null,
+        cid:           clMatch ? clMatch[2] : null,
+        classificaUrl: clMatch ? baseUrl + clMatch[1] : null,
+        fonte,
       });
     }
   }
@@ -778,74 +788,108 @@ function parseFipavMatches(html) {
     const row = rowMatch[1];
     const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
     const tdRaws = [];
-    let tdMatch;
-    while ((tdMatch = tdRe.exec(row)) !== null) tdRaws.push(tdMatch[1]);
-    if (tdRaws.length >= 6) {
-      const tds = tdRaws.map(stripTags);
-      const [gara, giornata, dataOra, casa, ospite, risultato] = tds;
-      if (/^\d+$/.test(gara.trim()) && /\d{2}\/\d{2}\/\d{2}/.test(dataOra)) {
-        const score = risultato.trim();
-        const played = /\d\s*-\s*\d/.test(score);
-        const postponed = /rinviat/i.test(score);
+    let tdm;
+    while ((tdm = tdRe.exec(row)) !== null) tdRaws.push(tdm[1]);
+    if (tdRaws.length < 6) continue;
 
-        // Parziali: <span class="parziali">25-14</span> in td[6]
-        const parziali = [];
-        if (tdRaws[6]) {
-          const spanRe = /<span[^>]*class="parziali"[^>]*>([^<]+)<\/span>/gi;
-          let sm;
-          while ((sm = spanRe.exec(tdRaws[6])) !== null) parziali.push(sm[1].trim());
-        }
+    const tds = tdRaws.map(stripTagsFipav);
+    const [gara, giornata, dataOra, casa, ospite, risultato] = tds;
+    if (!/^\d+$/.test(gara.trim()) || !/\d{2}\/\d{2}\/\d{2}/.test(dataOra)) continue;
 
-        // Luogo: in title attr of info img in last td
-        let luogo = '';
-        const lastRaw = tdRaws[tdRaws.length - 1] || '';
-        const titleMatch = lastRaw.match(/img[^>]+src="[^"]*info_16[^"]*"[^>]+title="([^"]+)"/i)
-                        || lastRaw.match(/title="([^"]+)"[^>]*img[^>]+src="[^"]*info_16[^"]*"/i);
-        if (titleMatch) {
-          luogo = stripTags(decodeEntities(titleMatch[1])).replace(/\s+/g, ' ').trim();
-          // Remove arbitro designation text
-          luogo = luogo.replace(/Arbitro designato.*/i, '').trim();
-        }
+    const score     = risultato.trim();
+    const played    = /\d\s*-\s*\d/.test(score);
+    const postponed = /rinviat/i.test(score);
 
-        const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
-        let timestamp = null;
-        let dateFormatted = dataOra.trim();
-        if (dm) {
-          const [, dd, mm, yy, hh, min] = dm;
-          timestamp = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
-          dateFormatted = `${dd}/${mm}/20${yy} ${hh}:${min}`;
-        }
+    // ── Decode info img title (last td) ──
+    const lastRaw    = tdRaws[tdRaws.length - 1] || '';
+    const titleMatch = lastRaw.match(/img[^>]+src="[^"]*info_16[^"]*"[^>]+title="([^"]+)"/i)
+                    || lastRaw.match(/title="([^"]+)"[^>]*img[^>]+src="[^"]*info_16[^"]*"/i);
+    const decodedTitle = titleMatch ? decodeEntitiesFipav(titleMatch[1]) : '';
 
-        const rowPos = rowMatch.index;
-        let categoria = '', classificaUrl = null, cid = null;
-        for (const cat of categories) {
-          if (cat.pos < rowPos) { categoria = cat.text; classificaUrl = cat.classificaUrl; cid = cat.cid; }
-          else break;
-        }
-
-        matches.push({
-          id: gara.trim(), giornata: giornata.trim(), dataOra: dateFormatted, timestamp,
-          casa: casa.trim(), ospite: ospite.trim(), risultato: score, played, postponed,
-          categoria, classificaUrl, cid, luogo, parziali,
-        });
-      }
+    // ── Parziali ──
+    // Caserta: in td[6] as <span class="parziali">
+    // Campania: embedded in info img title after "PARZIALI:"
+    const parziali = [];
+    const extractSpanParziali = (src) => {
+      const re = /<span[^>]*class="parziali"[^>]*>([^<]+)<\/span>/gi;
+      let m;
+      while ((m = re.exec(src)) !== null) parziali.push(m[1].trim());
+    };
+    if (tdRaws[6] && /id="Parziali_/i.test(tdRaws[6])) {
+      extractSpanParziali(tdRaws[6]);             // Caserta dedicated td
+    } else if (decodedTitle && /PARZIALI/i.test(decodedTitle)) {
+      extractSpanParziali(decodedTitle);           // Campania: in title
     }
+
+    // ── Luogo ──
+    let luogo = '';
+    if (decodedTitle) {
+      // Take only the venue part: before "PARZIALI:" and before "Arbitro"
+      let raw = decodedTitle
+        .replace(/IMPIANTO DI GARA\s*:/i, '')
+        .replace(/PARZIALI[\s\S]*/i, '')
+        .replace(/Arbitro[\s\S]*/i, '');
+      luogo = stripTagsFipav(raw).replace(/\s+/g, ' ').trim();
+    }
+
+    // ── Timestamp ──
+    const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
+    let timestamp = null;
+    let dateFormatted = dataOra.trim();
+    if (dm) {
+      const [, dd, mm, yy, hh, min] = dm;
+      timestamp = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+      dateFormatted = `${dd}/${mm}/20${yy} ${hh}:${min}`;
+    }
+
+    // ── Category ──
+    const rowPos = rowMatch.index;
+    let categoria = '', classificaUrl = null, cid = null, catFonte = fonte;
+    for (const cat of categories) {
+      if (cat.pos < rowPos) { categoria = cat.text; classificaUrl = cat.classificaUrl; cid = cat.cid; catFonte = cat.fonte; }
+      else break;
+    }
+
+    matches.push({
+      id: gara.trim(), giornata: giornata.trim(), dataOra: dateFormatted, timestamp,
+      casa: casa.trim(), ospite: ospite.trim(), risultato: score, played, postponed,
+      categoria, classificaUrl, cid, fonte: catFonte, luogo, parziali,
+    });
   }
   return matches;
 }
 
-async function fetchFipavAll() {
-  const r = await fetch(FIPAV_URL, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml',
-      'Accept-Language': 'it-IT,it;q=0.9',
-    },
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+async function fetchFipav(url, baseUrl, fonte) {
+  const r = await fetch(url, { headers: FIPAV_HEADERS });
+  if (!r.ok) throw new Error(`HTTP ${r.status} da ${url}`);
   const html = await r.text();
-  const all = parseFipavMatches(html);
-  all.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  return parseFipavMatches(html, baseUrl, fonte);
+}
+
+// Fetch da entrambe le fonti, unifica, ordina per data DESC (più recenti prima)
+async function fetchFipavAll() {
+  const [caserta, campania] = await Promise.allSettled([
+    fetchFipav(FIPAV_CASERTA_URL,  FIPAV_CASERTA_BASE,  'caserta'),
+    fetchFipav(FIPAV_CAMPANIA_URL, FIPAV_CAMPANIA_BASE, 'campania'),
+  ]);
+
+  let all = [];
+  if (caserta.status  === 'fulfilled') all = all.concat(caserta.value);
+  else console.log('[FIPAV Caserta] Errore:', caserta.reason?.message);
+  if (campania.status === 'fulfilled') all = all.concat(campania.value);
+  else console.log('[FIPAV Campania] Errore:', campania.reason?.message);
+
+  // Deduplication by (casa + ospite + data)
+  const seen = new Set();
+  all = all.filter(m => {
+    const key = `${m.casa}|${m.ospite}|${m.dataOra}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Ordine decrescente (più recenti prima)
+  all.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   return all;
 }
 
@@ -853,9 +897,11 @@ app.get('/api/partite', async (_req, res) => {
   try {
     const all    = await fetchFipavAll();
     const now    = Date.now();
+    // ultime: le 3 più recenti giocate; prossime: le 3 più vicine future
     const past   = all.filter(m => m.played);
-    const future = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now);
-    res.json({ ultime: past.slice(-3), prossime: future.slice(0, 3), fipavUrl: FIPAV_URL });
+    const future = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now)
+                      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    res.json({ ultime: past.slice(0, 3), prossime: future.slice(0, 3), fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
     console.log('[Partite] Errore:', err.message);
     res.status(500).json({ error: err.message });
@@ -868,10 +914,10 @@ app.get('/api/partite/tutte', async (_req, res) => {
     const gruppi = {};
     all.forEach(m => {
       const cat = m.categoria || 'Altre partite';
-      if (!gruppi[cat]) gruppi[cat] = { classificaUrl: m.classificaUrl, cid: m.cid, partite: [] };
+      if (!gruppi[cat]) gruppi[cat] = { classificaUrl: m.classificaUrl, cid: m.cid, fonte: m.fonte, partite: [] };
       gruppi[cat].partite.push(m);
     });
-    res.json({ gruppi, fipavUrl: FIPAV_URL });
+    res.json({ gruppi, fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
     console.log('[Partite/tutte] Errore:', err.message);
     res.status(500).json({ error: err.message });
@@ -881,62 +927,38 @@ app.get('/api/partite/tutte', async (_req, res) => {
 app.get('/api/classifica/:cid', async (req, res) => {
   const { cid } = req.params;
   if (!/^\d+$/.test(cid)) return res.status(400).json({ error: 'CId non valido' });
+  const fonte = req.query.fonte === 'campania' ? 'campania' : 'caserta';
+  const base  = fonte === 'campania' ? FIPAV_CAMPANIA_BASE : FIPAV_CASERTA_BASE;
   try {
-    const r = await fetch(`${FIPAV_BASE}/classifica.aspx?CId=${cid}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'it-IT,it;q=0.9',
-      },
-    });
+    const r = await fetch(`${base}/classifica.aspx?CId=${cid}`, { headers: FIPAV_HEADERS });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const html = await r.text();
 
-    function stripTags(s) {
-      return s.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-    }
-
-    // Title
     const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-    const titolo = titleMatch ? stripTags(titleMatch[1]).trim() : '';
+    const titolo = titleMatch ? stripTagsFipav(titleMatch[1]).trim() : '';
 
-    // Rows
     const squadre = [];
     const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
     let rowMatch;
     while ((rowMatch = rowRe.exec(html)) !== null) {
       const row = rowMatch[1];
       const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-      const tds = [];
+      const tds = [], td1Raws = [];
       let tdm;
-      while ((tdm = tdRe.exec(row)) !== null) tds.push(stripTags(tdm[1]));
+      while ((tdm = tdRe.exec(row)) !== null) { tds.push(stripTagsFipav(tdm[1])); td1Raws.push(tdm[1]); }
       if (tds.length >= 13 && /^\d+$/.test(tds[0].trim())) {
-        // Extract logo src from raw td[1]
-        const td1Raw = row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi);
         let logo = '';
-        if (td1Raw && td1Raw[1]) {
-          const srcMatch = td1Raw[1].match(/src="([^"]+)"/i);
-          if (srcMatch) logo = FIPAV_BASE + srcMatch[1];
-        }
+        const srcMatch = td1Raws[1] && td1Raws[1].match(/src="([^"]+)"/i);
+        if (srcMatch) logo = base + srcMatch[1];
         squadre.push({
-          pos: tds[0].trim(),
-          squadra: tds[1].trim(),
-          logo,
-          punti: tds[2].trim(),
-          pg: tds[3].trim(),
-          pv: tds[4].trim(),
-          pp: tds[5].trim(),
-          sf: tds[6].trim(),
-          ss: tds[7].trim(),
-          qs: tds[8].trim(),
-          pf: tds[9].trim(),
-          ps: tds[10].trim(),
-          qp: tds[11].trim(),
-          penal: tds[12].trim(),
+          pos: tds[0].trim(), squadra: tds[1].trim(), logo,
+          punti: tds[2].trim(), pg: tds[3].trim(), pv: tds[4].trim(), pp: tds[5].trim(),
+          sf: tds[6].trim(), ss: tds[7].trim(), qs: tds[8].trim(),
+          pf: tds[9].trim(), ps: tds[10].trim(), qp: tds[11].trim(), penal: tds[12].trim(),
         });
       }
     }
-    res.json({ titolo, cid, squadre, url: `${FIPAV_BASE}/classifica.aspx?CId=${cid}` });
+    res.json({ titolo, cid, fonte, squadre, url: `${base}/classifica.aspx?CId=${cid}` });
   } catch (err) {
     console.log('[Classifica] Errore:', err.message);
     res.status(500).json({ error: err.message });

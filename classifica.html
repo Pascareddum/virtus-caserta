@@ -28,10 +28,12 @@
     .etichetta{display:inline-block;background:var(--arancio);color:#fff;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:14px;}
     .sezione-titolo h2{font-size:clamp(20px,4vw,32px);font-weight:900;color:var(--blu);letter-spacing:2px;text-transform:uppercase;}
 
-    /* Tab bar categorie */
-    .tab-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:40px;justify-content:center;}
-    .tab-btn{padding:9px 20px;border-radius:20px;border:1.5px solid #d1d5db;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#555;transition:all .15s;white-space:nowrap;}
-    .tab-btn.on,.tab-btn:hover{background:var(--blu);border-color:var(--blu);color:#fff;}
+    /* Dropdown categoria */
+    .dropdown-wrap{display:flex;justify-content:center;margin-bottom:40px;}
+    .cat-select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230d2055' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center;border:2px solid var(--blu);border-radius:12px;padding:12px 44px 12px 20px;font-size:14px;font-weight:700;color:var(--blu);cursor:pointer;min-width:320px;max-width:100%;box-shadow:0 2px 10px rgba(13,32,85,.08);transition:border-color .15s,box-shadow .15s;}
+    .cat-select:hover,.cat-select:focus{outline:none;border-color:var(--blu-m);box-shadow:0 4px 16px rgba(13,32,85,.15);}
+    optgroup{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9ca3af;}
+    option{font-size:13px;font-weight:600;color:#222;}
 
     /* Classifica table */
     .classifica-block{display:none;}
@@ -95,10 +97,14 @@
 <section>
   <div class="container">
     <div class="sezione-titolo">
-      <div class="etichetta">FIPAV Caserta</div>
+      <div class="etichetta">FIPAV</div>
       <h2>Classifiche per categoria</h2>
     </div>
-    <div class="tab-bar" id="tabBar"></div>
+    <div class="dropdown-wrap">
+      <select class="cat-select" id="catSelect" onchange="onSelectChange()">
+        <option value="">— Caricamento categorie… —</option>
+      </select>
+    </div>
     <div id="classificheContent"><div class="loading">Caricamento…</div></div>
   </div>
 </section>
@@ -127,15 +133,9 @@
             ${s.squadra}${virtus ? ' ⚡' : ''}
           </td>
           <td class="td-punti">${s.punti}</td>
-          <td>${s.pg}</td>
-          <td>${s.pv}</td>
-          <td>${s.pp}</td>
-          <td>${s.sf}</td>
-          <td>${s.ss}</td>
-          <td>${s.qs}</td>
-          <td>${s.pf}</td>
-          <td>${s.ps}</td>
-          <td>${s.penal}</td>
+          <td>${s.pg}</td><td>${s.pv}</td><td>${s.pp}</td>
+          <td>${s.sf}</td><td>${s.ss}</td><td>${s.qs}</td>
+          <td>${s.pf}</td><td>${s.ps}</td><td>${s.penal}</td>
         </tr>`;
     }).join('');
     return `
@@ -143,18 +143,11 @@
         <table>
           <thead>
             <tr>
-              <th>Pos.</th>
-              <th class="th-squadra">Squadra</th>
-              <th title="Punti">Pt</th>
-              <th title="Partite Giocate">PG</th>
-              <th title="Partite Vinte">PV</th>
-              <th title="Partite Perse">PP</th>
-              <th title="Set Fatti">SF</th>
-              <th title="Set Subiti">SS</th>
-              <th title="Quoziente Set">QS</th>
-              <th title="Punti Fatti">PF</th>
-              <th title="Punti Subiti">PS</th>
-              <th title="Penalità">Pen.</th>
+              <th>Pos.</th><th class="th-squadra">Squadra</th>
+              <th title="Punti">Pt</th><th title="Partite Giocate">PG</th>
+              <th title="Partite Vinte">PV</th><th title="Partite Perse">PP</th>
+              <th title="Set Fatti">SF</th><th title="Set Subiti">SS</th><th title="Quoziente Set">QS</th>
+              <th title="Punti Fatti">PF</th><th title="Punti Subiti">PS</th><th title="Penalità">Pen.</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -165,64 +158,84 @@
       </div>`;
   }
 
+  // Map key: "cid|fonte"
   const cache = {};
+  let categorie = [];   // [{cat, cid, fonte}]
 
-  async function mostraTab(cid, blockId) {
-    // Deactivate all
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
-    document.querySelectorAll('.classifica-block').forEach(b => b.classList.remove('attivo'));
+  async function mostraCategoria(cid, fonte) {
+    const cont = document.getElementById('classificheContent');
+    const key  = `${cid}|${fonte}`;
+    if (cache[key]) { cont.innerHTML = cache[key]; return; }
 
-    document.querySelector(`[data-cid="${cid}"]`).classList.add('on');
-    const block = document.getElementById(blockId);
-    block.classList.add('attivo');
-
-    if (cache[cid]) return; // already loaded
-
-    block.innerHTML = '<div class="loading">Caricamento classifica…</div>';
+    cont.innerHTML = '<div class="loading">Caricamento classifica…</div>';
     try {
-      const data = await fetch(`/api/classifica/${cid}`).then(r => r.json());
+      const data = await fetch(`/api/classifica/${cid}?fonte=${fonte}`).then(r => r.json());
       if (data.error) throw new Error(data.error);
-      cache[cid] = true;
-      block.innerHTML = renderClassifica(data);
+      const html = renderClassifica(data);
+      cache[key] = html;
+      cont.innerHTML = html;
     } catch (err) {
-      block.innerHTML = `<div class="errore">Impossibile caricare la classifica: ${err.message}</div>`;
+      cont.innerHTML = `<div class="errore">Impossibile caricare la classifica: ${err.message}</div>`;
     }
   }
 
+  function onSelectChange() {
+    const sel = document.getElementById('catSelect');
+    const val = sel.value;
+    if (!val) return;
+    const [cid, fonte] = val.split('|');
+    mostraCategoria(cid, fonte);
+  }
+
   async function carica() {
-    const cont = document.getElementById('classificheContent');
-    const tabBar = document.getElementById('tabBar');
+    const cont   = document.getElementById('classificheContent');
+    const sel    = document.getElementById('catSelect');
     try {
       const data = await fetch('/api/partite/tutte').then(r => r.json());
       if (data.error) throw new Error(data.error);
 
-      const categorieCid = Object.entries(data.gruppi)
-        .filter(([, v]) => v.cid)
-        .map(([cat, v]) => ({ cat, cid: v.cid }));
+      // Raggruppa per fonte
+      const perFonte = { caserta: [], campania: [] };
+      Object.entries(data.gruppi).forEach(([cat, v]) => {
+        if (!v.cid) return;
+        const f = v.fonte || 'caserta';
+        perFonte[f].push({ cat, cid: v.cid, fonte: f });
+      });
 
-      if (!categorieCid.length) {
+      categorie = [...perFonte.caserta, ...perFonte.campania];
+
+      if (!categorie.length) {
+        sel.innerHTML = '<option value="">Nessuna classifica disponibile</option>';
         cont.innerHTML = '<div class="errore">Nessuna categoria con classifica disponibile.</div>';
         return;
       }
 
-      // Build tabs + empty blocks
-      tabBar.innerHTML = categorieCid.map((c, i) =>
-        `<button class="tab-btn${i === 0 ? ' on' : ''}" data-cid="${c.cid}" onclick="mostraTab('${c.cid}','block-${c.cid}')">${c.cat}</button>`
-      ).join('');
+      // Build <optgroup> per fonte
+      let optsHtml = '';
+      if (perFonte.caserta.length) {
+        optsHtml += `<optgroup label="FIPAV Caserta">` +
+          perFonte.caserta.map(c => `<option value="${c.cid}|${c.fonte}">${c.cat}</option>`).join('') +
+          `</optgroup>`;
+      }
+      if (perFonte.campania.length) {
+        optsHtml += `<optgroup label="FIPAV Campania">` +
+          perFonte.campania.map(c => `<option value="${c.cid}|${c.fonte}">${c.cat}</option>`).join('') +
+          `</optgroup>`;
+      }
+      sel.innerHTML = `<option value="">— Seleziona una categoria —</option>` + optsHtml;
 
-      cont.innerHTML = categorieCid.map(c =>
-        `<div class="classifica-block" id="block-${c.cid}"></div>`
-      ).join('');
-
-      // Load first tab
-      const first = categorieCid[0];
-      await mostraTab(first.cid, `block-${first.cid}`);
-
-      // Check if URL has ?cid= param
-      const params = new URLSearchParams(location.search);
+      // Check URL param ?cid=
+      const params  = new URLSearchParams(location.search);
       const cidParam = params.get('cid');
-      if (cidParam && categorieCid.find(c => c.cid === cidParam)) {
-        await mostraTab(cidParam, `block-${cidParam}`);
+      const match    = categorie.find(c => c.cid === cidParam);
+      if (match) {
+        sel.value = `${match.cid}|${match.fonte}`;
+        await mostraCategoria(match.cid, match.fonte);
+      } else {
+        // Auto-select first
+        const first = categorie[0];
+        sel.value = `${first.cid}|${first.fonte}`;
+        await mostraCategoria(first.cid, first.fonte);
       }
     } catch (err) {
       cont.innerHTML = `<div class="errore">Impossibile caricare i dati: ${err.message}</div>`;
