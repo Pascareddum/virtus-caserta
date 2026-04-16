@@ -35,7 +35,7 @@ function buildPoolConfig(url) {
 }
 
 const pool = process.env.DATABASE_URL
-  ? new Pool(buildPoolConfig(process.env.DATABASE_URL))
+  ? new Pool(buildPoolConfig(process.env.DATABASE_URL.replace(/['"]/g, '').trim()))
   : null;
 
 function query(text, params) {

@@ -29,16 +29,19 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 /* ─── Nodemailer: transporter riusabile ─── */
 function creaTransporter() {
+  // Rimuove virgolette e spazi dall'app password (comune errore nel settare le env vars)
+  const emailPass = (process.env.EMAIL_PASS || '').replace(/['"]/g, '').trim();
+  const emailUser = (process.env.EMAIL_USER || '').replace(/['"]/g, '').trim();
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
     secure: false, // STARTTLS
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: (process.env.EMAIL_PASS || '').replace(/\s/g, ''), // rimuove spazi dall'app password
-    },
-    tls: { rejectUnauthorized: false },
+    auth: { user: emailUser, pass: emailPass },
   });
+}
+
+function emailConfigurata() {
+  return !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 }
 
 app.set('trust proxy', 1);
@@ -578,7 +581,7 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
     await logActivity('Stato ordine aggiornato', `Ordine #${ordine.id} → ${stato}`);
 
     // Email notifica cliente
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS && ordine.email) {
+    if (emailConfigurata() && ordine.email) {
       const statiLabel = {
         'ricevuto':       '📦 Ordine ricevuto',
         'in lavorazione': '🔧 In lavorazione',
@@ -638,7 +641,7 @@ app.post('/api/send-order-email', async (req, res) => {
     console.log('[Ordini] Errore salvataggio DB:', dbErr.message);
   }
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!emailConfigurata()) {
     console.log('[Email] Credenziali mancanti – email non inviata');
     return res.json({ success: false, reason: 'Email non configurata' });
   }
@@ -1129,7 +1132,7 @@ app.post('/api/iscrizioni', iscrizioniLimiter, async (req, res) => {
   try {
     await db.query(`INSERT INTO iscrizioni (id,nome,cognome,email,telefono,eta,categoria,messaggio) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [id, nome, cognome, email, telefono || '', eta || null, categoria || '', messaggio || '']);
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    if (emailConfigurata()) {
       const t = creaTransporter();
       t.sendMail({
         from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
@@ -1294,15 +1297,38 @@ app.post('/api/admin/push/send', adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+/* ─── Admin: test email ─── */
+app.post('/api/admin/test-email', adminAuth, async (_req, res) => {
+  if (!emailConfigurata()) return res.status(503).json({ error: 'EMAIL_USER o EMAIL_PASS non configurati' });
+  try {
+    const t = creaTransporter();
+    await t.verify();
+    await t.sendMail({
+      from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+      to: (process.env.EMAIL_ADMIN || process.env.EMAIL_USER || '').trim(),
+      subject: 'Test email – Virtus Caserta',
+      text: `Email di test inviata da ${process.env.NODE_ENV || 'development'} alle ${new Date().toISOString()}`,
+    });
+    await logActivity('Test email inviato', process.env.EMAIL_USER || '');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Test email] Errore:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ─── Startup ─── */
 db.init().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server avviato su http://localhost:${PORT}`);
-    if (!INSTAGRAM_ACCESS_TOKEN) console.log('[Instagram] Nessun access token configurato.');
+    console.log(`[OK] Server avviato su porta ${PORT} (${process.env.NODE_ENV || 'development'})`);
+    console.log(`[OK] Email configurata: ${emailConfigurata() ? process.env.EMAIL_USER : 'NO – imposta EMAIL_USER e EMAIL_PASS'}`);
+    console.log(`[OK] Stripe configurato: ${stripe ? 'SI' : 'NO'}`);
+    if (!INSTAGRAM_ACCESS_TOKEN) console.log('[--] Instagram: nessun access token.');
   });
 }).catch(err => {
   console.error('[DB] Errore inizializzazione:', err.message);
   app.listen(PORT, () => {
-    console.log(`Server avviato (senza DB) su http://localhost:${PORT}`);
+    console.log(`[WARN] Server avviato (senza DB) su porta ${PORT}`);
+    console.log(`[OK]  Email configurata: ${emailConfigurata() ? process.env.EMAIL_USER : 'NO'}`);
   });
 });
