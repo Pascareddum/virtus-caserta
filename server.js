@@ -30,6 +30,9 @@ const stripe = process.env.STRIPE_SECRET_KEY
 app.set('trust proxy', 1);
 app.use(cookieParser());
 
+/* ─── Health check (Railway) ─── */
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+
 /* ─── Stripe Webhook (raw body – DEVE stare prima di express.json) ─── */
 app.post('/api/stripe-webhook',
   express.raw({ type: 'application/json' }),
