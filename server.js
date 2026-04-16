@@ -27,6 +27,20 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
+/* ─── Nodemailer: transporter riusabile ─── */
+function creaTransporter() {
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // STARTTLS
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: (process.env.EMAIL_PASS || '').replace(/\s/g, ''), // rimuove spazi dall'app password
+    },
+    tls: { rejectUnauthorized: false },
+  });
+}
+
 app.set('trust proxy', 1);
 app.use(cookieParser());
 
@@ -136,6 +150,9 @@ app.get('/termini',         sendPage('termini.html'));
 app.get('/ordine-confermato', sendPage('ordine-confermato.html'));
 
 app.use(express.static(path.join(__dirname)));
+
+/* ─── Health check (Railway) ─── */
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 /* ─── Rate limiting ─── */
 const loginLimiter = rateLimit({
@@ -569,10 +586,7 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
         'consegnato':     '✅ Consegnato',
         'annullato':      '❌ Annullato',
       };
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      });
+      const transporter = creaTransporter();
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
           <div style="background:#0d2055;padding:24px;text-align:center">
@@ -630,10 +644,7 @@ app.post('/api/send-order-email', async (req, res) => {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+    const transporter = creaTransporter();
 
     const righeHtml = items.map(i =>
       `<tr>
@@ -1119,7 +1130,7 @@ app.post('/api/iscrizioni', iscrizioniLimiter, async (req, res) => {
     await db.query(`INSERT INTO iscrizioni (id,nome,cognome,email,telefono,eta,categoria,messaggio) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [id, nome, cognome, email, telefono || '', eta || null, categoria || '', messaggio || '']);
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const t = nodemailer.createTransport({ service:'gmail', auth:{ user:process.env.EMAIL_USER, pass:process.env.EMAIL_PASS } });
+      const t = creaTransporter();
       t.sendMail({
         from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
         to: process.env.EMAIL_ADMIN || process.env.EMAIL_USER,
