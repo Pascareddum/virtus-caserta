@@ -16,7 +16,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('[ERRORE CRITICO] JWT_SECRET non configurato. Imposta JWT_SECRET nel file .env prima di avviare in produzione.');
+  console.error('[ERRORE CRITICO] JWT_SECRET non configurato. Imposta JWT_SECRET nelle variabili d\'ambiente di Railway prima di avviare in produzione.');
   process.exit(1);
 }
 const JWT_SECRET             = process.env.JWT_SECRET || 'virtus_secret_2026_dev';
@@ -29,6 +29,53 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 app.set('trust proxy', 1);
 app.use(cookieParser());
+
+/* ─── Stripe Webhook (raw body – DEVE stare prima di express.json) ─── */
+app.post('/api/stripe-webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    if (!stripe) return res.status(503).send('Stripe non configurato');
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.log('[Webhook] STRIPE_WEBHOOK_SECRET non configurato');
+      return res.status(500).send('Webhook secret mancante');
+    }
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err) {
+      console.log('[Webhook] Firma non valida:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'payment_intent.succeeded') {
+      const pi = event.data.object;
+      const orderId = pi.metadata?.orderId;
+      console.log(`[Webhook] Pagamento confermato – PaymentIntent: ${pi.id}${orderId ? ', Ordine: ' + orderId : ''}`);
+      try {
+        if (orderId) {
+          await db.query(
+            `UPDATE ordini SET stato='ricevuto', stripe_payment_id=$1 WHERE id=$2`,
+            [pi.id, orderId]
+          );
+          await logActivity('Pagamento confermato via webhook', `Ordine #${orderId} – PI: ${pi.id}`);
+        }
+      } catch (dbErr) {
+        console.log('[Webhook] Errore aggiornamento DB:', dbErr.message);
+      }
+    }
+
+    if (event.type === 'payment_intent.payment_failed') {
+      const pi = event.data.object;
+      console.log(`[Webhook] Pagamento fallito – PaymentIntent: ${pi.id}`);
+      await logActivity('Pagamento fallito', `PI: ${pi.id}`);
+    }
+
+    res.json({ received: true });
+  }
+);
+
 app.use(express.json());
 
 /* ─── Pagine: URL puliti e protezione admin ─── */
