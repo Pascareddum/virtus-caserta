@@ -33,8 +33,9 @@ function creaTransporter() {
   const emailUser = (process.env.EMAIL_USER || '').replace(/['"]/g, '').trim();
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // SSL diretto (più affidabile da cloud provider)
+    port: 587,
+    secure: false,        // STARTTLS
+    family: 4,            // forza IPv4 – Railway non supporta IPv6 in uscita
     auth: { user: emailUser, pass: emailPass },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
