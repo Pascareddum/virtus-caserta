@@ -29,14 +29,16 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 /* ─── Nodemailer: transporter riusabile ─── */
 function creaTransporter() {
-  // Rimuove virgolette e spazi dall'app password (comune errore nel settare le env vars)
   const emailPass = (process.env.EMAIL_PASS || '').replace(/['"]/g, '').trim();
   const emailUser = (process.env.EMAIL_USER || '').replace(/['"]/g, '').trim();
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // STARTTLS
+    port: 465,
+    secure: true, // SSL diretto (più affidabile da cloud provider)
     auth: { user: emailUser, pass: emailPass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 }
 
@@ -611,11 +613,15 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
           </div>
         </div>`;
       transporter.sendMail({
-        from: `"Virtus Caserta" <${process.env.EMAIL_USER}>`,
+        from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
         to: ordine.email,
         subject: `Aggiornamento ordine #${ordine.id} – ${statiLabel[stato] || stato}`,
         html,
-      }).catch(e => console.log('[Email ordine] Errore:', e.message));
+      }).then(() => {
+        console.log(`[Email ordine] Inviata a ${ordine.email} – stato: ${stato}`);
+      }).catch(e => {
+        console.error(`[Email ordine] ERRORE (${e.code || 'unknown'}): ${e.message}`);
+      });
     }
 
     res.json({ success: true, stato });
@@ -724,10 +730,10 @@ app.post('/api/send-order-email', async (req, res) => {
       });
     }
 
-    console.log(`[Email] Ordine inviato a ${email}`);
+    console.log(`[Email] Ordine confermato inviato a ${email}`);
     res.json({ success: true });
   } catch (err) {
-    console.log('[Email] Errore:', err.message);
+    console.error(`[Email] ERRORE (${err.code || 'unknown'}): ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });
