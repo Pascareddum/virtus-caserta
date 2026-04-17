@@ -1,4 +1,6 @@
 require('dotenv').config();
+const dns        = require('dns');
+dns.setDefaultResultOrder('ipv4first'); // Railway non supporta IPv6 in uscita
 const express    = require('express');
 const fetch      = require('node-fetch');
 const path       = require('path');
