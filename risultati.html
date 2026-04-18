@@ -57,10 +57,14 @@
     .esito-label{text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
     .esito-label.win{color:var(--verde);}
     .esito-label.loss{color:var(--rosso);}
-    .parziali-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:2px;}
+    .parziali-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:4px;}
     .parziale{font-size:11px;font-weight:700;background:#f1f5f9;color:#374151;padding:2px 8px;border-radius:8px;}
-    .luogo-row{font-size:11px;color:#9ca3af;display:flex;align-items:flex-start;gap:4px;margin-top:2px;line-height:1.4;}
-    .luogo-row span{flex:1;}
+    .luogo-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #f0f4f8;font-size:12px;color:#6b7280;font-weight:500;line-height:1.4;}
+    .luogo-icon{font-size:14px;flex-shrink:0;color:#9ca3af;}
+    .luogo-text{flex:1;}
+    /* Card "da disputare" più recente */
+    .partita-card.prossima-card{border:1.5px solid #c7d9ff;background:#f5f8ff;}
+    .partita-card.prossima-card .partita-meta{color:#4f5fa8;}
 
     /* Espandi row */
     .espandi-row{text-align:center;margin-top:16px;}
@@ -124,20 +128,21 @@
   }
 
   function renderCard(m, nascosta) {
-    const casaCls   = isVirtus(m.casa)   ? ' virtus' : '';
-    const ospiteCls = isVirtus(m.ospite) ? ' virtus' : '';
-    const nascostaClass = nascosta ? ' nascosta' : '';
+    const casaCls      = isVirtus(m.casa)   ? ' virtus' : '';
+    const ospiteCls    = isVirtus(m.ospite) ? ' virtus' : '';
+    const nascostaClass  = nascosta ? ' nascosta' : '';
+    const prossimaClass  = (!m.played && !m.postponed) ? ' prossima-card' : '';
 
     const parziali = m.parziali && m.parziali.length
       ? `<div class="parziali-row">${m.parziali.map(p => `<span class="parziale">${p}</span>`).join('')}</div>`
       : '';
 
     const luogo = m.luogo
-      ? `<div class="luogo-row">📍 <span>${m.luogo}</span></div>`
+      ? `<div class="luogo-row"><span class="luogo-icon">📍</span><span class="luogo-text">${m.luogo}</span></div>`
       : '';
 
     return `
-      <div class="partita-card${nascostaClass}">
+      <div class="partita-card${nascostaClass}${prossimaClass}">
         <div class="partita-meta">
           <span>Giornata ${m.giornata}</span>
           <span>·</span>
@@ -154,18 +159,24 @@
       </div>`;
   }
 
-  // Determine which cards to show initially: next upcoming + last played
+  // Partite sorted DESC (future first, then past).
+  // "Prossima" = the upcoming match CLOSEST to today = last unplayed before the first played.
   function getVisibiliIndices(partite) {
-    // partite sorted DESC (most recent/future first)
-    // last played = first with played===true
-    // next upcoming = first with !played && !postponed
-    const idxUltima   = partite.findIndex(m => m.played);
-    const idxProssima = partite.findIndex(m => !m.played && !m.postponed);
+    const idxUltima = partite.findIndex(m => m.played);
+
+    // Walk backwards from just before the first played match to find the soonest upcoming
+    let idxProssima = -1;
+    const scanTo = idxUltima >= 0 ? idxUltima : partite.length;
+    for (let i = scanTo - 1; i >= 0; i--) {
+      if (!partite[i].played && !partite[i].postponed) { idxProssima = i; break; }
+    }
+    // Fallback: any unplayed
+    if (idxProssima < 0) idxProssima = partite.findIndex(m => !m.played && !m.postponed);
+
     const visibili = new Set();
     if (idxUltima   >= 0) visibili.add(idxUltima);
     if (idxProssima >= 0) visibili.add(idxProssima);
-    // If nothing played yet show first; if no upcoming show first
-    if (!visibili.size) visibili.add(0);
+    if (!visibili.size)   visibili.add(0);
     return visibili;
   }
 

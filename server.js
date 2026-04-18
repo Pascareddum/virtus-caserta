@@ -889,18 +889,26 @@ function parseFipavMatches(html, baseUrl, fonte) {
     const decodedTitle = titleMatch ? decodeEntitiesFipav(titleMatch[1]) : '';
 
     // ── Parziali ──
-    // Caserta: in td[6] as <span class="parziali">
-    // Campania: embedded in info img title after "PARZIALI:"
+    // Caserta: <span class="parziali"> in td[6] o nel title dell'icona info
+    // Campania: nel title dell'icona info dopo "PARZIALI:"
     const parziali = [];
     const extractSpanParziali = (src) => {
       const re = /<span[^>]*class="parziali"[^>]*>([^<]+)<\/span>/gi;
       let m;
       while ((m = re.exec(src)) !== null) parziali.push(m[1].trim());
     };
-    if (tdRaws[6] && /id="Parziali_/i.test(tdRaws[6])) {
-      extractSpanParziali(tdRaws[6]);             // Caserta dedicated td
-    } else if (decodedTitle && /PARZIALI/i.test(decodedTitle)) {
-      extractSpanParziali(decodedTitle);           // Campania: in title
+    const extractTextParziali = (src) => {
+      const pm = src.match(/PARZIALI[:\s]*([^\n<]{2,120})/i);
+      if (!pm) return;
+      const parts = pm[1].match(/\d+\s*[-–]\s*\d+/g);
+      if (parts) parziali.push(...parts.map(p => p.replace(/\s/g, '')));
+    };
+    // 1) prova td[6] con span (Caserta)
+    if (tdRaws[6]) extractSpanParziali(tdRaws[6]);
+    // 2) prova title img info (funziona per Caserta e Campania)
+    if (!parziali.length && decodedTitle && /PARZIALI/i.test(decodedTitle)) {
+      extractSpanParziali(decodedTitle);
+      if (!parziali.length) extractTextParziali(decodedTitle);
     }
 
     // ── Luogo ──
@@ -1051,11 +1059,15 @@ app.get('/api/classifica/:cid', async (req, res) => {
 app.get('/api/proxy-image', async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).send('Missing url');
+  const isFipav = /portalefipav|fipavcampania/i.test(url);
+  const referer = isFipav
+    ? (/fipavcampania/i.test(url) ? 'https://www.fipavcampania.it/' : 'https://caserta.portalefipav.net/')
+    : 'https://www.instagram.com/';
   try {
     const imgRes = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Referer': 'https://www.instagram.com/',
+        'Referer': referer,
       },
     });
     if (!imgRes.ok) return res.status(imgRes.status).send('Error fetching image');

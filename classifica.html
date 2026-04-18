@@ -125,12 +125,13 @@
     if (!data.squadre.length) return '<div class="errore">Nessun dato disponibile.</div>';
     const rows = data.squadre.map(s => {
       const virtus = isVirtus(s.squadra);
+      const logoSrc = s.logo ? `/api/proxy-image?url=${encodeURIComponent(s.logo)}` : '';
       return `
         <tr${virtus ? ' class="virtus"' : ''}>
           <td class="td-pos">${medalHtml(s.pos)}</td>
           <td class="td-squadra">
-            <img src="${s.logo}" alt="${s.squadra}" onerror="this.style.display='none'">
-            ${s.squadra}${virtus ? ' ⚡' : ''}
+            ${logoSrc ? `<img src="${logoSrc}" alt="${s.squadra}" onerror="this.style.display='none'">` : ''}
+            ${s.squadra}
           </td>
           <td class="td-punti">${s.punti}</td>
           <td>${s.pg}</td><td>${s.pv}</td><td>${s.pp}</td>

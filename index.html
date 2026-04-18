@@ -1122,6 +1122,14 @@
     .partita-risultato.loss { color: #dc2626; }
     .partita-risultato.prossima { font-size: 14px; color: #6b7280; font-weight: 600; }
     .partita-risultato.rinviata { font-size: 13px; color: #b45309; font-weight: 700; background: #fef3c7; padding: 4px 10px; border-radius: 8px; }
+    .esito-label { text-align: center; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .esito-label.win  { color: #16a34a; }
+    .esito-label.loss { color: #dc2626; }
+    .parziali-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+    .parziale { font-size: 11px; font-weight: 700; background: #f1f5f9; color: #374151; padding: 2px 8px; border-radius: 8px; }
+    .luogo-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f4f8; font-size: 12px; color: #6b7280; font-weight: 500; line-height: 1.4; }
+    .luogo-icon { font-size: 14px; flex-shrink: 0; color: #9ca3af; }
+    .luogo-text { flex: 1; }
 
     .partite-fipav-btn {
       display: inline-flex;
@@ -1893,19 +1901,25 @@
       const parts = m.risultato.match(/(\d+)\s*-\s*(\d+)/);
       if (!parts) return `<div class="partita-risultato">${m.risultato}</div>`;
       const [, s1, s2] = parts;
-      const casaVince = parseInt(s1) > parseInt(s2);
       const casaIsVirtus = isVirtus(m.casa);
-      const virtusVince = casaIsVirtus ? casaVince : !casaVince;
-      const cls = virtusVince ? 'win' : 'loss';
-      return `<div class="partita-risultato ${cls}">${m.risultato}</div>`;
+      const virtusVince  = casaIsVirtus ? parseInt(s1) > parseInt(s2) : parseInt(s2) > parseInt(s1);
+      const cls   = virtusVince ? 'win' : 'loss';
+      const label = virtusVince ? 'Vittoria' : 'Sconfitta';
+      return `<div class="partita-risultato ${cls}">${m.risultato}</div><div class="esito-label ${cls}">${label}</div>`;
     }
 
     function renderPartite(list) {
       if (!list.length) return '<p style="color:#9ca3af;font-size:14px;text-align:center;">Nessuna partita disponibile.</p>';
       return list.map(m => {
-        const casaCls = isVirtus(m.casa) ? ' virtus' : '';
+        const casaCls   = isVirtus(m.casa)   ? ' virtus' : '';
         const ospiteCls = isVirtus(m.ospite) ? ' virtus' : '';
-        const catHtml = `<div class="partita-categoria">${m.categoria || 'Categoria'}</div>`;
+        const catHtml   = `<div class="partita-categoria">${m.categoria || 'Categoria'}</div>`;
+        const parziali  = m.parziali && m.parziali.length
+          ? `<div class="parziali-row">${m.parziali.map(p => `<span class="parziale">${p}</span>`).join('')}</div>`
+          : '';
+        const luogo = m.luogo
+          ? `<div class="luogo-row"><span class="luogo-icon">📍</span><span class="luogo-text">${m.luogo}</span></div>`
+          : '';
         return `
           <div class="partita-card">
             ${catHtml}
@@ -1916,6 +1930,8 @@
               <div class="partita-squadra${ospiteCls}">${m.ospite}</div>
             </div>
             ${matchResult(m)}
+            ${parziali}
+            ${luogo}
           </div>`;
       }).join('');
     }
