@@ -77,13 +77,10 @@ app.post('/api/stripe-webhook',
     if (event.type === 'payment_intent.succeeded') {
       const pi = event.data.object;
       const orderId = pi.metadata?.orderId;
-      console.log(`[Webhook] Pagamento confermato – PaymentIntent: ${pi.id}${orderId ? ', Ordine: ' + orderId : ''}`);
+      console.log(`[Webhook] Pagamento confermato – PI: ${pi.id}${orderId ? ', Ordine: ' + orderId : ' (nessun orderId nei metadata)'}`);
       try {
         if (orderId) {
-          await db.query(
-            `UPDATE ordini SET stato='ricevuto', stripe_payment_id=$1 WHERE id=$2`,
-            [pi.id, orderId]
-          );
+          await db.query(`UPDATE ordini SET stato='in lavorazione' WHERE id=$1`, [orderId]);
           await logActivity('Pagamento confermato via webhook', `Ordine #${orderId} – PI: ${pi.id}`);
         }
       } catch (dbErr) {
@@ -93,8 +90,16 @@ app.post('/api/stripe-webhook',
 
     if (event.type === 'payment_intent.payment_failed') {
       const pi = event.data.object;
-      console.log(`[Webhook] Pagamento fallito – PaymentIntent: ${pi.id}`);
-      await logActivity('Pagamento fallito', `PI: ${pi.id}`);
+      const orderId = pi.metadata?.orderId;
+      console.log(`[Webhook] Pagamento fallito – PI: ${pi.id}`);
+      try {
+        if (orderId) {
+          await db.query(`UPDATE ordini SET stato='annullato' WHERE id=$1`, [orderId]);
+        }
+      } catch (dbErr) {
+        console.log('[Webhook] Errore aggiornamento DB:', dbErr.message);
+      }
+      await logActivity('Pagamento fallito', `PI: ${pi.id}${orderId ? ', Ordine: ' + orderId : ''}`);
     }
 
     res.json({ received: true });
@@ -133,6 +138,8 @@ app.get('/galleria.html',           (_req, res) => res.redirect(301, '/galleria'
 app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/iscrizione'));
 app.get('/sponsor.html',            (_req, res) => res.redirect(301, '/sponsor'));
 app.get('/risultati.html',          (_req, res) => res.redirect(301, '/risultati'));
+app.get('/classifica.html',         (_req, res) => res.redirect(301, '/classifica'));
+app.get('/staff.html',              (_req, res) => res.redirect(301, '/staff'));
 app.get('/privacy.html',            (_req, res) => res.redirect(301, '/privacy'));
 app.get('/termini.html',            (_req, res) => res.redirect(301, '/termini'));
 app.get('/ordine-confermato.html',  (_req, res) => res.redirect(301, '/ordine-confermato'));
@@ -476,12 +483,14 @@ app.post('/api/create-payment-intent', async (req, res) => {
   try {
     const { amount } = req.body;
     if (!amount || amount < 50) return res.status(400).json({ error: 'Importo non valido' });
+    const orderId = Date.now().toString();
     const pi = await stripe.paymentIntents.create({
       amount: Math.round(amount),
       currency: 'eur',
       automatic_payment_methods: { enabled: true },
+      metadata: { orderId },
     });
-    res.json({ clientSecret: pi.client_secret });
+    res.json({ clientSecret: pi.client_secret, orderId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -574,7 +583,7 @@ app.get('/api/admin/ordini', adminAuth, async (req, res) => {
 /* ─── Ordini: aggiorna stato (admin) ─── */
 app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
   const { stato } = req.body;
-  const statiValidi = ['ricevuto', 'in lavorazione', 'spedito', 'consegnato', 'annullato'];
+  const statiValidi = ['ricevuto', 'in lavorazione', 'pronto', 'ritirato', 'annullato'];
   if (!statiValidi.includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
   try {
     const result = await db.query(
@@ -590,8 +599,8 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
       const statiLabel = {
         'ricevuto':       '📦 Ordine ricevuto',
         'in lavorazione': '🔧 In lavorazione',
-        'spedito':        '🚚 Spedito',
-        'consegnato':     '✅ Consegnato',
+        'pronto':         '📦 Pronto per il ritiro',
+        'ritirato':       '✅ Ritirato',
         'annullato':      '❌ Annullato',
       };
       const transporter = creaTransporter();
@@ -607,8 +616,8 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
             <div style="background:#f0f9ff;border-left:4px solid #0d2055;padding:16px;border-radius:4px;margin:16px 0;font-size:18px;font-weight:bold">
               ${statiLabel[stato] || stato}
             </div>
-            ${stato === 'spedito' ? '<p>Il tuo pacco è in viaggio! Riceverai la consegna entro 2–3 giorni lavorativi.</p>' : ''}
-            ${stato === 'consegnato' ? '<p>Speriamo che tu sia soddisfatto del tuo acquisto. Grazie per aver scelto Virtus Caserta!</p>' : ''}
+            ${stato === 'pronto' ? '<p>Il tuo ordine è pronto per il ritiro presso la sede della <strong>Virtus Caserta ASD</strong>. Ti aspettiamo!</p>' : ''}
+            ${stato === 'ritirato' ? '<p>Grazie per il tuo acquisto! Speriamo di rivederti presto. Forza Virtus!</p>' : ''}
             ${stato === 'annullato' ? '<p>Per informazioni contatta <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a></p>' : ''}
           </div>
           <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">

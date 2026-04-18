@@ -363,12 +363,6 @@
   <button class="tab-btn"        onclick="switchTab('ordini')">📦 Ordini</button>
   <button class="tab-btn"        onclick="switchTab('squadra')">🏐 Squadra</button>
   <button class="tab-btn"        onclick="switchTab('galleria')">🖼️ Galleria</button>
-  <button class="tab-btn"        onclick="switchTab('iscrizioni')">📝 Iscrizioni</button>
-  <button class="tab-btn"        onclick="switchTab('sponsor')">🤝 Sponsor</button>
-  <button class="tab-btn"        onclick="switchTab('risultati')">🏆 Risultati</button>
-  <button class="tab-btn"        onclick="switchTab('impostazioni')">⚙️ Impostazioni</button>
-  <button class="tab-btn"        onclick="switchTab('log')">📋 Log</button>
-  <button class="tab-btn"        onclick="switchTab('utenti')">👥 Utenti</button>
 </div>
 
 <!-- ══ DASHBOARD ══ -->
@@ -467,25 +461,6 @@
 </div>
 
 <!-- ══ UTENTI ══ -->
-<div class="pannello" id="pan-utenti">
-  <div class="toolbar">
-    <h2>Utenti registrati</h2>
-  </div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th>Nome</th>
-        <th>Email</th>
-        <th>Ruolo</th>
-        <th>Notifiche</th>
-        <th>Iscritto il</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="utentiBody"></tbody>
-    </table>
-  </div>
-</div>
-
 <!-- ══ ORDINI ══ -->
 <div class="pannello" id="pan-ordini">
   <div class="toolbar">
@@ -496,8 +471,8 @@
     <button class="filtro-btn on" onclick="filtraOrdini('')">Tutti</button>
     <button class="filtro-btn" onclick="filtraOrdini('ricevuto')">📦 Ricevuto</button>
     <button class="filtro-btn" onclick="filtraOrdini('in lavorazione')">🔧 In lavorazione</button>
-    <button class="filtro-btn" onclick="filtraOrdini('spedito')">🚚 Spedito</button>
-    <button class="filtro-btn" onclick="filtraOrdini('consegnato')">✅ Consegnato</button>
+    <button class="filtro-btn" onclick="filtraOrdini('pronto')">📦 Pronto</button>
+    <button class="filtro-btn" onclick="filtraOrdini('ritirato')">✅ Ritirato</button>
     <button class="filtro-btn" onclick="filtraOrdini('annullato')">❌ Annullato</button>
   </div>
   <div class="card-table">
@@ -555,120 +530,6 @@
       </tr></thead>
       <tbody id="galleriaBody"></tbody>
     </table>
-  </div>
-</div>
-
-<!-- ══ ISCRIZIONI ══ -->
-<div class="pannello" id="pan-iscrizioni">
-  <div class="toolbar"><h2>Iscrizioni</h2></div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th>Nome</th>
-        <th>Email</th>
-        <th>Categoria</th>
-        <th>Data</th>
-        <th>Stato</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="iscrizioniBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- ══ SPONSOR ══ -->
-<div class="pannello" id="pan-sponsor">
-  <div class="toolbar">
-    <h2>Sponsor</h2>
-    <button class="btn-aggiungi" onclick="apriModalSponsor(null)">+ Aggiungi sponsor</button>
-  </div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th style="width:80px">Logo</th>
-        <th>Nome</th>
-        <th>Livello</th>
-        <th>Stato</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="sponsorBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- ══ RISULTATI ══ -->
-<div class="pannello" id="pan-risultati">
-  <div class="toolbar">
-    <h2>Risultati</h2>
-    <button class="btn-aggiungi" onclick="apriModalRisultato(null)">+ Aggiungi risultato</button>
-  </div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th>Data</th>
-        <th>Avversario</th>
-        <th>Risultato</th>
-        <th>Categoria</th>
-        <th>Tipo</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="risultatiBody"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- ══ IMPOSTAZIONI ══ -->
-<div class="pannello" id="pan-impostazioni">
-  <div class="toolbar">
-    <h2>Impostazioni sito</h2>
-    <button class="btn-aggiungi" onclick="salvaImpostazioni()">💾 Salva</button>
-  </div>
-  <div class="card-table" style="padding:24px;">
-    <div class="impost-grid">
-      <div class="mf">
-        <label>Nome associazione</label>
-        <input type="text" id="iNome" placeholder="Virtus Caserta ASD">
-      </div>
-      <div class="mf">
-        <label>P.IVA / Cod. Fiscale</label>
-        <input type="text" id="iPiva" placeholder="00000000000">
-      </div>
-      <div class="mf">
-        <label>Telefono</label>
-        <input type="text" id="iTelefono" placeholder="+39 000 000 0000">
-      </div>
-      <div class="mf">
-        <label>Email contatto</label>
-        <input type="email" id="iEmail" placeholder="info@virtuscaserta.it">
-      </div>
-      <div class="mf" style="grid-column:1/-1">
-        <label>Indirizzo</label>
-        <input type="text" id="iIndirizzo" placeholder="Via Roma 1, Caserta">
-      </div>
-      <div class="mf" style="grid-column:1/-1">
-        <label>IBAN (bonifici shop)</label>
-        <input type="text" id="iIban" placeholder="IT00 X000 0000 0000 0000 0000 000">
-      </div>
-    </div>
-    <div id="impostMsg" style="margin-top:14px;font-size:13px;min-height:18px;"></div>
-
-    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--bordo);">
-      <h3 style="font-size:16px;font-weight:800;color:var(--blu);margin-bottom:16px;">🔔 Invia notifica push</h3>
-      <div class="impost-grid">
-        <div class="mf"><label>Titolo</label><input type="text" id="pushTitolo" placeholder="Es. Nuova notizia!"></div>
-        <div class="mf"><label>URL destinazione</label><input type="text" id="pushUrl" placeholder="/notizie"></div>
-        <div class="mf" style="grid-column:1/-1"><label>Messaggio</label><input type="text" id="pushMsg" placeholder="Testo della notifica..."></div>
-      </div>
-      <button class="btn-aggiungi" style="margin-top:12px;" onclick="inviaPush(document.getElementById('pushTitolo').value, document.getElementById('pushMsg').value, document.getElementById('pushUrl').value)">Invia push</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ LOG ATTIVITÀ ══ -->
-<div class="pannello" id="pan-log">
-  <div class="toolbar"><h2>Log attività</h2></div>
-  <div class="card-table" style="padding:8px 20px;" id="logContainer">
-    <div class="empty-state" style="padding:32px;text-align:center;color:var(--sub);">Nessuna attività registrata.</div>
   </div>
 </div>
 
@@ -930,69 +791,6 @@
   </div>
 </div>
 
-<!-- MODAL SPONSOR -->
-<div class="modal-overlay" id="modalSponsor">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <h3 id="modalSponsorTitolo">Nuovo sponsor</h3>
-      <button class="modal-close" onclick="chiudiModal('modalSponsor')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="mf"><label>Nome *</label><input type="text" id="sNome" placeholder="Nome azienda"></div>
-      <div class="mf"><label>Logo</label>
-        <input type="file" id="sLogoFile" accept="image/*" onchange="anteprima('sLogoFile','sLogoPreview')">
-        <img id="sLogoPreview" class="img-preview">
-        <input type="hidden" id="sLogo">
-      </div>
-      <div class="mf"><label>URL sito</label><input type="url" id="sUrl" placeholder="https://"></div>
-      <div class="mf">
-        <label>Livello</label>
-        <select id="sLivello">
-          <option value="standard">Standard</option>
-          <option value="principale">Principale ⭐</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-ftr">
-      <button class="btn-annulla" onclick="chiudiModal('modalSponsor')">Annulla</button>
-      <button class="btn-salva" id="btnSalvaSponsor" onclick="salvaSponsor()">Salva</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL RISULTATO -->
-<div class="modal-overlay" id="modalRisultato">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <h3 id="modalRisultatoTitolo">Nuovo risultato</h3>
-      <button class="modal-close" onclick="chiudiModal('modalRisultato')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="mf-row">
-        <div class="mf"><label>Data *</label><input type="date" id="rData"></div>
-        <div class="mf"><label>Tipo</label>
-          <select id="rTipo"><option value="campionato">Campionato</option><option value="coppa">Coppa</option><option value="amichevole">Amichevole</option><option value="playoff">Playoff</option></select>
-        </div>
-      </div>
-      <div class="mf"><label>Avversario *</label><input type="text" id="rAvversario" placeholder="Es. Pallavolo Napoli"></div>
-      <div class="mf-row">
-        <div class="mf"><label>Set Virtus *</label><input type="number" id="rSetNoi" min="0" max="5" placeholder="3"></div>
-        <div class="mf"><label>Set avversario *</label><input type="number" id="rSetLoro" min="0" max="5" placeholder="1"></div>
-      </div>
-      <div class="mf"><label>Categoria</label>
-        <select id="rCategoria">
-          <option value="">— Seleziona —</option>
-          <option>Under 13</option><option>Under 16</option><option>Under 19</option><option>Prima Squadra</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-ftr">
-      <button class="btn-annulla" onclick="chiudiModal('modalRisultato')">Annulla</button>
-      <button class="btn-salva" id="btnSalvaRisultato" onclick="salvaRisultato()">Salva</button>
-    </div>
-  </div>
-</div>
-
 <script>
   /* ── Quill WYSIWYG ── */
   let quill = null;
@@ -1057,24 +855,18 @@
   /* ══ TABS ══ */
   function switchTab(nome) {
     document.querySelectorAll('.tab-btn').forEach((b,i) => {
-      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','galleria','iscrizioni','sponsor','risultati','impostazioni','log','utenti'];
+      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','galleria'];
       b.classList.toggle('attivo', nomi[i] === nome);
     });
     document.querySelectorAll('.pannello').forEach(p => p.classList.remove('attivo'));
     document.getElementById('pan-'+nome).classList.add('attivo');
-    if (nome === 'dashboard')   caricaDashboard();
-    if (nome === 'prodotti')    caricaProdotti();
-    if (nome === 'notizie')     caricaNotizie();
-    if (nome === 'calendario')  caricaCalendario();
-    if (nome === 'ordini')      caricaOrdini();
-    if (nome === 'squadra')     caricaSquadra();
-    if (nome === 'galleria')    caricaGalleriaAdmin();
-    if (nome === 'iscrizioni')  caricaIscrizioni();
-    if (nome === 'sponsor')     caricaSponsor();
-    if (nome === 'risultati')   caricaRisultati();
-    if (nome === 'impostazioni') caricaImpostazioni();
-    if (nome === 'log')         caricaLog();
-    if (nome === 'utenti')      caricaUtenti();
+    if (nome === 'dashboard')  caricaDashboard();
+    if (nome === 'prodotti')   caricaProdotti();
+    if (nome === 'notizie')    caricaNotizie();
+    if (nome === 'calendario') caricaCalendario();
+    if (nome === 'ordini')     caricaOrdini();
+    if (nome === 'squadra')    caricaSquadra();
+    if (nome === 'galleria')   caricaGalleriaAdmin();
   }
 
   function caricaTutto() {
@@ -1455,54 +1247,6 @@
     else alert('Errore durante l\'eliminazione.');
   }
 
-  /* ══ UTENTI ══ */
-  async function caricaUtenti() {
-    const tbody = document.getElementById('utentiBody');
-    try {
-      const users = await fetch('/api/admin/users', { headers: headers() }).then(r => r.json());
-      if (!users.length) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">👥</div>Nessun utente registrato.</div></td></tr>`;
-        return;
-      }
-      const roleLabel = { user:'Utente', dirigente:'Dirigente', admin:'Admin' };
-      tbody.innerHTML = users.map(u => `
-        <tr>
-          <td data-label="Nome">
-            <div class="prod-nome">${u.nome} ${u.cognome}</div>
-          </td>
-          <td data-label="Email" style="color:var(--sub);font-size:13px;">${u.email}</td>
-          <td data-label="Ruolo">
-            <select class="role-select" onchange="cambiaRuolo('${u.id}',this.value)">
-              <option value="user"      ${u.role==='user'      ?'selected':''}>Utente</option>
-              <option value="atleta"    ${u.role==='atleta'    ?'selected':''}>Atleta</option>
-              <option value="allenatore"${u.role==='allenatore'?'selected':''}>Allenatore</option>
-              <option value="dirigente" ${u.role==='dirigente' ?'selected':''}>Dirigente</option>
-              <option value="admin"     ${u.role==='admin'     ?'selected':''}>Admin</option>
-            </select>
-          </td>
-          <td data-label="Notifiche" class="notif-badge">${u.notifiche ? '🔔 Attive' : '🔕 Off'}</td>
-          <td data-label="Iscritto" style="color:var(--sub);font-size:13px;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : '—'}</td>
-          <td data-label="Azioni">
-            <button class="btn-azione btn-delete" onclick="eliminaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')">🗑️ Elimina</button>
-          </td>
-        </tr>`).join('');
-    } catch {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore caricamento utenti.</div></td></tr>`;
-    }
-  }
-
-  async function cambiaRuolo(id, role) {
-    const res = await fetch(`/api/admin/users/${id}/role`, { method:'PUT', headers: headers(), body: JSON.stringify({ role }) });
-    if (!res.ok) { alert('Errore aggiornamento ruolo.'); caricaUtenti(); }
-  }
-
-  async function eliminaUtente(id, nome) {
-    if (!confirm(`Eliminare l'utente "${nome}"?`)) return;
-    const res = await fetch(`/api/admin/users/${id}`, { method:'DELETE', headers: headers() });
-    if (res.ok) caricaUtenti();
-    else alert('Errore durante l\'eliminazione.');
-  }
-
   /* ══ INIT ══ */
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') doLogin();
@@ -1530,7 +1274,7 @@
       document.getElementById('statOrdini').textContent = totOrdini;
       const sub = [];
       if (s.ordini?.ricevuto)      sub.push(`${s.ordini.ricevuto} nuovi`);
-      if (s.ordini?.spedito)       sub.push(`${s.ordini.spedito} spediti`);
+      if (s.ordini?.pronto)        sub.push(`${s.ordini.pronto} pronti`);
       if (s.ordini?.['in lavorazione']) sub.push(`${s.ordini['in lavorazione']} in lavorazione`);
       document.getElementById('statOrdiniSub').textContent = sub.join(' · ');
 
@@ -1562,8 +1306,8 @@
     return {
       'ricevuto':       'badge-ricevuto',
       'in lavorazione': 'badge-lavorazione',
-      'spedito':        'badge-spedito',
-      'consegnato':     'badge-consegnato',
+      'pronto':         'badge-spedito',
+      'ritirato':       'badge-consegnato',
       'annullato':      'badge-annullato',
     }[stato] || 'badge-blu';
   }
@@ -1571,7 +1315,7 @@
   async function caricaOrdini(stato) {
     if (stato !== undefined) filtroStatoCorrente = stato;
     document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('on'));
-    const idx = ['','ricevuto','in lavorazione','spedito','consegnato','annullato'].indexOf(filtroStatoCorrente);
+    const idx = ['','ricevuto','in lavorazione','pronto','ritirato','annullato'].indexOf(filtroStatoCorrente);
     if (idx >= 0) document.querySelectorAll('.filtro-btn')[idx]?.classList.add('on');
 
     const tbody = document.getElementById('ordiniBody');
@@ -1600,8 +1344,8 @@
               <select class="stato-select" onchange="aggiornaStatoOrdine('${o.id}', this.value)">
                 <option value="ricevuto"       ${o.stato==='ricevuto'       ?'selected':''}>📦 Ricevuto</option>
                 <option value="in lavorazione" ${o.stato==='in lavorazione' ?'selected':''}>🔧 In lavorazione</option>
-                <option value="spedito"        ${o.stato==='spedito'        ?'selected':''}>🚚 Spedito</option>
-                <option value="consegnato"     ${o.stato==='consegnato'     ?'selected':''}>✅ Consegnato</option>
+                <option value="pronto"          ${o.stato==='pronto'         ?'selected':''}>📦 Pronto per ritiro</option>
+                <option value="ritirato"       ${o.stato==='ritirato'       ?'selected':''}>✅ Ritirato</option>
                 <option value="annullato"      ${o.stato==='annullato'      ?'selected':''}>❌ Annullato</option>
               </select>
             </div>
@@ -1652,61 +1396,6 @@
     else                  { img.style.display = 'none'; }
 
     document.getElementById('modalAnteprima').classList.add('aperto');
-  }
-
-  /* ══ IMPOSTAZIONI ══ */
-  async function caricaImpostazioni() {
-    try {
-      const s = await fetch('/api/admin/impostazioni', { headers: headers() }).then(r => r.json());
-      document.getElementById('iNome').value      = s.nome_associazione || '';
-      document.getElementById('iTelefono').value  = s.telefono || '';
-      document.getElementById('iEmail').value     = s.email_contatto || '';
-      document.getElementById('iIndirizzo').value = s.indirizzo || '';
-      document.getElementById('iIban').value      = s.iban || '';
-      document.getElementById('iPiva').value      = s.p_iva || '';
-    } catch {}
-  }
-
-  async function salvaImpostazioni() {
-    const body = {
-      nome_associazione: document.getElementById('iNome').value.trim(),
-      telefono:          document.getElementById('iTelefono').value.trim(),
-      email_contatto:    document.getElementById('iEmail').value.trim(),
-      indirizzo:         document.getElementById('iIndirizzo').value.trim(),
-      iban:              document.getElementById('iIban').value.trim(),
-      p_iva:             document.getElementById('iPiva').value.trim(),
-    };
-    const msg = document.getElementById('impostMsg');
-    try {
-      const res = await fetch('/api/admin/impostazioni', { method:'PUT', headers: headers(), body: JSON.stringify(body) });
-      if (res.ok) { msg.style.color = 'var(--verde)'; msg.textContent = '✅ Impostazioni salvate.'; }
-      else        { msg.style.color = 'var(--rosso)'; msg.textContent = '❌ Errore nel salvataggio.'; }
-    } catch {
-      msg.style.color = 'var(--rosso)'; msg.textContent = '❌ Errore di rete.';
-    }
-    setTimeout(() => { msg.textContent = ''; }, 3000);
-  }
-
-  /* ══ LOG ATTIVITÀ ══ */
-  async function caricaLog() {
-    const cont = document.getElementById('logContainer');
-    try {
-      const log = await fetch('/api/admin/log', { headers: headers() }).then(r => r.json());
-      if (!log.length) {
-        cont.innerHTML = '<div class="empty-state" style="padding:32px;text-align:center;color:var(--sub);">Nessuna attività registrata.</div>';
-        return;
-      }
-      cont.innerHTML = log.map(l => `
-        <div class="log-riga">
-          <div class="log-time">${new Date(l.created_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
-          <div>
-            <div class="log-azione">${l.azione}</div>
-            ${l.dettaglio ? `<div class="log-dettaglio">${l.dettaglio}</div>` : ''}
-          </div>
-        </div>`).join('');
-    } catch {
-      cont.innerHTML = '<div class="empty-state" style="padding:32px;text-align:center;color:var(--rosso);">Errore caricamento log.</div>';
-    }
   }
 
   /* ══ SQUADRA ══ */
@@ -1829,185 +1518,6 @@
     if (!confirm('Eliminare questa foto?')) return;
     const res = await fetch(`/api/admin/galleria/${id}`, { method:'DELETE', headers: headers() });
     if (res.ok) caricaGalleriaAdmin(); else alert('Errore eliminazione.');
-  }
-
-  /* ══ ISCRIZIONI ══ */
-  async function caricaIscrizioni() {
-    const tbody = document.getElementById('iscrizioniBody');
-    try {
-      const list = await fetch('/api/admin/iscrizioni', { headers: headers() }).then(r => r.json());
-      if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">📝</div>Nessuna iscrizione.</div></td></tr>`; return; }
-      const statoBadge = { nuova:'badge-arancio', contattata:'badge-blu', accettata:'badge-verde', rifiutata:'badge-rosso' };
-      tbody.innerHTML = list.map(i => `
-        <tr>
-          <td data-label="Nome"><div class="prod-nome">${i.nome} ${i.cognome}</div><div class="prod-desc">${i.telefono||''}</div></td>
-          <td data-label="Email" style="font-size:13px;color:var(--sub);">${i.email}</td>
-          <td data-label="Categoria">${i.categoria||'—'}</td>
-          <td data-label="Data" style="font-size:13px;color:var(--sub);">${i.created_at ? new Date(i.created_at).toLocaleDateString('it-IT') : '—'}</td>
-          <td data-label="Stato"><span class="badge ${statoBadge[i.stato]||'badge-blu'}">${i.stato}</span></td>
-          <td data-label="Azioni">
-            <select class="stato-select" onchange="aggiornaStatoIscrizione('${i.id}',this.value)">
-              <option ${i.stato==='nuova'?'selected':''} value="nuova">Nuova</option>
-              <option ${i.stato==='contattata'?'selected':''} value="contattata">Contattata</option>
-              <option ${i.stato==='accettata'?'selected':''} value="accettata">Accettata</option>
-              <option ${i.stato==='rifiutata'?'selected':''} value="rifiutata">Rifiutata</option>
-            </select>
-          </td>
-        </tr>`).join('');
-    } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
-  }
-
-  async function aggiornaStatoIscrizione(id, stato) {
-    await fetch(`/api/admin/iscrizioni/${id}/stato`, { method:'PUT', headers: headers(), body: JSON.stringify({ stato }) });
-  }
-
-  /* ══ SPONSOR ══ */
-  async function caricaSponsor() {
-    const tbody = document.getElementById('sponsorBody');
-    try {
-      const list = await fetch('/api/sponsor').then(r => r.json());
-      if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">🤝</div>Nessuno sponsor.</div></td></tr>`; return; }
-      tbody.innerHTML = list.map(s => `
-        <tr>
-          <td data-label="">${s.logo ? `<img src="${s.logo}" style="height:36px;max-width:80px;object-fit:contain;" loading="lazy">` : '🏢'}</td>
-          <td data-label="Nome"><div class="prod-nome">${s.nome}</div>${s.url?`<div class="prod-desc">${s.url}</div>`:''}</td>
-          <td data-label="Livello"><span class="badge badge-blu">${s.livello}</span></td>
-          <td data-label="Stato"><span class="badge ${s.attivo?'badge-verde':'badge-rosso'}">${s.attivo?'Attivo':'Inattivo'}</span></td>
-          <td data-label="Azioni"><div class="azioni">
-            <button class="btn-azione btn-edit" onclick="apriModalSponsor('${s.id}')">✏️ Modifica</button>
-            <button class="btn-azione btn-delete" onclick="eliminaSponsor('${s.id}','${s.nome.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
-          </div></td>
-        </tr>`).join('');
-    } catch { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Errore.</div></td></tr>`; }
-  }
-
-  async function apriModalSponsor(id) {
-    sponsorInEditing = id;
-    document.getElementById('modalSponsorTitolo').textContent = id ? 'Modifica sponsor' : 'Nuovo sponsor';
-    ['sNome','sUrl','sLogo'].forEach(i => document.getElementById(i).value = '');
-    document.getElementById('sLivello').value = 'standard';
-    document.getElementById('sLogoPreview').style.display = 'none';
-    if (id) {
-      const list = await fetch('/api/sponsor').then(r => r.json());
-      const s = list.find(x => x.id === id);
-      if (s) {
-        document.getElementById('sNome').value    = s.nome;
-        document.getElementById('sUrl').value     = s.url || '';
-        document.getElementById('sLogo').value    = s.logo || '';
-        document.getElementById('sLivello').value = s.livello || 'standard';
-        if (s.logo) { document.getElementById('sLogoPreview').src = s.logo; document.getElementById('sLogoPreview').style.display = 'block'; }
-      }
-    }
-    document.getElementById('modalSponsor').classList.add('aperto');
-  }
-
-  async function salvaSponsor() {
-    const nome = document.getElementById('sNome').value.trim();
-    if (!nome) { alert('Nome obbligatorio.'); return; }
-    const btn = document.getElementById('btnSalvaSponsor');
-    btn.disabled = true; btn.textContent = 'Salvataggio…';
-    try {
-      let logo = document.getElementById('sLogo').value;
-      const uploadUrl = await uploadImmagine('sLogoFile');
-      if (uploadUrl) logo = uploadUrl;
-      const body = { nome, logo, url: document.getElementById('sUrl').value.trim(), livello: document.getElementById('sLivello').value };
-      const url    = sponsorInEditing ? `/api/admin/sponsor/${sponsorInEditing}` : '/api/admin/sponsor';
-      const method = sponsorInEditing ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      chiudiModal('modalSponsor'); caricaSponsor();
-    } catch (err) { alert('Errore: '+err.message); }
-    finally { btn.disabled = false; btn.textContent = 'Salva'; }
-  }
-
-  async function eliminaSponsor(id, nome) {
-    if (!confirm(`Eliminare ${nome}?`)) return;
-    const res = await fetch(`/api/admin/sponsor/${id}`, { method:'DELETE', headers: headers() });
-    if (res.ok) caricaSponsor(); else alert('Errore.');
-  }
-
-  /* ══ RISULTATI ══ */
-  async function caricaRisultati() {
-    const tbody = document.getElementById('risultatiBody');
-    try {
-      const list = await fetch('/api/risultati').then(r => r.json());
-      if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🏆</div>Nessun risultato.</div></td></tr>`; return; }
-      tbody.innerHTML = list.map(r => {
-        const vittoria = r.set_noi > r.set_loro;
-        const label = vittoria ? 'badge-verde' : r.set_noi < r.set_loro ? 'badge-rosso' : 'badge-arancio';
-        const esito  = vittoria ? 'Vittoria' : r.set_noi < r.set_loro ? 'Sconfitta' : 'Pareggio';
-        return `
-          <tr>
-            <td data-label="Data" style="font-weight:700;">${r.data_str ? new Date(r.data_str+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'}</td>
-            <td data-label="Avversario"><div class="prod-nome">${r.avversario}</div></td>
-            <td data-label="Risultato"><strong>${r.set_noi} – ${r.set_loro}</strong> <span class="badge ${label}">${esito}</span></td>
-            <td data-label="Categoria" style="color:var(--sub);font-size:13px;">${r.categoria||'—'}</td>
-            <td data-label="Tipo" style="color:var(--sub);font-size:13px;">${r.tipo||'—'}</td>
-            <td data-label="Azioni"><div class="azioni">
-              <button class="btn-azione btn-edit" onclick="apriModalRisultato('${r.id}')">✏️ Modifica</button>
-              <button class="btn-azione btn-delete" onclick="eliminaRisultato('${r.id}','${r.avversario.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
-            </div></td>
-          </tr>`;
-      }).join('');
-    } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
-  }
-
-  async function apriModalRisultato(id) {
-    risultatoInEditing = id;
-    document.getElementById('modalRisultatoTitolo').textContent = id ? 'Modifica risultato' : 'Nuovo risultato';
-    document.getElementById('rData').value      = new Date().toISOString().slice(0,10);
-    document.getElementById('rAvversario').value = '';
-    document.getElementById('rSetNoi').value    = '';
-    document.getElementById('rSetLoro').value   = '';
-    document.getElementById('rCategoria').value = '';
-    document.getElementById('rTipo').value      = 'campionato';
-    if (id) {
-      const list = await fetch('/api/risultati').then(r => r.json());
-      const r = list.find(x => x.id === id);
-      if (r) {
-        document.getElementById('rData').value       = r.data_str || '';
-        document.getElementById('rAvversario').value = r.avversario;
-        document.getElementById('rSetNoi').value     = r.set_noi;
-        document.getElementById('rSetLoro').value    = r.set_loro;
-        document.getElementById('rCategoria').value  = r.categoria || '';
-        document.getElementById('rTipo').value       = r.tipo || 'campionato';
-      }
-    }
-    document.getElementById('modalRisultato').classList.add('aperto');
-  }
-
-  async function salvaRisultato() {
-    const avversario = document.getElementById('rAvversario').value.trim();
-    const set_noi    = document.getElementById('rSetNoi').value;
-    const set_loro   = document.getElementById('rSetLoro').value;
-    if (!avversario || set_noi === '' || set_loro === '') { alert('Campi obbligatori mancanti.'); return; }
-    const btn = document.getElementById('btnSalvaRisultato');
-    btn.disabled = true; btn.textContent = 'Salvataggio…';
-    try {
-      const body = { data: document.getElementById('rData').value, avversario, set_noi, set_loro, categoria: document.getElementById('rCategoria').value, tipo: document.getElementById('rTipo').value };
-      const url    = risultatoInEditing ? `/api/admin/risultati/${risultatoInEditing}` : '/api/admin/risultati';
-      const method = risultatoInEditing ? 'PUT' : 'POST';
-      const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      chiudiModal('modalRisultato'); caricaRisultati();
-    } catch (err) { alert('Errore: '+err.message); }
-    finally { btn.disabled = false; btn.textContent = 'Salva'; }
-  }
-
-  async function eliminaRisultato(id, avversario) {
-    if (!confirm(`Eliminare la partita vs ${avversario}?`)) return;
-    const res = await fetch(`/api/admin/risultati/${id}`, { method:'DELETE', headers: headers() });
-    if (res.ok) caricaRisultati(); else alert('Errore.');
-  }
-
-  /* ══ PUSH NOTIFICATION (admin) ══ */
-  async function inviaPush(titolo, messaggio, url) {
-    const res = await fetch('/api/admin/push/send', {
-      method:'POST', headers: headers(), body: JSON.stringify({ titolo, messaggio, url }),
-    });
-    const d = await res.json();
-    if (res.ok) alert(`✅ Push inviata: ${d.ok} recapitate`);
-    else alert('❌ ' + d.error);
   }
 
   /* ══ EXPORT CSV ORDINI ══ */

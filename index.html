@@ -483,74 +483,150 @@
 
     .squadre-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 28px;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 20px;
     }
+
+    /* Layout bento: 2 grandi / 3 medie / 2 medie */
+    .squadra-card { grid-column: span 2; height: 240px; }
+    .squadra-card:nth-child(1),
+    .squadra-card:nth-child(2) { grid-column: span 3; height: 300px; }
+    .squadra-card:nth-child(6),
+    .squadra-card:nth-child(7) { grid-column: span 3; }
 
     .squadra-card {
-      background: var(--bianco);
-      border-radius: 18px;
+      position: relative;
+      border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
-      transition: transform 0.2s, box-shadow 0.2s;
+      background: var(--blu-scuro) center/cover no-repeat;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      cursor: pointer;
+      /* Entrance animation */
+      opacity: 0;
+      transition: box-shadow 0.3s ease;
     }
 
-    .squadra-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.13);
+    @keyframes cardEntrance {
+      from { opacity: 0; transform: translateY(26px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    .squadra-card-header {
-      background: linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
-      padding: 28px 24px;
+    .squadra-card.visible {
+      animation: cardEntrance 0.55s cubic-bezier(0.22,1,0.36,1) forwards;
+    }
+    .squadra-card:nth-child(1).visible { animation-delay: 0s; }
+    .squadra-card:nth-child(2).visible { animation-delay: 0.07s; }
+    .squadra-card:nth-child(3).visible { animation-delay: 0.14s; }
+    .squadra-card:nth-child(4).visible { animation-delay: 0.21s; }
+    .squadra-card:nth-child(5).visible { animation-delay: 0.28s; }
+    .squadra-card:nth-child(6).visible { animation-delay: 0.35s; }
+    .squadra-card:nth-child(7).visible { animation-delay: 0.42s; }
+
+    .squadra-card.visible:hover {
+      transform: translateY(-6px) scale(1.015);
+      box-shadow: 0 22px 64px rgba(0,0,0,0.32);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+    }
+
+    /* Linea accent colorata che cresce su hover */
+    .squadra-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 0; height: 4px;
+      background: var(--card-accent, #f0c040);
+      transition: width 0.4s cubic-bezier(0.22,1,0.36,1);
+      z-index: 3;
+      border-radius: 0 0 0 20px;
+    }
+    .squadra-card:hover::after { width: 100%; }
+
+    .squadra-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(13,32,85,0.93) 35%, rgba(13,32,85,0.18) 100%);
       display: flex;
-      align-items: center;
-      gap: 16px;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 22px 22px 24px;
+      transition: background 0.3s;
     }
 
-    .squadra-icona {
-      width: 56px;
-      height: 56px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
+    .squadra-card:hover .squadra-overlay {
+      background: linear-gradient(to top, rgba(13,32,85,0.97) 45%, rgba(13,32,85,0.35) 100%);
     }
 
-    .squadra-info h3 {
-      font-size: 18px;
+    /* Badge categoria top-left */
+    .squadra-badge {
+      position: absolute;
+      top: 16px; left: 16px;
+      background: rgba(255,255,255,0.13);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.22);
+      color: rgba(255,255,255,0.9);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 11px;
+      border-radius: 20px;
+      z-index: 2;
+    }
+
+    .squadra-overlay h3 {
+      font-size: 20px;
       font-weight: 800;
       color: var(--bianco);
       text-transform: uppercase;
+      letter-spacing: 1.2px;
+      line-height: 1.2;
+      margin-bottom: 5px;
     }
 
-    .squadra-info span {
-      font-size: 13px;
-      color: var(--blu-chiaro);
-    }
+    .squadra-card:nth-child(1) .squadra-overlay h3,
+    .squadra-card:nth-child(2) .squadra-overlay h3 { font-size: 23px; }
 
-    .squadra-card-body {
-      padding: 22px 24px;
-    }
-
-    .squadra-card-body p {
-      font-size: 15px;
-      color: #666;
-      line-height: 1.6;
-      margin-bottom: 16px;
-    }
-
-    .tag {
-      display: inline-block;
-      background: rgba(245,124,0,0.1);
-      color: var(--arancio);
+    .squadra-overlay span {
       font-size: 12px;
-      font-weight: 700;
-      padding: 4px 12px;
-      border-radius: 20px;
-      margin: 3px 3px 3px 0;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.5px;
+    }
+
+    /* Freccia animata bottom-right */
+    .squadra-arrow {
+      position: absolute;
+      bottom: 20px; right: 20px;
+      width: 34px; height: 34px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 15px;
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 2;
+    }
+    .squadra-card:hover .squadra-arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    @media (max-width: 900px) {
+      .squadre-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+      .squadra-card,
+      .squadra-card:nth-child(1),
+      .squadra-card:nth-child(2),
+      .squadra-card:nth-child(6),
+      .squadra-card:nth-child(7) { grid-column: span 1; height: 220px; }
+      .squadra-card:nth-child(1) { grid-column: span 2; height: 260px; }
+    }
+
+    @media (max-width: 540px) {
+      .squadre-grid { grid-template-columns: 1fr; }
+      .squadra-card,
+      .squadra-card:nth-child(1) { grid-column: span 1; height: 200px; }
     }
 
     /* ===== NOTIZIE CAROUSEL ===== */
@@ -1394,95 +1470,64 @@
       <div class="sezione-titolo">
         <div class="etichetta">I nostri team</div>
         <h2>Le squadre</h2>
-        <p>Dai più piccoli alla prima squadra: un percorso di crescita per ogni età.</p>
+        <p>Dalla Serie D al VolleyS3</p>
       </div>
       <div class="squadre-grid">
-        <div class="squadra-card">
-          <div class="squadra-card-header">
-            <div class="squadra-icona">🏆</div>
-            <div class="squadra-info">
-              <h3>Prima Squadra</h3>
-              <span>Serie C Campania</span>
-            </div>
+        <div class="squadra-card" style="background-image:url('images/squadre/serie-d-femminile.jpg'), linear-gradient(135deg,#0d1f5c,#1a3a8f); --card-accent:#f0c040;">
+          <span class="squadra-badge">Serie D</span>
+          <div class="squadra-overlay">
+            <h3>Serie D Femminile</h3>
+            <span>Campionato Regionale</span>
           </div>
-          <div class="squadra-card-body">
-            <p>La nostra rappresentativa senior impegnata nel campionato regionale di Serie C. Allenamenti professionali e spirito agonistico al massimo livello.</p>
-            <span class="tag">Serie C</span>
-            <span class="tag">Maschile</span>
-            <span class="tag">Agonistica</span>
-          </div>
+          <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card">
-          <div class="squadra-card-header">
-            <div class="squadra-icona">⭐</div>
-            <div class="squadra-info">
-              <h3>Under 19</h3>
-              <span>Campionato Regionale</span>
-            </div>
+        <div class="squadra-card" style="background-image:url('images/squadre/prima-divisione-maschile.jpg'), linear-gradient(135deg,#0d3355,#0a5a9e); --card-accent:#40c0f0;">
+          <span class="squadra-badge">Prima Divisione</span>
+          <div class="squadra-overlay">
+            <h3>Prima Divisione Maschile</h3>
+            <span>Campionato Provinciale</span>
           </div>
-          <div class="squadra-card-body">
-            <p>I giovani talenti della Virtus si preparano al salto nel mondo senior attraverso un percorso tecnico di alto livello.</p>
-            <span class="tag">Under 19</span>
-            <span class="tag">Juniores</span>
-            <span class="tag">Agonistica</span>
-          </div>
+          <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card">
-          <div class="squadra-card-header">
-            <div class="squadra-icona">🌟</div>
-            <div class="squadra-info">
-              <h3>Under 16</h3>
-              <span>Campionato Provinciale</span>
-            </div>
+        <div class="squadra-card" style="background-image:url('images/squadre/prima-divisione-femminile.jpg'), linear-gradient(135deg,#3d0d55,#7b2fa8); --card-accent:#d480ff;">
+          <span class="squadra-badge">Prima Divisione</span>
+          <div class="squadra-overlay">
+            <h3>Prima Divisione Femminile</h3>
+            <span>Campionato Provinciale</span>
           </div>
-          <div class="squadra-card-body">
-            <p>Il settore giovanile fiore all'occhiello della società: qui nascono i campioni di domani con cura e attenzione al singolo atleta.</p>
-            <span class="tag">Under 16</span>
-            <span class="tag">Giovanile</span>
-          </div>
+          <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card">
-          <div class="squadra-card-header">
-            <div class="squadra-icona">🎓</div>
-            <div class="squadra-info">
-              <h3>Minivolley</h3>
-              <span>Settore di base</span>
-            </div>
+        <div class="squadra-card" style="background-image:url('images/squadre/giovanile-femminile.jpg'), linear-gradient(135deg,#4a1a00,#b04a10); --card-accent:#ff9050;">
+          <span class="squadra-badge">Settore Giovanile</span>
+          <div class="squadra-overlay">
+            <h3>Giovanile Femminile</h3>
+            <span>Dall'under 13 all'under 19</span>
           </div>
-          <div class="squadra-card-body">
-            <p>Per i più piccoli (6-10 anni): un approccio ludico e divertente alla pallavolo, con istruttori qualificati FIPAV.</p>
-            <span class="tag">6-10 anni</span>
-            <span class="tag">Base</span>
-            <span class="tag">FIPAV</span>
-          </div>
+          <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card">
-          <div class="squadra-card-header">
-            <div class="squadra-icona">👩</div>
-            <div class="squadra-info">
-              <h3>Femminile</h3>
-              <span>Campionato Provinciale</span>
-            </div>
+        <div class="squadra-card" style="background-image:url('images/squadre/under15-maschile.jpg'), linear-gradient(135deg,#0d3320,#1a7a45); --card-accent:#50e090;">
+          <span class="squadra-badge">Settore Giovanile</span>
+          <div class="squadra-overlay">
+            <h3>Under 15 Maschile</h3>
+            <span>Settore giovanile maschile</span>
           </div>
-          <div class="squadra-card-body">
-            <p>La sezione femminile della Virtus Caserta, in costante crescita e protagonista del campionato provinciale.</p>
-            <span class="tag">Femminile</span>
-            <span class="tag">Agonistica</span>
-          </div>
+          <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card">
-          <div class="squadra-card-header">
-            <div class="squadra-icona">🏖️</div>
-            <div class="squadra-info">
-              <h3>Beach Volley</h3>
-              <span>Tornei estivi</span>
-            </div>
+        <div class="squadra-card" style="background-image:url('images/squadre/squadre-miste.jpg'), linear-gradient(135deg,#1a0d55,#4a2fa8); --card-accent:#a0a0ff;">
+          <span class="squadra-badge">Attività Miste</span>
+          <div class="squadra-overlay">
+            <h3>Squadre Miste</h3>
+            <span>Attività inclusive e tornei</span>
           </div>
-          <div class="squadra-card-body">
-            <p>La sezione beach volley attiva nei mesi estivi con tornei, allenamenti sulla sabbia e attività all'aperto.</p>
-            <span class="tag">Beach Volley</span>
-            <span class="tag">Estivo</span>
+          <div class="squadra-arrow">→</div>
+        </div>
+        <div class="squadra-card" style="background-image:url('images/squadre/volleys3.jpg'), linear-gradient(135deg,#553d0d,#c49a10); --card-accent:#ffd040;">
+          <span class="squadra-badge">Mini Volley</span>
+          <div class="squadra-overlay">
+            <h3>VolleyS3</h3>
+            <span>Settore di base FIPAV</span>
           </div>
+          <div class="squadra-arrow">→</div>
         </div>
       </div>
     </div>
@@ -1817,6 +1862,22 @@
     }, { threshold: 0.3 });
     const statsGrid = document.getElementById('statsGrid');
     if (statsGrid) statsObserver.observe(statsGrid);
+
+    /* Animazione ingresso card squadre */
+    const squadraCards = document.querySelectorAll('.squadra-card');
+    if (squadraCards.length && 'IntersectionObserver' in window) {
+      const cardObs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('visible');
+            cardObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      squadraCards.forEach(c => cardObs.observe(c));
+    } else {
+      squadraCards.forEach(c => c.classList.add('visible'));
+    }
 
     function coloreEmoji(c) {
       return c === 'arancio' ? '🎽' : c === 'azzurro' ? '🏅' : '🏐';

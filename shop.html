@@ -277,6 +277,14 @@
       letter-spacing: 1px; color: var(--blu-scuro); margin-bottom: 12px;
       display: flex; align-items: center; gap: 8px;
     }
+    .ritiro-box {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: #eef4ff; border: 1.5px solid #c7d9ff;
+      border-radius: 14px; padding: 18px 20px;
+    }
+    .ritiro-icon { font-size: 28px; flex-shrink: 0; margin-top: 2px; }
+    .ritiro-titolo { font-size: 14px; font-weight: 800; color: var(--blu-scuro); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+    .ritiro-testo { font-size: 13px; color: #4b5563; line-height: 1.6; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-grid.single { grid-template-columns: 1fr; }
 
@@ -555,23 +563,13 @@
           </div>
         </div>
 
-        <!-- Spedizione -->
+        <!-- Ritiro in sede -->
         <div class="form-section">
-          <h3>📦 Indirizzo di spedizione</h3>
-          <div class="form-grid single">
-            <div class="form-group">
-              <label>Indirizzo</label>
-              <input type="text" id="chkIndirizzo" placeholder="Via Roma, 1">
-            </div>
-          </div>
-          <div class="form-grid" style="margin-top:12px">
-            <div class="form-group">
-              <label>Città</label>
-              <input type="text" id="chkCitta" placeholder="Caserta">
-            </div>
-            <div class="form-group">
-              <label>CAP</label>
-              <input type="text" id="chkCap" placeholder="81100" maxlength="5">
+          <div class="ritiro-box">
+            <div class="ritiro-icon">📍</div>
+            <div class="ritiro-info">
+              <div class="ritiro-titolo">Ritiro in sede</div>
+              <div class="ritiro-testo">Il tuo ordine sarà disponibile al ritiro presso la sede della <strong>Virtus Caserta ASD</strong>.<br>Ti contatteremo via email per comunicarti quando l'ordine è pronto.</div>
             </div>
           </div>
         </div>
@@ -824,21 +822,20 @@
 
     /* ══ CHECKOUT ══ */
     function calcolaTotali() {
-      const sub       = carrello.reduce((s, i) => s + i.prezzo * i.qty, 0);
-      const spedizione = 0;
-      return { sub, spedizione, totale: sub + spedizione };
+      const sub = carrello.reduce((s, i) => s + i.prezzo * i.qty, 0);
+      return { sub, totale: sub };
     }
 
     function apriCheckout() {
       if (!carrello.length) { mostraToast('Il carrello è vuoto'); return; }
       chiudiCarrello();
-      const { sub, spedizione, totale } = calcolaTotali();
+      const { sub, totale } = calcolaTotali();
       const righe = carrello.map(i =>
         `<div class="checkout-riga"><span>${i.nome} – taglia ${i.taglia} ×${i.qty}</span><span>€ ${(i.prezzo * i.qty).toFixed(2).replace('.', ',')}</span></div>`
       ).join('');
       document.getElementById('checkoutRiepilogo').innerHTML = `
         ${righe}
-        <div class="checkout-riga"><span>Spedizione</span><span>${spedizione === 0 ? 'Gratuita' : '€ ' + spedizione.toFixed(2).replace('.', ',')}</span></div>
+        <div class="checkout-riga"><span>Consegna</span><span>Ritiro in sede</span></div>
         <div class="checkout-riga totale"><span>Totale ordine</span><span>€ ${totale.toFixed(2).replace('.', ',')}</span></div>`;
       document.getElementById('modalOverlay').classList.add('aperto');
       // inizializza Stripe subito (così l'elemento è pronto)
@@ -862,13 +859,10 @@
 
     /* ══ VALIDAZIONE ══ */
     function validaCampi() {
-      const nome      = document.getElementById('chkNome').value.trim();
-      const cognome   = document.getElementById('chkCognome').value.trim();
-      const email     = document.getElementById('chkEmail').value.trim();
-      const indirizzo = document.getElementById('chkIndirizzo').value.trim();
-      const citta     = document.getElementById('chkCitta').value.trim();
-      const cap       = document.getElementById('chkCap').value.trim();
-      if (!nome || !cognome || !email || !indirizzo || !citta || !cap) {
+      const nome    = document.getElementById('chkNome').value.trim();
+      const cognome = document.getElementById('chkCognome').value.trim();
+      const email   = document.getElementById('chkEmail').value.trim();
+      if (!nome || !cognome || !email) {
         mostraToast('⚠️ Compila tutti i campi obbligatori'); return false;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -879,19 +873,16 @@
 
     /* ══ EMAIL ══ */
     async function inviaEmail(orderId) {
-      const { spedizione, totale } = calcolaTotali();
+      const { totale } = calcolaTotali();
       await fetch('/api/send-order-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nome:      document.getElementById('chkNome').value.trim(),
-          cognome:   document.getElementById('chkCognome').value.trim(),
-          email:     document.getElementById('chkEmail').value.trim(),
-          indirizzo: document.getElementById('chkIndirizzo').value.trim(),
-          citta:     document.getElementById('chkCitta').value.trim(),
-          cap:       document.getElementById('chkCap').value.trim(),
-          items: carrello,
-          totale, spedizione, metodo: metodoSel, orderId,
+          nome:    document.getElementById('chkNome').value.trim(),
+          cognome: document.getElementById('chkCognome').value.trim(),
+          email:   document.getElementById('chkEmail').value.trim(),
+          items:   carrello,
+          totale, spedizione: 0, metodo: metodoSel, orderId,
         }),
       });
     }
@@ -904,7 +895,7 @@
           <h2>Ordine confermato!</h2>
           <p>Grazie <strong>${nome}</strong>!<br>
           Riceverai la conferma a <strong>${email}</strong>.<br>
-          Spedizione entro 3–5 giorni lavorativi.</p>
+          Ti avviseremo quando l'ordine è pronto per il <strong>ritiro in sede</strong>.</p>
           <button class="btn-continua" onclick="resetShop()">Continua lo shopping</button>
         </div>`;
     }
@@ -915,7 +906,7 @@
       const nome  = document.getElementById('chkNome').value.trim();
       const email = document.getElementById('chkEmail').value.trim();
       const btn   = document.getElementById('btnPaga');
-      const { totale, spedizione } = calcolaTotali();
+      const { totale } = calcolaTotali();
 
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Elaborazione...';
@@ -928,11 +919,11 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: Math.round(totale * 100) }),
           });
-          const { clientSecret, error: intentErr } = await intentRes.json();
+          const { clientSecret, orderId, error: intentErr } = await intentRes.json();
           if (intentErr) throw new Error(intentErr);
 
           /* 2. Conferma pagamento con Stripe.js */
-          const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          const { error } = await stripe.confirmCardPayment(clientSecret, {
             payment_method: {
               card: cardElement,
               billing_details: {
@@ -944,7 +935,7 @@
           if (error) throw new Error(error.message);
 
           /* 3. Invia email di conferma */
-          await inviaEmail(paymentIntent.id);
+          await inviaEmail(orderId);
           mostraConferma(nome, email);
 
         } else if (metodoSel === 'bonifico') {
@@ -963,7 +954,7 @@
       carrello = []; stripeReady = false; cardElement = null;
       aggiornaCarrello();
       chiudiModal();
-      ['chkNome','chkCognome','chkEmail','chkIndirizzo','chkCitta','chkCap']
+      ['chkNome','chkCognome','chkEmail']
         .forEach(id => { document.getElementById(id).value = ''; });
     }
 
