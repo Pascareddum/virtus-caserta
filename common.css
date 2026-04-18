@@ -1,0 +1,133 @@
+/* ═══════════════════════════════════════════════════
+   COMMON.CSS – Stili condivisi + Hamburger Nav
+═══════════════════════════════════════════════════ */
+
+/* ── Hamburger button ── */
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  z-index: 1010;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.nav-hamburger:hover { background: rgba(255,255,255,0.12); }
+.nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  transition: transform 0.32s cubic-bezier(0.23,1,0.32,1), opacity 0.2s, width 0.2s;
+}
+.nav-hamburger.aperto span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-hamburger.aperto span:nth-child(2) { opacity: 0; width: 0; }
+.nav-hamburger.aperto span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Full-screen drawer ── */
+.nav-drawer {
+  position: fixed;
+  inset: 0;
+  background: #0d2055;
+  z-index: 1005;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+  padding: 40px 24px 32px;
+  overflow-y: auto;
+}
+.nav-drawer.aperto { opacity: 1; pointer-events: all; }
+
+.nav-drawer .drawer-logo { margin-bottom: 32px; }
+.nav-drawer .drawer-logo img { height: 52px; object-fit: contain; }
+
+.nav-drawer a.drawer-link {
+  color: rgba(255,255,255,0.82);
+  text-decoration: none;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 16px 0;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.32s ease, transform 0.32s ease, color 0.2s;
+}
+.nav-drawer a.drawer-link:last-of-type { border-bottom: none; }
+.nav-drawer a.drawer-link:hover,
+.nav-drawer a.drawer-link.attivo { color: #fff; }
+.nav-drawer.aperto a.drawer-link { opacity: 1; transform: translateY(0); }
+
+/* Stagger */
+.nav-drawer a.drawer-link:nth-child(2) { transition-delay: 0.04s; }
+.nav-drawer a.drawer-link:nth-child(3) { transition-delay: 0.08s; }
+.nav-drawer a.drawer-link:nth-child(4) { transition-delay: 0.12s; }
+.nav-drawer a.drawer-link:nth-child(5) { transition-delay: 0.16s; }
+.nav-drawer a.drawer-link:nth-child(6) { transition-delay: 0.20s; }
+.nav-drawer a.drawer-link:nth-child(7) { transition-delay: 0.24s; }
+.nav-drawer a.drawer-link:nth-child(8) { transition-delay: 0.28s; }
+
+.nav-drawer .drawer-social {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.32s ease 0.28s, transform 0.32s ease 0.28s;
+}
+.nav-drawer.aperto .drawer-social { opacity: 1; transform: translateY(0); }
+.nav-drawer .drawer-social a {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.nav-drawer .drawer-social a:hover { background: rgba(255,255,255,0.18); }
+.nav-drawer .drawer-social img {
+  width: 22px; height: 22px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+body.nav-aperta { overflow: hidden; }
+
+/* ── Mobile breakpoint ── */
+@media (max-width: 768px) {
+  /* Standard nav (3-col grid: 1fr auto 1fr) */
+  nav.nav-std {
+    grid-template-columns: 1fr auto !important;
+    padding: 0 16px !important;
+    height: 64px !important;
+  }
+  nav.nav-std > ul.nav-menu { display: none !important; }
+  nav.nav-std > .nav-actions { display: none !important; }
+  nav.nav-std > .nav-brand {
+    grid-column: 1;
+    justify-self: start;
+    padding: 0 !important;
+  }
+  nav.nav-std > .nav-brand img { height: 40px !important; }
+  .nav-hamburger { display: flex !important; }
+
+  /* Ensure images don't overflow */
+  img { max-width: 100%; }
+}

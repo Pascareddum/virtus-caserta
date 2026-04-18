@@ -9,6 +9,7 @@
   <meta property="og:description" content="Scopri la storia, la missione e i valori di Virtus Caserta ASD.">
   <meta property="og:image" content="/images/logo.png">
   <meta property="og:type" content="website">
+  <link rel="stylesheet" href="common.css">
   <style>
     :root {
       --blu-scuro:  #0d2055;
@@ -212,10 +213,16 @@
     }
     @media (max-width:768px) {
       .missione-grid { grid-template-columns:1fr; gap:40px; }
+      .stats-grid { grid-template-columns:1fr 1fr; gap:12px; }
+      .valori-grid { grid-template-columns:1fr; }
       nav { padding:0 16px; height:60px; }
       .nav-brand img { height:38px; }
       .nav-menu { gap:16px; }
       .nav-menu a { font-size:11px; letter-spacing:0.8px; }
+    }
+    @media (max-width:480px) {
+      .stats-grid { grid-template-columns:1fr; }
+      .hero-content h1 { font-size:clamp(24px,7vw,40px); }
     }
   </style>
 </head>

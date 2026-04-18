@@ -1,3 +1,74 @@
+/* ── Hamburger Nav (mobile ≤ 768px) ── */
+(function () {
+  const nav = document.querySelector('nav');
+  if (!nav || !nav.querySelector('.nav-brand') || !nav.querySelector('.nav-menu')) return;
+
+  nav.classList.add('nav-std');
+
+  // Hamburger button
+  const btn = document.createElement('button');
+  btn.className = 'nav-hamburger';
+  btn.setAttribute('aria-label', 'Apri menu');
+  btn.innerHTML = '<span></span><span></span><span></span>';
+  nav.appendChild(btn);
+
+  // Full-screen drawer
+  const drawer = document.createElement('div');
+  drawer.className = 'nav-drawer';
+
+  // Logo in drawer
+  const logoWrap = document.createElement('div');
+  logoWrap.className = 'drawer-logo';
+  logoWrap.innerHTML = '<a href="/"><img src="/images/negativo@4x.png" alt="Virtus Caserta"></a>';
+  drawer.appendChild(logoWrap);
+
+  // Raccoglie tutti i link dalla nav (escludi brand e social)
+  const seen = new Set();
+  nav.querySelectorAll('a[href]').forEach(a => {
+    if (a.classList.contains('nav-brand') || a.closest('.nav-social')) return;
+    const text = a.textContent.trim();
+    const href = a.getAttribute('href');
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    const link = document.createElement('a');
+    link.href  = href;
+    link.className = 'drawer-link' + (a.classList.contains('attivo') ? ' attivo' : '');
+    link.textContent = text;
+    drawer.appendChild(link);
+  });
+
+  // Social icons
+  const socialLinks = nav.querySelectorAll('.nav-social a');
+  if (socialLinks.length) {
+    const row = document.createElement('div');
+    row.className = 'drawer-social';
+    socialLinks.forEach(s => row.appendChild(s.cloneNode(true)));
+    drawer.appendChild(row);
+  }
+
+  document.body.appendChild(drawer);
+
+  let isOpen = false;
+  function openMenu() {
+    isOpen = true;
+    btn.classList.add('aperto');
+    btn.setAttribute('aria-label', 'Chiudi menu');
+    drawer.classList.add('aperto');
+    document.body.classList.add('nav-aperta');
+  }
+  function closeMenu() {
+    isOpen = false;
+    btn.classList.remove('aperto');
+    btn.setAttribute('aria-label', 'Apri menu');
+    drawer.classList.remove('aperto');
+    document.body.classList.remove('nav-aperta');
+  }
+
+  btn.addEventListener('click', () => isOpen ? closeMenu() : openMenu());
+  drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen) closeMenu(); });
+})();
+
 /* ── Cookie Banner GDPR ── */
 (function () {
   const KEY = 'vc_cookie_consent';

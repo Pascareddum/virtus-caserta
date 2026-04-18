@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ordine Confermato – Virtus Caserta</title>
   <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="common.css">
   <style>
     :root{--blu:#0d2055;--arancio:#f57c00;--verde:#16a34a;}
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -24,6 +25,12 @@
     .btn:hover{background:#e56c00;}
     .btn-outline{background:#fff;color:var(--blu);border:2px solid var(--blu);margin-left:10px;}
     .btn-outline:hover{background:var(--blu);color:#fff;}
+    @media(max-width:480px){
+      .card{padding:32px 20px;}
+      h1{font-size:22px;}
+      .btn,.btn-outline{display:block;margin:8px 0;}
+      .btn-outline{margin-left:0;}
+    }
   </style>
 </head>
 <body>

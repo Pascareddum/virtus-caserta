@@ -10,6 +10,7 @@
   <meta property="og:image" content="/images/logo.png">
   <meta property="og:type" content="website">
   <script src="https://js.stripe.com/v3/"></script>
+  <link rel="stylesheet" href="common.css">
   <style>
     :root {
       --blu-scuro:    #0d2055;
@@ -440,12 +441,23 @@
       .product-grid { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
       .cart-drawer { width: 100%; }
+      /* Mantieni nav-actions visibile solo per il pulsante carrello */
+      nav.nav-std { grid-template-columns: 1fr auto auto !important; padding: 0 14px !important; }
+      nav.nav-std > .nav-brand { grid-column: 1 !important; justify-self: start !important; }
+      nav.nav-std > .nav-actions { display: flex !important; align-items: center; grid-column: 2; grid-row: 1; }
+      nav.nav-std > .nav-actions > ul.nav-menu,
+      nav.nav-std > .nav-actions > .nav-social { display: none !important; }
+      nav.nav-std .nav-hamburger { grid-column: 3; grid-row: 1; }
+      /* Carrello compatto: solo icona + badge */
+      .cart-btn { padding: 8px 10px; gap: 4px; border-radius: 50px; font-size: 0; letter-spacing: 0; }
+      .cart-btn img { width: 20px; height: 20px; }
+      .cart-label { display: none; }
+      .cart-count { font-size: 11px; }
     }
     @media (max-width: 520px) {
-      nav { padding: 0 14px; }
-      .nav-back { display: none; }
-      .cart-btn { padding: 10px 14px; font-size: 13px; letter-spacing: 0; }
-      .cart-label { display: none; }
+      .modal { border-radius: 16px; }
+      .modal-header { padding: 18px 18px 14px; }
+      .modal-body { padding: 16px 18px 20px; gap: 16px; }
     }
   </style>
 </head>

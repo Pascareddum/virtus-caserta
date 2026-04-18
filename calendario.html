@@ -9,6 +9,7 @@
   <meta property="og:description" content="Calendario degli allenamenti e delle sessioni di Virtus Caserta ASD.">
   <meta property="og:image" content="/images/logo.png">
   <meta property="og:type" content="website">
+  <link rel="stylesheet" href="common.css">
   <style>
     :root {
       --blu:    #0d2055;
@@ -194,8 +195,10 @@
       nav { padding:0 16px; height:60px; }
       .nav-brand img { height:38px; }
       .cal-header { padding:14px 14px 12px; }
-      .cal-day { min-height:64px; padding:4px 2px; }
-      .day-num { width:24px; height:24px; font-size:12px; }
+      .cal-wrap { overflow-x:auto; border-radius:0 0 12px 12px; }
+      .giorni-settimana, .cal-grid { min-width:350px; }
+      .cal-day { min-height:60px; padding:4px 2px; }
+      .day-num { width:22px; height:22px; font-size:11px; }
       .day-chip { font-size:8px; }
       .eventi-sezione { padding:0 10px 60px; }
     }
