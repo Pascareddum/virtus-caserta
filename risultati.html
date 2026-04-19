@@ -34,9 +34,6 @@
     .cat-header{display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:14px;border-bottom:3px solid var(--blu);flex-wrap:wrap;}
     .cat-titolo{font-size:clamp(15px,2.5vw,20px);font-weight:900;color:var(--blu);text-transform:uppercase;letter-spacing:1.5px;}
     .cat-count{font-size:12px;color:#9ca3af;font-weight:600;white-space:nowrap;}
-    .cat-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-    .btn-classifica{display:inline-flex;align-items:center;gap:6px;background:var(--blu);color:#fff;text-decoration:none;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 16px;border-radius:20px;border:none;cursor:pointer;transition:background .15s;}
-    .btn-classifica:hover{background:var(--blu-m);}
     .btn-espandi{display:inline-flex;align-items:center;gap:6px;background:#fff;color:var(--blu);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:7px 16px;border-radius:20px;border:1.5px solid var(--blu);cursor:pointer;transition:all .15s;}
     .btn-espandi:hover{background:var(--blu);color:#fff;}
 
@@ -80,17 +77,16 @@
     .fonte-badge{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:10px;margin-left:auto;}
     .fonte-opes{background:#e0f2fe;color:#0369a1;}
     .fonte-fipav{background:#ede9fe;color:#6d28d9;}
-    /* Filtri */
-    .filtri-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;justify-content:center;}
-    .filtri-bar.sub{margin-bottom:28px;margin-top:0;}
-    .filtro-btn{padding:8px 18px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#374151;transition:all .15s;letter-spacing:.5px;}
-    .filtro-btn:hover{border-color:var(--blu);color:var(--blu);}
-    .filtro-btn.attivo{background:var(--blu);color:#fff;border-color:var(--blu);}
-    .filtro-btn.attivo.f-opes{background:#0369a1;border-color:#0369a1;}
-    .filtro-btn.attivo.f-fipav{background:#6d28d9;border-color:#6d28d9;}
-    .sub-btn{padding:6px 14px;font-size:11px;border-radius:16px;border:1.5px solid #ddd6fe;background:#fff;color:#6d28d9;font-weight:700;cursor:pointer;transition:all .15s;}
-    .sub-btn:hover{border-color:#6d28d9;background:#ede9fe;}
-    .sub-btn.attivo{background:#6d28d9;color:#fff;border-color:#6d28d9;}
+    /* Barra controlli unificata */
+    .controlli-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;}
+    .selettori-wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;flex:1;}
+    .filtro-select,.fipav-cat-select{appearance:none;-webkit-appearance:none;border-radius:12px;padding:10px 40px 10px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:border-color .15s,box-shadow .15s;background-repeat:no-repeat;background-position:right 14px center;}
+    .filtro-select{background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230d2055' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");border:2px solid var(--blu);color:var(--blu);min-width:200px;box-shadow:0 2px 10px rgba(13,32,85,.08);}
+    .filtro-select:focus{outline:none;box-shadow:0 4px 16px rgba(13,32,85,.15);}
+    .fipav-cat-select{background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236d28d9' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");border:2px solid #6d28d9;color:#6d28d9;min-width:240px;box-shadow:0 2px 10px rgba(109,40,217,.10);}
+    .fipav-cat-select:focus{outline:none;box-shadow:0 4px 16px rgba(109,40,217,.18);}
+    .btn-classifiche-fisso{display:inline-flex;align-items:center;gap:6px;background:var(--arancio);color:#fff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 20px;border-radius:20px;white-space:nowrap;transition:background .15s;}
+    .btn-classifiche-fisso:hover{background:#e06500;}
     .cat-block.nascosta-cat{display:none;}
 
     /* Espandi row */
@@ -108,16 +104,14 @@
       .nav-menu a{font-size:11px;}
       .hero{padding:110px 16px 56px;}
       .partite-grid{grid-template-columns:1fr;}
-      /* Cat header: stack verticalmente */
+      /* Barra controlli su mobile */
+      .controlli-bar{flex-direction:column;gap:10px;}
+      .selettori-wrap{flex-direction:column;width:100%;}
+      .filtro-select,.fipav-cat-select{min-width:0;width:100%;}
+      .btn-classifiche-fisso{width:100%;justify-content:center;}
+      /* Cat header */
       .cat-header{flex-direction:column;align-items:flex-start;gap:6px;}
-      .cat-actions{margin-left:0;width:100%;}
-      .btn-classifica,.btn-espandi{font-size:10px;padding:6px 12px;}
-      /* Filtri principali */
-      .filtro-btn{padding:6px 12px;font-size:11px;letter-spacing:0;}
-      /* Sub-filtri: scroll orizzontale anziché wrap */
-      .filtri-bar.sub{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;padding-bottom:6px;scrollbar-width:none;}
-      .filtri-bar.sub::-webkit-scrollbar{display:none;}
-      .sub-btn{white-space:nowrap;padding:5px 10px;font-size:10px;flex-shrink:0;}
+      .btn-espandi{font-size:10px;padding:6px 12px;}
       /* Footer portali */
       .fipav-footer{display:flex;flex-direction:column;align-items:center;gap:8px;}
       .fipav-btn{width:100%;max-width:320px;justify-content:center;}
@@ -150,12 +144,19 @@
 <section>
   <div class="container">
     <div class="sezione-titolo"><div class="etichetta">FIPAV · OPES</div><h2>Risultati &amp; Calendario</h2></div>
-    <div class="filtri-bar" id="filtriBar" style="display:none">
-      <button class="filtro-btn attivo" data-tipo="tutte" onclick="applyFiltro(this)">Tutte</button>
-      <button class="filtro-btn f-fipav" data-tipo="fipav" onclick="applyFiltro(this)">FIPAV</button>
-      <button class="filtro-btn f-opes" data-tipo="opes" onclick="applyFiltro(this)">OPES</button>
+    <div class="controlli-bar" id="controlliBar" style="display:none">
+      <div class="selettori-wrap">
+        <select class="filtro-select" id="fonteSelect" onchange="applyFiltro(this)">
+          <option value="tutte">Tutte le categorie</option>
+          <option value="fipav">Solo FIPAV</option>
+          <option value="opes">Solo OPES</option>
+        </select>
+        <select class="fipav-cat-select" id="fipavCatSelect" onchange="applySubFiltro(this)" style="display:none">
+          <option value="">— Tutte le categorie FIPAV —</option>
+        </select>
+      </div>
+      <a href="/classifica" class="btn-classifiche-fisso">Mostra le classifiche</a>
     </div>
-    <div class="filtri-bar sub" id="sottofiltriBar" style="display:none"></div>
     <div id="risultatiContent"><div class="vuota">Caricamento…</div></div>
   </div>
 </section>
@@ -273,66 +274,25 @@
     }
   }
 
-  function getFipavAttivo() {
-    return !!document.querySelector('.filtro-btn[data-tipo="fipav"].attivo');
-  }
-
-  function aggiornaSottofiltri() {
-    const bar = document.getElementById('sottofiltriBar');
-    if (!getFipavAttivo()) { bar.style.display = 'none'; return; }
-    bar.style.display = 'flex';
-  }
-
-  function applySubFiltro(btnEl) {
-    btnEl.classList.toggle('attivo');
-    const attiviCat = new Set(
-      [...document.querySelectorAll('#sottofiltriBar .sub-btn.attivo')].map(b => b.dataset.cat)
-    );
+  function applySubFiltro(selectEl) {
+    const cat = selectEl.value;
     document.querySelectorAll('.cat-block[data-fonte="fipav"]').forEach(block => {
-      if (!attiviCat.size) { block.classList.remove('nascosta-cat'); return; }
-      block.classList.toggle('nascosta-cat', !attiviCat.has(block.dataset.cat));
+      block.classList.toggle('nascosta-cat', !!cat && block.dataset.cat !== cat);
     });
   }
 
-  function applyFiltro(btnEl) {
-    const tipo = btnEl.dataset.tipo;
-    const tutteBtn = document.querySelector('.filtro-btn[data-tipo="tutte"]');
+  function applyFiltro(selectEl) {
+    const tipo = selectEl.value;
+    const catSel = document.getElementById('fipavCatSelect');
 
-    if (tipo === 'tutte') {
-      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('attivo'));
-      tutteBtn.classList.add('attivo');
-      document.querySelectorAll('.cat-block').forEach(b => b.classList.remove('nascosta-cat'));
-      // reset sub-filtri
-      document.querySelectorAll('#sottofiltriBar .sub-btn').forEach(b => b.classList.remove('attivo'));
-      aggiornaSottofiltri();
-      return;
-    }
+    // Mostra/nascondi sotto-dropdown FIPAV
+    catSel.style.display = tipo === 'fipav' ? '' : 'none';
+    if (tipo !== 'fipav') catSel.value = '';
 
-    btnEl.classList.toggle('attivo');
-    tutteBtn.classList.remove('attivo');
-
-    const attivi = new Set(
-      [...document.querySelectorAll('.filtro-btn:not([data-tipo="tutte"]).attivo')].map(b => b.dataset.tipo)
-    );
-
-    if (!attivi.size) {
-      tutteBtn.classList.add('attivo');
-      document.querySelectorAll('.cat-block').forEach(b => b.classList.remove('nascosta-cat'));
-      document.querySelectorAll('#sottofiltriBar .sub-btn').forEach(b => b.classList.remove('attivo'));
-      aggiornaSottofiltri();
-      return;
-    }
-
-    // Applica filtro principale per fonte
     document.querySelectorAll('.cat-block').forEach(block => {
-      block.classList.toggle('nascosta-cat', !attivi.has(block.dataset.fonte));
+      if (tipo === 'tutte') { block.classList.remove('nascosta-cat'); return; }
+      block.classList.toggle('nascosta-cat', block.dataset.fonte !== tipo);
     });
-
-    // Aggiorna visibilità sottofiltri; se FIPAV appena disattivato, reset sub-selezione
-    if (!getFipavAttivo()) {
-      document.querySelectorAll('#sottofiltriBar .sub-btn').forEach(b => b.classList.remove('attivo'));
-    }
-    aggiornaSottofiltri();
   }
 
   async function carica() {
@@ -366,9 +326,6 @@
             <div class="cat-header">
               <span class="cat-titolo">${cat}</span>
               <span class="cat-count">${partite.length} gare</span>
-              <div class="cat-actions">
-                <a href="${classificaHref}" class="btn-classifica">🏆 Classifica</a>
-              </div>
             </div>
             <div class="partite-grid" id="${gridId}">
               ${partite.map((m, idx) => renderCard(m, !visibili.has(idx))).join('')}
@@ -381,17 +338,16 @@
         <a href="https://www.opespallavolo.it" target="_blank" rel="noopener" class="fipav-btn" style="background:#0369a1;">🏐 Portale OPES</a>
       </div>`;
 
-      // Popola sotto-filtri per categorie FIPAV
+      // Popola dropdown categorie FIPAV
       const fipavCats = entries
         .filter(([, g]) => g.fonte !== 'opes')
         .map(([cat]) => cat);
-      const subBar = document.getElementById('sottofiltriBar');
-      subBar.innerHTML = fipavCats.map(cat =>
-        `<button class="sub-btn" data-cat="${cat.replace(/"/g,'&quot;')}" onclick="applySubFiltro(this)">${cat}</button>`
-      ).join('');
+      const sel = document.getElementById('fipavCatSelect');
+      sel.innerHTML = '<option value="">— Tutte le categorie FIPAV —</option>' +
+        fipavCats.map(cat => `<option value="${cat.replace(/"/g,'&quot;')}">${cat}</option>`).join('');
 
-      // Mostra barra filtri solo dopo caricamento
-      document.getElementById('filtriBar').style.display = 'flex';
+      // Mostra barra controlli solo dopo caricamento
+      document.getElementById('controlliBar').style.display = 'flex';
     } catch (err) {
       cont.innerHTML = `
         <div class="vuota">

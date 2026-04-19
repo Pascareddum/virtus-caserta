@@ -1993,14 +1993,24 @@
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        const liveBlock = data.live && data.live.length ? `
+        // Rilevamento "in corso" client-side (fallback se server non ha ancora live)
+        const nowMs = Date.now();
+        function isLiveMatch(m) {
+          return !m.played && !m.postponed && m.timestamp && m.timestamp < nowMs && m.timestamp + 7200000 > nowMs;
+        }
+        const liveList   = (data.live && data.live.length)
+          ? data.live
+          : (data.prossime || []).filter(isLiveMatch);
+        const prossimeList = (data.prossime || []).filter(m => !isLiveMatch(m)).slice(0, 3);
+
+        const liveBlock = liveList.length ? `
           <div style="margin-bottom:28px;">
             <div class="partite-blocco-titolo live-titolo">
               <h3>In corso</h3>
               <span class="partite-badge badge-live">⚡ Live</span>
             </div>
             <div class="partite-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">
-              ${renderPartite(data.live, true)}
+              ${renderPartite(liveList, true)}
             </div>
           </div>` : '';
 
@@ -2018,7 +2028,7 @@
                 <h3>Prossime partite</h3>
                 <span class="partite-badge badge-prossime">Calendario</span>
               </div>
-              ${renderPartite(data.prossime)}
+              ${renderPartite(prossimeList)}
             </div>
           </div>
           <div class="partite-footer-btns">

@@ -1125,9 +1125,10 @@ app.get('/api/partite', async (_req, res) => {
     const now    = Date.now();
     const past   = all.filter(m => m.played);
     const live   = all.filter(m => !m.played && !m.postponed && m.timestamp && m.timestamp < now && m.timestamp + 7200000 > now);
-    const future = all.filter(m => !m.played && !m.postponed && m.timestamp !== null && m.timestamp > now)
+    // prossime: partite future + quelle iniziate da <2h senza risultato (live), ordinate per orario
+    const future = all.filter(m => !m.played && !m.postponed && m.timestamp !== null && m.timestamp > now - 7200000)
                       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    res.json({ ultime: past.slice(0, 3), live, prossime: future.slice(0, 3), fipavUrl: FIPAV_CASERTA_URL });
+    res.json({ ultime: past.slice(0, 3), live, prossime: future.slice(0, 6), fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
     console.log('[Partite] Errore:', err.message);
     res.status(500).json({ error: err.message });
