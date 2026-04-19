@@ -826,6 +826,131 @@ const FIPAV_CASERTA_BASE   = 'https://caserta.portalefipav.net';
 const FIPAV_CAMPANIA_BASE  = 'https://www.fipavcampania.it';
 const FIPAV_CASERTA_URL    = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA';
 const FIPAV_CAMPANIA_URL   = 'https://www.fipavcampania.it/risultati-classifiche.aspx?ComitatoId=15&StId=2277&DataDa=&StatoGara=&CId=&SId=5150&PId=1078&btFiltro=CERCA';
+
+/* ─── OPES Partite ─── */
+const OPES_BASE = 'https://www.opespallavolo.it';
+const OPES_AJAX = 'https://www.opespallavolo.it/system/include/ajax/public/league.php';
+const OPES_TOURNAMENTS = [
+  { tid: 7,  categoria: 'Open Mix',        maxDays: 14 },
+  { tid: 28, categoria: 'Open Femminile',  maxDays: 10 },
+];
+const OPES_MESI = { GEN:0,FEB:1,MAR:2,APR:3,MAG:4,GIU:5,LUG:6,AGO:7,SET:8,OTT:9,NOV:10,DIC:11 };
+const OPES_CACHE_TTL = 60 * 60 * 1000;
+let opesCache = null;
+
+function parseOpesDate(dateStr) {
+  const dm = dateStr.match(/(\d{2})\s+([A-Z]{3})\s+(\d{2}):(\d{2})/);
+  if (!dm) return { timestamp: null, dateFormatted: dateStr.trim() };
+  const [, day, mon, hh, min] = dm;
+  const monIdx = OPES_MESI[mon];
+  if (monIdx === undefined) return { timestamp: null, dateFormatted: dateStr.trim() };
+  const now  = new Date();
+  let year   = now.getFullYear();
+  const tryD = new Date(year, monIdx, parseInt(day), parseInt(hh), parseInt(min));
+  // If more than 6 months in the future, it's from last year
+  if (tryD.getTime() - now.getTime() > 180 * 24 * 60 * 60 * 1000) year--;
+  const d = new Date(year, monIdx, parseInt(day), parseInt(hh), parseInt(min));
+  return {
+    timestamp:     d.getTime(),
+    dateFormatted: `${day}/${String(monIdx + 1).padStart(2, '0')}/${year} ${hh}:${min}`,
+  };
+}
+
+function parseOpesHtml(html, categoria, giornata) {
+  const matches = [];
+  const blocks  = html.split('<div class="match-element">');
+  blocks.shift();
+
+  for (const block of blocks) {
+    if (/turno di riposo/i.test(block) && !block.includes('href=')) continue;
+
+    const noteM    = block.match(/<div class='match-note'>([^<]+)<\/div>/i);
+    const postponed = noteM ? /rinviat/i.test(noteM[1]) : false;
+
+    const urlM = block.match(/href="(https:\/\/www\.opespallavolo\.it\/it\/match\/(\d+)\/[^"]+)"/);
+    if (!urlM) continue;
+    const matchUrl = urlM[1];
+    const matchId  = urlM[2];
+
+    // Header: venue + date
+    const hdrM = block.match(/<div class="match-header">([\s\S]*?)<\/div>/);
+    let venue = '', dateStr = '';
+    if (hdrM) {
+      const parts = hdrM[1].replace(/<[^>]+>/g, '\n').split('\n').map(s => s.trim()).filter(Boolean);
+      if (parts.length >= 2) { venue = parts[0]; dateStr = parts[1]; }
+      else if (parts.length === 1) { dateStr = parts[0]; }
+    }
+    const { timestamp, dateFormatted } = parseOpesDate(dateStr);
+
+    // Teams + logos
+    const partRe = /<div class="participant-single-row[^"]*">\s*<img src='([^']+)'>\s*<div class='participant-name[^']*'>([^<]+)<\/div>/g;
+    const parts  = [...block.matchAll(partRe)];
+    if (parts.length < 2) continue;
+    const home = { logo: parts[0][1], name: parts[0][2].trim() };
+    const away = { logo: parts[1][1], name: parts[1][2].trim() };
+
+    if (!/virtus/i.test(home.name) && !/virtus/i.test(away.name)) continue;
+
+    // Set scores
+    const scoreRe = /<div class="score-container"><div class='set([^']*)'>([\d]+)<sup[^>]*><\/sup><\/div><div class='set([^']*)'>([\d]+)<sup[^>]*><\/sup><\/div><\/div>/g;
+    const parziali = [];
+    let homeSets = 0, awaySets = 0;
+    let sm;
+    while ((sm = scoreRe.exec(block)) !== null) {
+      const [, cls1, s1,, s2] = sm;
+      parziali.push(`${s1}-${s2}`);
+      if (cls1.includes('winner')) homeSets++; else awaySets++;
+    }
+
+    const played    = parziali.length > 0;
+    const risultato = played ? `${homeSets}-${awaySets}` : '';
+
+    matches.push({
+      id: `opes-${matchId}`, giornata: String(giornata), dataOra: dateFormatted, timestamp,
+      casa: home.name, ospite: away.name, risultato, played, postponed,
+      categoria, fonte: 'opes', luogo: venue, parziali,
+      logoHome: home.logo, logoAway: away.logo, matchUrl,
+      tid: null, // filled by fetchOpesTournament
+    });
+  }
+  return matches;
+}
+
+async function fetchOpesTournament({ tid, categoria, maxDays }) {
+  const days    = Array.from({ length: maxDays }, (_, i) => i + 1);
+  const results = await Promise.allSettled(
+    days.map(day =>
+      fetch(OPES_AJAX, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Referer': `${OPES_BASE}/it/t-calendar/${tid}/`,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        body: `op=22&tid=${tid}&match_day=${day}`,
+      }).then(r => r.json()).then(d => parseOpesHtml(d.html || '', categoria, day))
+    )
+  );
+  const all = [];
+  for (const r of results) if (r.status === 'fulfilled') all.push(...r.value);
+  // Attach tid to each match for classifica lookup
+  all.forEach(m => { m.tid = tid; });
+  return all;
+}
+
+async function fetchOpesAll() {
+  if (opesCache && (Date.now() - opesCache.ts) < OPES_CACHE_TTL) return opesCache.data;
+  const results = await Promise.allSettled(OPES_TOURNAMENTS.map(t => fetchOpesTournament(t)));
+  let all = [];
+  for (const [i, r] of results.entries()) {
+    if (r.status === 'fulfilled') all.push(...r.value);
+    else console.log(`[OPES ${OPES_TOURNAMENTS[i].categoria}] Errore:`, r.reason?.message);
+  }
+  const seen = new Set();
+  all = all.filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; });
+  opesCache = { data: all, ts: Date.now() };
+  return all;
+}
 const FIPAV_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   'Accept': 'text/html,application/xhtml+xml',
@@ -940,10 +1065,18 @@ function parseFipavMatches(html, baseUrl, fonte) {
       else break;
     }
 
+    // ── Logo squadre (dalla colonna td[3] e td[4]) ──
+    const logoSrcRe = /src="([^"]+Loghi[^"]+)"/i;
+    const logoHomeSrc = tdRaws[3] && (tdRaws[3].match(logoSrcRe) || [])[1];
+    const logoAwaySrc = tdRaws[4] && (tdRaws[4].match(logoSrcRe) || [])[1];
+    const logoHome = logoHomeSrc ? baseUrl + logoHomeSrc : '';
+    const logoAway = logoAwaySrc ? baseUrl + logoAwaySrc : '';
+
     matches.push({
       id: gara.trim(), giornata: giornata.trim(), dataOra: dateFormatted, timestamp,
       casa: casa.trim(), ospite: ospite.trim(), risultato: score, played, postponed,
       categoria, classificaUrl, cid, fonte: catFonte, luogo, parziali,
+      logoHome, logoAway,
     });
   }
   return matches;
@@ -956,11 +1089,12 @@ async function fetchFipav(url, baseUrl, fonte) {
   return parseFipavMatches(html, baseUrl, fonte);
 }
 
-// Fetch da entrambe le fonti, unifica, ordina per data DESC (più recenti prima)
+// Fetch da tutte le fonti (FIPAV Caserta, Campania, OPES), unifica, ordina per data DESC
 async function fetchFipavAll() {
-  const [caserta, campania] = await Promise.allSettled([
+  const [caserta, campania, opes] = await Promise.allSettled([
     fetchFipav(FIPAV_CASERTA_URL,  FIPAV_CASERTA_BASE,  'caserta'),
     fetchFipav(FIPAV_CAMPANIA_URL, FIPAV_CAMPANIA_BASE, 'campania'),
+    fetchOpesAll(),
   ]);
 
   let all = [];
@@ -968,6 +1102,8 @@ async function fetchFipavAll() {
   else console.log('[FIPAV Caserta] Errore:', caserta.reason?.message);
   if (campania.status === 'fulfilled') all = all.concat(campania.value);
   else console.log('[FIPAV Campania] Errore:', campania.reason?.message);
+  if (opes.status     === 'fulfilled') all = all.concat(opes.value);
+  else console.log('[OPES] Errore:', opes.reason?.message);
 
   // Deduplication by (casa + ospite + data)
   const seen = new Set();
@@ -987,11 +1123,11 @@ app.get('/api/partite', async (_req, res) => {
   try {
     const all    = await fetchFipavAll();
     const now    = Date.now();
-    // ultime: le 3 più recenti giocate; prossime: le 3 più vicine future
     const past   = all.filter(m => m.played);
-    const future = all.filter(m => !m.played && m.timestamp !== null && m.timestamp > now)
+    const live   = all.filter(m => !m.played && !m.postponed && m.timestamp && m.timestamp < now && m.timestamp + 7200000 > now);
+    const future = all.filter(m => !m.played && !m.postponed && m.timestamp !== null && m.timestamp > now)
                       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    res.json({ ultime: past.slice(0, 3), prossime: future.slice(0, 3), fipavUrl: FIPAV_CASERTA_URL });
+    res.json({ ultime: past.slice(0, 3), live, prossime: future.slice(0, 3), fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
     console.log('[Partite] Errore:', err.message);
     res.status(500).json({ error: err.message });
@@ -1004,12 +1140,83 @@ app.get('/api/partite/tutte', async (_req, res) => {
     const gruppi = {};
     all.forEach(m => {
       const cat = m.categoria || 'Altre partite';
-      if (!gruppi[cat]) gruppi[cat] = { classificaUrl: m.classificaUrl, cid: m.cid, fonte: m.fonte, partite: [] };
+      if (!gruppi[cat]) gruppi[cat] = { classificaUrl: m.classificaUrl, cid: m.cid, fonte: m.fonte, tid: m.tid || null, partite: [] };
       gruppi[cat].partite.push(m);
     });
     res.json({ gruppi, fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
     console.log('[Partite/tutte] Errore:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Classifica OPES ─── */
+function parseOpesClassifica(html) {
+  // Split left-table (pos + name + logo) from right-table (stats)
+  const leftM  = html.match(/<div class="left-table"[^>]*>([\s\S]*?)(?=<div class="right-table")/);
+  const rightM = html.match(/<div class="right-table"[^>]*>([\s\S]*)/);
+  if (!leftM || !rightM) return [];
+
+  // Left rows: position + logo + name
+  const leftRows = [];
+  const lRowRe = /<div class="tables-body tables-row[^"]*">([\s\S]*?)(?=<div class="tables-body|<\/div>\s*<\/div>)/g;
+  let lm;
+  while ((lm = lRowRe.exec(leftM[1])) !== null) {
+    const posM  = lm[1].match(/<small>(\d+)<\/small>/);
+    const imgM  = lm[1].match(/<img src="([^"]+)"/);
+    const nameM = lm[1].match(/<div class="participant-name"[^>]*>([^<]+)/);
+    if (posM && nameM) {
+      leftRows.push({ pos: posM[1], logo: imgM ? imgM[1] : '', squadra: nameM[1].trim() });
+    }
+  }
+
+  // Right rows: stats (Pt, G, V, P, QS, QP, FP)
+  const rightRows = [];
+  const rRowRe = /<div class="tables-body tables-row[^"]*">([\s\S]*?)(?=<div class="tables-body|<\/div>\s*<\/div>)/g;
+  let rm;
+  while ((rm = rRowRe.exec(rightM[1])) !== null) {
+    const vals = [...rm[1].matchAll(/<small>([^<]*)<\/small>/g)].map(m => m[1].trim());
+    if (vals.length) rightRows.push(vals);
+  }
+
+  return leftRows.map((l, i) => {
+    const r = rightRows[i] || [];
+    return {
+      pos: l.pos, squadra: l.squadra, logo: l.logo,
+      punti: r[0]||'-', pg: r[1]||'-', pv: r[2]||'-', pp: r[3]||'-',
+      sf: '-', ss: '-', qs: r[4]||'-', pf: '-', ps: '-', penal: '0',
+    };
+  });
+}
+
+const OPES_TOURNEY_MAP = Object.fromEntries(
+  OPES_TOURNAMENTS.map(t => [String(t.tid), t])
+);
+
+app.get('/api/classifica-opes/:tid', async (req, res) => {
+  const { tid } = req.params;
+  const tourney = OPES_TOURNEY_MAP[tid];
+  if (!tourney) return res.status(404).json({ error: 'Torneo OPES non trovato' });
+  try {
+    const r = await fetch(OPES_AJAX, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': `${OPES_BASE}/it/t-teamtable/${tid}/`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      body: `op=20&tid=${tid}`,
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const json    = await r.json();
+    const squadre = parseOpesClassifica(json.html || '');
+    res.json({
+      titolo:  tourney.categoria,
+      squadre,
+      url: `${OPES_BASE}/it/t-teamtable/${tid}/`,
+    });
+  } catch (err) {
+    console.log('[Classifica OPES] Errore:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

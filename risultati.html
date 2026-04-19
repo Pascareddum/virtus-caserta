@@ -66,6 +66,32 @@
     /* Card "da disputare" più recente */
     .partita-card.prossima-card{border:1.5px solid #c7d9ff;background:#f5f8ff;}
     .partita-card.prossima-card .partita-meta{color:#4f5fa8;}
+    /* Card "in corso" */
+    @keyframes pulse-live{0%,100%{opacity:1;}50%{opacity:.4;}}
+    .partita-card.in-corso-card{border:2px solid #16a34a;background:#f0fdf4;box-shadow:0 0 0 3px rgba(22,163,74,.12);}
+    .partita-card.in-corso-card .partita-meta{color:#15803d;}
+    .partita-risultato.in-corso{font-size:13px;font-weight:800;color:#15803d;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:.5px;}
+    .live-dot{width:9px;height:9px;border-radius:50%;background:#16a34a;flex-shrink:0;animation:pulse-live 1.2s ease-in-out infinite;}
+    /* Loghi squadre */
+    .partita-loghi{display:flex;align-items:center;justify-content:center;gap:16px;margin:4px 0 2px;}
+    .partita-logo{width:44px;height:44px;object-fit:contain;border-radius:6px;border:1px solid #e5e7eb;padding:3px;background:#fff;}
+    .partita-logo-vs{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:.5px;}
+    /* Badge fonte */
+    .fonte-badge{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:10px;margin-left:auto;}
+    .fonte-opes{background:#e0f2fe;color:#0369a1;}
+    .fonte-fipav{background:#ede9fe;color:#6d28d9;}
+    /* Filtri */
+    .filtri-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;justify-content:center;}
+    .filtri-bar.sub{margin-bottom:28px;margin-top:0;}
+    .filtro-btn{padding:8px 18px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#374151;transition:all .15s;letter-spacing:.5px;}
+    .filtro-btn:hover{border-color:var(--blu);color:var(--blu);}
+    .filtro-btn.attivo{background:var(--blu);color:#fff;border-color:var(--blu);}
+    .filtro-btn.attivo.f-opes{background:#0369a1;border-color:#0369a1;}
+    .filtro-btn.attivo.f-fipav{background:#6d28d9;border-color:#6d28d9;}
+    .sub-btn{padding:6px 14px;font-size:11px;border-radius:16px;border:1.5px solid #ddd6fe;background:#fff;color:#6d28d9;font-weight:700;cursor:pointer;transition:all .15s;}
+    .sub-btn:hover{border-color:#6d28d9;background:#ede9fe;}
+    .sub-btn.attivo{background:#6d28d9;color:#fff;border-color:#6d28d9;}
+    .cat-block.nascosta-cat{display:none;}
 
     /* Espandi row */
     .espandi-row{text-align:center;margin-top:16px;}
@@ -77,7 +103,25 @@
     .vuota{text-align:center;padding:60px;color:#888;font-size:15px;}
     footer{background:var(--blu);color:rgba(255,255,255,.5);text-align:center;padding:24px;font-size:13px;}
     footer a{color:rgba(255,255,255,.4);text-decoration:none;}
-    @media(max-width:600px){nav{padding:0 16px;}.nav-menu a{font-size:11px;}.partite-grid{grid-template-columns:1fr;}.cat-actions{margin-left:0;}}
+    @media(max-width:600px){
+      nav{padding:0 16px;}
+      .nav-menu a{font-size:11px;}
+      .hero{padding:110px 16px 56px;}
+      .partite-grid{grid-template-columns:1fr;}
+      /* Cat header: stack verticalmente */
+      .cat-header{flex-direction:column;align-items:flex-start;gap:6px;}
+      .cat-actions{margin-left:0;width:100%;}
+      .btn-classifica,.btn-espandi{font-size:10px;padding:6px 12px;}
+      /* Filtri principali */
+      .filtro-btn{padding:6px 12px;font-size:11px;letter-spacing:0;}
+      /* Sub-filtri: scroll orizzontale anziché wrap */
+      .filtri-bar.sub{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;-webkit-overflow-scrolling:touch;padding-bottom:6px;scrollbar-width:none;}
+      .filtri-bar.sub::-webkit-scrollbar{display:none;}
+      .sub-btn{white-space:nowrap;padding:5px 10px;font-size:10px;flex-shrink:0;}
+      /* Footer portali */
+      .fipav-footer{display:flex;flex-direction:column;align-items:center;gap:8px;}
+      .fipav-btn{width:100%;max-width:320px;justify-content:center;}
+    }
   </style>
 </head>
 <body>
@@ -105,7 +149,13 @@
 
 <section>
   <div class="container">
-    <div class="sezione-titolo"><div class="etichetta">FIPAV Caserta</div><h2>Risultati &amp; Calendario</h2></div>
+    <div class="sezione-titolo"><div class="etichetta">FIPAV · OPES</div><h2>Risultati &amp; Calendario</h2></div>
+    <div class="filtri-bar" id="filtriBar" style="display:none">
+      <button class="filtro-btn attivo" data-tipo="tutte" onclick="applyFiltro(this)">Tutte</button>
+      <button class="filtro-btn f-fipav" data-tipo="fipav" onclick="applyFiltro(this)">FIPAV</button>
+      <button class="filtro-btn f-opes" data-tipo="opes" onclick="applyFiltro(this)">OPES</button>
+    </div>
+    <div class="filtri-bar sub" id="sottofiltriBar" style="display:none"></div>
     <div id="risultatiContent"><div class="vuota">Caricamento…</div></div>
   </div>
 </section>
@@ -113,11 +163,18 @@
 <footer><p>© 2026 Virtus Caserta ASD · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a></p></footer>
 
 <script>
-  function isVirtus(name) { return /virtus\s*caserta/i.test(name); }
+  function isVirtus(name) { return /virtus/i.test(name); }
+
+  function isInCorso(m) {
+    if (m.played || m.postponed || !m.timestamp) return false;
+    const now = Date.now();
+    return m.timestamp < now && m.timestamp + 7200000 > now; // finestra 2 ore
+  }
 
   function renderRisultato(m) {
-    if (m.postponed) return `<div class="partita-risultato rinviata">⚠️ Rinviata</div>`;
-    if (!m.played)   return `<div class="partita-risultato prossima">da disputare</div>`;
+    if (m.postponed)   return `<div class="partita-risultato rinviata">⚠️ Rinviata</div>`;
+    if (isInCorso(m))  return `<div class="partita-risultato in-corso"><span class="live-dot"></span>In corso</div>`;
+    if (!m.played)     return `<div class="partita-risultato prossima">da disputare</div>`;
     const parts = m.risultato.match(/(\d+)\s*-\s*(\d+)/);
     if (!parts)      return `<div class="partita-risultato">${m.risultato}</div>`;
     const [, s1, s2] = parts;
@@ -132,7 +189,18 @@
     const casaCls      = isVirtus(m.casa)   ? ' virtus' : '';
     const ospiteCls    = isVirtus(m.ospite) ? ' virtus' : '';
     const nascostaClass  = nascosta ? ' nascosta' : '';
-    const prossimaClass  = (!m.played && !m.postponed) ? ' prossima-card' : '';
+    const inCorso        = isInCorso(m);
+    const prossimaClass  = (!m.played && !m.postponed && !inCorso) ? ' prossima-card' : '';
+    const inCorsoClass   = inCorso ? ' in-corso-card' : '';
+
+    const proxy = u => u ? `/api/proxy-image?url=${encodeURIComponent(u)}` : '';
+    const loghi = (m.logoHome || m.logoAway)
+      ? `<div class="partita-loghi">
+           <img class="partita-logo" src="${proxy(m.logoHome)}" alt="${m.casa}" onerror="this.style.display='none'">
+           <span class="partita-logo-vs">VS</span>
+           <img class="partita-logo" src="${proxy(m.logoAway)}" alt="${m.ospite}" onerror="this.style.display='none'">
+         </div>`
+      : '';
 
     const parziali = m.parziali && m.parziali.length
       ? `<div class="parziali-row">${m.parziali.map(p => `<span class="parziale">${p}</span>`).join('')}</div>`
@@ -142,13 +210,19 @@
       ? `<div class="luogo-row"><span class="luogo-icon">📍</span><span class="luogo-text">${m.luogo}</span></div>`
       : '';
 
+    const fonte = m.fonte === 'opes'
+      ? `<span class="fonte-badge fonte-opes">OPES</span>`
+      : `<span class="fonte-badge fonte-fipav">FIPAV</span>`;
+
     return `
-      <div class="partita-card${nascostaClass}${prossimaClass}">
+      <div class="partita-card${nascostaClass}${prossimaClass}${inCorsoClass}">
         <div class="partita-meta">
           <span>Giornata ${m.giornata}</span>
           <span>·</span>
           <span>${m.dataOra}</span>
+          ${fonte}
         </div>
+        ${loghi}
         <div class="partita-squadre">
           <div class="partita-squadra${casaCls}">${m.casa}</div>
           <div class="partita-vs">vs</div>
@@ -163,18 +237,22 @@
   // Partite sorted DESC (future first, then past).
   // "Prossima" = the upcoming match CLOSEST to today = last unplayed before the first played.
   function getVisibiliIndices(partite) {
+    const visibili = new Set();
+
+    // Sempre visibili: partite in corso
+    partite.forEach((m, i) => { if (isInCorso(m)) visibili.add(i); });
+
     const idxUltima = partite.findIndex(m => m.played);
 
     // Walk backwards from just before the first played match to find the soonest upcoming
     let idxProssima = -1;
     const scanTo = idxUltima >= 0 ? idxUltima : partite.length;
     for (let i = scanTo - 1; i >= 0; i--) {
-      if (!partite[i].played && !partite[i].postponed) { idxProssima = i; break; }
+      if (!partite[i].played && !partite[i].postponed && !isInCorso(partite[i])) { idxProssima = i; break; }
     }
-    // Fallback: any unplayed
-    if (idxProssima < 0) idxProssima = partite.findIndex(m => !m.played && !m.postponed);
+    // Fallback: any unplayed non-live
+    if (idxProssima < 0) idxProssima = partite.findIndex(m => !m.played && !m.postponed && !isInCorso(m));
 
-    const visibili = new Set();
     if (idxUltima   >= 0) visibili.add(idxUltima);
     if (idxProssima >= 0) visibili.add(idxProssima);
     if (!visibili.size)   visibili.add(0);
@@ -195,6 +273,68 @@
     }
   }
 
+  function getFipavAttivo() {
+    return !!document.querySelector('.filtro-btn[data-tipo="fipav"].attivo');
+  }
+
+  function aggiornaSottofiltri() {
+    const bar = document.getElementById('sottofiltriBar');
+    if (!getFipavAttivo()) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+  }
+
+  function applySubFiltro(btnEl) {
+    btnEl.classList.toggle('attivo');
+    const attiviCat = new Set(
+      [...document.querySelectorAll('#sottofiltriBar .sub-btn.attivo')].map(b => b.dataset.cat)
+    );
+    document.querySelectorAll('.cat-block[data-fonte="fipav"]').forEach(block => {
+      if (!attiviCat.size) { block.classList.remove('nascosta-cat'); return; }
+      block.classList.toggle('nascosta-cat', !attiviCat.has(block.dataset.cat));
+    });
+  }
+
+  function applyFiltro(btnEl) {
+    const tipo = btnEl.dataset.tipo;
+    const tutteBtn = document.querySelector('.filtro-btn[data-tipo="tutte"]');
+
+    if (tipo === 'tutte') {
+      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('attivo'));
+      tutteBtn.classList.add('attivo');
+      document.querySelectorAll('.cat-block').forEach(b => b.classList.remove('nascosta-cat'));
+      // reset sub-filtri
+      document.querySelectorAll('#sottofiltriBar .sub-btn').forEach(b => b.classList.remove('attivo'));
+      aggiornaSottofiltri();
+      return;
+    }
+
+    btnEl.classList.toggle('attivo');
+    tutteBtn.classList.remove('attivo');
+
+    const attivi = new Set(
+      [...document.querySelectorAll('.filtro-btn:not([data-tipo="tutte"]).attivo')].map(b => b.dataset.tipo)
+    );
+
+    if (!attivi.size) {
+      tutteBtn.classList.add('attivo');
+      document.querySelectorAll('.cat-block').forEach(b => b.classList.remove('nascosta-cat'));
+      document.querySelectorAll('#sottofiltriBar .sub-btn').forEach(b => b.classList.remove('attivo'));
+      aggiornaSottofiltri();
+      return;
+    }
+
+    // Applica filtro principale per fonte
+    document.querySelectorAll('.cat-block').forEach(block => {
+      block.classList.toggle('nascosta-cat', !attivi.has(block.dataset.fonte));
+    });
+
+    // Aggiorna visibilità sottofiltri; se FIPAV appena disattivato, reset sub-selezione
+    if (!getFipavAttivo()) {
+      document.querySelectorAll('#sottofiltriBar .sub-btn').forEach(b => b.classList.remove('attivo'));
+    }
+    aggiornaSottofiltri();
+  }
+
   async function carica() {
     const cont = document.getElementById('risultatiContent');
     try {
@@ -205,21 +345,24 @@
       if (!entries.length) { cont.innerHTML = '<div class="vuota">Nessuna partita disponibile.</div>'; return; }
 
       cont.innerHTML = entries.map(([cat, gruppo], i) => {
-        const partite = gruppo.partite;
-        const gridId  = 'grid-' + i;
+        const partite  = gruppo.partite;
+        const fonte    = gruppo.fonte === 'opes' ? 'opes' : 'fipav';
+        const gridId   = 'grid-' + i;
         const visibili = getVisibiliIndices(partite);
-        const extra   = partite.length - visibili.size;
-        const classificaHref = gruppo.cid ? `/classifica?cid=${gruppo.cid}` : (gruppo.classificaUrl || '#');
+        const extra    = partite.length - visibili.size;
 
-        // Serialize visibili set as JSON array for inline onclick
+        // Classifica link: OPES → pagina classifica (dropdown), FIPAV → per cid
+        const classificaHref = fonte === 'opes'
+          ? '/classifica'
+          : (gruppo.cid ? `/classifica?cid=${gruppo.cid}` : (gruppo.classificaUrl || '/classifica'));
+
         const visibiliArr = JSON.stringify([...visibili]);
-
-        const btnEspandi = extra > 0
+        const btnEspandi  = extra > 0
           ? `<div class="espandi-row"><button class="btn-espandi" onclick="togglePartite(this,'${gridId}',new Set(${visibiliArr}))">▼ Vedi tutte le partite (${extra} in più)</button></div>`
           : '';
 
         return `
-          <div class="cat-block">
+          <div class="cat-block" data-fonte="${fonte}" data-cat="${cat.replace(/"/g,'&quot;')}">
             <div class="cat-header">
               <span class="cat-titolo">${cat}</span>
               <span class="cat-count">${partite.length} gare</span>
@@ -234,8 +377,21 @@
           </div>`;
       }).join('') +
       `<div class="fipav-footer">
-        <a href="${data.fipavUrl}" target="_blank" rel="noopener" class="fipav-btn">🏐 Tutta la stagione sul portale FIPAV</a>
+        <a href="${data.fipavUrl}" target="_blank" rel="noopener" class="fipav-btn">🏐 Portale FIPAV Caserta</a>
+        <a href="https://www.opespallavolo.it" target="_blank" rel="noopener" class="fipav-btn" style="background:#0369a1;">🏐 Portale OPES</a>
       </div>`;
+
+      // Popola sotto-filtri per categorie FIPAV
+      const fipavCats = entries
+        .filter(([, g]) => g.fonte !== 'opes')
+        .map(([cat]) => cat);
+      const subBar = document.getElementById('sottofiltriBar');
+      subBar.innerHTML = fipavCats.map(cat =>
+        `<button class="sub-btn" data-cat="${cat.replace(/"/g,'&quot;')}" onclick="applySubFiltro(this)">${cat}</button>`
+      ).join('');
+
+      // Mostra barra filtri solo dopo caricamento
+      document.getElementById('filtriBar').style.display = 'flex';
     } catch (err) {
       cont.innerHTML = `
         <div class="vuota">

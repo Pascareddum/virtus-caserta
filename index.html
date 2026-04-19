@@ -1123,12 +1123,24 @@
     .partita-risultato.loss { color: #dc2626; }
     .partita-risultato.prossima { font-size: 14px; color: #6b7280; font-weight: 600; }
     .partita-risultato.rinviata { font-size: 13px; color: #b45309; font-weight: 700; background: #fef3c7; padding: 4px 10px; border-radius: 8px; }
+    @keyframes idx-pulse-live{0%,100%{opacity:1;}50%{opacity:.4;}}
+    .partita-risultato.in-corso { font-size: 13px; font-weight: 800; color: #15803d; display:flex; align-items:center; justify-content:center; gap:6px; }
+    .partita-card.in-corso-card { border: 2px solid #16a34a; background: #f0fdf4; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+    .idx-live-dot { width:9px; height:9px; border-radius:50%; background:#16a34a; flex-shrink:0; animation:idx-pulse-live 1.2s ease-in-out infinite; }
+    .partite-blocco-titolo.live-titolo h3 { color: #15803d; }
+    .partite-badge.badge-live { background: #dcfce7; color: #15803d; }
     .esito-label { text-align: center; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     .esito-label.win  { color: #16a34a; }
     .esito-label.loss { color: #dc2626; }
     .parziali-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
     .parziale { font-size: 11px; font-weight: 700; background: #f1f5f9; color: #374151; padding: 2px 8px; border-radius: 8px; }
     .luogo-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f4f8; font-size: 12px; color: #6b7280; font-weight: 500; line-height: 1.4; }
+    .partita-loghi { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 4px 0 2px; }
+    .partita-logo { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; border: 1px solid #e5e7eb; padding: 3px; background: #fff; }
+    .partita-logo-vs { font-size: 10px; font-weight: 700; color: #9ca3af; }
+    .fonte-badge { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
+    .fonte-opes  { background: #e0f2fe; color: #0369a1; }
+    .fonte-fipav { background: #ede9fe; color: #6d28d9; }
     .luogo-icon { font-size: 14px; flex-shrink: 0; color: #9ca3af; }
     .luogo-text { flex: 1; }
 
@@ -1153,10 +1165,30 @@
       background: var(--blu-medio);
       transform: translateY(-2px);
     }
+    .partite-footer-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      text-align: center;
+    }
 
     @media (max-width: 768px) {
       .partite-grid {
         grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .partite-grid[style] {
+        grid-template-columns: 1fr !important;
+      }
+      .partite-footer-btns {
+        flex-direction: column;
+        align-items: center;
+      }
+      .partite-fipav-btn {
+        width: 100%;
+        max-width: 320px;
+        justify-content: center;
       }
     }
 
@@ -1893,12 +1925,13 @@
     }
 
     function isVirtus(name) {
-      return /virtus\s*caserta/i.test(name);
+      return /virtus/i.test(name);
     }
 
-    function matchResult(m) {
+    function matchResult(m, live) {
       if (m.postponed) return `<div class="partita-risultato rinviata">⚠️ Gara rinviata</div>`;
-      if (!m.played) return `<div class="partita-risultato prossima">da disputare</div>`;
+      if (live)        return `<div class="partita-risultato in-corso"><span class="idx-live-dot"></span>In corso</div>`;
+      if (!m.played)   return `<div class="partita-risultato prossima">da disputare</div>`;
       const parts = m.risultato.match(/(\d+)\s*-\s*(\d+)/);
       if (!parts) return `<div class="partita-risultato">${m.risultato}</div>`;
       const [, s1, s2] = parts;
@@ -1909,28 +1942,44 @@
       return `<div class="partita-risultato ${cls}">${m.risultato}</div><div class="esito-label ${cls}">${label}</div>`;
     }
 
-    function renderPartite(list) {
+    function renderPartite(list, isLive) {
       if (!list.length) return '<p style="color:#9ca3af;font-size:14px;text-align:center;">Nessuna partita disponibile.</p>';
       return list.map(m => {
         const casaCls   = isVirtus(m.casa)   ? ' virtus' : '';
         const ospiteCls = isVirtus(m.ospite) ? ' virtus' : '';
         const catHtml   = `<div class="partita-categoria">${m.categoria || 'Categoria'}</div>`;
+        const proxy     = u => u ? `/api/proxy-image?url=${encodeURIComponent(u)}` : '';
+        const loghi     = (m.logoHome || m.logoAway)
+          ? `<div class="partita-loghi">
+               <img class="partita-logo" src="${proxy(m.logoHome)}" alt="${m.casa}" onerror="this.style.display='none'">
+               <span class="partita-logo-vs">VS</span>
+               <img class="partita-logo" src="${proxy(m.logoAway)}" alt="${m.ospite}" onerror="this.style.display='none'">
+             </div>`
+          : '';
         const parziali  = m.parziali && m.parziali.length
           ? `<div class="parziali-row">${m.parziali.map(p => `<span class="parziale">${p}</span>`).join('')}</div>`
           : '';
         const luogo = m.luogo
           ? `<div class="luogo-row"><span class="luogo-icon">📍</span><span class="luogo-text">${m.luogo}</span></div>`
           : '';
+        const fonte = m.fonte === 'opes'
+          ? `<span class="fonte-badge fonte-opes">OPES</span>`
+          : `<span class="fonte-badge fonte-fipav">FIPAV</span>`;
+        const cardCls = isLive ? ' in-corso-card' : '';
         return `
-          <div class="partita-card">
-            ${catHtml}
+          <div class="partita-card${cardCls}">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              ${catHtml}
+              ${fonte}
+            </div>
             <div class="partita-data">Giornata ${m.giornata} &nbsp;·&nbsp; ${m.dataOra}</div>
+            ${loghi}
             <div class="partita-squadre">
               <div class="partita-squadra${casaCls}">${m.casa}</div>
               <div class="partita-vs">vs</div>
               <div class="partita-squadra${ospiteCls}">${m.ospite}</div>
             </div>
-            ${matchResult(m)}
+            ${matchResult(m, isLive)}
             ${parziali}
             ${luogo}
           </div>`;
@@ -1944,7 +1993,18 @@
         const data = await res.json();
         if (data.error) throw new Error(data.error);
 
-        container.innerHTML = `
+        const liveBlock = data.live && data.live.length ? `
+          <div style="margin-bottom:28px;">
+            <div class="partite-blocco-titolo live-titolo">
+              <h3>In corso</h3>
+              <span class="partite-badge badge-live">⚡ Live</span>
+            </div>
+            <div class="partite-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">
+              ${renderPartite(data.live, true)}
+            </div>
+          </div>` : '';
+
+        container.innerHTML = liveBlock + `
           <div class="partite-grid">
             <div>
               <div class="partite-blocco-titolo">
@@ -1961,9 +2021,12 @@
               ${renderPartite(data.prossime)}
             </div>
           </div>
-          <div style="text-align:center">
+          <div class="partite-footer-btns">
             <a href="${data.fipavUrl}" target="_blank" rel="noopener" class="partite-fipav-btn">
               🏐 Tutta la stagione sul portale FIPAV
+            </a>
+            <a href="/classifica" class="partite-fipav-btn">
+              🏆 Mostra classifiche
             </a>
           </div>`;
       } catch (err) {

@@ -113,7 +113,7 @@
 <footer><p>© 2026 Virtus Caserta ASD · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a></p></footer>
 
 <script>
-  function isVirtus(nome) { return /virtus\s*caserta/i.test(nome); }
+  function isVirtus(nome) { return /virtus/i.test(nome); }
 
   function medalHtml(pos) {
     if (pos === '1') return `<span class="pos-medal pos-1">1</span>`;
@@ -122,8 +122,9 @@
     return `<span style="font-weight:900;color:var(--blu)">${pos}</span>`;
   }
 
-  function renderClassifica(data) {
+  function renderClassifica(data, key) {
     if (!data.squadre.length) return '<div class="errore">Nessun dato disponibile.</div>';
+    const isOpes = key && key.startsWith('opes|');
     const rows = data.squadre.map(s => {
       const virtus = isVirtus(s.squadra);
       const logoSrc = s.logo ? `/api/proxy-image?url=${encodeURIComponent(s.logo)}` : '';
@@ -156,24 +157,29 @@
         </table>
       </div>
       <div style="text-align:center">
-        <a href="${data.url}" target="_blank" rel="noopener" class="fipav-link">🏆 Vedi su FIPAV</a>
+        <a href="${data.url}" target="_blank" rel="noopener" class="fipav-link">${isOpes ? '🏐 Vedi su OPES' : '🏆 Vedi su FIPAV'}</a>
       </div>`;
   }
 
-  // Map key: "cid|fonte"
+  // Map key: "cid|fonte" or "opes|tid"
   const cache = {};
-  let categorie = [];   // [{cat, cid, fonte}]
+  let categorie = [];   // [{cat, key, cid, fonte, tid}]
 
-  async function mostraCategoria(cid, fonte) {
+  async function mostraCategoria(key) {
     const cont = document.getElementById('classificheContent');
-    const key  = `${cid}|${fonte}`;
     if (cache[key]) { cont.innerHTML = cache[key]; return; }
-
     cont.innerHTML = '<div class="loading">Caricamento classifica…</div>';
     try {
-      const data = await fetch(`/api/classifica/${cid}?fonte=${fonte}`).then(r => r.json());
+      let data;
+      if (key.startsWith('opes|')) {
+        const tid = key.split('|')[1];
+        data = await fetch(`/api/classifica-opes/${tid}`).then(r => r.json());
+      } else {
+        const [cid, fonte] = key.split('|');
+        data = await fetch(`/api/classifica/${cid}?fonte=${fonte}`).then(r => r.json());
+      }
       if (data.error) throw new Error(data.error);
-      const html = renderClassifica(data);
+      const html = renderClassifica(data, key);
       cache[key] = html;
       cont.innerHTML = html;
     } catch (err) {
@@ -185,8 +191,7 @@
     const sel = document.getElementById('catSelect');
     const val = sel.value;
     if (!val) return;
-    const [cid, fonte] = val.split('|');
-    mostraCategoria(cid, fonte);
+    mostraCategoria(val);
   }
 
   async function carica() {
@@ -197,14 +202,21 @@
       if (data.error) throw new Error(data.error);
 
       // Raggruppa per fonte
-      const perFonte = { caserta: [], campania: [] };
+      const perFonte = { caserta: [], campania: [], opes: [] };
       Object.entries(data.gruppi).forEach(([cat, v]) => {
-        if (!v.cid) return;
         const f = v.fonte || 'caserta';
-        perFonte[f].push({ cat, cid: v.cid, fonte: f });
+        if (f === 'opes' && v.tid) {
+          perFonte.opes.push({ cat, key: `opes|${v.tid}`, tid: v.tid });
+        } else if (v.cid) {
+          perFonte[f] = perFonte[f] || [];
+          perFonte[f].push({ cat, key: `${v.cid}|${f}`, cid: v.cid, fonte: f });
+        }
       });
+      // Dedup OPES by tid
+      const seenTid = new Set();
+      perFonte.opes = perFonte.opes.filter(c => { if (seenTid.has(c.tid)) return false; seenTid.add(c.tid); return true; });
 
-      categorie = [...perFonte.caserta, ...perFonte.campania];
+      categorie = [...perFonte.caserta, ...perFonte.campania, ...perFonte.opes];
 
       if (!categorie.length) {
         sel.innerHTML = '<option value="">Nessuna classifica disponibile</option>';
@@ -216,29 +228,25 @@
       let optsHtml = '';
       if (perFonte.caserta.length) {
         optsHtml += `<optgroup label="FIPAV Caserta">` +
-          perFonte.caserta.map(c => `<option value="${c.cid}|${c.fonte}">${c.cat}</option>`).join('') +
+          perFonte.caserta.map(c => `<option value="${c.key}">${c.cat}</option>`).join('') +
           `</optgroup>`;
       }
       if (perFonte.campania.length) {
         optsHtml += `<optgroup label="FIPAV Campania">` +
-          perFonte.campania.map(c => `<option value="${c.cid}|${c.fonte}">${c.cat}</option>`).join('') +
+          perFonte.campania.map(c => `<option value="${c.key}">${c.cat}</option>`).join('') +
+          `</optgroup>`;
+      }
+      if (perFonte.opes.length) {
+        optsHtml += `<optgroup label="OPES Pallavolo">` +
+          perFonte.opes.map(c => `<option value="${c.key}">${c.cat}</option>`).join('') +
           `</optgroup>`;
       }
       sel.innerHTML = `<option value="">— Seleziona una categoria —</option>` + optsHtml;
 
-      // Check URL param ?cid=
-      const params  = new URLSearchParams(location.search);
-      const cidParam = params.get('cid');
-      const match    = categorie.find(c => c.cid === cidParam);
-      if (match) {
-        sel.value = `${match.cid}|${match.fonte}`;
-        await mostraCategoria(match.cid, match.fonte);
-      } else {
-        // Auto-select first
-        const first = categorie[0];
-        sel.value = `${first.cid}|${first.fonte}`;
-        await mostraCategoria(first.cid, first.fonte);
-      }
+      // Auto-select first
+      const first = categorie[0];
+      sel.value = first.key;
+      await mostraCategoria(first.key);
     } catch (err) {
       cont.innerHTML = `<div class="errore">Impossibile caricare i dati: ${err.message}</div>`;
     }
