@@ -2,6 +2,65 @@
    COMMON.CSS – Stili condivisi + Hamburger Nav
 ═══════════════════════════════════════════════════ */
 
+/* ── "Noi" dropdown ── */
+.nav-dropdown { position: relative; list-style: none; }
+.nav-dropdown-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  /* stessa apparenza dei link nav su qualsiasi pagina */
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  user-select: none;
+  white-space: nowrap;
+}
+.nav-dropdown:hover .nav-dropdown-toggle { color: #fff; }
+.nav-dropdown-toggle::after { content: '▾'; font-size: 9px; transition: transform 0.2s; margin-left: 2px; }
+.nav-dropdown:hover .nav-dropdown-toggle::after { transform: rotate(180deg); }
+.nav-dropdown.attivo .nav-dropdown-toggle { color: #f57c00; }
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0d2055;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  min-width: 148px;
+  padding: 6px 0;
+  list-style: none;
+  z-index: 200;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+}
+.nav-dropdown:hover .nav-dropdown-menu { display: block; }
+.nav-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 0; right: 0;
+  height: 10px;
+}
+.nav-dropdown-menu li a {
+  display: block;
+  padding: 10px 18px;
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.nav-dropdown-menu li a:hover,
+.nav-dropdown-menu li a.attivo { color: #f57c00; background: rgba(255,255,255,0.06); }
+
 /* ── Hamburger button ── */
 .nav-hamburger {
   display: none;
@@ -130,4 +189,77 @@ body.nav-aperta { overflow: hidden; }
 
   /* Ensure images don't overflow */
   img { max-width: 100%; }
+}
+
+/* ══════════════════════════════════════════════
+   FOOTER STANDARD (pagine secondarie)
+══════════════════════════════════════════════ */
+footer.footer-std {
+  background: #0d2055;
+  color: rgba(255,255,255,0.55);
+  font-size: 13px;
+}
+footer.footer-std .footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 32px 24px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+footer.footer-std .footer-inner img {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+footer.footer-std .footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+footer.footer-std .footer-links a {
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.2s;
+}
+footer.footer-std .footer-links a:hover { color: #fff; }
+footer.footer-std .footer-soc {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+footer.footer-std .footer-soc a {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  transition: opacity 0.2s, transform 0.2s;
+}
+footer.footer-std .footer-soc a:hover { opacity: 0.8; transform: scale(1.1); }
+footer.footer-std .footer-soc img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+footer.footer-std .footer-bottom {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  text-align: center;
+  font-size: 12px;
+}
+footer.footer-std .footer-bottom a { color: rgba(255,255,255,0.4); text-decoration: none; }
+footer.footer-std .footer-bottom a:hover { color: rgba(255,255,255,0.8); }
+@media (max-width: 600px) {
+  footer.footer-std .footer-inner { flex-direction: column; align-items: center; text-align: center; padding: 28px 16px 20px; }
+  footer.footer-std .footer-links { justify-content: center; }
 }

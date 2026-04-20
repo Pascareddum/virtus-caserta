@@ -10,9 +10,11 @@
     :root{--blu:#0d2055;--arancio:#f57c00;--verde:#16a34a;}
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#222;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
-    .card{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.1);padding:48px 40px;max-width:520px;width:100%;text-align:center;}
-    .check{width:80px;height:80px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:40px;}
-    h1{font-size:26px;font-weight:900;color:var(--blu);margin-bottom:8px;}
+    .card{background:#fff;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,.1);padding:48px 40px;max-width:540px;width:100%;text-align:center;}
+    .logo-wrap{margin:0 auto 20px;}
+    .logo-wrap img{height:72px;width:auto;object-fit:contain;}
+    .check{width:72px;height:72px;background:#dcfce7;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:36px;}
+    h1{font-size:26px;font-weight:900;color:var(--blu);margin-bottom:6px;}
     .ordine-id{font-size:13px;color:#888;margin-bottom:24px;}
     .ordine-id strong{color:var(--blu);}
     p{font-size:15px;color:#555;line-height:1.7;margin-bottom:16px;}
@@ -21,24 +23,30 @@
     .passo:last-child{border-bottom:none;}
     .passo-num{width:28px;height:28px;border-radius:50%;background:var(--blu);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
     .passo-testo{font-size:14px;color:#444;line-height:1.5;}
-    .btn{display:inline-block;background:var(--arancio);color:#fff;text-decoration:none;padding:13px 32px;border-radius:10px;font-size:15px;font-weight:700;margin-top:8px;transition:background .2s;}
+    .assistenza{font-size:13px;color:#888;margin-bottom:24px;}
+    .assistenza a{color:var(--arancio);}
+    .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+    .btn{display:inline-block;background:var(--arancio);color:#fff;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;font-weight:700;transition:background .2s;}
     .btn:hover{background:#e56c00;}
-    .btn-outline{background:#fff;color:var(--blu);border:2px solid var(--blu);margin-left:10px;}
+    .btn-outline{background:#fff;color:var(--blu);border:2px solid var(--blu);}
     .btn-outline:hover{background:var(--blu);color:#fff;}
     @media(max-width:480px){
       .card{padding:32px 20px;}
       h1{font-size:22px;}
-      .btn,.btn-outline{display:block;margin:8px 0;}
-      .btn-outline{margin-left:0;}
+      .btns{flex-direction:column;}
+      .btn,.btn-outline{width:100%;text-align:center;}
     }
   </style>
 </head>
 <body>
 <div class="card">
+  <div class="logo-wrap">
+    <img src="images/logo.png" alt="Virtus Caserta" onerror="this.src='images/negativo@4x.png'">
+  </div>
   <div class="check">✅</div>
   <h1>Ordine confermato!</h1>
   <p class="ordine-id">Numero ordine: <strong id="orderId">—</strong></p>
-  <p>Grazie per il tuo acquisto! Abbiamo inviato una email di conferma con il riepilogo del tuo ordine.</p>
+  <p>Grazie per il tuo acquisto! Abbiamo inviato una <strong>email di conferma</strong> con il riepilogo dell'ordine.</p>
 
   <div class="passi">
     <div class="passo">
@@ -59,14 +67,13 @@
     </div>
   </div>
 
-  <p style="font-size:13px;color:#888;">Per assistenza scrivi a <a href="mailto:info@virtuscaserta.it" style="color:var(--arancio)">info@virtuscaserta.it</a></p>
+  <p class="assistenza">Per assistenza scrivi a <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a></p>
 
-  <div style="margin-top:24px;">
+  <div class="btns">
     <a href="/" class="btn">← Torna alla Home</a>
     <a href="/shop" class="btn btn-outline">Continua lo shopping</a>
   </div>
 </div>
-
 <script>
   const params = new URLSearchParams(location.search);
   const id = params.get('id');

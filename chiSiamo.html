@@ -140,14 +140,14 @@
     #valori { background:var(--grigio); }
     .valori-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:24px; }
     .valore-card {
-      background:var(--bianco); border-radius:18px; padding:32px 24px;
+      background:var(--bianco); border-radius:18px; overflow:hidden;
       text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.06);
       transition:transform 0.2s, box-shadow 0.2s;
     }
     .valore-card:hover { transform:translateY(-6px); box-shadow:0 12px 36px rgba(0,0,0,0.1); }
-    .valore-icona { font-size:36px; margin-bottom:14px; }
-    .valore-card h3 { font-size:16px; font-weight:800; color:var(--blu-scuro); text-transform:uppercase; margin-bottom:8px; }
-    .valore-card p  { font-size:14px; color:#666; line-height:1.6; }
+    .valore-icona { margin:0; }
+    .valore-icona img { width:100%; height:260px; object-fit:cover; display:block; }
+    .valore-card p  { font-size:14px; color:#666; line-height:1.6; padding:18px 20px; }
 
     /* ── STORIA ── */
     #storia { background:var(--bianco); }
@@ -233,7 +233,13 @@
     <ul class="nav-menu">
       <li><a href="/chi-siamo" class="attivo">Chi siamo</a></li>
       <li><a href="/notizie">Notizie</a></li>
-      <li><a href="/squadra">Squadra</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown-toggle">Noi</span>
+        <ul class="nav-dropdown-menu">
+          <li><a href="/squadra">Squadra</a></li>
+          <li><a href="/staff">Staff</a></li>
+        </ul>
+      </li>
     </ul>
     <a href="/" class="nav-brand">
       <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
@@ -242,11 +248,13 @@
       <ul class="nav-menu" style="justify-content:flex-start;">
         <li><a href="/risultati">Risultati</a></li>
         <li><a href="/shop">Shop</a></li>
-        <li><a href="/staff">Staff</a></li>
+        <li><a href="/live">Live</a></li>
       </ul>
       <div class="nav-social">
         <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
         <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+        <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+        <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
       </div>
     </div>
   </nav>
@@ -263,12 +271,9 @@
       <div class="missione-grid">
         <div class="missione-testo">
           <h3>La nostra missione</h3>
-          <p>Tutto è cominciato con dodici persone e una passione condivisa. Quello che era il Volley Quadrifoglio è diventato Virtus Caserta: una realtà che cresce anno dopo anno, non soltanto attraverso i risultati sul campo, ma attraverso le persone che la abitano.</p>
-           <p>La volpe che porta il nostro nome non è un semplice logo. È un simbolo di intelligenza, tenacia e appartenenza — i valori che guidano ogni scelta che facciamo </p>
-            <p>In Virtus crediamo che investire sulle persone venga prima di tutto. I nostri atleti non arrivano già formati: li accompagniamo dalla prima schiacciata fino alle categorie senior, costruendo con loro non solo le capacità tecniche, ma il carattere, il rispetto e il senso di responsabilità che durano ben oltre il parquet.</p>
-             <p>Questo è il nostro modo di intendere lo sport: un percorso di crescita autentica, dove ogni allenamento è anche una lezione di vita.</p>
-              <p>Qui non si allena solo il gesto tecnico, ma carattere, rispetto e responsabilità</p>
-               <p>Per noi non è solo sport. È qualcosa di più.</p>
+          <p>Siamo nati in 12. Con un pallone, un campo e una grande voglia di costruire qualcosa di vero.</p>
+          <p>Oggi Virtus Caserta è una famiglia che cresce insieme — dalla prima schiacciata fino alle categorie senior. Perché qui non si allena solo il gesto tecnico. Si allena il carattere.</p>
+          <p>La volpe non è solo il nostro logo. È chi siamo.</p>
           <!-- 
           <p>La Virtus Caserta è una realtà sportiva che promuove la pallavolo a tutti i livelli, dai giovani atleti in crescita alle squadre competitive. Crediamo nello sport come strumento di crescita personale e collettiva.</p>
           <p>Il nostro obiettivo è formare atleti completi, sia sul campo che nella vita, attraverso valori di rispetto, impegno e spirito di squadra.</p>
@@ -307,23 +312,19 @@
       </div>
       <div class="valori-grid">
         <div class="valore-card">
-          <div class="valore-icona">🤝</div>
-          <h3>Rispetto</h3>
+          <div class="valore-icona"><img src="images/rispetto.jpeg" alt="Rispetto"></div>
           <p>Verso i compagni, gli avversari, i tecnici e le strutture. Il rispetto è la base di ogni rapporto sportivo sano.</p>
         </div>
         <div class="valore-card">
-          <div class="valore-icona">💪</div>
-          <h3>Impegno</h3>
+          <div class="valore-icona"><img src="images/impegno.jpeg" alt="Impegno"></div>
           <p>Ogni atleta dà il massimo in ogni allenamento. La costanza e la dedizione sono le chiavi per migliorare.</p>
         </div>
         <div class="valore-card">
-          <div class="valore-icona">🏐</div>
-          <h3>Squadra</h3>
+          <div class="valore-icona"><img src="images/squadra.jpeg" alt="Squadra"></div>
           <p>Il successo è collettivo. Vinciamo insieme, cresciamo insieme, affrontiamo le difficoltà insieme.</p>
         </div>
         <div class="valore-card">
-          <div class="valore-icona">🌱</div>
-          <h3>Crescita</h3>
+          <div class="valore-icona"><img src="images/crescita.jpeg" alt="Crescita"></div>
           <p>Formiamo persone prima ancora che atleti, con un percorso che punta allo sviluppo umano e sportivo.</p>
         </div>
       </div>
@@ -402,6 +403,8 @@
         <div class="footer-social">
           <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
           <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+          <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+          <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
         </div>
       </div>
       <div class="footer-col footer-col-right">

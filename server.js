@@ -2,14 +2,16 @@ require('dotenv').config();
 const dns        = require('dns');
 dns.setDefaultResultOrder('ipv4first'); // Railway non supporta IPv6 in uscita
 const express    = require('express');
-const fetch      = require('node-fetch');
 const path       = require('path');
 const fs         = require('fs');
 const Stripe     = require('stripe');
 const nodemailer = require('nodemailer');
 const jwt        = require('jsonwebtoken');
+const bcrypt     = require('bcryptjs');
 const multer     = require('multer');
 const crypto     = require('crypto');
+const helmet         = require('helmet');
+const compression    = require('compression');
 const rateLimit      = require('express-rate-limit');
 const cookieParser   = require('cookie-parser');
 const db             = require('./db');
@@ -17,9 +19,12 @@ const db             = require('./db');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('[ERRORE CRITICO] JWT_SECRET non configurato. Imposta JWT_SECRET nelle variabili d\'ambiente di Railway prima di avviare in produzione.');
-  process.exit(1);
+if (process.env.NODE_ENV === 'production') {
+  const missing = ['JWT_SECRET', 'ADMIN_PASSWORD', 'ADMIN_USERNAME'].filter(k => !process.env[k]);
+  if (missing.length) {
+    console.error(`[ERRORE CRITICO] Variabili mancanti in produzione: ${missing.join(', ')}. Configurale su Railway prima di avviare.`);
+    process.exit(1);
+  }
 }
 const JWT_SECRET             = process.env.JWT_SECRET || 'virtus_secret_2026_dev';
 const INSTAGRAM_USERNAME     = 'virtuscaserta';
@@ -50,6 +55,8 @@ function emailConfigurata() {
 }
 
 app.set('trust proxy', 1);
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(compression());
 app.use(cookieParser());
 
 /* ─── Health check (Railway) ─── */
@@ -80,7 +87,7 @@ app.post('/api/stripe-webhook',
       console.log(`[Webhook] Pagamento confermato – PI: ${pi.id}${orderId ? ', Ordine: ' + orderId : ' (nessun orderId nei metadata)'}`);
       try {
         if (orderId) {
-          await db.query(`UPDATE ordini SET stato='in lavorazione' WHERE id=$1`, [orderId]);
+          await db.query(`UPDATE ordini SET stato='in lavorazione', stripe_pi_id=$2 WHERE id=$1`, [orderId, pi.id]);
           await logActivity('Pagamento confermato via webhook', `Ordine #${orderId} – PI: ${pi.id}`);
         }
       } catch (dbErr) {
@@ -132,42 +139,50 @@ app.get('/calendario.html',         (_req, res) => res.redirect(301, '/calendari
 app.get('/shop.html',               (_req, res) => res.redirect(301, '/shop'));
 app.get('/admin.html',              adminCookieCheck, sendPage('admin.html'));
 app.get('/admin-login.html',        (_req, res) => res.redirect(301, '/admin-login'));
-app.get('/reset-password.html',     (_req, res) => res.redirect(301, '/reset-password'));
 app.get('/squadra.html',            (_req, res) => res.redirect(301, '/squadra'));
-app.get('/galleria.html',           (_req, res) => res.redirect(301, '/galleria'));
-app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/iscrizione'));
-app.get('/sponsor.html',            (_req, res) => res.redirect(301, '/sponsor'));
 app.get('/risultati.html',          (_req, res) => res.redirect(301, '/risultati'));
 app.get('/classifica.html',         (_req, res) => res.redirect(301, '/classifica'));
 app.get('/staff.html',              (_req, res) => res.redirect(301, '/staff'));
 app.get('/privacy.html',            (_req, res) => res.redirect(301, '/privacy'));
 app.get('/termini.html',            (_req, res) => res.redirect(301, '/termini'));
 app.get('/ordine-confermato.html',  (_req, res) => res.redirect(301, '/ordine-confermato'));
+app.get('/live.html',               (_req, res) => res.redirect(301, '/live'));
+// Vecchi URL rimossi → redirect home
+app.get('/galleria.html',           (_req, res) => res.redirect(301, '/'));
+app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/'));
+app.get('/sponsor.html',            (_req, res) => res.redirect(301, '/'));
+app.get('/reset-password.html',     (_req, res) => res.redirect(301, '/'));
 
 // URL puliti
-app.get('/',                sendPage('index.html'));
-app.get('/chi-siamo',       sendPage('chiSiamo.html'));
-app.get('/notizie',         sendPage('notizie.html'));
-app.get('/calendario',      sendPage('calendario.html'));
-app.get('/shop',            sendPage('shop.html'));
-app.get('/admin',           adminCookieCheck, sendPage('admin.html'));
-app.get('/admin-login',     sendPage('admin-login.html'));
-app.get('/reset-password',  sendPage('reset-password.html'));
-app.get('/squadra',         sendPage('squadra.html'));
-app.get('/galleria',        sendPage('galleria.html'));
-app.get('/iscrizione',      sendPage('iscrizione.html'));
-app.get('/sponsor',         sendPage('sponsor.html'));
-app.get('/risultati',       sendPage('risultati.html'));
-app.get('/classifica',      sendPage('classifica.html'));
-app.get('/staff',           sendPage('staff.html'));
-app.get('/privacy',         sendPage('privacy.html'));
-app.get('/termini',         sendPage('termini.html'));
+app.get('/',                  sendPage('index.html'));
+app.get('/chi-siamo',         sendPage('chiSiamo.html'));
+app.get('/notizie',           sendPage('notizie.html'));
+app.get('/calendario',        sendPage('calendario.html'));
+app.get('/shop',              sendPage('shop.html'));
+app.get('/admin',             adminCookieCheck, sendPage('admin.html'));
+app.get('/admin-login',       sendPage('admin-login.html'));
+app.get('/squadra',           sendPage('squadra.html'));
+app.get('/risultati',         sendPage('risultati.html'));
+app.get('/classifica',        sendPage('classifica.html'));
+app.get('/staff',             sendPage('staff.html'));
+app.get('/privacy',           sendPage('privacy.html'));
+app.get('/termini',           sendPage('termini.html'));
 app.get('/ordine-confermato', sendPage('ordine-confermato.html'));
+app.get('/live',              sendPage('live.html'));
+// Vecchi URL rimossi → redirect home
+app.get('/galleria',          (_req, res) => res.redirect(301, '/'));
+app.get('/iscrizione',        (_req, res) => res.redirect(301, '/'));
+app.get('/sponsor',           (_req, res) => res.redirect(301, '/'));
+app.get('/reset-password',    (_req, res) => res.redirect(301, '/admin-login'));
 
+const BLOCKED_FILES = /^\/?(server\.js|db\.js|package(?:-lock)?\.json|railway\.json|\.env[^/]*)$/i;
+app.use((req, res, next) => {
+  if (BLOCKED_FILES.test(req.path) || /\.md$/i.test(req.path)) {
+    return res.status(403).json({ error: 'Accesso negato' });
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname)));
-
-/* ─── Health check (Railway) ─── */
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 /* ─── Rate limiting ─── */
 const loginLimiter = rateLimit({
@@ -177,6 +192,24 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Troppi tentativi. Riprova tra 15 minuti.' },
 });
+
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppe richieste di pagamento. Riprova tra un minuto.' },
+});
+
+/* ─── Utility: escape HTML per email ─── */
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 /* ─── Multer upload ─── */
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -208,7 +241,7 @@ function adminAuth(req, res, next) {
 }
 
 /* ─── Login admin ─── */
-app.post('/api/admin/login', loginLimiter, (req, res) => {
+app.post('/api/admin/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username e password obbligatori' });
 
@@ -216,10 +249,17 @@ app.post('/api/admin/login', loginLimiter, (req, res) => {
   const validUser =
     username === (process.env.ADMIN_USERNAME || 'admin') ||
     username === process.env.ADMIN_EMAIL;
-  const passMatch = crypto.timingSafeEqual(
-    Buffer.from(password.padEnd(64)),
-    Buffer.from(adminPassword.padEnd(64))
-  );
+
+  // Se ADMIN_PASSWORD è un hash bcrypt usalo direttamente, altrimenti confronto diretto timing-safe
+  let passMatch = false;
+  if (adminPassword.startsWith('$2')) {
+    passMatch = await bcrypt.compare(password, adminPassword);
+  } else {
+    const a = Buffer.alloc(64); const b = Buffer.alloc(64);
+    Buffer.from(password).copy(a); Buffer.from(adminPassword).copy(b);
+    passMatch = crypto.timingSafeEqual(a, b);
+  }
+
   if (validUser && passMatch) {
     const token = jwt.sign({ role: 'admin', nome: 'Admin' }, JWT_SECRET, { expiresIn: '8h' });
     res.cookie('vc_admin_session', token, {
@@ -478,7 +518,7 @@ app.get('/api/config', (_req, res) => {
 });
 
 /* ─── Stripe PaymentIntent ─── */
-app.post('/api/create-payment-intent', async (req, res) => {
+app.post('/api/create-payment-intent', paymentLimiter, async (req, res) => {
   if (!stripe) return res.status(503).json({ error: 'Stripe non configurato. Aggiungi STRIPE_SECRET_KEY nel file .env' });
   try {
     const { amount } = req.body;
@@ -642,8 +682,90 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
   }
 });
 
+/* ─── Ordini: rimborso + cancellazione (admin) ─── */
+app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: 'Stripe non configurato' });
+  try {
+    // Cerca per id primario O per stripe_pi_id (admin potrebbe passare l'uno o l'altro)
+    const param = req.params.id;
+    const r = await db.query(
+      `SELECT * FROM ordini WHERE id=$1 OR stripe_pi_id=$1 LIMIT 1`,
+      [param]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Ordine non trovato' });
+    const ordine = r.rows[0];
+    if (ordine.stato === 'annullato') return res.status(400).json({ error: 'Ordine già annullato' });
+
+    // Trova il PaymentIntent ID
+    // Se l'admin ha passato il PI ID direttamente, usalo subito
+    let piId = param.startsWith('pi_') ? param : ordine.stripe_pi_id;
+    if (!piId) {
+      try {
+        const pis = await stripe.paymentIntents.search({ query: `metadata['orderId']:'${ordine.id}'`, limit: 1 });
+        if (pis.data.length) piId = pis.data[0].id;
+      } catch(_) {}
+    }
+
+    // Esegui rimborso Stripe
+    let rimborsoEffettuato = false;
+    let rimborsoErrore = null;
+    if (piId) {
+      try {
+        await stripe.refunds.create({ payment_intent: piId });
+        rimborsoEffettuato = true;
+      } catch(e) {
+        rimborsoErrore = e.message;
+        console.error('[Rimborso] Errore Stripe:', e.message);
+      }
+    }
+
+    // Aggiorna stato DB
+    await db.query(`UPDATE ordini SET stato='annullato' WHERE id=$1`, [ordine.id]);
+    await logActivity('Ordine cancellato' + (rimborsoEffettuato ? ' + rimborso' : ''), `Ordine #${ordine.id}`);
+
+    // Email al cliente
+    if (emailConfigurata() && ordine.email) {
+      const transporter = creaTransporter();
+      const html = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+          <div style="background:#0d2055;padding:24px;text-align:center">
+            <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+            <p style="color:#ff9800;margin:6px 0 0;font-size:13px">ORDINE CANCELLATO</p>
+          </div>
+          <div style="padding:28px 24px">
+            <p>Ciao <strong>${ordine.nome}</strong>,</p>
+            <p>Il tuo ordine <strong>#${ordine.id}</strong> è stato cancellato dal nostro staff.</p>
+            ${rimborsoEffettuato ? `
+            <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px;border-radius:4px;margin:16px 0;">
+              <strong>✅ Rimborso in corso</strong><br>
+              <span style="font-size:13px;color:#374151;">Il rimborso di <strong>€ ${Number(ordine.totale).toFixed(2)}</strong> è stato avviato e apparirà sul tuo metodo di pagamento entro 5-10 giorni lavorativi.</span>
+            </div>` : `
+            <div style="background:#fef9c3;border-left:4px solid #ca8a04;padding:16px;border-radius:4px;margin:16px 0;">
+              <strong>ℹ️ Rimborso</strong><br>
+              <span style="font-size:13px;">Per informazioni sul rimborso contatta <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a></span>
+            </div>`}
+            <p style="font-size:13px;color:#6b7280;">Per qualsiasi domanda siamo disponibili a <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a>. Forza Virtus!</p>
+          </div>
+          <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
+            © 2026 Virtus Caserta – Società Sportiva Pallavolo
+          </div>
+        </div>`;
+      transporter.sendMail({
+        from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+        to: ordine.email,
+        subject: `Ordine #${ordine.id} cancellato – Virtus Caserta`,
+        html,
+      }).catch(e => console.error('[Email rimborso]', e.message));
+    }
+
+    res.json({ success: true, rimborso: rimborsoEffettuato, erroreStripe: rimborsoErrore });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* ─── Invio email ordine ─── */
-app.post('/api/send-order-email', async (req, res) => {
+app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
   const { nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo, orderId } = req.body;
 
   // Salva ordine nel DB (non bloccante)
@@ -669,9 +791,9 @@ app.post('/api/send-order-email', async (req, res) => {
 
     const righeHtml = items.map(i =>
       `<tr>
-         <td style="padding:8px;border-bottom:1px solid #e2e8f0">${i.nome}</td>
-         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">Taglia ${i.taglia}</td>
-         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">${i.qty}</td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0">${esc(i.nome)}</td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">Taglia ${esc(i.taglia)}</td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">${Number(i.qty)}</td>
          <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">€ ${(i.prezzo * i.qty).toFixed(2)}</td>
        </tr>`
     ).join('');
@@ -693,8 +815,8 @@ app.post('/api/send-order-email', async (req, res) => {
           <p style="color:#ff9800;margin:6px 0 0;font-size:14px;letter-spacing:1px">ORDINE CONFERMATO</p>
         </div>
         <div style="padding:32px 24px">
-          <p style="font-size:16px">Ciao <strong>${nome}</strong>,</p>
-          <p>Il tuo ordine è stato ricevuto con successo${orderId ? ` (<strong>#${orderId}</strong>)` : ''}.</p>
+          <p style="font-size:16px">Ciao <strong>${esc(nome)}</strong>,</p>
+          <p>Il tuo ordine è stato ricevuto con successo${orderId ? ` (<strong>#${esc(orderId)}</strong>)` : ''}.</p>
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Riepilogo ordine</h3>
           <table style="width:100%;border-collapse:collapse;font-size:14px">
             <thead><tr style="background:#f8fafc">
@@ -712,7 +834,7 @@ app.post('/api/send-order-email', async (req, res) => {
             Totale: € ${Number(totale).toFixed(2)}
           </p>
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Indirizzo di spedizione</h3>
-          <p>${nome} ${cognome}<br>${indirizzo}<br>${cap} ${citta}</p>
+          <p>${esc(nome)} ${esc(cognome)}<br>${esc(indirizzo)}<br>${esc(cap)} ${esc(citta)}</p>
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Metodo di pagamento</h3>
           <p>${metodiLabel[metodo] || metodo}</p>
           ${bonificoHtml}
@@ -1089,8 +1211,14 @@ async function fetchFipav(url, baseUrl, fonte) {
   return parseFipavMatches(html, baseUrl, fonte);
 }
 
+// Cache FIPAV: 10 minuti
+let _fipavCache = null;
+let _fipavCacheAt = 0;
+const FIPAV_CACHE_TTL = 10 * 60 * 1000;
+
 // Fetch da tutte le fonti (FIPAV Caserta, Campania, OPES), unifica, ordina per data DESC
 async function fetchFipavAll() {
+  if (_fipavCache && Date.now() - _fipavCacheAt < FIPAV_CACHE_TTL) return _fipavCache;
   const [caserta, campania, opes] = await Promise.allSettled([
     fetchFipav(FIPAV_CASERTA_URL,  FIPAV_CASERTA_BASE,  'caserta'),
     fetchFipav(FIPAV_CAMPANIA_URL, FIPAV_CAMPANIA_BASE, 'campania'),
@@ -1116,6 +1244,8 @@ async function fetchFipavAll() {
 
   // Ordine decrescente (più recenti prima)
   all.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  _fipavCache = all;
+  _fipavCacheAt = Date.now();
   return all;
 }
 
@@ -1236,23 +1366,31 @@ app.get('/api/classifica/:cid', async (req, res) => {
     const titolo = titleMatch ? stripTagsFipav(titleMatch[1]).trim() : '';
 
     const squadre = [];
-    const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-    let rowMatch;
-    while ((rowMatch = rowRe.exec(html)) !== null) {
-      const row = rowMatch[1];
+    // FIPAV HTML usa <tr> senza </tr> — split invece di regex
+    const rowSegments = html.split(/<tr[^>]*>/i).slice(1);
+    for (const row of rowSegments) {
       const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-      const tds = [], td1Raws = [];
+      const tds = [], tdRaws = [];
       let tdm;
-      while ((tdm = tdRe.exec(row)) !== null) { tds.push(stripTagsFipav(tdm[1])); td1Raws.push(tdm[1]); }
-      if (tds.length >= 13 && /^\d+$/.test(tds[0].trim())) {
+      while ((tdm = tdRe.exec(row)) !== null) { tds.push(stripTagsFipav(tdm[1])); tdRaws.push(tdm[1]); }
+      if (tds.length >= 3 && /^\d+$/.test(tds[0].trim())) {
         let logo = '';
-        const srcMatch = td1Raws[1] && td1Raws[1].match(/src="([^"]+)"/i);
-        if (srcMatch) logo = base + srcMatch[1];
+        const srcMatch = tdRaws[1] && tdRaws[1].match(/src="([^"]+)"/i);
+        if (srcMatch) logo = (srcMatch[1].startsWith('http') ? '' : base) + srcMatch[1];
         squadre.push({
-          pos: tds[0].trim(), squadra: tds[1].trim(), logo,
-          punti: tds[2].trim(), pg: tds[3].trim(), pv: tds[4].trim(), pp: tds[5].trim(),
-          sf: tds[6].trim(), ss: tds[7].trim(), qs: tds[8].trim(),
-          pf: tds[9].trim(), ps: tds[10].trim(), qp: tds[11].trim(), penal: tds[12].trim(),
+          pos:   tds[0].trim(),
+          squadra: tds[1].trim(),
+          logo,
+          punti: tds[2]?.trim() || '0',
+          pg:    tds[3]?.trim() || '0',
+          pv:    tds[4]?.trim() || '0',
+          pp:    tds[5]?.trim() || '0',
+          sf:    tds[6]?.trim() || '0',
+          ss:    tds[7]?.trim() || '0',
+          qs:    tds[8]?.trim() || '0',
+          pf:    tds[9]?.trim() || '0',
+          ps:    tds[10]?.trim() || '0',
+          penal: tds[12]?.trim() || '0',
         });
       }
     }
@@ -1281,7 +1419,8 @@ app.get('/api/proxy-image', async (req, res) => {
     if (!imgRes.ok) return res.status(imgRes.status).send('Error fetching image');
     res.set('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=3600');
-    imgRes.body.pipe(res);
+    const buf = await imgRes.arrayBuffer();
+    res.end(Buffer.from(buf));
   } catch (err) {
     res.status(500).send(err.message);
   }
@@ -1556,7 +1695,9 @@ app.post('/api/admin/test-email', adminAuth, async (_req, res) => {
 });
 
 /* ─── Startup ─── */
-db.init().then(() => {
+db.init().then(async () => {
+  // Migrazione: aggiunge stripe_pi_id se non esiste
+  try { await db.query(`ALTER TABLE ordini ADD COLUMN IF NOT EXISTS stripe_pi_id TEXT`); } catch(_){}
   app.listen(PORT, () => {
     console.log(`[OK] Server avviato su porta ${PORT} (${process.env.NODE_ENV || 'development'})`);
     console.log(`[OK] Email configurata: ${emailConfigurata() ? process.env.EMAIL_USER : 'NO – imposta EMAIL_USER e EMAIL_PASS'}`);

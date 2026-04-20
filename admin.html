@@ -362,7 +362,6 @@
   <button class="tab-btn"        onclick="switchTab('calendario')">📅 Calendario</button>
   <button class="tab-btn"        onclick="switchTab('ordini')">📦 Ordini</button>
   <button class="tab-btn"        onclick="switchTab('squadra')">🏐 Squadra</button>
-  <button class="tab-btn"        onclick="switchTab('galleria')">🖼️ Galleria</button>
 </div>
 
 <!-- ══ DASHBOARD ══ -->
@@ -512,24 +511,30 @@
   </div>
 </div>
 
-<!-- ══ GALLERIA ══ -->
-<div class="pannello" id="pan-galleria">
-  <div class="toolbar">
-    <h2>Galleria</h2>
-    <button class="btn-aggiungi" onclick="apriModalFoto()">+ Aggiungi foto</button>
-  </div>
-  <div class="filtro-bar" id="filtroAlbum"></div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th style="width:80px">Foto</th>
-        <th>Album</th>
-        <th>Titolo</th>
-        <th>Data</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="galleriaBody"></tbody>
-    </table>
+
+<!-- MODAL CONFERMA RIMBORSO -->
+<div class="modal-overlay" id="modalRimborso">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-hdr">
+      <h3>Cancella ordine</h3>
+      <button class="modal-close" onclick="chiudiModal('modalRimborso')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:16px;display:flex;gap:12px;align-items:flex-start;">
+        <span style="font-size:22px;flex-shrink:0;">⚠️</span>
+        <div>
+          <div style="font-weight:800;color:#b91c1c;margin-bottom:4px;">Sei sicuro?</div>
+          <div style="font-size:13px;color:#374151;line-height:1.5;">I soldi verranno restituiti automaticamente tramite Stripe e <strong>l'utente verrà notificato via email</strong>. L'operazione non è reversibile.</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#6b7280;">Ordine: <strong id="rimborsoOrdineInfo"></strong></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalRimborso')">Annulla</button>
+      <button id="btnConfermaRimborso" style="padding:10px 24px;border-radius:10px;border:none;background:#dc2626;color:#fff;font-size:14px;font-weight:700;cursor:pointer;" onclick="confermaCancellazione()">
+        Sì, cancella e rimborsa
+      </button>
+    </div>
   </div>
 </div>
 
@@ -855,7 +860,7 @@
   /* ══ TABS ══ */
   function switchTab(nome) {
     document.querySelectorAll('.tab-btn').forEach((b,i) => {
-      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','galleria'];
+      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra'];
       b.classList.toggle('attivo', nomi[i] === nome);
     });
     document.querySelectorAll('.pannello').forEach(p => p.classList.remove('attivo'));
@@ -866,7 +871,6 @@
     if (nome === 'calendario') caricaCalendario();
     if (nome === 'ordini')     caricaOrdini();
     if (nome === 'squadra')    caricaSquadra();
-    if (nome === 'galleria')   caricaGalleriaAdmin();
   }
 
   function caricaTutto() {
@@ -1340,7 +1344,7 @@
           <td data-label="Data" style="color:var(--sub);font-size:13px;">${o.created_at ? new Date(o.created_at).toLocaleDateString('it-IT') : '—'}</td>
           <td data-label="Stato"><span class="badge ${statoBadge(o.stato)}">${o.stato}</span></td>
           <td data-label="Azioni">
-            <div class="azioni">
+            <div class="azioni" style="gap:6px;flex-wrap:wrap;">
               <select class="stato-select" onchange="aggiornaStatoOrdine('${o.id}', this.value)">
                 <option value="ricevuto"       ${o.stato==='ricevuto'       ?'selected':''}>📦 Ricevuto</option>
                 <option value="in lavorazione" ${o.stato==='in lavorazione' ?'selected':''}>🔧 In lavorazione</option>
@@ -1348,6 +1352,12 @@
                 <option value="ritirato"       ${o.stato==='ritirato'       ?'selected':''}>✅ Ritirato</option>
                 <option value="annullato"      ${o.stato==='annullato'      ?'selected':''}>❌ Annullato</option>
               </select>
+              ${o.stato !== 'annullato' && o.stato !== 'ritirato' ? `
+              <button onclick="richiediRimborso('${o.id}','${(o.nome+' '+o.cognome).replace(/'/g,"\\'")}', '€ ${Number(o.totale).toFixed(2)}')"
+                style="padding:7px 12px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s;"
+                onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fff'">
+                🗑 Cancella
+              </button>` : ''}
             </div>
           </td>
         </tr>`).join('');
@@ -1367,6 +1377,42 @@
     });
     if (!res.ok) { alert('Errore aggiornamento stato.'); caricaOrdini(); }
     else caricaDashboard();
+  }
+
+  let _rimborsoId = null;
+  function richiediRimborso(id, nome, totale) {
+    _rimborsoId = id;
+    document.getElementById('rimborsoOrdineInfo').textContent = `#${id.slice(-6)} – ${nome} – ${totale}`;
+    document.getElementById('modalRimborso').classList.add('aperto');
+  }
+  async function confermaCancellazione() {
+    if (!_rimborsoId) return;
+    const btn = document.getElementById('btnConfermaRimborso');
+    btn.disabled = true;
+    btn.textContent = 'Elaborazione…';
+    try {
+      const res = await fetch(`/api/admin/ordini/${_rimborsoId}/rimborso`, {
+        method: 'POST', headers: headers(),
+      });
+      const data = await res.json();
+      chiudiModal('modalRimborso');
+      if (!res.ok) {
+        alert(`Errore: ${data.error}`);
+      } else {
+        const msg = data.rimborso
+          ? '✅ Ordine cancellato e rimborso avviato. Il cliente è stato notificato.'
+          : '✅ Ordine cancellato. Il rimborso non è stato eseguito automaticamente (nessun PI trovato) — verifica manualmente su Stripe.';
+        alert(msg);
+        caricaOrdini();
+        caricaDashboard();
+      }
+    } catch {
+      alert('Errore di rete. Riprova.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sì, cancella e rimborsa';
+      _rimborsoId = null;
+    }
   }
 
   /* ══ ANTEPRIMA NOTIZIA ══ */

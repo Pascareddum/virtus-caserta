@@ -74,18 +74,26 @@
   <ul class="nav-menu">
     <li><a href="/chi-siamo">Chi siamo</a></li>
     <li><a href="/notizie">Notizie</a></li>
-    <li><a href="/squadra">Squadra</a></li>
+    <li class="nav-dropdown">
+      <span class="nav-dropdown-toggle">Noi</span>
+      <ul class="nav-dropdown-menu">
+        <li><a href="/squadra">Squadra</a></li>
+        <li><a href="/staff">Staff</a></li>
+      </ul>
+    </li>
   </ul>
   <a href="/" class="nav-brand"><img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy"></a>
   <div class="nav-actions">
     <ul class="nav-menu" style="justify-content:flex-start;">
       <li><a href="/risultati" class="attivo">Risultati</a></li>
       <li><a href="/shop">Shop</a></li>
-      <li><a href="/staff">Staff</a></li>
+      <li><a href="/live">Live</a></li>
     </ul>
     <div class="nav-social" style="display:flex;gap:10px;margin-left:auto;">
-      <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener"><img src="images/facebook-icon.png" alt="Facebook"></a>
-      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener"><img src="images/instagram-icon.png" alt="Instagram"></a>
+      <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+      <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+      <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
     </div>
   </div>
 </nav>
@@ -110,7 +118,28 @@
   </div>
 </section>
 
-<footer><p>© 2026 Virtus Caserta ASD · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a></p></footer>
+<footer class="footer-std">
+  <div class="footer-inner">
+    <img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy" onerror="this.style.display='none'">
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/chi-siamo">Chi siamo</a>
+      <a href="/notizie">Notizie</a>
+      <a href="/risultati">Risultati</a>
+      <a href="/shop">Shop</a>
+      <a href="/live">Live</a>
+    </div>
+    <div class="footer-soc">
+      <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+      <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+      <a href="/live" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a></p>
+  </div>
+</footer>
 
 <script>
   function isVirtus(nome) { return /virtus/i.test(nome); }

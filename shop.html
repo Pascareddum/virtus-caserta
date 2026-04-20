@@ -468,18 +468,26 @@
     <ul class="nav-menu">
       <li><a href="/chi-siamo">Chi siamo</a></li>
       <li><a href="/notizie">Notizie</a></li>
-      <li><a href="/squadra">Squadra</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown-toggle">Noi</span>
+        <ul class="nav-dropdown-menu">
+          <li><a href="/squadra">Squadra</a></li>
+          <li><a href="/staff">Staff</a></li>
+        </ul>
+      </li>
     </ul>
     <a href="/" class="nav-brand"><img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'"></a>
     <div class="nav-actions">
       <ul class="nav-menu" style="justify-content:flex-start;">
         <li><a href="/risultati">Risultati</a></li>
         <li><a href="/shop" class="attivo">Shop</a></li>
-        <li><a href="/staff">Staff</a></li>
+        <li><a href="/live">Live</a></li>
       </ul>
       <div class="nav-social" style="display:flex;gap:10px;margin-left:auto;">
-        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener"><img src="images/facebook-icon.png" alt="Facebook"></a>
-        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener"><img src="images/instagram-icon.png" alt="Instagram"></a>
+        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+        <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+        <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
       </div>
       <button class="cart-btn" onclick="apriCarrello()">
         <img src="images/carrello-icon.png" alt="Carrello" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;"> <span class="cart-label">Carrello</span>
@@ -713,7 +721,7 @@
         onApprove: async (_data, actions) => {
           const order = await actions.order.capture();
           await inviaEmail(order.id);
-          mostraConferma(document.getElementById('chkNome').value, document.getElementById('chkEmail').value);
+          mostraConferma(order.id);
         },
         onError: err => mostraToast('⚠️ Errore PayPal: ' + err),
       }).render('#paypal-btn');
@@ -900,16 +908,8 @@
     }
 
     /* ══ CONFERMA ══ */
-    function mostraConferma(nome, email) {
-      document.getElementById('modalBody').innerHTML = `
-        <div class="conferma-box">
-          <div class="check">✅</div>
-          <h2>Ordine confermato!</h2>
-          <p>Grazie <strong>${nome}</strong>!<br>
-          Riceverai la conferma a <strong>${email}</strong>.<br>
-          Ti avviseremo quando l'ordine è pronto per il <strong>ritiro in sede</strong>.</p>
-          <button class="btn-continua" onclick="resetShop()">Continua lo shopping</button>
-        </div>`;
+    function mostraConferma(orderId) {
+      window.location.href = '/ordine-confermato' + (orderId ? '?id=' + encodeURIComponent(orderId) : '');
     }
 
     /* ══ PAGA ORA ══ */
@@ -948,11 +948,11 @@
 
           /* 3. Invia email di conferma */
           await inviaEmail(orderId);
-          mostraConferma(nome, email);
+          mostraConferma(orderId);
 
         } else if (metodoSel === 'bonifico') {
           await inviaEmail(null);
-          mostraConferma(nome, email);
+          mostraConferma(null);
         }
       } catch (err) {
         mostraToast('⚠️ ' + err.message);
