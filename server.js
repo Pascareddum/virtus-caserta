@@ -684,7 +684,6 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
 
 /* ─── Ordini: rimborso + cancellazione (admin) ─── */
 app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
-  if (!stripe) return res.status(503).json({ error: 'Stripe non configurato' });
   try {
     // Cerca per id primario O per stripe_pi_id (admin potrebbe passare l'uno o l'altro)
     const param = req.params.id;
@@ -694,22 +693,21 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Ordine non trovato' });
     const ordine = r.rows[0];
-    if (ordine.stato === 'annullato') return res.status(400).json({ error: 'Ordine già annullato' });
 
     // Trova il PaymentIntent ID
     // Se l'admin ha passato il PI ID direttamente, usalo subito
     let piId = param.startsWith('pi_') ? param : ordine.stripe_pi_id;
-    if (!piId) {
+    if (!piId && stripe) {
       try {
         const pis = await stripe.paymentIntents.search({ query: `metadata['orderId']:'${ordine.id}'`, limit: 1 });
         if (pis.data.length) piId = pis.data[0].id;
       } catch(_) {}
     }
 
-    // Esegui rimborso Stripe
+    // Esegui rimborso Stripe (se configurato)
     let rimborsoEffettuato = false;
     let rimborsoErrore = null;
-    if (piId) {
+    if (piId && stripe) {
       try {
         await stripe.refunds.create({ payment_intent: piId });
         rimborsoEffettuato = true;
@@ -719,9 +717,9 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
       }
     }
 
-    // Aggiorna stato DB
-    await db.query(`UPDATE ordini SET stato='annullato' WHERE id=$1`, [ordine.id]);
-    await logActivity('Ordine cancellato' + (rimborsoEffettuato ? ' + rimborso' : ''), `Ordine #${ordine.id}`);
+    // Rimuovi dal DB
+    await db.query(`DELETE FROM ordini WHERE id=$1`, [ordine.id]);
+    await logActivity('Ordine eliminato' + (rimborsoEffettuato ? ' + rimborso' : ''), `Ordine #${ordine.id}`);
 
     // Email al cliente
     if (emailConfigurata() && ordine.email) {
@@ -759,6 +757,17 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
     }
 
     res.json({ success: true, rimborso: rimborsoEffettuato, erroreStripe: rimborsoErrore });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Ordini: svuota tutti ─── */
+app.delete('/api/admin/ordini/all', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('DELETE FROM ordini');
+    await logActivity('Database ordini svuotato', `${r.rowCount} ordini eliminati`);
+    res.json({ success: true, eliminati: r.rowCount });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1672,6 +1681,43 @@ app.post('/api/admin/push/send', adminAuth, async (req, res) => {
     await logActivity('Push notification inviata', `${titolo} → ${ok} recapitate, ${fail} fallite`);
     res.json({ success: true, ok, fail });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/* ─── Modulo contatti ─── */
+const contactLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Troppi messaggi. Riprova tra un\'ora.' } });
+
+app.post('/api/contact', contactLimiter, async (req, res) => {
+  const { nome, email, oggetto, messaggio } = req.body;
+  if (!nome || !email || !messaggio) return res.status(400).json({ error: 'Nome, email e messaggio sono obbligatori.' });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Email non valida.' });
+  if (!emailConfigurata()) return res.status(503).json({ error: 'Sistema email non configurato.' });
+  try {
+    const t = creaTransporter();
+    await t.sendMail({
+      from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+      to: (process.env.EMAIL_ADMIN || process.env.EMAIL_USER || '').trim(),
+      replyTo: email.trim(),
+      subject: `[Contatto Sito] ${esc(oggetto || 'Nuovo messaggio')} – ${esc(nome)}`,
+      html: `<h2>Nuovo messaggio dal sito</h2>
+<p><strong>Nome:</strong> ${esc(nome)}</p>
+<p><strong>Email:</strong> ${esc(email)}</p>
+<p><strong>Oggetto:</strong> ${esc(oggetto || '—')}</p>
+<p><strong>Messaggio:</strong></p>
+<p style="white-space:pre-wrap">${esc(messaggio)}</p>`,
+    });
+    await t.sendMail({
+      from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+      to: email.trim(),
+      subject: 'Abbiamo ricevuto il tuo messaggio – Virtus Caserta',
+      html: `<p>Ciao ${esc(nome)},</p>
+<p>Grazie per averci scritto. Abbiamo ricevuto il tuo messaggio e ti risponderemo al più presto.</p>
+<p>– Staff Virtus Caserta</p>`,
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Contact] Errore:', err.message);
+    res.status(500).json({ error: 'Invio fallito. Riprova più tardi.' });
+  }
 });
 
 /* ─── Admin: test email ─── */

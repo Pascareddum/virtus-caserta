@@ -3,546 +3,820 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calendario Allenamenti – Virtus Caserta</title>
-  <meta name="description" content="Calendario degli allenamenti e delle sessioni di Virtus Caserta ASD.">
+  <title>Calendario – Virtus Caserta</title>
+  <meta name="description" content="Calendario allenamenti e partite di Virtus Caserta ASD.">
   <meta property="og:title" content="Calendario – Virtus Caserta">
-  <meta property="og:description" content="Calendario degli allenamenti e delle sessioni di Virtus Caserta ASD.">
   <meta property="og:image" content="/images/logo.png">
-  <meta property="og:type" content="website">
   <link rel="stylesheet" href="common.css">
   <style>
     :root {
       --blu:    #0d2055;
+      --blu2:   #1535a8;
       --arancio:#f57c00;
       --bianco: #ffffff;
-      --grigio: #f2f2f7;
-      --bordo:  #e5e5ea;
-      --testo:  #1c1c1e;
-      --sub:    #8e8e93;
+      --bg:     #f0f4f8;
+      --bordo:  #e2e8f0;
+      --testo:  #1e293b;
+      --sub:    #64748b;
+      --ca:     #0d2055;   /* allenamento */
+      --cs:     #059669;   /* fipav senior */
+      --cu:     #7c3aed;   /* fipav under  */
+      --co:     #ea580c;   /* opes         */
     }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:-apple-system,'Segoe UI',Arial,sans-serif; background:var(--grigio); color:var(--testo); min-height:100vh; }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    html{scroll-behavior:smooth;}
+    body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--testo);min-height:100vh;}
 
     /* ── NAV ── */
-    nav {
-      position:fixed; top:0; left:0; width:100%; z-index:100;
-      background:var(--blu); height:72px;
-      display:grid; grid-template-columns:1fr auto 1fr;
-      align-items:center; padding:0 32px;
-      box-shadow:0 2px 12px rgba(0,0,0,.4);
-    }
-    .nav-left { display:flex; align-items:center; justify-content:flex-end; }
-    .nav-back { color:rgba(255,255,255,.8); text-decoration:none; font-size:13px; font-weight:600;
-      letter-spacing:1px; text-transform:uppercase; padding:8px 14px; border-radius:6px; transition:background .2s; }
-    .nav-back:hover { background:rgba(255,255,255,.12); }
-    .nav-brand { display:flex; align-items:center; justify-content:center; text-decoration:none; }
-    .nav-brand img { height:48px; width:auto; object-fit:contain; }
-    .nav-right { display:flex; align-items:center; justify-content:flex-start; }
+    nav{position:fixed;top:0;left:0;width:100%;z-index:200;
+      background:var(--blu);height:68px;
+      display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;
+      box-shadow:0 2px 20px rgba(13,32,85,.5);}
+    .nav-left{display:flex;align-items:center;justify-content:flex-end;}
+    .nav-back{color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;font-weight:700;
+      letter-spacing:1.5px;text-transform:uppercase;padding:7px 14px;border-radius:8px;
+      border:1px solid rgba(255,255,255,.2);transition:all .2s;}
+    .nav-back:hover{background:rgba(255,255,255,.12);color:#fff;}
+    .nav-brand{display:flex;align-items:center;justify-content:center;text-decoration:none;}
+    .nav-brand img{height:44px;width:auto;object-fit:contain;}
+    .nav-right{display:flex;align-items:center;justify-content:flex-start;}
 
-    /* ── HEADER MESE ── */
-    .cal-header {
-      margin-top:72px;
+    /* ── PAGE WRAPPER ── */
+    .page{margin-top:68px;display:flex;flex-direction:column;min-height:calc(100vh - 68px);}
+
+    /* ── SETTIMANA HEADER ── */
+    .sett-header{
       background:var(--blu);
-      padding:20px 20px 16px;
-      display:flex; align-items:center; justify-content:space-between;
-      color:var(--bianco);
+      padding:20px 24px 0;
+      display:flex;flex-direction:column;gap:0;
     }
-    .cal-header h2 { font-size:20px; font-weight:700; text-transform:capitalize; }
-    .cal-nav-btn {
-      background:rgba(255,255,255,.15); border:none; color:var(--bianco);
-      width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;
-      display:flex; align-items:center; justify-content:center; transition:background .2s;
+    .sett-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .sett-range{
+      font-size:17px;font-weight:800;color:#fff;letter-spacing:.5px;
+      text-align:center;flex:1;
     }
-    .cal-nav-btn:hover { background:rgba(255,255,255,.28); }
+    .sett-range span{font-size:13px;font-weight:500;color:rgba(255,255,255,.55);margin-left:10px;}
+    .btn-sett-nav{
+      background:rgba(255,255,255,.12);border:none;color:#fff;
+      width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;
+    }
+    .btn-sett-nav:hover{background:rgba(255,255,255,.24);}
+    .btn-oggi{
+      background:var(--arancio);border:none;color:#fff;
+      font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+      padding:6px 14px;border-radius:20px;cursor:pointer;transition:opacity .2s;margin-left:12px;
+    }
+    .btn-oggi:hover{opacity:.85;}
 
-    /* ── GRIGLIA CALENDARIO ── */
-    .cal-wrap {
+    /* ── FILTRI ── */
+    .filtri-wrap{
+      background:var(--blu);
+      padding:0 24px 18px;
+      display:flex;gap:8px;flex-wrap:wrap;
+    }
+    .fpill{
+      display:flex;align-items:center;gap:5px;
+      padding:5px 13px;border-radius:20px;border:1.5px solid rgba(255,255,255,.2);
+      font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+      color:rgba(255,255,255,.65);cursor:pointer;transition:all .18s;background:transparent;
+      white-space:nowrap;
+    }
+    .fpill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+    .fpill.on{color:#fff;border-color:transparent;}
+    .fpill[data-c="tutte"].on      {background:rgba(255,255,255,.18);}
+    .fpill[data-c="allenamento"].on{background:var(--ca);}
+    .fpill[data-c="fipav-senior"].on{background:var(--cs);}
+    .fpill[data-c="fipav-under"].on {background:var(--cu);}
+    .fpill[data-c="opes"].on       {background:var(--co);}
+
+    /* ── GIORNI INTESTAZIONE ── */
+    .giorni-head{
+      display:grid;grid-template-columns:repeat(7,1fr);
       background:var(--bianco);
-      border-radius:0 0 20px 20px;
-      overflow:hidden;
-      margin:0 0 12px;
-      box-shadow:0 2px 12px rgba(0,0,0,.07);
+      border-bottom:2px solid var(--bordo);
+      position:sticky;top:68px;z-index:100;
+      box-shadow:0 2px 8px rgba(0,0,0,.06);
     }
-    .giorni-settimana {
-      display:grid; grid-template-columns:repeat(7,1fr);
-      border-bottom:1px solid var(--bordo);
-    }
-    .giorni-settimana span {
-      text-align:center; padding:8px 0; font-size:11px; font-weight:700;
-      color:var(--sub); text-transform:uppercase; letter-spacing:.8px;
-    }
-    .giorni-settimana span:last-child { color:#dc2626; }
-
-    .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); }
-
-    .cal-day {
-      min-height:80px;
-      display:flex; flex-direction:column;
-      align-items:center; padding:6px 3px 5px;
-      cursor:pointer; transition:background .15s;
-      border-bottom:1px solid var(--bordo);
+    .gh-cell{
+      padding:12px 4px 10px;text-align:center;
       border-right:1px solid var(--bordo);
+    }
+    .gh-cell:last-child{border-right:none;}
+    .gh-nome{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
+    .gh-num{
+      width:34px;height:34px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;font-weight:700;color:var(--testo);
+      margin:0 auto;
+    }
+    .gh-cell.oggi .gh-num{background:var(--arancio);color:#fff;}
+    .gh-cell.oggi .gh-nome{color:var(--arancio);}
+    .gh-cell.domenica .gh-num{color:#dc2626;}
+    .gh-cell.domenica .gh-nome{color:#dc2626;}
+    .gh-cell.passato .gh-num{color:#cbd5e1;}
+    .gh-cell.passato .gh-nome{color:#cbd5e1;}
+
+    /* ── WEEK GRID ── */
+    .week-grid{
+      display:grid;grid-template-columns:repeat(7,1fr);
+      flex:1;align-items:start;
+      border-bottom:1px solid var(--bordo);
+    }
+    .day-col{
+      border-right:1px solid var(--bordo);
+      min-height:280px;
+      padding:8px 5px;
+      display:flex;flex-direction:column;gap:4px;
+    }
+    .day-col:last-child{border-right:none;}
+    .day-col.oggi-col{background:rgba(245,124,0,.03);}
+    .day-col.passato-col{background:#fafbfc;}
+
+    /* ── EVENTO CARD ── */
+    .ev{
+      border-radius:8px;
+      padding:6px 8px;
+      font-size:11px;
+      cursor:default;
+      border-left:3px solid transparent;
+      transition:transform .15s,box-shadow .15s;
+      background:#fff;
+      box-shadow:0 1px 3px rgba(0,0,0,.07);
       position:relative;
+      overflow:hidden;
     }
-    .cal-day:nth-child(7n) { border-right:none; }
-    .cal-day:hover { background:#f5f5f7; }
-    .cal-day.fuori-mese { cursor:default; background:#fafafa; }
-    .cal-day.fuori-mese:hover { background:#fafafa; }
+    .ev:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12);}
+    .ev.ev-allenamento {border-left-color:var(--ca);background:rgba(13,32,85,.04);}
+    .ev.ev-fipav-senior{border-left-color:var(--cs);background:rgba(5,150,105,.04);}
+    .ev.ev-fipav-under {border-left-color:var(--cu);background:rgba(124,58,237,.04);}
+    .ev.ev-opes        {border-left-color:var(--co);background:rgba(234,88,12,.04);}
+    .ev-time{font-size:10px;font-weight:700;color:var(--sub);margin-bottom:2px;letter-spacing:.3px;}
+    .ev-title{font-size:11px;font-weight:700;color:var(--testo);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ev-sub{font-size:10px;color:var(--sub);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ev-badge{
+      display:inline-block;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+      padding:1px 5px;border-radius:4px;margin-top:3px;
+    }
+    .badge-a{background:rgba(13,32,85,.12);color:var(--ca);}
+    .badge-s{background:rgba(5,150,105,.12);color:var(--cs);}
+    .badge-u{background:rgba(124,58,237,.12);color:var(--cu);}
+    .badge-o{background:rgba(234,88,12,.12);color:var(--co);}
+    .ev-more{
+      font-size:10px;font-weight:700;color:var(--sub);
+      padding:3px 6px;border-radius:6px;background:#f1f5f9;
+      text-align:center;cursor:pointer;
+    }
+    .ev-more:hover{background:#e2e8f0;}
+    .day-empty{
+      flex:1;display:flex;align-items:center;justify-content:center;
+      padding:20px 4px;color:#cbd5e1;font-size:11px;
+    }
 
-    .day-num {
-      width:28px; height:28px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      font-size:14px; font-weight:500; color:var(--testo);
-      flex-shrink:0; margin-bottom:4px;
+    /* ── LEGENDA ── */
+    .legenda{
+      display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+      padding:14px 24px;background:#fff;border-top:1px solid var(--bordo);
+      font-size:12px;color:var(--sub);
     }
-    .cal-day.fuori-mese .day-num { color:#c7c7cc; }
-    .cal-day.oggi .day-num { background:var(--arancio); color:var(--bianco); font-weight:700; }
-    .cal-day.selezionato .day-num { background:var(--blu); color:var(--bianco); font-weight:700; }
-    .cal-day.oggi.selezionato .day-num { background:var(--blu); }
-    .cal-day:not(.fuori-mese).domenica .day-num { color:#dc2626; }
+    .legenda-item{display:flex;align-items:center;gap:6px;font-weight:600;}
+    .legenda-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
 
-    /* chip evento nella cella */
-    .day-chips { display:flex; flex-direction:column; gap:3px; width:100%; }
-    .day-chip {
-      border-radius:4px; padding:2px 4px;
-      font-size:9px; font-weight:700; color:var(--bianco);
-      line-height:1.3; text-align:left; overflow:hidden;
-      white-space:nowrap; text-overflow:ellipsis;
-      width:100%;
+    /* ── LOADING / EMPTY ── */
+    .loading-overlay{
+      display:flex;align-items:center;justify-content:center;
+      padding:60px;color:var(--sub);font-size:14px;gap:10px;
+    }
+    .spin{width:20px;height:20px;border:2.5px solid #e2e8f0;border-top-color:var(--blu);border-radius:50%;animation:spin .8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── MODAL DETTAGLIO EVENTO ── */
+    .modal-bg{
+      display:none;position:fixed;inset:0;z-index:500;
+      background:rgba(0,0,0,.45);backdrop-filter:blur(4px);
+      align-items:center;justify-content:center;padding:20px;
+    }
+    .modal-bg.open{display:flex;}
+    .modal-box{
+      background:#fff;border-radius:20px;padding:28px;
+      width:100%;max-width:400px;
+      box-shadow:0 24px 64px rgba(0,0,0,.25);
+    }
+    .modal-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;}
+    .modal-title{font-size:19px;font-weight:800;color:var(--testo);line-height:1.2;}
+    .modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--sub);line-height:1;flex-shrink:0;}
+    .modal-close:hover{color:var(--testo);}
+    .modal-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;}
+    .modal-row:last-child{border-bottom:none;}
+    .modal-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;}
+    .modal-val{color:var(--testo);line-height:1.4;}
+    .modal-val strong{font-weight:700;}
+    .modal-tag{
+      display:inline-flex;align-items:center;gap:5px;
+      font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+      padding:4px 11px;border-radius:20px;color:#fff;margin-bottom:16px;
     }
 
-    /* colori per categoria */
-    .chip-u19   { background:#0d2055; }
-    .chip-u16   { background:#f57c00; }
-    .chip-u13   { background:#16a34a; }
-    .chip-prima { background:#7c3aed; }
-    .chip-altro { background:#64748b; }
+    /* ── MODAL AGGIUNGI (admin) ── */
+    .add-modal-bg{
+      display:none;position:fixed;inset:0;z-index:600;
+      background:rgba(0,0,0,.45);backdrop-filter:blur(4px);
+      align-items:center;justify-content:center;padding:20px;
+    }
+    .add-modal-bg.open{display:flex;}
+    .add-modal-box{
+      background:#fff;border-radius:20px;padding:28px 24px;
+      width:100%;max-width:420px;
+      box-shadow:0 24px 64px rgba(0,0,0,.25);
+    }
+    .am-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+    .am-hdr h3{font-size:17px;font-weight:800;color:var(--testo);}
+    .mf{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+    .mf label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.7px;}
+    .mf input,.mf select,.mf textarea{
+      padding:10px 13px;border:1.5px solid var(--bordo);border-radius:10px;
+      font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:100%;
+    }
+    .mf input:focus,.mf select:focus,.mf textarea:focus{border-color:var(--blu);}
+    .mf textarea{resize:vertical;min-height:60px;}
+    .mf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .am-ftr{display:flex;gap:10px;margin-top:6px;}
+    .btn-cancel{flex:1;padding:12px;border:1.5px solid var(--bordo);background:none;border-radius:50px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;color:var(--sub);}
+    .btn-cancel:hover{background:#f1f5f9;}
+    .btn-add{flex:2;padding:12px;border:none;background:var(--blu);color:#fff;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+    .btn-add:hover{opacity:.88;}
+    .btn-add:disabled{opacity:.5;cursor:not-allowed;}
 
-    /* ── PANEL DETTAGLIO ── */
-    .eventi-sezione {
-      max-width:540px; margin:0 auto; padding:0 16px 80px;
+    /* ── FAB ── */
+    .fab{
+      display:none;position:fixed;bottom:28px;right:28px;z-index:300;
+      width:54px;height:54px;border-radius:50%;
+      background:var(--arancio);color:#fff;border:none;font-size:26px;
+      cursor:pointer;box-shadow:0 4px 20px rgba(234,88,12,.45);
+      align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s;
     }
-    .eventi-data-label {
-      font-size:13px; font-weight:700; color:var(--sub);
-      text-transform:uppercase; letter-spacing:1px;
-      margin:20px 0 10px;
-    }
-    .eventi-vuoti {
-      background:var(--bianco); border-radius:14px;
-      padding:28px; text-align:center; color:var(--sub); font-size:14px;
-    }
-    .evento-card {
-      background:var(--bianco); border-radius:14px;
-      padding:16px 18px; margin-bottom:10px;
-      display:flex; align-items:stretch; gap:14px;
-      box-shadow:0 1px 4px rgba(0,0,0,.06);
-    }
-    .evento-striscia {
-      width:4px; border-radius:4px; flex-shrink:0;
-    }
-    .evento-body { flex:1; min-width:0; }
-    .evento-gruppo { font-size:16px; font-weight:800; color:var(--testo); margin-bottom:6px; }
-    .evento-riga   { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--sub); margin-bottom:3px; }
+    .fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(234,88,12,.55);}
 
-    /* ── FAB admin ── */
-    .fab {
-      display:none;
-      position:fixed; bottom:28px; right:28px; z-index:200;
-      width:56px; height:56px; border-radius:50%;
-      background:var(--arancio); color:var(--bianco);
-      border:none; font-size:28px; cursor:pointer;
-      box-shadow:0 4px 18px rgba(0,0,0,.25);
-      align-items:center; justify-content:center;
-      transition:transform .2s, box-shadow .2s;
+    /* ── MOBILE OVERRIDE ── */
+    @media(max-width:900px){
+      .week-grid{grid-template-columns:repeat(7,minmax(110px,1fr));overflow-x:auto;}
+      .giorni-head{grid-template-columns:repeat(7,minmax(110px,1fr));overflow-x:auto;}
     }
-    .fab:hover { transform:scale(1.1); box-shadow:0 6px 24px rgba(0,0,0,.3); }
+    @media(max-width:600px){
+      nav{padding:0 14px;height:60px;}
+      .nav-brand img{height:38px;}
+      .sett-range{font-size:14px;}
+      .sett-header,.filtri-wrap{padding-left:14px;padding-right:14px;}
 
-    /* ── MODAL AGGIUNGI ── */
-    .modal-overlay {
-      display:none; position:fixed; inset:0; z-index:500;
-      background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:20px;
+      /* Mobile: hide 7-col grid, show day-strip instead */
+      .giorni-head{display:none;}
+      .week-grid{display:none;}
+      .legenda{display:none;}
+      .mobile-view{display:block !important;}
     }
-    .modal-overlay.aperta { display:flex; }
-    .modal-box {
-      background:var(--bianco); border-radius:20px; padding:28px 24px;
-      width:100%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,.25);
-    }
-    .modal-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-    .modal-hdr h3 { font-size:18px; font-weight:800; color:var(--testo); }
-    .modal-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--sub); line-height:1; }
-    .mf { display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
-    .mf label { font-size:11px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; }
-    .mf input, .mf select, .mf textarea {
-      padding:10px 12px; border:1.5px solid var(--bordo); border-radius:10px;
-      font-size:14px; font-family:inherit; outline:none; width:100%; transition:border-color .2s;
-    }
-    .mf input:focus, .mf select:focus, .mf textarea:focus { border-color:var(--blu); }
-    .mf textarea { resize:vertical; min-height:60px; }
-    .mf-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .modal-ftr { display:flex; gap:10px; margin-top:6px; }
-    .btn-annulla {
-      flex:1; padding:12px; border:1.5px solid var(--bordo); background:none;
-      border-radius:50px; font-size:14px; font-weight:600; cursor:pointer; transition:background .2s;
-    }
-    .btn-annulla:hover { background:var(--grigio); }
-    .btn-salva {
-      flex:2; padding:12px; border:none; background:var(--blu); color:var(--bianco);
-      border-radius:50px; font-size:14px; font-weight:700; cursor:pointer; transition:background .2s;
-    }
-    .btn-salva:hover { background:#1535a8; }
 
-    @media (max-width:480px) {
-      nav { padding:0 16px; height:60px; }
-      .nav-brand img { height:38px; }
-      .cal-header { padding:14px 14px 12px; }
-      .cal-wrap { overflow-x:auto; border-radius:0 0 12px 12px; }
-      .giorni-settimana, .cal-grid { min-width:350px; }
-      .cal-day { min-height:60px; padding:4px 2px; }
-      .day-num { width:22px; height:22px; font-size:11px; }
-      .day-chip { font-size:8px; }
-      .eventi-sezione { padding:0 10px 60px; }
+    /* ── MOBILE VIEW ── */
+    .mobile-view{display:none;}
+    .day-strip{
+      display:flex;gap:0;overflow-x:auto;background:#fff;
+      border-bottom:1px solid var(--bordo);scrollbar-width:none;
+    }
+    .day-strip::-webkit-scrollbar{display:none;}
+    .ds-cell{
+      flex-shrink:0;width:calc(100vw / 7);min-width:44px;
+      padding:10px 4px;text-align:center;cursor:pointer;
+      border-bottom:3px solid transparent;transition:all .15s;
+    }
+    .ds-cell .ds-nome{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;}
+    .ds-cell .ds-num{font-size:16px;font-weight:700;color:var(--testo);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:4px auto 3px;}
+    .ds-cell.selected{border-bottom-color:var(--blu);}
+    .ds-cell.selected .ds-num{background:var(--blu);color:#fff;}
+    .ds-cell.oggi-strip .ds-num{background:var(--arancio);color:#fff;}
+    .ds-cell.oggi-strip.selected .ds-num{background:var(--blu);}
+    .ds-cell.domenica-strip .ds-num{color:#dc2626;}
+    .ds-cell.passato-strip .ds-num{color:#cbd5e1;}
+    .ds-dots{display:flex;justify-content:center;gap:2px;min-height:7px;}
+    .ds-dot{width:5px;height:5px;border-radius:50%;}
+    .mobile-events{padding:12px 14px 80px;}
+    .mob-ev{
+      background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:8px;
+      display:flex;gap:12px;align-items:stretch;
+      box-shadow:0 1px 6px rgba(0,0,0,.06);cursor:pointer;
+      transition:transform .15s,box-shadow .15s;
+    }
+    .mob-ev:hover{transform:translateY(-1px);box-shadow:0 3px 12px rgba(0,0,0,.1);}
+    .mob-stripe{width:4px;border-radius:4px;flex-shrink:0;}
+    .mob-body{flex:1;min-width:0;}
+    .mob-cat{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px;}
+    .mob-title{font-size:15px;font-weight:800;color:var(--testo);margin-bottom:4px;}
+    .mob-info{font-size:12px;color:var(--sub);display:flex;flex-wrap:wrap;gap:8px;}
+    .mob-empty{text-align:center;padding:48px 20px;color:var(--sub);font-size:14px;}
+    .mob-empty .ico{font-size:32px;margin-bottom:10px;}
+
+    @media(max-width:480px){
+      nav{height:56px;}
+      .page{margin-top:56px;}
+      .giorni-head{top:56px;}
     }
   </style>
 </head>
 <body>
 
-  <nav>
-    <div class="nav-left">
-      <a href="index.html" class="nav-back">← Home</a>
-    </div>
-    <a href="index.html" class="nav-brand">
-      <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
-    </a>
-    <div class="nav-right"></div>
-  </nav>
-
-  <div class="cal-header">
-    <button class="cal-nav-btn" id="btnPrec">&#8249;</button>
-    <h2 id="meseAnno"></h2>
-    <button class="cal-nav-btn" id="btnSucc">&#8250;</button>
+<nav>
+  <div class="nav-left">
+    <a href="/" class="nav-back">← Home</a>
   </div>
+  <a href="/" class="nav-brand">
+    <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+  </a>
+  <div class="nav-right"></div>
+</nav>
 
-  <div class="cal-wrap">
-    <div class="giorni-settimana">
-      <span>Lun</span><span>Mar</span><span>Mer</span>
-      <span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span>
-    </div>
-    <div class="cal-grid" id="calGrid"></div>
-  </div>
+<div class="page">
 
-  <div class="eventi-sezione">
-    <div class="eventi-data-label" id="eventiLabel"></div>
-    <div id="eventiList"></div>
-  </div>
-
-  <!-- FAB solo admin/dirigente -->
-  <button class="fab" id="fabAggiungi" title="Aggiungi allenamento" onclick="apriModal()">＋</button>
-
-  <!-- MODAL AGGIUNGI ALLENAMENTO -->
-  <div class="modal-overlay" id="modalOverlay" onclick="chiudiModalSeOverlay(event)">
-    <div class="modal-box">
-      <div class="modal-hdr">
-        <h3>Nuovo allenamento</h3>
-        <button class="modal-close" onclick="chiudiModal()">✕</button>
+  <!-- HEADER SETTIMANA -->
+  <div class="sett-header">
+    <div class="sett-nav">
+      <button class="btn-sett-nav" id="btnPrec">&#8249;</button>
+      <div style="display:flex;align-items:center;justify-content:center;flex:1;">
+        <div class="sett-range" id="weekRange">—</div>
+        <button class="btn-oggi" onclick="vaiOggi()">Oggi</button>
       </div>
-      <div class="mf">
-        <label>Titolo *</label>
-        <input type="text" id="mTitolo" placeholder="Es. Allenamento Under 19">
-      </div>
-      <div class="mf">
-        <label>Data *</label>
-        <input type="date" id="mData">
-      </div>
-      <div class="mf-grid">
-        <div class="mf">
-          <label>Inizio *</label>
-          <input type="time" id="mInizio">
-        </div>
-        <div class="mf">
-          <label>Fine *</label>
-          <input type="time" id="mFine">
-        </div>
-      </div>
-      <div class="mf">
-        <label>Luogo</label>
-        <input type="text" id="mLuogo" placeholder="Es. Tenda di Abramo, Caserta">
-      </div>
-      <div class="mf">
-        <label>Categoria</label>
-        <select id="mCategoria">
-          <option value="">— Seleziona —</option>
-          <option value="Under 19">Under 19</option>
-          <option value="Under 16">Under 16</option>
-          <option value="Under 13">Under 13</option>
-          <option value="Prima Squadra">Prima Squadra</option>
-          <option value="Altro">Altro</option>
-        </select>
-      </div>
-      <div class="mf">
-        <label>Note</label>
-        <textarea id="mNote" placeholder="Informazioni aggiuntive..."></textarea>
-      </div>
-      <div class="modal-ftr">
-        <button class="btn-annulla" onclick="chiudiModal()">Annulla</button>
-        <button class="btn-salva" id="btnSalva" onclick="salva()">Aggiungi</button>
-      </div>
+      <button class="btn-sett-nav" id="btnSucc">&#8250;</button>
     </div>
   </div>
 
-  <script>
-    /* ── Auth guard ── */
-    (function() {
-      if (!localStorage.getItem('vc_token')) {
-        document.body.innerHTML = `
-          <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f2f2f7;text-align:center;padding:24px;">
-            <img src="images/positivo@4x.png" alt="Virtus Caserta" style="height:80px;margin-bottom:24px;" onerror="this.style.display='none'">
-            <h2 style="font-size:22px;color:#0d2055;margin-bottom:10px;">Accesso riservato</h2>
-            <p style="color:#555;margin-bottom:28px;max-width:340px;">Il calendario degli allenamenti è riservato ai tesserati. Accedi con le tue credenziali per visualizzarlo.</p>
-            <a href="index.html" style="background:#0d2055;color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:700;font-size:15px;">Vai al login</a>
-          </div>`;
-        return;
+  <!-- FILTRI -->
+  <div class="filtri-wrap">
+    <button class="fpill on" data-c="tutte"         onclick="setFiltro('tutte',this)">
+      <span class="dot" style="background:rgba(255,255,255,.5)"></span>Tutte
+    </button>
+    <button class="fpill" data-c="allenamento"      onclick="setFiltro('allenamento',this)">
+      <span class="dot" style="background:var(--ca)"></span>Allenamento
+    </button>
+    <button class="fpill" data-c="fipav-senior"     onclick="setFiltro('fipav-senior',this)">
+      <span class="dot" style="background:var(--cs)"></span>FIPAV Senior
+    </button>
+    <button class="fpill" data-c="fipav-under"      onclick="setFiltro('fipav-under',this)">
+      <span class="dot" style="background:var(--cu)"></span>FIPAV Under
+    </button>
+    <button class="fpill" data-c="opes"             onclick="setFiltro('opes',this)">
+      <span class="dot" style="background:var(--co)"></span>OPES
+    </button>
+  </div>
+
+  <!-- DESKTOP: intestazione giorni (sticky) -->
+  <div class="giorni-head" id="giorniHead"></div>
+
+  <!-- DESKTOP: griglia settimana -->
+  <div class="week-grid" id="weekGrid">
+    <div class="loading-overlay" style="grid-column:span 7;">
+      <div class="spin"></div> Caricamento eventi…
+    </div>
+  </div>
+
+  <!-- LEGENDA -->
+  <div class="legenda">
+    <span style="font-weight:700;color:var(--sub);font-size:11px;letter-spacing:.5px;text-transform:uppercase;">Legenda:</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--ca)"></span>Allenamento</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--cs)"></span>FIPAV Senior</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--cu)"></span>FIPAV Under</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--co)"></span>OPES</span>
+  </div>
+
+  <!-- MOBILE -->
+  <div class="mobile-view" id="mobileView">
+    <div class="day-strip" id="dayStrip"></div>
+    <div class="mobile-events" id="mobileEvents">
+      <div class="loading-overlay"><div class="spin"></div> Caricamento…</div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- FAB admin -->
+<button class="fab" id="fabAggiungi" onclick="apriAddModal()">＋</button>
+
+<!-- MODAL DETTAGLIO EVENTO -->
+<div class="modal-bg" id="detailModal" onclick="chiudiDetail(event)">
+  <div class="modal-box">
+    <div class="modal-top">
+      <div>
+        <div id="dmTag" class="modal-tag"></div>
+        <div id="dmTitle" class="modal-title"></div>
+      </div>
+      <button class="modal-close" onclick="chiudiDetail()">✕</button>
+    </div>
+    <div id="dmBody"></div>
+  </div>
+</div>
+
+<!-- MODAL AGGIUNGI ALLENAMENTO -->
+<div class="add-modal-bg" id="addModal" onclick="chiudiAddModal(event)">
+  <div class="add-modal-box">
+    <div class="am-hdr">
+      <h3>Nuovo allenamento</h3>
+      <button class="modal-close" onclick="chiudiAddModal()">✕</button>
+    </div>
+    <div class="mf"><label>Titolo *</label><input type="text" id="mTitolo" placeholder="Es. Allenamento Under 19"></div>
+    <div class="mf"><label>Data *</label><input type="date" id="mData"></div>
+    <div class="mf-row">
+      <div class="mf"><label>Inizio *</label><input type="time" id="mInizio"></div>
+      <div class="mf"><label>Fine</label><input type="time" id="mFine"></div>
+    </div>
+    <div class="mf"><label>Luogo</label><input type="text" id="mLuogo" placeholder="Es. Tenda di Abramo"></div>
+    <div class="mf">
+      <label>Categoria</label>
+      <select id="mCategoria">
+        <option value="">— Seleziona —</option>
+        <option>Under 19</option><option>Under 16</option>
+        <option>Under 13</option><option>Prima Squadra</option><option>Altro</option>
+      </select>
+    </div>
+    <div class="mf"><label>Note</label><textarea id="mNote" placeholder="Informazioni aggiuntive…"></textarea></div>
+    <div class="am-ftr">
+      <button class="btn-cancel" onclick="chiudiAddModal()">Annulla</button>
+      <button class="btn-add" id="btnSalva" onclick="salva()">Aggiungi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── COSTANTI ── */
+  const MESI_FULL = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+                     'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const MESI_SHORT= ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const GG_SHORT  = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  const GG_FULL   = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+
+  const SENIOR_KW = ['1 divisione','prima div','serie d','serie a','serie b','serie c'];
+
+  const CAT = {
+    allenamento:   { label:'Allenamento',  color:'#0d2055', cls:'ev-allenamento',  badge:'badge-a', mcls:'badge-a' },
+    'fipav-senior':{ label:'FIPAV Senior', color:'#059669', cls:'ev-fipav-senior', badge:'badge-s', mcls:'badge-s' },
+    'fipav-under': { label:'FIPAV Under',  color:'#7c3aed', cls:'ev-fipav-under',  badge:'badge-u', mcls:'badge-u' },
+    opes:          { label:'OPES',         color:'#ea580c', cls:'ev-opes',         badge:'badge-o', mcls:'badge-o' },
+  };
+
+  /* ── STATE ── */
+  let oggi = new Date(); oggi.setHours(0,0,0,0);
+  let weekStart = lunedi(oggi);   // lunedì della settimana corrente
+  let mappa   = {};               // YYYY-MM-DD → [event, ...]
+  let filtroAtt = 'tutte';
+  let selMobile = new Date(oggi); // giorno selezionato su mobile
+  let loaded  = false;
+
+  /* ── UTILITY ── */
+  function lunedi(d) {
+    const c = new Date(d); c.setHours(0,0,0,0);
+    const dow = c.getDay();
+    c.setDate(c.getDate() - (dow === 0 ? 6 : dow - 1));
+    return c;
+  }
+  function addDays(d, n) { const c = new Date(d); c.setDate(c.getDate()+n); return c; }
+  function dataKey(d) {
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function tsToKey(ts) {
+    if (!ts) return null;
+    const d = new Date(ts); return dataKey(d);
+  }
+  function parseOra(ora) {
+    if (!ora) return {inizio:'—',fine:''};
+    const sep = ora.includes('–')?'–':(ora.includes('-')?'-':null);
+    if (sep){ const p=ora.split(sep); return {inizio:p[0].trim(),fine:p[1]?p[1].trim():''}; }
+    return {inizio:ora.trim(),fine:''};
+  }
+  function oraDaTs(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  function gruppoPartita(m) {
+    if (m.fonte === 'opes') return 'opes';
+    const cat = (m.categoria||'').toLowerCase();
+    if (SENIOR_KW.some(k => cat.includes(k))) return 'fipav-senior';
+    return 'fipav-under';
+  }
+  function isVirtus(n){ return /virtus caserta|virtus santa maria/i.test(n); }
+  function avversario(m){
+    if (isVirtus(m.casa) && !isVirtus(m.ospite)) return m.ospite;
+    if (!isVirtus(m.casa) && isVirtus(m.ospite)) return m.casa;
+    return m.casa+' – '+m.ospite;
+  }
+  function evVisible(e){ return filtroAtt==='tutte' || e.cat===filtroAtt; }
+
+  /* ── FILTRI ── */
+  function setFiltro(cat, btn) {
+    filtroAtt = cat;
+    document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    render();
+  }
+
+  /* ── NAVIGAZIONE ── */
+  function vaiOggi() { weekStart = lunedi(oggi); selMobile = new Date(oggi); render(); }
+
+  document.getElementById('btnPrec').addEventListener('click', ()=>{ weekStart=addDays(weekStart,-7); render(); });
+  document.getElementById('btnSucc').addEventListener('click', ()=>{ weekStart=addDays(weekStart, 7); render(); });
+
+  /* ── RENDER PRINCIPALE ── */
+  function render() {
+    renderHeader();
+    renderDesktop();
+    renderMobile();
+  }
+
+  function renderHeader() {
+    const fine = addDays(weekStart, 6);
+    const sameMese = weekStart.getMonth()===fine.getMonth();
+    const sameAnno = weekStart.getFullYear()===fine.getFullYear();
+    let rangeStr;
+    if (sameMese) {
+      rangeStr = `${weekStart.getDate()} – ${fine.getDate()} ${MESI_SHORT[fine.getMonth()]} ${fine.getFullYear()}`;
+    } else {
+      rangeStr = `${weekStart.getDate()} ${MESI_SHORT[weekStart.getMonth()]}${!sameAnno?' '+weekStart.getFullYear():''} – ${fine.getDate()} ${MESI_SHORT[fine.getMonth()]} ${fine.getFullYear()}`;
+    }
+    document.getElementById('weekRange').innerHTML =
+      `${rangeStr} <span>${MESI_FULL[weekStart.getMonth()]} ${weekStart.getFullYear()}</span>`;
+  }
+
+  /* ── RENDER DESKTOP ── */
+  function renderDesktop() {
+    const head = document.getElementById('giorniHead');
+    const grid = document.getElementById('weekGrid');
+    head.innerHTML = '';
+    grid.innerHTML = '';
+
+    for (let i=0; i<7; i++) {
+      const d = addDays(weekStart, i);
+      const isOggi   = dataKey(d)===dataKey(oggi);
+      const isPast   = d < oggi && !isOggi;
+      const isDom    = d.getDay()===0;
+
+      // Header cell
+      const hc = document.createElement('div');
+      hc.className = 'gh-cell'
+        + (isOggi?' oggi':'')
+        + (isDom?' domenica':'')
+        + (isPast?' passato':'');
+      hc.innerHTML = `<div class="gh-nome">${GG_SHORT[i]}</div>
+        <div class="gh-num">${d.getDate()}</div>`;
+      head.appendChild(hc);
+
+      // Day column
+      const col = document.createElement('div');
+      col.className = 'day-col'
+        + (isOggi?' oggi-col':'')
+        + (isPast?' passato-col':'');
+
+      const key    = dataKey(d);
+      const eventi = (mappa[key]||[]).filter(evVisible);
+
+      if (!eventi.length) {
+        col.innerHTML = `<div class="day-empty">—</div>`;
+      } else {
+        const MAX = 5;
+        const shown = eventi.slice(0, MAX);
+        shown.forEach(e => {
+          const ci = CAT[e.cat]||CAT.allenamento;
+          let timeStr, titleStr, subStr = '';
+          if (e.tipo==='allenamento') {
+            const {inizio,fine} = parseOra(e.ora);
+            timeStr  = inizio + (fine?'–'+fine:'');
+            titleStr = e.categoria || e.titolo || 'Allenamento';
+            subStr   = e.luogo||'';
+          } else {
+            timeStr  = e.timestamp ? oraDaTs(e.timestamp) : '—';
+            titleStr = 'vs '+avversario(e);
+            subStr   = e.categoria||'';
+          }
+          const el = document.createElement('div');
+          el.className = `ev ${ci.cls}`;
+          el.innerHTML = `<div class="ev-time">${timeStr}</div>
+            <div class="ev-title">${titleStr}</div>
+            ${subStr?`<div class="ev-sub">${subStr}</div>`:''}
+            <span class="ev-badge ${ci.badge}">${ci.label}</span>`;
+          el.addEventListener('click', ()=>apriDetail(e));
+          col.appendChild(el);
+        });
+        if (eventi.length > MAX) {
+          const more = document.createElement('div');
+          more.className = 'ev-more';
+          more.textContent = `+${eventi.length-MAX} altri`;
+          more.addEventListener('click', ()=>apriDetail(eventi[MAX]));
+          col.appendChild(more);
+        }
       }
-    })();
-
-    const MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
-                  'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-    const MESI_B = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-    const GG = ['lun','mar','mer','gio','ven','sab','dom'];
-
-    let oggi = new Date(); oggi.setHours(0,0,0,0);
-    let viewAnno = oggi.getFullYear();
-    let viewMese = oggi.getMonth();
-    let selData  = null;
-    let mappa    = {};   // "YYYY-MM-DD" → [sessione, ...]
-
-    /* ── categoria → classe CSS chip ── */
-    function chipClass(cat) {
-      if (!cat) return 'chip-altro';
-      const c = cat.toLowerCase();
-      if (c.includes('19'))                        return 'chip-u19';
-      if (c.includes('16'))                        return 'chip-u16';
-      if (c.includes('13'))                        return 'chip-u13';
-      if (c.includes('prima') || c.includes('senior')) return 'chip-prima';
-      return 'chip-altro';
+      grid.appendChild(col);
     }
-    function chipColor(cat) {
-      if (!cat) return '#64748b';
-      const c = cat.toLowerCase();
-      if (c.includes('19'))  return '#0d2055';
-      if (c.includes('16'))  return '#f57c00';
-      if (c.includes('13'))  return '#16a34a';
-      if (c.includes('prima') || c.includes('senior')) return '#7c3aed';
-      return '#64748b';
-    }
+  }
 
-    /* "19:00–21:00" → { inizio:"19:00", fine:"21:00" } */
-    function parseOra(ora) {
-      if (!ora) return { inizio:'—', fine:'' };
-      const sep = ora.includes('–') ? '–' : (ora.includes('-') ? '-' : null);
-      if (sep) {
-        const p = ora.split(sep);
-        return { inizio: p[0].trim(), fine: p[1] ? p[1].trim() : '' };
-      }
-      return { inizio: ora.trim(), fine: '' };
+  /* ── RENDER MOBILE ── */
+  function renderMobile() {
+    const strip  = document.getElementById('dayStrip');
+    const events = document.getElementById('mobileEvents');
+    strip.innerHTML = '';
+
+    for (let i=0; i<7; i++) {
+      const d = addDays(weekStart, i);
+      const key     = dataKey(d);
+      const isOggi  = dataKey(d)===dataKey(oggi);
+      const isSel   = dataKey(d)===dataKey(selMobile);
+      const isPast  = d < oggi && !isOggi;
+      const isDom   = d.getDay()===0;
+      const evList  = (mappa[key]||[]).filter(evVisible);
+      const cats    = [...new Set(evList.map(e=>e.cat))].slice(0,3);
+
+      const cell = document.createElement('div');
+      cell.className = 'ds-cell'
+        + (isSel?' selected':'')
+        + (isOggi?' oggi-strip':'')
+        + (isDom?' domenica-strip':'')
+        + (isPast?' passato-strip':'');
+
+      cell.innerHTML = `<div class="ds-nome">${GG_SHORT[i]}</div>
+        <div class="ds-num">${d.getDate()}</div>
+        <div class="ds-dots">${cats.map(c=>`<div class="ds-dot" style="background:${CAT[c]?.color||'#999'}"></div>`).join('')}</div>`;
+      cell.addEventListener('click', ()=>{ selMobile=new Date(d); renderMobile(); });
+      strip.appendChild(cell);
     }
 
-    /* label breve per chip: gruppo + ora inizio */
-    function chipLabel(s) {
-      const cat = s.categoria || s.titolo || '?';
-      const { inizio } = parseOra(s.ora);
-      return `${cat} ${inizio}`;
+    // Scroll selected into view
+    const selEl = strip.querySelector('.selected');
+    if (selEl) selEl.scrollIntoView({inline:'center',block:'nearest'});
+
+    // Events for selected day
+    const key    = dataKey(selMobile);
+    const evList = (mappa[key]||[]).filter(evVisible);
+    const dow    = GG_FULL[(selMobile.getDay()+6)%7];
+    const dateLabel = `${dow}, ${selMobile.getDate()} ${MESI_SHORT[selMobile.getMonth()]} ${selMobile.getFullYear()}`;
+
+    if (!evList.length) {
+      events.innerHTML = `<div class="mob-empty">
+        <div class="ico">📅</div>
+        <div style="font-weight:700;color:var(--testo);margin-bottom:4px;">${dateLabel}</div>
+        <div>${filtroAtt==='tutte'?'Nessun evento programmato.':'Nessun evento di questa categoria.'}</div>
+      </div>`;
+      return;
     }
 
-    function dataKey(d) {
-      return d.getFullYear() + '-'
-        + String(d.getMonth()+1).padStart(2,'0') + '-'
-        + String(d.getDate()).padStart(2,'0');
-    }
-
-    /* ── Render griglia ── */
-    function renderCalendario() {
-      document.getElementById('meseAnno').textContent = MESI[viewMese] + ' ' + viewAnno;
-      const grid = document.getElementById('calGrid');
-      grid.innerHTML = '';
-
-      const primo = new Date(viewAnno, viewMese, 1);
-      const inizio = new Date(primo);
-      const dow0 = primo.getDay();
-      inizio.setDate(inizio.getDate() - (dow0 === 0 ? 6 : dow0 - 1));
-
-      const ultimo = new Date(viewAnno, viewMese + 1, 0);
-      const fine = new Date(ultimo);
-      const dowF = fine.getDay();
-      fine.setDate(fine.getDate() + (dowF === 0 ? 0 : 7 - dowF));
-
-      let cur = new Date(inizio);
-      while (cur <= fine) {
-        const d = new Date(cur);
-        const key = dataKey(d);
-        const sessioni = mappa[key] || [];
-        const fuori   = d.getMonth() !== viewMese;
-        const isOggi  = d.getTime() === oggi.getTime();
-        const isSel   = selData && d.getTime() === selData.getTime();
-        const isDom   = d.getDay() === 0;
-
-        const cell = document.createElement('div');
-        cell.className = 'cal-day'
-          + (fuori  ? ' fuori-mese' : '')
-          + (isOggi ? ' oggi' : '')
-          + (isSel  ? ' selezionato' : '')
-          + (!fuori && isDom ? ' domenica' : '');
-
-        const chips = (!fuori && sessioni.length)
-          ? `<div class="day-chips">${
-              sessioni.slice(0,3).map(s =>
-                `<div class="day-chip ${chipClass(s.categoria)}">${chipLabel(s)}</div>`
-              ).join('')
-            }</div>`
-          : '';
-
-        cell.innerHTML = `<div class="day-num">${d.getDate()}</div>${chips}`;
-
-        if (!fuori) cell.addEventListener('click', () => seleziona(d));
-        grid.appendChild(cell);
-        cur.setDate(cur.getDate() + 1);
-      }
-
-      renderEventi();
-    }
-
-    function seleziona(d) {
-      selData = new Date(d);
-      renderCalendario();
-    }
-
-    /* ── Render dettaglio giorno ── */
-    function renderEventi() {
-      const label = document.getElementById('eventiLabel');
-      const lista = document.getElementById('eventiList');
-
-      if (!selData) {
-        label.textContent = '';
-        lista.innerHTML = '<div class="eventi-vuoti">Seleziona un giorno per vedere gli allenamenti.</div>';
-        return;
-      }
-
-      const key = dataKey(selData);
-      const sessioni = mappa[key] || [];
-      const dow = GG[(selData.getDay() + 6) % 7];
-      label.textContent = `${dow} ${selData.getDate()} ${MESI_B[selData.getMonth()]} ${selData.getFullYear()}`;
-
-      if (!sessioni.length) {
-        lista.innerHTML = '<div class="eventi-vuoti">Nessun allenamento programmato.</div>';
-        return;
-      }
-
-      lista.innerHTML = sessioni.map(s => {
-        const { inizio, fine } = parseOra(s.ora);
-        const orario = fine ? `${inizio} – ${fine}` : inizio;
-        return `
-          <div class="evento-card">
-            <div class="evento-striscia" style="background:${chipColor(s.categoria)};"></div>
-            <div class="evento-body">
-              <div class="evento-gruppo">${s.categoria || s.titolo}</div>
-              <div class="evento-riga"><img src="images/orologio-icon.png" style="width:15px;height:15px;vertical-align:middle;margin-right:6px;opacity:.75;"> ${orario}</div>
-              ${s.luogo ? `<div class="evento-riga"><img src="images/posizione-icon.png" style="width:15px;height:15px;vertical-align:middle;margin-right:6px;opacity:.75;"> ${s.luogo}</div>` : ''}
-              ${s.note  ? `<div class="evento-riga">📝 ${s.note}</div>` : ''}
+    events.innerHTML = `<div style="font-size:13px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">${dateLabel}</div>`
+      + evList.map(e=>{
+          const ci = CAT[e.cat]||CAT.allenamento;
+          let timeStr, titleStr, subStr='';
+          if (e.tipo==='allenamento'){
+            const {inizio,fine}=parseOra(e.ora);
+            timeStr=inizio+(fine?' – '+fine:'');
+            titleStr=e.categoria||e.titolo||'Allenamento';
+            subStr=(e.luogo?'📍 '+e.luogo:'')+(e.note?' · '+e.note:'');
+          } else {
+            timeStr=e.timestamp?oraDaTs(e.timestamp):'—';
+            titleStr='vs '+avversario(e);
+            subStr=(e.luogo?'📍 '+e.luogo:'');
+            if(e.played&&e.risultato) subStr+=(subStr?' · ':'')+'🏐 '+e.risultato;
+          }
+          return `<div class="mob-ev" onclick='apriDetail(${JSON.stringify(e).replace(/'/g,"&#39;")})'>
+            <div class="mob-stripe" style="background:${ci.color}"></div>
+            <div class="mob-body">
+              <div class="mob-cat" style="color:${ci.color}">${ci.label}</div>
+              <div class="mob-title">${titleStr}</div>
+              <div class="mob-info">
+                <span>🕐 ${timeStr}</span>
+                ${subStr?`<span>${subStr}</span>`:''}
+              </div>
             </div>
           </div>`;
-      }).join('');
-    }
+        }).join('');
+  }
 
-    document.getElementById('btnPrec').addEventListener('click', () => {
-      if (--viewMese < 0) { viewMese = 11; viewAnno--; }
-      renderCalendario();
-    });
-    document.getElementById('btnSucc').addEventListener('click', () => {
-      if (++viewMese > 11) { viewMese = 0; viewAnno++; }
-      renderCalendario();
-    });
+  /* ── MODAL DETTAGLIO ── */
+  function apriDetail(e) {
+    const ci = CAT[e.cat]||CAT.allenamento;
+    const tag  = document.getElementById('dmTag');
+    const title= document.getElementById('dmTitle');
+    const body = document.getElementById('dmBody');
 
-    async function carica() {
-      try {
-        const data = await fetch('/api/calendario').then(r => r.json());
-        data.forEach(s => {
-          if (!s.data) return;
-          if (!mappa[s.data]) mappa[s.data] = [];
-          mappa[s.data].push(s);
-        });
-      } catch { /* mostra comunque la griglia vuota */ }
-      selData = new Date(oggi);
-      renderCalendario();
-    }
+    tag.textContent  = ci.label;
+    tag.style.background = ci.color;
 
-    carica();
-
-    /* ── FAB visibilità ── */
-    function aggiornaFab() {
-      const role = localStorage.getItem('vc_role');
-      const token = localStorage.getItem('vc_token');
-      const fab = document.getElementById('fabAggiungi');
-      if (token && (role === 'admin' || role === 'dirigente')) {
-        fab.style.display = 'flex';
+    let rows = '';
+    if (e.tipo==='allenamento') {
+      title.textContent = e.categoria || e.titolo || 'Allenamento';
+      const {inizio,fine}=parseOra(e.ora);
+      const orario=fine?`${inizio} – ${fine}`:inizio;
+      rows += `<div class="modal-row"><span class="modal-icon">🕐</span><div class="modal-val">${orario}</div></div>`;
+      if (e.luogo) rows += `<div class="modal-row"><span class="modal-icon">📍</span><div class="modal-val">${e.luogo}</div></div>`;
+      if (e.note)  rows += `<div class="modal-row"><span class="modal-icon">📝</span><div class="modal-val">${e.note}</div></div>`;
+    } else {
+      title.innerHTML = `<span style="font-weight:400;color:var(--sub)">vs</span> ${avversario(e)}`;
+      if (e.categoria) rows += `<div class="modal-row"><span class="modal-icon">🏆</span><div class="modal-val">${e.categoria}</div></div>`;
+      const ora = e.timestamp ? oraDaTs(e.timestamp) : '—';
+      rows += `<div class="modal-row"><span class="modal-icon">🕐</span><div class="modal-val">${ora}</div></div>`;
+      rows += `<div class="modal-row"><span class="modal-icon">🏠</span><div class="modal-val"><strong>${e.casa}</strong> vs <strong>${e.ospite}</strong></div></div>`;
+      if (e.luogo) rows += `<div class="modal-row"><span class="modal-icon">📍</span><div class="modal-val">${e.luogo}</div></div>`;
+      if (e.played && e.risultato) {
+        const parc = e.parziali&&e.parziali.length ? ` <span style="font-size:12px;color:var(--sub)">(${e.parziali.join(', ')})</span>` : '';
+        rows += `<div class="modal-row"><span class="modal-icon">🏐</span><div class="modal-val"><strong>${e.risultato}</strong>${parc}</div></div>`;
+      } else if (e.postponed) {
+        rows += `<div class="modal-row"><span class="modal-icon">⚠️</span><div class="modal-val" style="color:#dc2626">Partita rinviata</div></div>`;
+      } else {
+        rows += `<div class="modal-row"><span class="modal-icon">📌</span><div class="modal-val">Da giocare</div></div>`;
       }
     }
-    aggiornaFab();
+    body.innerHTML = rows;
+    document.getElementById('detailModal').classList.add('open');
+  }
+  function chiudiDetail(e) {
+    if (!e || e.target===document.getElementById('detailModal'))
+      document.getElementById('detailModal').classList.remove('open');
+  }
 
-    /* ── Modal ── */
-    function apriModal() {
-      const oggi = new Date().toISOString().slice(0,10);
-      document.getElementById('mTitolo').value   = '';
-      document.getElementById('mData').value     = selData ? dataKey(selData) : oggi;
-      document.getElementById('mInizio').value   = '18:00';
-      document.getElementById('mFine').value     = '20:00';
-      document.getElementById('mLuogo').value    = '';
-      document.getElementById('mCategoria').value= '';
-      document.getElementById('mNote').value     = '';
-      document.getElementById('modalOverlay').classList.add('aperta');
-    }
+  /* ── MODAL ADD (admin) ── */
+  function apriAddModal() {
+    const d = new Date().toISOString().slice(0,10);
+    document.getElementById('mTitolo').value='';
+    document.getElementById('mData').value=dataKey(selMobile)||d;
+    document.getElementById('mInizio').value='18:00';
+    document.getElementById('mFine').value='20:00';
+    document.getElementById('mLuogo').value='';
+    document.getElementById('mCategoria').value='';
+    document.getElementById('mNote').value='';
+    document.getElementById('addModal').classList.add('open');
+  }
+  function chiudiAddModal(e) {
+    if (!e||e.target===document.getElementById('addModal'))
+      document.getElementById('addModal').classList.remove('open');
+  }
 
-    function chiudiModal() {
-      document.getElementById('modalOverlay').classList.remove('aperta');
-    }
+  async function salva() {
+    const titolo=document.getElementById('mTitolo').value.trim();
+    const data=document.getElementById('mData').value;
+    const inizio=document.getElementById('mInizio').value;
+    const fine=document.getElementById('mFine').value;
+    if (!titolo||!data||!inizio){alert('Titolo, data e orario di inizio obbligatori.');return;}
+    const ora=fine?`${inizio}–${fine}`:inizio;
+    const btn=document.getElementById('btnSalva');
+    btn.disabled=true;btn.textContent='Salvataggio…';
+    try {
+      const token=localStorage.getItem('vc_admin_token')||localStorage.getItem('vc_token');
+      const res=await fetch('/api/calendario',{method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({titolo,data,ora,
+          luogo:document.getElementById('mLuogo').value.trim(),
+          categoria:document.getElementById('mCategoria').value,
+          note:document.getElementById('mNote').value.trim()})});
+      if (!res.ok) throw new Error('Errore server');
+      const n=await res.json();
+      if (!mappa[n.data]) mappa[n.data]=[];
+      mappa[n.data].push({tipo:'allenamento',cat:'allenamento',...n});
+      chiudiAddModal();
+      selMobile=new Date(n.data+'T00:00:00');
+      weekStart=lunedi(selMobile);
+      render();
+    } catch(err){alert('Errore: '+err.message);}
+    finally{btn.disabled=false;btn.textContent='Aggiungi';}
+  }
 
-    function chiudiModalSeOverlay(e) {
-      if (e.target === document.getElementById('modalOverlay')) chiudiModal();
-    }
+  /* ── FAB visibilità ── */
+  (function(){
+    const r=localStorage.getItem('vc_role');
+    const t=localStorage.getItem('vc_token')||localStorage.getItem('vc_admin_token');
+    if (t&&(r==='admin'||r==='dirigente')) document.getElementById('fabAggiungi').style.display='flex';
+  })();
 
-    async function salva() {
-      const titolo    = document.getElementById('mTitolo').value.trim();
-      const data      = document.getElementById('mData').value;
-      const inizio    = document.getElementById('mInizio').value;
-      const fine      = document.getElementById('mFine').value;
-      const luogo     = document.getElementById('mLuogo').value.trim();
-      const categoria = document.getElementById('mCategoria').value;
-      const note      = document.getElementById('mNote').value.trim();
-      if (!titolo || !data || !inizio) { alert('Titolo, data e orario di inizio sono obbligatori.'); return; }
-      const ora = fine ? `${inizio}–${fine}` : inizio;
-      const btn = document.getElementById('btnSalva');
-      btn.disabled = true; btn.textContent = 'Salvataggio...';
-      try {
-        const token = localStorage.getItem('vc_token');
-        const res = await fetch('/api/calendario', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ titolo, data, ora, luogo, categoria, note })
+  /* ── CARICA DATI ── */
+  async function carica() {
+    render(); // mostra UI subito
+
+    try {
+      const sessioni=await fetch('/api/calendario').then(r=>r.json());
+      sessioni.forEach(s=>{
+        if (!s.data) return;
+        if (!mappa[s.data]) mappa[s.data]=[];
+        mappa[s.data].push({tipo:'allenamento',cat:'allenamento',...s});
+      });
+    } catch(e){console.warn('[Calendario]',e.message);}
+
+    try {
+      const resp=await fetch('/api/partite/tutte').then(r=>r.json());
+      Object.values(resp.gruppi||{}).forEach(g=>{
+        (g.partite||[]).forEach(m=>{
+          if (!m.timestamp) return;
+          const key=tsToKey(m.timestamp);
+          if (!key) return;
+          if (!mappa[key]) mappa[key]=[];
+          const cat=gruppoPartita(m);
+          mappa[key].push({tipo:'partita',cat,...m});
         });
-        if (!res.ok) throw new Error('Errore server');
-        const nuova = await res.json();
-        if (!mappa[nuova.data]) mappa[nuova.data] = [];
-        mappa[nuova.data].push(nuova);
-        chiudiModal();
-        selData = new Date(nuova.data + 'T00:00:00');
-        viewAnno = selData.getFullYear();
-        viewMese = selData.getMonth();
-        renderCalendario();
-      } catch (err) {
-        alert('Errore durante il salvataggio: ' + err.message);
-      } finally {
-        btn.disabled = false; btn.textContent = 'Aggiungi';
-      }
-    }
-  </script>
-  <script src="common.js"></script>
+      });
+    } catch(e){console.warn('[Partite]',e.message);}
+
+    render();
+  }
+
+  carica();
+</script>
+<script src="common.js"></script>
 </body>
 </html>

@@ -1666,12 +1666,58 @@
           </div>
         </div>
         <div class="form-contatto">
-          <input type="text" placeholder="Il tuo nome">
-          <input type="email" placeholder="La tua email">
-          <input type="text" placeholder="Oggetto">
-          <textarea placeholder="Il tuo messaggio..."></textarea>
-          <button type="submit">Invia messaggio</button>
+          <input type="text" id="cNome" placeholder="Il tuo nome *" autocomplete="name">
+          <input type="email" id="cEmail" placeholder="La tua email *" autocomplete="email">
+          <input type="text" id="cOggetto" placeholder="Oggetto">
+          <textarea id="cMessaggio" placeholder="Il tuo messaggio... *"></textarea>
+          <button type="button" id="cBtn" onclick="inviaContatto()">Invia messaggio</button>
+          <div id="cFeedback" style="margin-top:10px;font-size:13px;font-weight:700;text-align:center;display:none"></div>
         </div>
+
+        <script>
+        async function inviaContatto() {
+          const btn = document.getElementById('cBtn');
+          const fb  = document.getElementById('cFeedback');
+          const nome     = document.getElementById('cNome').value.trim();
+          const email    = document.getElementById('cEmail').value.trim();
+          const oggetto  = document.getElementById('cOggetto').value.trim();
+          const messaggio = document.getElementById('cMessaggio').value.trim();
+
+          fb.style.display = 'none';
+          if (!nome || !email || !messaggio) {
+            fb.textContent = 'Compila nome, email e messaggio.';
+            fb.style.color = '#f87171';
+            fb.style.display = 'block';
+            return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = 'Invio in corso…';
+          try {
+            const r = await fetch('/api/contact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ nome, email, oggetto, messaggio })
+            });
+            const data = await r.json();
+            if (data.success) {
+              fb.textContent = '✓ Messaggio inviato! Ti risponderemo presto.';
+              fb.style.color = '#4ade80';
+              fb.style.display = 'block';
+              ['cNome','cEmail','cOggetto','cMessaggio'].forEach(id => document.getElementById(id).value = '');
+              btn.textContent = 'Messaggio inviato';
+            } else {
+              throw new Error(data.error || 'Errore sconosciuto');
+            }
+          } catch(err) {
+            fb.textContent = '✗ ' + err.message;
+            fb.style.color = '#f87171';
+            fb.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Invia messaggio';
+          }
+        }
+        </script>
       </div>
     </div>
   </section>
@@ -1771,7 +1817,7 @@
 
     </div>
     <div class="footer-bottom">
-      <p>© 2026 <span>Virtus Caserta</span> – Società Sportiva Pallavolo · P.IVA 00000000000 · Affiliata <span>FIPAV</span></p>
+      <p>© 2026 <span>Virtus Caserta</span> – Società Sportiva Pallavolo · P.IVA 00000000000 · Affiliata <span>FIPAV</span> · Sito realizzato da Alessandro Pascarella</p>
     </div>
   </footer>
 

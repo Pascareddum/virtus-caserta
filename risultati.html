@@ -215,7 +215,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2026 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a></p>
+    <p>© 2026 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a> · Sito realizzato da Alessandro Pascarella</p>
   </div>
 </footer>
 
@@ -235,7 +235,7 @@
     if (!m.played)     return `<div class="partita-risultato prossima">da disputare</div>`;
     const parts = m.risultato.match(/(\d+)\s*-\s*(\d+)/);
     if (!parts)        return `<div class="partita-risultato">${m.risultato}</div>`;
-    if (isDerby(m))    return `<div class="partita-risultato">${m.risultato}</div><div class="esito-label derby">🏆 Derby</div>`;
+    if (isDerby(m))    return `<div class="partita-risultato">${m.risultato}</div><div class="esito-label derby">Derby</div>`;
     const [, s1, s2] = parts;
     const casaIsVirtus = isVirtus(m.casa);
     const virtusVince  = casaIsVirtus ? parseInt(s1) > parseInt(s2) : parseInt(s2) > parseInt(s1);
@@ -277,7 +277,7 @@
       : `<span class="fonte-badge fonte-fipav">FIPAV</span>`;
 
     const catBadge   = catLabel ? `<div class="cat-inline-badge">${catLabel}</div>` : '';
-    const derbyBanner = derby ? `<div class="derby-banner">🔥 Derby Virtus</div>` : '';
+    const derbyBanner = derby ? `<div class="derby-banner"> Derby Virtus</div>` : '';
 
     return `
       <div class="partita-card${nascostaClass}${prossimaClass}${inCorsoClass}${derbyClass}" data-stato="${stato}">
@@ -484,8 +484,8 @@
           </div>`;
       }).join('') +
       `<div class="fipav-footer">
-        <a href="${data.fipavUrl}" target="_blank" rel="noopener" class="fipav-btn">🏐 Portale FIPAV Caserta</a>
-        <a href="https://www.opespallavolo.it" target="_blank" rel="noopener" class="fipav-btn" style="background:#0369a1;">🏐 Portale OPES</a>
+        <a href="${data.fipavUrl}" target="_blank" rel="noopener" class="fipav-btn">Portale FIPAV Caserta</a>
+        <a href="https://www.opespallavolo.it" target="_blank" rel="noopener" class="fipav-btn" style="background:#0369a1;">Portale OPES</a>
       </div>`;
 
       // Popola dropdown categorie FIPAV
@@ -502,7 +502,7 @@
       cont.innerHTML = `
         <div class="vuota">
           <p style="margin-bottom:16px;">Impossibile caricare le partite: ${err.message}</p>
-          <a href="https://caserta.portalefipav.net/" target="_blank" rel="noopener" class="fipav-btn">🏐 Portale FIPAV Caserta</a>
+          <a href="https://caserta.portalefipav.net/" target="_blank" rel="noopener" class="fipav-btn">Portale FIPAV Caserta</a>
         </div>`;
     }
   }
