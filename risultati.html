@@ -55,6 +55,12 @@
     .esito-label{text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
     .esito-label.win{color:var(--verde);}
     .esito-label.loss{color:var(--rosso);}
+    .esito-label.derby{color:var(--arancio);}
+    /* Derby card */
+    .partita-card.derby-card{border:2px solid var(--arancio);background:linear-gradient(135deg,#fff8f0 0%,#fff3e0 100%);box-shadow:0 0 0 3px rgba(245,124,0,.15);}
+    .partita-card.derby-card .partita-meta{color:#b45309;}
+    .partita-card.derby-card .partita-squadra{color:var(--arancio);}
+    .derby-banner{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--arancio);color:#fff;font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:6px 14px;border-radius:0;margin:-18px -20px 12px;}
     .parziali-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:4px;}
     .parziale{font-size:11px;font-weight:700;background:#f1f5f9;color:#374151;padding:2px 8px;border-radius:8px;}
     .luogo-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #f0f4f8;font-size:12px;color:#6b7280;font-weight:500;line-height:1.4;}
@@ -214,7 +220,8 @@
 </footer>
 
 <script>
-  function isVirtus(name) { return /virtus/i.test(name); }
+  function isVirtus(name) { return /virtus caserta|virtus santa maria/i.test(name); }
+  function isDerby(m)    { return isVirtus(m.casa) && isVirtus(m.ospite); }
 
   function isInCorso(m) {
     if (m.played || m.postponed || !m.timestamp) return false;
@@ -227,7 +234,8 @@
     if (isInCorso(m))  return `<div class="partita-risultato in-corso"><span class="live-dot"></span>In corso</div>`;
     if (!m.played)     return `<div class="partita-risultato prossima">da disputare</div>`;
     const parts = m.risultato.match(/(\d+)\s*-\s*(\d+)/);
-    if (!parts)      return `<div class="partita-risultato">${m.risultato}</div>`;
+    if (!parts)        return `<div class="partita-risultato">${m.risultato}</div>`;
+    if (isDerby(m))    return `<div class="partita-risultato">${m.risultato}</div><div class="esito-label derby">🏆 Derby</div>`;
     const [, s1, s2] = parts;
     const casaIsVirtus = isVirtus(m.casa);
     const virtusVince  = casaIsVirtus ? parseInt(s1) > parseInt(s2) : parseInt(s2) > parseInt(s1);
@@ -241,8 +249,10 @@
     const ospiteCls    = isVirtus(m.ospite) ? ' virtus' : '';
     const nascostaClass  = nascosta ? ' nascosta' : '';
     const inCorso        = isInCorso(m);
-    const prossimaClass  = (!m.played && !m.postponed && !inCorso) ? ' prossima-card' : '';
+    const derby          = isDerby(m);
+    const prossimaClass  = (!m.played && !m.postponed && !inCorso && !derby) ? ' prossima-card' : '';
     const inCorsoClass   = inCorso ? ' in-corso-card' : '';
+    const derbyClass     = derby ? ' derby-card' : '';
     const stato          = m.played ? 'giocata' : (m.postponed ? 'rinviata' : (inCorso ? 'in-corso' : 'prossima'));
 
     const proxy = u => u ? `/api/proxy-image?url=${encodeURIComponent(u)}` : '';
@@ -266,11 +276,12 @@
       ? `<span class="fonte-badge fonte-opes">OPES</span>`
       : `<span class="fonte-badge fonte-fipav">FIPAV</span>`;
 
-    const catBadge = catLabel ? `<div class="cat-inline-badge">${catLabel}</div>` : '';
+    const catBadge   = catLabel ? `<div class="cat-inline-badge">${catLabel}</div>` : '';
+    const derbyBanner = derby ? `<div class="derby-banner">🔥 Derby Virtus</div>` : '';
 
     return `
-      <div class="partita-card${nascostaClass}${prossimaClass}${inCorsoClass}" data-stato="${stato}">
-        ${catBadge}
+      <div class="partita-card${nascostaClass}${prossimaClass}${inCorsoClass}${derbyClass}" data-stato="${stato}">
+        ${catBadge}${derbyBanner}
         <div class="partita-meta">
           <span>Giornata ${m.giornata}</span>
           <span>·</span>
@@ -361,7 +372,7 @@
       return;
     }
 
-    // Per "prossime": ordina per timestamp più vicino prima
+    // Ordinamento per timestamp
     if (vista === 'prossime') {
       const now = Date.now();
       cards.sort((a, b) => {
@@ -373,6 +384,8 @@
         if (!fa && fb) return 1;
         return ta - tb;
       });
+    } else if (vista === 'recenti') {
+      cards.sort((a, b) => (b.m.timestamp || 0) - (a.m.timestamp || 0));
     }
 
     flatView.innerHTML = `<div class="partite-grid">${cards.map(({m, cat}) => renderCard(m, false, cat)).join('')}</div>`;
