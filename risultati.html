@@ -77,6 +77,8 @@
     .fonte-badge{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:10px;margin-left:auto;}
     .fonte-opes{background:#e0f2fe;color:#0369a1;}
     .fonte-fipav{background:#ede9fe;color:#6d28d9;}
+    /* Badge categoria inline (vista flat) */
+    .cat-inline-badge{display:block;background:var(--blu);color:#fff;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:6px 14px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:0;margin:-18px -20px 12px;}
     /* Barra controlli unificata */
     .controlli-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;}
     .selettori-wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;flex:1;}
@@ -85,9 +87,15 @@
     .filtro-select:focus{outline:none;box-shadow:0 4px 16px rgba(13,32,85,.15);}
     .fipav-cat-select{background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236d28d9' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");border:2px solid #6d28d9;color:#6d28d9;min-width:240px;box-shadow:0 2px 10px rgba(109,40,217,.10);}
     .fipav-cat-select:focus{outline:none;box-shadow:0 4px 16px rgba(109,40,217,.18);}
+    .opes-team-select{appearance:none;-webkit-appearance:none;border-radius:12px;padding:10px 40px 10px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:border-color .15s,box-shadow .15s;background-repeat:no-repeat;background-position:right 14px center;background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230369a1' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");border:2px solid #0369a1;color:#0369a1;min-width:240px;box-shadow:0 2px 10px rgba(3,105,161,.10);}
+    .opes-team-select:focus{outline:none;box-shadow:0 4px 16px rgba(3,105,161,.18);}
     .btn-classifiche-fisso{display:inline-flex;align-items:center;gap:6px;background:var(--arancio);color:#fff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 20px;border-radius:20px;white-space:nowrap;transition:background .15s;}
     .btn-classifiche-fisso:hover{background:#e06500;}
     .cat-block.nascosta-cat{display:none;}
+    /* Vista toggle */
+    .vista-toggle{display:flex;background:#e2e8f0;border-radius:12px;padding:3px;gap:2px;}
+    .btn-vista{background:none;border:none;cursor:pointer;padding:8px 16px;border-radius:9px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#64748b;transition:all .15s;}
+    .btn-vista.attivo{background:#fff;color:var(--blu);box-shadow:0 1px 6px rgba(0,0,0,.12);}
 
     /* Espandi row */
     .espandi-row{text-align:center;margin-top:16px;}
@@ -153,6 +161,11 @@
   <div class="container">
     <div class="sezione-titolo"><div class="etichetta">FIPAV · OPES</div><h2>Risultati &amp; Calendario</h2></div>
     <div class="controlli-bar" id="controlliBar" style="display:none">
+      <div class="vista-toggle">
+        <button class="btn-vista attivo" onclick="applyVista('tutte',this)">Tutte</button>
+        <button class="btn-vista" onclick="applyVista('prossime',this)">Prossime</button>
+        <button class="btn-vista" onclick="applyVista('recenti',this)">Recenti</button>
+      </div>
       <div class="selettori-wrap">
         <select class="filtro-select" id="fonteSelect" onchange="applyFiltro(this)">
           <option value="tutte">Tutte le categorie</option>
@@ -162,10 +175,18 @@
         <select class="fipav-cat-select" id="fipavCatSelect" onchange="applySubFiltro(this)" style="display:none">
           <option value="">— Tutte le categorie FIPAV —</option>
         </select>
+        <select class="opes-team-select" id="opesTeamSelect" onchange="applyOpesTeam(this)" style="display:none">
+          <option value="">— Tutte le squadre OPES —</option>
+          <option value="Virtus Santa Maria Capua Vetere">Virtus Santa Maria Capua Vetere</option>
+          <option value="Virtus Caserta Young">Virtus Caserta Young</option>
+          <option value="Virtus Caserta (Red)">Virtus Caserta Red</option>
+          <option value="Virtus Caserta (White)">Virtus Caserta White</option>
+        </select>
       </div>
       <a href="/classifica" class="btn-classifiche-fisso">Mostra le classifiche</a>
     </div>
     <div id="risultatiContent"><div class="vuota">Caricamento…</div></div>
+    <div id="flatView" style="display:none"></div>
   </div>
 </section>
 
@@ -215,13 +236,14 @@
     return `<div class="partita-risultato ${cls}">${m.risultato}</div><div class="esito-label ${cls}">${label}</div>`;
   }
 
-  function renderCard(m, nascosta) {
+  function renderCard(m, nascosta, catLabel = null) {
     const casaCls      = isVirtus(m.casa)   ? ' virtus' : '';
     const ospiteCls    = isVirtus(m.ospite) ? ' virtus' : '';
     const nascostaClass  = nascosta ? ' nascosta' : '';
     const inCorso        = isInCorso(m);
     const prossimaClass  = (!m.played && !m.postponed && !inCorso) ? ' prossima-card' : '';
     const inCorsoClass   = inCorso ? ' in-corso-card' : '';
+    const stato          = m.played ? 'giocata' : (m.postponed ? 'rinviata' : (inCorso ? 'in-corso' : 'prossima'));
 
     const proxy = u => u ? `/api/proxy-image?url=${encodeURIComponent(u)}` : '';
     const loghi = (m.logoHome || m.logoAway)
@@ -244,8 +266,11 @@
       ? `<span class="fonte-badge fonte-opes">OPES</span>`
       : `<span class="fonte-badge fonte-fipav">FIPAV</span>`;
 
+    const catBadge = catLabel ? `<div class="cat-inline-badge">${catLabel}</div>` : '';
+
     return `
-      <div class="partita-card${nascostaClass}${prossimaClass}${inCorsoClass}">
+      <div class="partita-card${nascostaClass}${prossimaClass}${inCorsoClass}" data-stato="${stato}">
+        ${catBadge}
         <div class="partita-meta">
           <span>Giornata ${m.giornata}</span>
           <span>·</span>
@@ -303,25 +328,92 @@
     }
   }
 
-  function applySubFiltro(selectEl) {
-    const cat = selectEl.value;
-    document.querySelectorAll('.cat-block[data-fonte="fipav"]').forEach(block => {
-      block.classList.toggle('nascosta-cat', !!cat && block.dataset.cat !== cat);
+  let _vistaAttiva    = 'tutte';
+  let _allEntries     = null;
+  let _fipavCatAttiva = '';
+  let _opesTeamAttiva = '';
+
+  function buildFlatView(vista) {
+    const flatView = document.getElementById('flatView');
+    const fonte = document.getElementById('fonteSelect').value;
+    const cards = [];
+    _allEntries.forEach(([cat, gruppo]) => {
+      if (fonte === 'fipav' && gruppo.fonte === 'opes') return;
+      if (fonte === 'opes'  && gruppo.fonte !== 'opes') return;
+      // FIPAV sub-category filter
+      if (fonte === 'fipav' && _fipavCatAttiva && cat !== _fipavCatAttiva) return;
+      gruppo.partite.forEach(m => {
+        // OPES team filter
+        if (fonte === 'opes' && _opesTeamAttiva) {
+          const re = new RegExp(_opesTeamAttiva.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+          if (!re.test(m.casa) && !re.test(m.ospite)) return;
+        }
+        const inC   = isInCorso(m);
+        const stato = m.played ? 'giocata' : (m.postponed ? 'rinviata' : (inC ? 'in-corso' : 'prossima'));
+        const show  = vista === 'prossime'
+          ? (stato === 'prossima' || stato === 'in-corso' || stato === 'rinviata')
+          : stato === 'giocata';
+        if (show) cards.push({ m, cat });
+      });
     });
+    if (!cards.length) {
+      flatView.innerHTML = '<div class="vuota">Nessuna partita trovata.</div>';
+      return;
+    }
+    flatView.innerHTML = `<div class="partite-grid">${cards.map(({m, cat}) => renderCard(m, false, cat)).join('')}</div>`;
+  }
+
+  function applyVista(vista, btn) {
+    _vistaAttiva = vista;
+    document.querySelectorAll('.btn-vista').forEach(b => b.classList.toggle('attivo', b === btn));
+    const risultatiContent = document.getElementById('risultatiContent');
+    const flatView = document.getElementById('flatView');
+    if (vista === 'tutte') {
+      risultatiContent.style.display = '';
+      flatView.style.display = 'none';
+    } else {
+      risultatiContent.style.display = 'none';
+      flatView.style.display = '';
+      if (_allEntries) buildFlatView(vista);
+    }
+  }
+
+  function applySubFiltro(selectEl) {
+    _fipavCatAttiva = selectEl.value;
+    document.querySelectorAll('.cat-block[data-fonte="fipav"]').forEach(block => {
+      block.classList.toggle('nascosta-cat', !!_fipavCatAttiva && block.dataset.cat !== _fipavCatAttiva);
+    });
+    if (_vistaAttiva !== 'tutte' && _allEntries) buildFlatView(_vistaAttiva);
+  }
+
+  function applyOpesTeam(selectEl) {
+    _opesTeamAttiva = selectEl.value;
+    // In vista tutte: filtra le card OPES nella vista normale
+    document.querySelectorAll('.cat-block[data-fonte="opes"] .partita-card').forEach(card => {
+      if (!_opesTeamAttiva) { card.style.removeProperty('display'); return; }
+      const re = new RegExp(_opesTeamAttiva.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const testo = card.innerText;
+      card.style.display = re.test(testo) ? '' : 'none';
+    });
+    if (_vistaAttiva !== 'tutte' && _allEntries) buildFlatView(_vistaAttiva);
   }
 
   function applyFiltro(selectEl) {
     const tipo = selectEl.value;
-    const catSel = document.getElementById('fipavCatSelect');
+    const catSel  = document.getElementById('fipavCatSelect');
+    const opeSel  = document.getElementById('opesTeamSelect');
 
-    // Mostra/nascondi sotto-dropdown FIPAV
-    catSel.style.display = tipo === 'fipav' ? '' : 'none';
-    if (tipo !== 'fipav') catSel.value = '';
+    catSel.style.display  = tipo === 'fipav' ? '' : 'none';
+    opeSel.style.display  = tipo === 'opes'  ? '' : 'none';
+    if (tipo !== 'fipav') { catSel.value  = ''; _fipavCatAttiva = ''; }
+    if (tipo !== 'opes')  { opeSel.value  = ''; _opesTeamAttiva = ''; }
 
     document.querySelectorAll('.cat-block').forEach(block => {
       if (tipo === 'tutte') { block.classList.remove('nascosta-cat'); return; }
       block.classList.toggle('nascosta-cat', block.dataset.fonte !== tipo);
     });
+
+    if (_vistaAttiva !== 'tutte' && _allEntries) buildFlatView(_vistaAttiva);
   }
 
   async function carica() {
@@ -332,6 +424,7 @@
 
       const entries = Object.entries(data.gruppi);
       if (!entries.length) { cont.innerHTML = '<div class="vuota">Nessuna partita disponibile.</div>'; return; }
+      _allEntries = entries;
 
       cont.innerHTML = entries.map(([cat, gruppo], i) => {
         const partite  = gruppo.partite;

@@ -199,7 +199,6 @@
   <div class="embed-container" id="playerContainer">
     <iframe
       id="twitchPlayer"
-      src="https://player.twitch.tv/?channel=virtuscaserta&parent=virtuscaserta.it&parent=localhost&autoplay=false"
       allowfullscreen>
     </iframe>
   </div>
@@ -253,6 +252,11 @@
   </div>
 </footer>
 
+<script>
+  const twitchIframe = document.getElementById('twitchPlayer');
+  const hostname = window.location.hostname || 'localhost';
+  twitchIframe.src = `https://player.twitch.tv/?channel=virtuscaserta&parent=${encodeURIComponent(hostname)}&autoplay=false`;
+</script>
 <script src="common.js"></script>
 </body>
 </html>

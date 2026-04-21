@@ -138,16 +138,17 @@
 
     /* ── VALORI ── */
     #valori { background:var(--grigio); }
-    .valori-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:24px; }
+    .valori-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; }
     .valore-card {
       background:var(--bianco); border-radius:18px; overflow:hidden;
       text-align:center; box-shadow:0 4px 20px rgba(0,0,0,0.06);
       transition:transform 0.2s, box-shadow 0.2s;
+      display:flex; flex-direction:column;
     }
     .valore-card:hover { transform:translateY(-6px); box-shadow:0 12px 36px rgba(0,0,0,0.1); }
-    .valore-icona { margin:0; }
-    .valore-icona img { width:100%; height:260px; object-fit:cover; display:block; }
-    .valore-card p  { font-size:14px; color:#666; line-height:1.6; padding:18px 20px; }
+    .valore-icona { margin:0; flex:1; }
+    .valore-icona img { width:100%; height:100%; min-height:200px; object-fit:cover; display:block; }
+    .valore-card p  { font-size:14px; color:#666; line-height:1.6; padding:16px 20px; flex-shrink:0; }
 
     /* ── STORIA ── */
     #storia { background:var(--bianco); }
@@ -211,16 +212,19 @@
       .footer-col-right { text-align:center; }
       .footer-col a { display:inline-block; margin:2px 6px; }
     }
+    @media (max-width:900px) {
+      .valori-grid { grid-template-columns:repeat(2,1fr); }
+    }
     @media (max-width:768px) {
       .missione-grid { grid-template-columns:1fr; gap:40px; }
       .stats-grid { grid-template-columns:1fr 1fr; gap:12px; }
-      .valori-grid { grid-template-columns:1fr; }
       nav { padding:0 16px; height:60px; }
       .nav-brand img { height:38px; }
       .nav-menu { gap:16px; }
       .nav-menu a { font-size:11px; letter-spacing:0.8px; }
     }
     @media (max-width:480px) {
+      .valori-grid { grid-template-columns:1fr 1fr; gap:12px; }
       .stats-grid { grid-template-columns:1fr; }
       .hero-content h1 { font-size:clamp(24px,7vw,40px); }
     }
@@ -341,38 +345,45 @@
       </div>
       <div class="storia-timeline">
         <div class="storia-item">
-          <div class="storia-anno">2012</div>
+          <div class="storia-anno">2018</div>
           <div class="storia-testo">
             <h4>Fondazione</h4>
-            <p>Nasce la Virtus Caserta da un gruppo di appassionati con il sogno di creare una realtà pallavolistica di riferimento nel territorio.</p>
+            <p>Nasce la Quadrifoglio da un gruppo di appassionati con il sogno di creare una realtà pallavolistica di riferimento nel territorio.</p>
           </div>
         </div>
         <div class="storia-item">
-          <div class="storia-anno">2015</div>
+          <div class="storia-anno">2021</div>
           <div class="storia-testo">
             <h4>Primo settore giovanile</h4>
             <p>Viene avviato il minivolley e il settore under, con i primi atleti formati interamente in casa.</p>
           </div>
         </div>
         <div class="storia-item">
-          <div class="storia-anno">2018</div>
+          <div class="storia-anno">2022</div>
           <div class="storia-testo">
             <h4>Crescita e affiliazione FIPAV</h4>
             <p>La società si afferma nel panorama regionale e ottiene il riconoscimento ufficiale con affiliazione FIPAV Caserta.</p>
           </div>
         </div>
-        <div class="storia-item">
-          <div class="storia-anno">2022</div>
+           <div class="storia-item">
+          <div class="storia-anno">2024</div>
           <div class="storia-testo">
-            <h4>Serie C Campania</h4>
-            <p>La prima squadra conquista l'accesso al campionato di Serie C, traguardo storico per la società.</p>
+            <h4>Nasce la Virtus Caserta</h4>
+            <p>La quadrifoglio cambia identità, nasce per la prima volta la Virtus Caserta.</p>
+          </div>
+        </div>
+        <div class="storia-item">
+          <div class="storia-anno">2025</div>
+          <div class="storia-testo">
+            <h4>Serie D Campania</h4>
+            <p>La prima squadra femminile conquista l'accesso al campionato di Serie D, traguardo storico per la società.</p>
           </div>
         </div>
         <div class="storia-item" style="border-left:none; padding-bottom:0;">
           <div class="storia-anno">Oggi</div>
           <div class="storia-testo">
-            <h4>Oltre 150 atleti</h4>
-            <p>Sei squadre attive, quattro impianti, una famiglia che continua a crescere con passione e ambizione.</p>
+            <h4>Oltre 250 atleti</h4>
+            <p>Dieci squadre attive, quattro impianti, 15 campionati disputati, e una famiglia che continua a crescere con passione e ambizione.</p>
           </div>
         </div>
       </div>
