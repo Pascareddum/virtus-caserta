@@ -360,6 +360,21 @@
       flatView.innerHTML = '<div class="vuota">Nessuna partita trovata.</div>';
       return;
     }
+
+    // Per "prossime": ordina per timestamp più vicino prima
+    if (vista === 'prossime') {
+      const now = Date.now();
+      cards.sort((a, b) => {
+        const ta = a.m.timestamp || 0;
+        const tb = b.m.timestamp || 0;
+        const fa = ta > now;
+        const fb = tb > now;
+        if (fa && !fb) return -1;
+        if (!fa && fb) return 1;
+        return ta - tb;
+      });
+    }
+
     flatView.innerHTML = `<div class="partite-grid">${cards.map(({m, cat}) => renderCard(m, false, cat)).join('')}</div>`;
   }
 

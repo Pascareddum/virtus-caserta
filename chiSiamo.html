@@ -146,8 +146,8 @@
       display:flex; flex-direction:column;
     }
     .valore-card:hover { transform:translateY(-6px); box-shadow:0 12px 36px rgba(0,0,0,0.1); }
-    .valore-icona { margin:0; flex:1; }
-    .valore-icona img { width:100%; height:100%; min-height:200px; object-fit:cover; display:block; }
+    .valore-icona { margin:0; aspect-ratio:4/3; overflow:hidden; }
+    .valore-icona img { width:100%; height:100%; object-fit:cover; object-position:center top; display:block; }
     .valore-card p  { font-size:14px; color:#666; line-height:1.6; padding:16px 20px; flex-shrink:0; }
 
     /* ── STORIA ── */
@@ -316,7 +316,7 @@
       </div>
       <div class="valori-grid">
         <div class="valore-card">
-          <div class="valore-icona"><img src="images/rispetto.jpeg" alt="Rispetto"></div>
+          <div class="valore-icona"><img src="images/rispetto.jpeg" alt="Rispetto" style="object-fit:contain;background:#f0f4f8;"></div>
           <p>Verso i compagni, gli avversari, i tecnici e le strutture. Il rispetto è la base di ogni rapporto sportivo sano.</p>
         </div>
         <div class="valore-card">
