@@ -503,24 +503,6 @@
     <p>Indossa i colori della tua squadra del cuore</p>
   </div>
 
-  <!-- PRODOTTO TEST -->
-  <section style="padding:16px 24px 0">
-    <div class="container">
-      <div style="background:#fefce8;border:2px dashed #f59e0b;border-radius:16px;padding:16px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-        <div style="font-size:32px">🧪</div>
-        <div style="flex:1">
-          <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#b45309">Articolo di test</div>
-          <div style="font-size:17px;font-weight:800;color:#1c1917">Gadget Virtus Caserta – Test</div>
-          <div style="font-size:13px;color:#78716c">Usa questo articolo per provare il pagamento reale</div>
-        </div>
-        <div style="font-size:26px;font-weight:900;color:#f57c00">€ 0,50</div>
-        <button onclick="aggiungiProdottoTest()" style="background:#f57c00;color:#fff;border:none;padding:12px 24px;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">
-          🛒 Aggiungi al carrello
-        </button>
-      </div>
-    </div>
-  </section>
-
   <!-- CATALOGO PRODOTTI -->
   <section class="shop-section">
     <div class="container">
@@ -784,16 +766,6 @@
       else carrello.push({ id: pid, nome: p.nome, prezzo: p.prezzo, emoji: p.emoji || '🏐', taglia, qty: 1 });
       aggiornaCarrello();
       mostraToast(`✅ ${p.nome} (${taglia}) aggiunta al carrello`);
-    }
-
-    /* ══ PRODOTTO TEST ══ */
-    function aggiungiProdottoTest() {
-      const test = { nome: 'Gadget Virtus Caserta – Test', prezzo: 0.50, emoji: '🧪', taglia: 'UNI', qty: 1 };
-      const esistente = carrello.find(i => i.nome === test.nome);
-      if (esistente) esistente.qty = Math.min(10, esistente.qty + 1);
-      else carrello.push(test);
-      aggiornaCarrello();
-      mostraToast('✅ Articolo test aggiunto al carrello');
     }
 
     /* ══ QUANTITÀ ══ */

@@ -320,7 +320,9 @@
     .hero {
       margin-top: 76px;
       min-height: calc(100vh - 72px);
-      background: linear-gradient(135deg, var(--blu-scuro) 0%, var(--blu-medio) 60%, #1565c0 100%);
+      background-image: url('images/Home.jpeg');
+      background-size: cover;
+      background-position: center;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -334,8 +336,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at 70% 50%, rgba(42,104,212,0.15) 0%, transparent 70%),
-                  radial-gradient(ellipse at 30% 80%, rgba(245,124,0,0.08) 0%, transparent 60%);
+      background: linear-gradient(135deg, rgba(13,32,85,0.78) 0%, rgba(21,53,168,0.65) 60%, rgba(21,101,192,0.55) 100%);
     }
 
     .hero-content {
@@ -1522,7 +1523,7 @@
         <p>Dalla Serie D al VolleyS3</p>
       </div>
       <div class="squadre-grid">
-        <div class="squadra-card" style="background-image:url('images/squadre/serie-d-femminile.jpg'), linear-gradient(135deg,#0d1f5c,#1a3a8f); --card-accent:#f0c040;">
+        <div class="squadra-card" style="background-image:url('images/Serie D.jpeg'), linear-gradient(135deg,#0d1f5c,#1a3a8f); --card-accent:#f57c00;">
           <span class="squadra-badge">Serie D</span>
           <div class="squadra-overlay">
             <h3>Serie D Femminile</h3>
@@ -1530,7 +1531,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/squadre/prima-divisione-maschile.jpg'), linear-gradient(135deg,#0d3355,#0a5a9e); --card-accent:#40c0f0;">
+        <div class="squadra-card" style="background-image:url('images/Prima divisione maschile.jpeg'), linear-gradient(135deg,#0d3355,#0a5a9e); --card-accent:#f57c00;">
           <span class="squadra-badge">Prima Divisione</span>
           <div class="squadra-overlay">
             <h3>Prima Divisione Maschile</h3>
@@ -1538,7 +1539,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/squadre/prima-divisione-femminile.jpg'), linear-gradient(135deg,#3d0d55,#7b2fa8); --card-accent:#d480ff;">
+        <div class="squadra-card" style="background-image:url('images/Prima divisione femminile.jpeg'), linear-gradient(135deg,#3d0d55,#7b2fa8); --card-accent:#f57c00;">
           <span class="squadra-badge">Prima Divisione</span>
           <div class="squadra-overlay">
             <h3>Prima Divisione Femminile</h3>
@@ -1546,7 +1547,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/squadre/giovanile-femminile.jpg'), linear-gradient(135deg,#4a1a00,#b04a10); --card-accent:#ff9050;">
+        <div class="squadra-card" style="background-image:url('images/Giovanili.jpeg'), linear-gradient(135deg,#4a1a00,#b04a10); --card-accent:#f57c00;">
           <span class="squadra-badge">Settore Giovanile</span>
           <div class="squadra-overlay">
             <h3>Giovanile Femminile</h3>
@@ -1554,15 +1555,15 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/squadre/under15-maschile.jpg'), linear-gradient(135deg,#0d3320,#1a7a45); --card-accent:#50e090;">
+        <div class="squadra-card" style="background-image:url('images/Under 13-15 maschile.jpeg'), linear-gradient(135deg,#0d3320,#1a7a45); --card-accent:#f57c00;">
           <span class="squadra-badge">Settore Giovanile</span>
           <div class="squadra-overlay">
-            <h3>Under 15 Maschile</h3>
+            <h3>Under 13/15 Maschile</h3>
             <span>Settore giovanile maschile</span>
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/squadre/squadre-miste.jpg'), linear-gradient(135deg,#1a0d55,#4a2fa8); --card-accent:#a0a0ff;">
+        <div class="squadra-card" style="background-image:url('images/Mista.jpeg'), linear-gradient(135deg,#1a0d55,#4a2fa8); --card-accent:#f57c00;">
           <span class="squadra-badge">Attività Miste</span>
           <div class="squadra-overlay">
             <h3>Squadre Miste</h3>
@@ -1570,7 +1571,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/squadre/volleys3.jpg'), linear-gradient(135deg,#553d0d,#c49a10); --card-accent:#ffd040;">
+        <div class="squadra-card" style="background-image:url('images/Volley S3.jpeg'), linear-gradient(135deg,#553d0d,#c49a10); --card-accent:#f57c00;">
           <span class="squadra-badge">Mini Volley</span>
           <div class="squadra-overlay">
             <h3>VolleyS3</h3>
@@ -1579,6 +1580,23 @@
           <div class="squadra-arrow">→</div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- CALENDARIO CTA -->
+  <section id="calendario-cta" style="padding:0 0 64px;">
+    <div class="container">
+      <a href="/calendario" style="display:flex;align-items:center;justify-content:space-between;gap:24px;background:linear-gradient(135deg,var(--blu-scuro),var(--blu-medio));border-radius:20px;padding:36px 48px;text-decoration:none;color:#fff;box-shadow:0 8px 32px rgba(13,32,85,.18);transition:transform .2s,box-shadow .2s;flex-wrap:wrap;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 14px 40px rgba(13,32,85,.28)';" onmouseout="this.style.transform='';this.style.boxShadow='0 8px 32px rgba(13,32,85,.18)';">
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--arancio);margin-bottom:10px;">Allenamenti &amp; Partite</div>
+          <div style="font-size:clamp(22px,4vw,32px);font-weight:900;letter-spacing:1px;margin-bottom:6px;">Calendario settimanale</div>
+          <div style="font-size:15px;color:rgba(255,255,255,.7);">Consulta il programma completo di allenamenti, gare FIPAV e OPES.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+          <span style="font-size:40px;">📅</span>
+          <span style="background:var(--arancio);color:#fff;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:12px 28px;border-radius:50px;white-space:nowrap;">Vedi calendario →</span>
+        </div>
+      </a>
     </div>
   </section>
 

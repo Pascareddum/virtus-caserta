@@ -34,15 +34,15 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
-/* ─── Nodemailer: transporter riusabile ─── */
+/* ─── Nodemailer: transporter Gmail (contatti/iscrizioni) ─── */
 function creaTransporter() {
   const emailPass = (process.env.EMAIL_PASS || '').replace(/['"]/g, '').trim();
   const emailUser = (process.env.EMAIL_USER || '').replace(/['"]/g, '').trim();
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false,        // STARTTLS
-    family: 4,            // forza IPv4 – Railway non supporta IPv6 in uscita
+    secure: false,
+    family: 4,
     auth: { user: emailUser, pass: emailPass },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
@@ -52,6 +52,52 @@ function creaTransporter() {
 
 function emailConfigurata() {
   return !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+}
+
+/* ─── Brevo SMTP: transporter per email shop/ordini ─── */
+function brevoConfigurato() {
+  return !!(process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY);
+}
+
+function creaTransporterBrevo() {
+  return nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false,
+    family: 4,
+    auth: {
+      user: (process.env.BREVO_SMTP_LOGIN || '').trim(),
+      pass: (process.env.BREVO_SMTP_KEY   || '').trim(),
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+}
+
+/* Mittente verificato Brevo (deve essere un sender autenticato in Brevo) */
+function brevoFrom() {
+  const from = (process.env.BREVO_FROM_EMAIL || process.env.BREVO_SMTP_LOGIN || '').trim();
+  return `"Virtus Caserta Shop" <${from}>`;
+}
+
+/* Seleziona Brevo se configurato, altrimenti Gmail */
+function creaTransporterShop() {
+  return brevoConfigurato() ? creaTransporterBrevo() : creaTransporter();
+}
+
+function emailShopConfigurata() {
+  return brevoConfigurato() || emailConfigurata();
+}
+
+function shopFrom() {
+  if (brevoConfigurato()) return brevoFrom();
+  return `"Virtus Caserta Shop" <${(process.env.EMAIL_USER || '').trim()}>`;
+}
+
+function adminFrom() {
+  if (brevoConfigurato()) return brevoFrom();
+  return (process.env.EMAIL_USER || '').trim();
 }
 
 app.set('trust proxy', 1);
@@ -635,7 +681,7 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
     await logActivity('Stato ordine aggiornato', `Ordine #${ordine.id} → ${stato}`);
 
     // Email notifica cliente
-    if (emailConfigurata() && ordine.email) {
+    if (emailShopConfigurata() && ordine.email) {
       const statiLabel = {
         'ricevuto':       '📦 Ordine ricevuto',
         'in lavorazione': '🔧 In lavorazione',
@@ -643,7 +689,7 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
         'ritirato':       '✅ Ritirato',
         'annullato':      '❌ Annullato',
       };
-      const transporter = creaTransporter();
+      const transporter = creaTransporterShop();
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
           <div style="background:#0d2055;padding:24px;text-align:center">
@@ -665,7 +711,7 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
           </div>
         </div>`;
       transporter.sendMail({
-        from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+        from: shopFrom(),
         to: ordine.email,
         subject: `Aggiornamento ordine #${ordine.id} – ${statiLabel[stato] || stato}`,
         html,
@@ -722,8 +768,8 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
     await logActivity('Ordine eliminato' + (rimborsoEffettuato ? ' + rimborso' : ''), `Ordine #${ordine.id}`);
 
     // Email al cliente
-    if (emailConfigurata() && ordine.email) {
-      const transporter = creaTransporter();
+    if (emailShopConfigurata() && ordine.email) {
+      const transporter = creaTransporterShop();
       const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
           <div style="background:#0d2055;padding:24px;text-align:center">
@@ -749,7 +795,7 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
           </div>
         </div>`;
       transporter.sendMail({
-        from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+        from: shopFrom(),
         to: ordine.email,
         subject: `Ordine #${ordine.id} cancellato – Virtus Caserta`,
         html,
@@ -790,13 +836,13 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
     console.log('[Ordini] Errore salvataggio DB:', dbErr.message);
   }
 
-  if (!emailConfigurata()) {
+  if (!emailShopConfigurata()) {
     console.log('[Email] Credenziali mancanti – email non inviata');
     return res.json({ success: false, reason: 'Email non configurata' });
   }
 
   try {
-    const transporter = creaTransporter();
+    const transporter = creaTransporterShop();
 
     const righeHtml = items.map(i =>
       `<tr>
@@ -858,7 +904,7 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
       </div>`;
 
     await transporter.sendMail({
-      from: `"Virtus Caserta Shop" <${process.env.EMAIL_USER}>`,
+      from: shopFrom(),
       to: email,
       subject: `Ordine confermato – Virtus Caserta${orderId ? ' #' + orderId : ''}`,
       html,
@@ -866,7 +912,7 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
 
     if (process.env.EMAIL_ADMIN) {
       await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+        from: adminFrom(),
         to: process.env.EMAIL_ADMIN,
         subject: `Nuovo ordine da ${nome} ${cognome}${orderId ? ' (#' + orderId + ')' : ''}`,
         html,
@@ -1132,7 +1178,7 @@ function parseFipavMatches(html, baseUrl, fonte) {
 
     const tds = tdRaws.map(stripTagsFipav);
     const [gara, giornata, dataOra, casa, ospite, risultato] = tds;
-    if (!/^\d+$/.test(gara.trim()) || !/\d{2}\/\d{2}\/\d{2}/.test(dataOra)) continue;
+    if (!/^\d+$/.test(gara.trim()) || !/\d{2}\/\d{2}\/\d{2,4}/.test(dataOra)) continue;
 
     const score     = risultato.trim();
     const played    = /\d\s*-\s*\d/.test(score);
@@ -1178,14 +1224,15 @@ function parseFipavMatches(html, baseUrl, fonte) {
       luogo = stripTagsFipav(raw).replace(/\s+/g, ' ').trim();
     }
 
-    // ── Timestamp ──
-    const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
+    // ── Timestamp ── (supports DD/MM/YY and DD/MM/YYYY)
+    const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2,4})\s+(\d{2}):(\d{2})/);
     let timestamp = null;
     let dateFormatted = dataOra.trim();
     if (dm) {
       const [, dd, mm, yy, hh, min] = dm;
-      timestamp = new Date(`20${yy}-${mm}-${dd}T${hh}:${min}:00`).getTime();
-      dateFormatted = `${dd}/${mm}/20${yy} ${hh}:${min}`;
+      const year = yy.length === 4 ? yy : `20${yy}`;
+      timestamp = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+      dateFormatted = `${dd}/${mm}/${year} ${hh}:${min}`;
     }
 
     // ── Category ──
