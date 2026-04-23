@@ -1066,7 +1066,11 @@
     const fd = new FormData();
     fd.append('immagine', file);
     const res = await fetch('/api/admin/upload', { method:'POST', headers:{'Authorization':'Bearer '+TOKEN}, body: fd });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert('Errore upload immagine: ' + (err.error || res.status));
+      return null;
+    }
     const data = await res.json();
     return data.url || null;
   }

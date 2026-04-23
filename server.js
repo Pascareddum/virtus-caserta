@@ -10,6 +10,7 @@ const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcryptjs');
 const multer     = require('multer');
 const crypto     = require('crypto');
+const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
 const helmet         = require('helmet');
 const compression    = require('compression');
 const rateLimit      = require('express-rate-limit');
@@ -33,6 +34,21 @@ const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || '';
 const stripe = process.env.STRIPE_SECRET_KEY
   ? Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
+
+/* ─── Supabase Storage ─── */
+let supabaseStorage = null;
+const SUPABASE_BUCKET = 'uploads';
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  const supabase = createSupabaseClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } }
+  );
+  supabaseStorage = supabase.storage;
+  console.log('[Supabase Storage] Configurato, bucket:', SUPABASE_BUCKET);
+} else {
+  console.warn('[Supabase Storage] Non configurato — upload locali (non persistenti su Railway)');
+}
 
 /* ─── Nodemailer: transporter Gmail (contatti/iscrizioni) ─── */
 function creaTransporter() {
@@ -259,10 +275,7 @@ function esc(str) {
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-    filename:    (_req,  file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')),
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/')),
 });
@@ -488,9 +501,31 @@ app.delete('/api/admin/products/:id', adminAuth, async (req, res) => {
 });
 
 /* ─── Admin: upload foto ─── */
-app.post('/api/admin/upload', adminAuth, upload.single('immagine'), (req, res) => {
+app.post('/api/admin/upload', adminAuth, upload.single('immagine'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Nessun file ricevuto' });
-  res.json({ url: '/uploads/' + req.file.filename });
+
+  const safeFilename = Date.now() + '-' + req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
+
+  if (supabaseStorage) {
+    try {
+      const { error } = await supabaseStorage
+        .from(SUPABASE_BUCKET)
+        .upload(safeFilename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabaseStorage.from(SUPABASE_BUCKET).getPublicUrl(safeFilename);
+      return res.json({ url: publicUrl });
+    } catch (e) {
+      console.error('[Upload] Supabase error:', e.message);
+      return res.status(500).json({ error: 'Errore upload Supabase: ' + e.message });
+    }
+  }
+
+  // Fallback: salva su disco locale (non persistente su Railway)
+  const localPath = path.join(UPLOADS_DIR, safeFilename);
+  fs.writeFile(localPath, req.file.buffer, (err) => {
+    if (err) return res.status(500).json({ error: 'Errore salvataggio file' });
+    res.json({ url: '/uploads/' + safeFilename });
+  });
 });
 
 /* ─── Notizie: pubblico ─── */
