@@ -81,23 +81,21 @@ function brevoFrom() {
   return `"Virtus Caserta Shop" <${from}>`;
 }
 
-/* Seleziona Brevo se configurato, altrimenti Gmail */
+/* Email shop: solo Brevo */
 function creaTransporterShop() {
-  return brevoConfigurato() ? creaTransporterBrevo() : creaTransporter();
+  return creaTransporterBrevo();
 }
 
 function emailShopConfigurata() {
-  return brevoConfigurato() || emailConfigurata();
+  return brevoConfigurato();
 }
 
 function shopFrom() {
-  if (brevoConfigurato()) return brevoFrom();
-  return `"Virtus Caserta Shop" <${(process.env.EMAIL_USER || '').trim()}>`;
+  return brevoFrom();
 }
 
 function adminFrom() {
-  if (brevoConfigurato()) return brevoFrom();
-  return (process.env.EMAIL_USER || '').trim();
+  return brevoFrom();
 }
 
 app.set('trust proxy', 1);
@@ -623,9 +621,21 @@ app.get('/api/admin/impostazioni', adminAuth, async (_req, res) => {
   }
 });
 
+/* ─── Live links (pubblico) ─── */
+app.get('/api/live-links', async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT chiave, valore FROM impostazioni WHERE chiave IN ('youtube_live_url','spike_live_url')`);
+    const obj = {};
+    for (const row of r.rows) obj[row.chiave] = row.valore;
+    res.json({ youtube_live_url: obj.youtube_live_url || '', spike_live_url: obj.spike_live_url || '' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.put('/api/admin/impostazioni', adminAuth, async (req, res) => {
   try {
-    const campi = ['nome_associazione','telefono','email_contatto','indirizzo','iban','p_iva'];
+    const campi = ['nome_associazione','telefono','email_contatto','indirizzo','iban','p_iva','youtube_live_url','spike_live_url'];
     for (const chiave of campi) {
       if (req.body[chiave] !== undefined) {
         await db.query(

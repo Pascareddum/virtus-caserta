@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live – Virtus Caserta</title>
-  <meta name="description" content="Guarda le partite di Virtus Caserta in diretta streaming su Twitch.">
+  <meta name="description" content="Guarda le partite di Virtus Caserta in diretta streaming su Twitch e YouTube.">
   <meta property="og:image" content="/images/logo.png">
   <link rel="stylesheet" href="common.css">
   <style>
-    :root { --blu:#0d2055; --arancio:#f57c00; }
+    :root { --blu:#0d2055; --arancio:#f57c00; --viola:#9147ff; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',Arial,sans-serif; background:#0e0e10; color:#efeff1; min-height:100vh; display:flex; flex-direction:column; }
 
@@ -45,38 +45,44 @@
     .nav-social a:hover { opacity:.8; transform:scale(1.1); }
     .nav-social a img { width:100%; height:100%; object-fit:contain; filter:brightness(0) invert(1); }
 
-    /* ── Hero ── */
-    .live-hero {
-      background: linear-gradient(135deg, #0d2055 0%, #1a0933 100%);
-      padding: 48px 24px 32px;
-      text-align: center;
+    /* ── Sezione generica ── */
+    .live-section {
+      padding: 48px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
     }
-    .live-hero .badge {
+    .live-section + .live-section {
+      border-top: 1px solid rgba(255,255,255,.06);
+      padding-top: 40px;
+    }
+
+    /* ── Section header ── */
+    .section-header {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      background: #9147ff;
-      color: #fff;
+      gap: 7px;
       font-size: 12px;
       font-weight: 800;
       letter-spacing: 2px;
       text-transform: uppercase;
-      padding: 6px 16px;
+      padding: 5px 14px;
       border-radius: 20px;
-      margin-bottom: 16px;
+      white-space: nowrap;
     }
-    .live-hero h1 { font-size: 32px; font-weight: 900; color: #fff; margin-bottom: 8px; }
-    .live-hero p { color: rgba(255,255,255,.7); font-size: 16px; max-width: 520px; margin: 0 auto; }
+    .badge-twitch { background: var(--viola); color:#fff; }
+    .badge-spike  { background: #e8372a;       color:#fff; }
+    .section-title { font-size: 20px; font-weight: 900; color:#efeff1; }
 
     /* ── Player ── */
-    .player-wrap {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 32px 16px 48px;
-      gap: 24px;
-    }
     .embed-container {
       width: 100%;
       max-width: 960px;
@@ -100,57 +106,109 @@
       max-width: 960px;
       background: #18181b;
       border-radius: 16px;
-      padding: 64px 32px;
+      padding: 52px 32px;
       text-align: center;
-      display: none;
     }
-    .offline-card .twitch-icon {
-      width: 64px;
-      height: 64px;
-      object-fit: contain;
-      margin-bottom: 20px;
-      opacity: .6;
+    .offline-icon { font-size: 52px; margin-bottom: 16px; opacity: .5; }
+    .offline-card h2 { font-size: 20px; font-weight: 800; color: #efeff1; margin-bottom: 8px; }
+    .offline-card p { color: rgba(255,255,255,.45); font-size: 14px; margin-bottom: 24px; }
+    /* ── Spike button ── */
+    /* ── Spike live card ── */
+    .spike-live-card {
+      background: linear-gradient(135deg, #1a0a0a 0%, #2d0e0e 100%);
+      border: 2px solid #e8372a;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(232,55,42,.25);
     }
-    .offline-card h2 { font-size: 22px; font-weight: 800; color: #efeff1; margin-bottom: 8px; }
-    .offline-card p { color: rgba(255,255,255,.5); font-size: 15px; margin-bottom: 24px; }
-    .btn-twitch {
+    .spike-live-inner {
+      padding: 52px 40px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .spike-live-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: #9147ff;
+      background: #e8372a;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      padding: 5px 16px;
+      border-radius: 20px;
+    }
+    .spike-dot-pulse {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #fff;
+      animation: pulse-dot 1s infinite;
+      flex-shrink: 0;
+    }
+    .spike-live-title {
+      font-size: clamp(22px, 4vw, 36px);
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .spike-live-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,.35);
+      word-break: break-all;
+      max-width: 560px;
+    }
+    .spike-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #e8372a;
       color: #fff;
       text-decoration: none;
-      padding: 12px 28px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 700;
-      transition: background .2s;
+      padding: 18px 48px;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      margin-top: 8px;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 6px 28px rgba(232,55,42,.45);
     }
-    .btn-twitch:hover { background: #7d2ff7; }
+    .spike-cta:hover { background:#c02d22; transform:translateY(-3px); box-shadow:0 12px 36px rgba(232,55,42,.55); }
+    .spike-live-note {
+      font-size: 12px;
+      color: rgba(255,255,255,.25);
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-    /* ── Info box ── */
-    .info-box {
-      width: 100%;
-      max-width: 960px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+    @media(max-width:600px){
+      .spike-live-inner { padding:36px 24px; }
+      .spike-cta { font-size:16px; padding:15px 32px; }
     }
-    .info-card {
-      background: #18181b;
-      border-radius: 12px;
-      padding: 20px 22px;
-      border: 1px solid rgba(255,255,255,.07);
+
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(74,222,128,.12);
+      color: #4ade80;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-left: 8px;
     }
-    .info-card h3 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #9147ff; margin-bottom: 8px; }
-    .info-card p { font-size: 14px; color: rgba(255,255,255,.65); line-height: 1.6; }
+    .live-pill.off { background: rgba(255,255,255,.05); color: rgba(255,255,255,.3); }
 
     footer { background: #0d2055; color: rgba(255,255,255,.45); text-align:center; padding:20px; font-size:13px; }
     footer a { color: rgba(255,255,255,.4); text-decoration:none; }
 
     @media(max-width:768px) {
-      .live-hero h1 { font-size: 24px; }
-      .offline-card { padding: 40px 20px; }
+      .spike-wrap { flex-direction:column; align-items:flex-start; }
+      .btn-spike { width:100%; justify-content:center; }
     }
   </style>
 </head>
@@ -186,46 +244,54 @@
   </div>
 </nav>
 
-<div class="live-hero">
-  <div class="badge">
-    <img src="images/Twitch-logo-removebg-preview.png" alt="Twitch" style="height:14px;filter:brightness(0) invert(1);">
-    Twitch Live
+<!-- ══ TWITCH ══ -->
+<div class="live-section">
+  <div class="section-header">
+    <span class="section-badge badge-twitch">
+      <img src="images/Twitch-logo-removebg-preview.png" alt="" style="height:13px;filter:brightness(0) invert(1);">
+      Twitch
+    </span>
+    <span class="section-title">Diretta Twitch</span>
   </div>
-  <h1>Virtus Caserta in diretta</h1>
-  <p>Segui le partite in tempo reale sul nostro canale Twitch ufficiale.</p>
+
+  <div class="embed-container">
+    <iframe id="twitchPlayer" allowfullscreen></iframe>
+  </div>
+
+  <div style="width:100%;max-width:960px;text-align:center;color:rgba(255,255,255,.4);font-size:13px;">
+    Segui il canale su <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" style="color:var(--viola)">twitch.tv/virtuscaserta</a> per ricevere notifiche all'inizio di ogni live.
+  </div>
 </div>
 
-<div class="player-wrap">
-  <div class="embed-container" id="playerContainer">
-    <iframe
-      id="twitchPlayer"
-      allowfullscreen>
-    </iframe>
+<!-- ══ SPIKE ══ -->
+<div class="live-section" style="padding-bottom:64px;">
+  <div class="section-header">
+    <span class="section-badge badge-spike">▶ Spike TV</span>
+    <span class="section-title">Partita in diretta su Spike</span>
+    <span class="live-pill off" id="spikePill">● Offline</span>
   </div>
 
-  <div class="offline-card" id="offlineCard">
-    <img src="images/Twitch-logo-removebg-preview.png" alt="Twitch" class="twitch-icon">
-    <h2>Nessuna diretta in corso</h2>
-    <p>Al momento non siamo in live. Seguici su Twitch per ricevere una notifica quando iniziamo a trasmettere.</p>
-    <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" class="btn-twitch">
-      <img src="images/Twitch-logo-removebg-preview.png" alt="" style="height:18px;filter:brightness(0) invert(1);">
-      Segui su Twitch
-    </a>
+  <!-- Live attiva -->
+  <div class="spike-live-card" id="spikeLiveCard" style="display:none;width:100%;max-width:960px;">
+    <div class="spike-live-inner">
+      <div class="spike-live-badge">
+        <span class="spike-dot-pulse"></span>
+        IN DIRETTA
+      </div>
+      <div class="spike-live-title">Partita live su Spike TV</div>
+      <div class="spike-live-sub" id="spikeLiveUrl">—</div>
+      <a id="spikeLiveLink" href="#" target="_blank" rel="noopener" class="spike-cta">
+        ▶ Guarda la partita su YouTube
+      </a>
+      <div class="spike-live-note">Si apre su YouTube in una nuova scheda</div>
+    </div>
   </div>
 
-  <div class="info-box">
-    <div class="info-card">
-      <h3>Canale Twitch</h3>
-      <p>Tutte le partite di Virtus Caserta trasmesse in diretta su <strong>twitch.tv/virtuscaserta</strong></p>
-    </div>
-    <div class="info-card">
-      <h3>YouTube</h3>
-      <p>I momenti salienti e i video delle partite sul nostro canale <strong>YouTube</strong></p>
-    </div>
-    <div class="info-card">
-      <h3>Notifiche</h3>
-      <p>Clicca "Segui" sul nostro canale Twitch per ricevere una notifica all'inizio di ogni diretta</p>
-    </div>
+  <!-- Offline card -->
+  <div class="offline-card" id="spikeOffline">
+    <div class="offline-icon" style="font-size:52px;opacity:.5;margin-bottom:16px;">📡</div>
+    <h2>Nessuna partita live su Spike</h2>
+    <p>Quando una partita è trasmessa su Spike, il link apparirà qui automaticamente.</p>
   </div>
 </div>
 
@@ -253,9 +319,34 @@
 </footer>
 
 <script>
-  const twitchIframe = document.getElementById('twitchPlayer');
+  /* ── Twitch ── */
   const hostname = window.location.hostname || 'localhost';
-  twitchIframe.src = `https://player.twitch.tv/?channel=virtuscaserta&parent=${encodeURIComponent(hostname)}&autoplay=false`;
+  document.getElementById('twitchPlayer').src =
+    `https://player.twitch.tv/?channel=virtuscaserta&parent=${encodeURIComponent(hostname)}&autoplay=false`;
+
+  /* ── Carica live links ── */
+  async function caricaLive() {
+    try {
+      const res = await fetch('/api/live-links');
+      if (!res.ok) { console.error('[Live] /api/live-links status:', res.status); return; }
+      const data = await res.json();
+
+      const spikeUrl = (data.spike_live_url || '').trim();
+      if (spikeUrl) {
+        document.getElementById('spikeLiveLink').href = spikeUrl;
+        document.getElementById('spikeLiveUrl').textContent = spikeUrl;
+        document.getElementById('spikeLiveCard').style.display = '';
+        document.getElementById('spikeOffline').style.display  = 'none';
+        const pill = document.getElementById('spikePill');
+        pill.textContent = '● Live';
+        pill.classList.remove('off');
+      }
+    } catch (e) {
+      console.error('[Live] Errore:', e.message);
+    }
+  }
+
+  caricaLive();
 </script>
 <script src="common.js"></script>
 </body>

@@ -390,6 +390,7 @@
   <button class="tab-btn"        onclick="switchTab('ordini')">📦 Ordini</button>
   <button class="tab-btn"        onclick="switchTab('squadra')">🏐 Squadra</button>
   <button class="tab-btn"        onclick="switchTab('staff')">👥 Staff</button>
+  <button class="tab-btn"        onclick="switchTab('live')">📡 Live</button>
 </div>
 
 <!-- ══ DASHBOARD ══ -->
@@ -561,6 +562,30 @@
       </tr></thead>
       <tbody id="staffBody"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- ══ LIVE LINKS ══ -->
+<div class="pannello" id="pan-live">
+  <div class="toolbar"><h2>Gestione Live</h2></div>
+  <div style="max-width:680px;display:flex;flex-direction:column;gap:24px;padding:8px 0;">
+
+    <!-- Spike Live -->
+    <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:24px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:20px;">▶️</span>
+        <h3 style="font-size:15px;font-weight:800;color:#0d2055;">Partita live su Spike</h3>
+        <span id="spikeLiveStatus" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f1f5f9;color:#6b7280;">—</span>
+      </div>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">Incolla il link YouTube della diretta Spike. La live apparirà direttamente sul sito. Lascia vuoto e salva per spegnere.</p>
+      <input type="text" id="spikeLiveUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:14px;margin-bottom:12px;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <button onclick="salvaLiveLink()" style="padding:9px 22px;border-radius:10px;border:none;background:#e8372a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 Salva e attiva</button>
+        <button onclick="cancellaLiveLink()" style="padding:9px 22px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">🗑 Disattiva</button>
+      </div>
+      <div id="spikeLog" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
+    </div>
+
   </div>
 </div>
 
@@ -1001,7 +1026,7 @@
   /* ══ TABS ══ */
   function switchTab(nome) {
     document.querySelectorAll('.tab-btn').forEach((b,i) => {
-      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','staff'];
+      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','staff','live'];
       b.classList.toggle('attivo', nomi[i] === nome);
     });
     document.querySelectorAll('.pannello').forEach(p => p.classList.remove('attivo'));
@@ -1013,6 +1038,7 @@
     if (nome === 'ordini')     caricaOrdini();
     if (nome === 'squadra')    caricaSquadra();
     if (nome === 'staff')      caricaStaff();
+    if (nome === 'live')       caricaLiveLinks();
   }
 
   function caricaTutto() {
@@ -1790,6 +1816,63 @@
       if (res.ok) { alert(`✅ ${data.eliminati} ordini eliminati dal database.`); caricaOrdini(); caricaDashboard(); }
       else alert('Errore: ' + data.error);
     } catch { alert('Errore di rete.'); }
+  }
+
+  /* ══ LIVE LINKS ══ */
+  function spikeLog(msg, ok) {
+    const el = document.getElementById('spikeLog');
+    el.style.display = '';
+    el.style.background = ok ? '#dcfce7' : '#fef2f2';
+    el.style.color = ok ? '#15803d' : '#b91c1c';
+    el.textContent = msg;
+  }
+
+  async function caricaLiveLinks() {
+    try {
+      const res  = await fetch('/api/admin/impostazioni', { headers: headers() });
+      if (!res.ok) { spikeLog('Errore ' + res.status + ' dal server – riavvia il server.', false); return; }
+      const data = await res.json();
+      const spikeUrl = data.spike_live_url || '';
+      document.getElementById('spikeLiveUrl').value = spikeUrl;
+      setLiveStatus('spikeLiveStatus', spikeUrl ? '● Attiva' : '○ Inattiva', !!spikeUrl);
+      if (spikeUrl) spikeLog('Link attivo: ' + spikeUrl, true);
+    } catch (e) { spikeLog('Errore di rete: ' + e.message, false); }
+  }
+
+  function setLiveStatus(elId, testo, attiva) {
+    const el = document.getElementById(elId);
+    el.textContent = testo;
+    el.style.background = attiva ? '#dcfce7' : '#f1f5f9';
+    el.style.color       = attiva ? '#16a34a' : '#6b7280';
+  }
+
+  async function salvaLiveLink() {
+    const url = document.getElementById('spikeLiveUrl').value.trim();
+    try {
+      const res  = await fetch('/api/admin/impostazioni', {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+        body: JSON.stringify({ spike_live_url: url }),
+      });
+      const data = await res.json();
+      if (!res.ok) { spikeLog('Errore salvataggio: ' + (data.error || res.status), false); return; }
+      setLiveStatus('spikeLiveStatus', url ? '● Attiva' : '○ Inattiva', !!url);
+      spikeLog(url ? '✅ Live attivata. Verifica su /live' : '✅ Live disattivata.', true);
+    } catch (e) { spikeLog('Errore di rete: ' + e.message, false); }
+  }
+
+  async function cancellaLiveLink() {
+    document.getElementById('spikeLiveUrl').value = '';
+    try {
+      const res = await fetch('/api/admin/impostazioni', {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+        body: JSON.stringify({ spike_live_url: '' }),
+      });
+      if (!res.ok) { spikeLog('Errore disattivazione: ' + res.status, false); return; }
+      setLiveStatus('spikeLiveStatus', '○ Inattiva', false);
+      spikeLog('✅ Live disattivata.', true);
+    } catch (e) { spikeLog('Errore di rete: ' + e.message, false); }
   }
 
   /* ══ GALLERIA ══ */
