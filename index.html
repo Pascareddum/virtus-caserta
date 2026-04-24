@@ -621,14 +621,21 @@
       .squadra-card:nth-child(1),
       .squadra-card:nth-child(2),
       .squadra-card:nth-child(6),
-      .squadra-card:nth-child(7) { grid-column: span 1; height: 220px; }
+      .squadra-card:nth-child(7) { grid-column: span 1; height: 220px; background-position: top center; }
       .squadra-card:nth-child(1) { grid-column: span 2; height: 260px; }
     }
 
     @media (max-width: 540px) {
-      .squadre-grid { grid-template-columns: 1fr; }
+      .squadre-grid { grid-template-columns: 1fr; gap: 12px; }
       .squadra-card,
-      .squadra-card:nth-child(1) { grid-column: span 1; height: 200px; }
+      .squadra-card:nth-child(1) { grid-column: span 1; height: 180px; background-position: top center; background-size: cover; }
+      .squadra-card.visible:hover { transform: none; box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
+      .squadra-overlay { padding: 14px 16px 16px; }
+      .squadra-overlay h3 { font-size: 16px; }
+      .squadra-card:nth-child(1) .squadra-overlay h3,
+      .squadra-card:nth-child(2) .squadra-overlay h3 { font-size: 17px; }
+      .squadra-badge { font-size: 9px; padding: 4px 9px; }
+      .squadra-arrow { display: none; }
     }
 
     /* ===== NOTIZIE CAROUSEL ===== */
@@ -1627,7 +1634,7 @@
           <div style="font-size:15px;color:rgba(255,255,255,.7);">Consulta il programma completo di allenamenti, gare FIPAV e OPES.</div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
-          <span style="font-size:40px;">📅</span>
+      
           <span style="background:var(--arancio);color:#fff;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:12px 28px;border-radius:50px;white-space:nowrap;">Vedi calendario →</span>
         </div>
       </a>
@@ -2103,7 +2110,7 @@
           <div style="margin-bottom:28px;">
             <div class="partite-blocco-titolo live-titolo">
               <h3>In corso</h3>
-              <span class="partite-badge badge-live">⚡ Live</span>
+              <span class="partite-badge badge-live">Live</span>
             </div>
             <div class="partite-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));">
               ${renderPartite(liveList, true)}
@@ -2129,10 +2136,10 @@
           </div>
           <div class="partite-footer-btns">
             <a href="${data.fipavUrl}" target="_blank" rel="noopener" class="partite-fipav-btn">
-              🏐 Tutta la stagione sul portale FIPAV
+              Tutta la stagione sul portale FIPAV
             </a>
             <a href="/classifica" class="partite-fipav-btn">
-              🏆 Mostra classifiche
+              Mostra classifiche
             </a>
           </div>`;
       } catch (err) {

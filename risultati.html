@@ -376,6 +376,9 @@
     if (vista === 'prossime') {
       const now = Date.now();
       cards.sort((a, b) => {
+        const ia = isInCorso(a.m), ib = isInCorso(b.m);
+        if (ia && !ib) return -1;
+        if (!ia && ib) return 1;
         const ta = a.m.timestamp || 0;
         const tb = b.m.timestamp || 0;
         const fa = ta > now;
@@ -455,7 +458,10 @@
       _allEntries = entries;
 
       cont.innerHTML = entries.map(([cat, gruppo], i) => {
-        const partite  = gruppo.partite;
+        const partite  = [...gruppo.partite].sort((a, b) => {
+          const ia = isInCorso(a), ib = isInCorso(b);
+          return ia === ib ? 0 : ia ? -1 : 1;
+        });
         const fonte    = gruppo.fonte === 'opes' ? 'opes' : 'fipav';
         const gridId   = 'grid-' + i;
         const visibili = getVisibiliIndices(partite);

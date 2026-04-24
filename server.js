@@ -1387,13 +1387,19 @@ function parseFipavMatches(html, baseUrl, fonte) {
     }
 
     // ── Timestamp ── (supports DD/MM/YY and DD/MM/YYYY)
+    // FIPAV dates are in Europe/Rome time (CET +01:00 / CEST +02:00).
+    // Must specify offset explicitly so Railway (UTC) parses correctly.
     const dm = dataOra.match(/(\d{2})\/(\d{2})\/(\d{2,4})\s+(\d{2}):(\d{2})/);
     let timestamp = null;
     let dateFormatted = dataOra.trim();
     if (dm) {
       const [, dd, mm, yy, hh, min] = dm;
       const year = yy.length === 4 ? yy : `20${yy}`;
-      timestamp = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00`).getTime();
+      const y = parseInt(year), mo = parseInt(mm), d = parseInt(dd);
+      const lastSunMar = 31 - new Date(y, 2, 31).getDay();
+      const lastSunOct = 31 - new Date(y, 9, 31).getDay();
+      const isDST = (mo > 3 && mo < 10) || (mo === 3 && d >= lastSunMar) || (mo === 10 && d < lastSunOct);
+      timestamp = new Date(`${year}-${mm}-${dd}T${hh}:${min}:00${isDST ? '+02:00' : '+01:00'}`).getTime();
       dateFormatted = `${dd}/${mm}/${year} ${hh}:${min}`;
     }
 
