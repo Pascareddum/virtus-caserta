@@ -216,13 +216,20 @@ body.nav-aperta { overflow: hidden; }
   .nav-brand-label { display: inline; }
 }
 
-/* Su mobile nasconde menu laterali così il brand è visivamente centrato */
+/* Su mobile: logo a sinistra, label centrata */
 @media (max-width: 600px) {
   nav .nav-brand {
-    position: absolute !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
+    position: static !important;
+    left: auto !important;
+    transform: none !important;
     padding: 0 !important;
+  }
+  .nav-brand-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: block;
+    pointer-events: none;
   }
 }
 
