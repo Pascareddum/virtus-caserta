@@ -1,0 +1,144 @@
+VIRTUS CASERTA – MODIFICHE APPLICATE
+Data: 2026-04-24
+================================================================================
+
+1. SHOP: SEPA DIRECT DEBIT VIA STRIPE (sostituzione bonifico)
+--------------------------------------------------------------------------------
+File: shop.html
+
+- Rimossa opzione "Bonifico bancario" dal checkout
+- Aggiunta opzione "Addebito diretto SEPA" (pagamento tramite IBAN via Stripe)
+- Aggiunto elemento Stripe IBAN (#stripe-iban-element) con testo mandato legale
+- Refactoring inizializzazione Stripe:
+    · initStripeBase() → crea istanza Stripe e stripe.elements() condivisa
+    · initStripe()     → monta elemento carta (usa base condivisa)
+    · initSepa()       → monta elemento IBAN (usa stessa istanza base)
+- Aggiornata selezionaMetodo() per gestire metodo 'sepa'
+- Aggiornata completaOrdine():
+    · Richiama stripe.confirmSepaDebitPayment() per SEPA
+    · Il pagamento SEPA è ASINCRONO (3-5 gg lavorativi) a differenza della carta
+- mostraConferma() passa ?metodo=sepa all'URL di conferma per SEPA
+- resetShop() resetta anche ibanElement e sepaReady
+
+File: ordine-confermato.html
+
+- Se ?metodo=sepa nella URL: titolo cambia in "Pagamento in elaborazione",
+  icona ✅ diventa ⏳, messaggio spiega la tempistica SEPA (3-5 gg lavorativi)
+
+
+2. SICUREZZA: VALIDAZIONE PREZZI LATO SERVER
+--------------------------------------------------------------------------------
+File: server.js – endpoint POST /api/create-payment-intent
+
+PROBLEMA: prima il client inviava l'importo (amount) al server → manipolabile
+          da chiunque con DevTools o strumenti HTTP.
+
+SOLUZIONE: il client invia ora l'array items [{id, qty}]; il server:
+  - Interroga il DB per i prezzi reali dei prodotti
+  - Verifica che tutti i prodotti siano disponibili
+  - Calcola il totale server-side (price * qty per ogni item)
+  - Rifiuta se un prodotto non è disponibile o non esiste
+  - Il parametro qty è clampato tra 1 e 10 lato server
+
+
+3. SICUREZZA: UUID PER ID ORDINE
+--------------------------------------------------------------------------------
+File: server.js
+
+- Sostituito Date.now().toString() con crypto.randomUUID() per gli ID ordine
+  in /api/create-payment-intent e /api/send-order-email
+- Date.now() è predicibile (timestamp) → UUID è casuale e non enumerabile
+
+
+4. SICUREZZA: SUPPORTO PAGAMENTI SEPA NEL SERVER
+--------------------------------------------------------------------------------
+File: server.js – endpoint POST /api/create-payment-intent
+
+- Se metodo === 'sepa': PaymentIntent creato con payment_method_types: ['sepa_debit']
+- I pagamenti SEPA usano automatic_payment_methods: disabled (non compatibile)
+
+File: server.js – webhook POST /api/stripe-webhook
+
+- Aggiunto handler per evento payment_intent.processing (specifico SEPA):
+  i pagamenti SEPA passano prima da "processing" e solo dopo da "succeeded"
+  L'evento processing salva stripe_pi_id e setta stato='ricevuto'
+
+
+5. SICUREZZA: IBAN DINAMICO DA DB (non hardcoded)
+--------------------------------------------------------------------------------
+File: server.js – /api/send-order-email
+
+PRIMA: IBAN nell'email di conferma ordine era hardcoded
+       "IT00 X000 0000 0000 0000 0000 000" (placeholder falso)
+
+DOPO: IBAN letto dalla tabella impostazioni (chiave='iban') → vero IBAN dell'ASD
+      Fallback al placeholder solo se la riga non esiste in DB
+      Aggiornabile dall'admin tramite il pannello Impostazioni
+
+
+6. SICUREZZA: VALIDAZIONE INPUT /api/send-order-email
+--------------------------------------------------------------------------------
+File: server.js
+
+- Aggiunta sanitizzazione/troncatura campi:
+    nome/cognome → max 100 caratteri
+    email        → max 254 caratteri (RFC 5321)
+    indirizzo    → max 200 caratteri
+    citta        → max 100 caratteri
+    cap          → max 10 caratteri
+    metodo       → max 20 caratteri
+- Validazione email con regex prima del salvataggio
+- Risposta 400 se nome o email mancano/invalidi
+
+
+7. SICUREZZA: LABEL SEPA NELL'EMAIL
+--------------------------------------------------------------------------------
+File: server.js – /api/send-order-email
+
+- Aggiunto metodo 'sepa' nella mappa metodiLabel
+- Email SEPA mostra blocco verde "Addebito SEPA autorizzato" con spiegazione
+  dei 3-5 giorni lavorativi
+- Metodo generico ora usa esc() per prevenire XSS nell'email
+
+
+8. SICUREZZA: CONTENT SECURITY POLICY (CSP) via Helmet
+--------------------------------------------------------------------------------
+File: server.js
+
+PRIMA: app.use(helmet({ contentSecurityPolicy: false })) → CSP completamente disabilitata
+
+DOPO: CSP abilitata con direttive:
+    defaultSrc:  'self'
+    scriptSrc:   'self' + unsafe-inline + stripe.com + paypal.com
+    frameSrc:    'self' + stripe.com + hooks.stripe.com + paypal.com
+    connectSrc:  'self' + api.stripe.com
+    imgSrc:      'self' + data: + https:
+    styleSrc:    'self' + unsafe-inline
+    objectSrc:   'none'  ← blocca plugin Flash/PDF inline
+    baseUri:     'self'  ← previene base-tag injection
+
+NOTA: unsafe-inline su scriptSrc è necessario per gli script inline nelle pagine HTML.
+      Per rimuoverlo completamente bisognerebbe spostare tutti gli script in file
+      .js separati e usare nonce/hash (lavoro futuro consigliato).
+
+
+================================================================================
+RACCOMANDAZIONI NON IMPLEMENTATE (richiedono lavoro aggiuntivo)
+================================================================================
+
+A. ADMIN PASSWORD: usare bcrypt hash nel .env invece di testo in chiaro
+   Comando per generare hash: node -e "const b=require('bcryptjs'); console.log(b.hashSync('tuapassword',10))"
+   Poi in .env: ADMIN_PASSWORD=$2b$10$...
+
+B. SPOSTARE SCRIPT INLINE → file .js separati per eliminare 'unsafe-inline' dalla CSP
+
+C. CSRF TOKEN per endpoint admin (attualmente protetti solo da JWT + httpOnly cookie)
+
+D. HTTPS / HSTS: assicurarsi che Railway sia configurato per forzare HTTPS
+   (di solito è automatico ma verificare che secure:true sia attivo sui cookie)
+
+E. ROTAZIONE CHIAVI: Stripe, Supabase, JWT_SECRET ogni 90 giorni
+
+F. 2FA admin: attualmente login con username+password, considerare TOTP
+
+================================================================================

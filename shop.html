@@ -37,18 +37,46 @@
     .nav-social{display:flex;gap:10px;margin-left:auto;}
     .nav-social a img{width:34px;height:34px;object-fit:contain;filter:brightness(0) invert(1);}
     @media(max-width:700px){nav{padding:0 16px;}.nav-menu a{font-size:11px;letter-spacing:.6px;}}
-    .cart-btn {
-      position: relative; background: var(--arancio); color: var(--bianco);
-      border: none; cursor: pointer; padding: 10px 20px; border-radius: 50px;
-      font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-      display: flex; align-items: center; gap: 8px;
-      transition: background .2s, transform .2s;
+    @media(max-width:600px){
+      nav { grid-template-columns: 1fr auto 1fr !important; padding: 0 12px !important; }
+      nav > ul.nav-menu { display: none !important; }
+      .nav-actions > ul.nav-menu { display: none !important; }
+      .nav-social { display: none !important; }
+      .nav-brand { justify-content: center !important; padding: 0 !important; }
+      .cart-label { display: none; }
     }
-    .cart-btn:hover { background: var(--arancio-chiaro); transform: translateY(-1px); }
+    .cart-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 900;
+      background: var(--arancio);
+      color: var(--bianco);
+      border: none;
+      cursor: pointer;
+      padding: 14px 22px;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 32px rgba(245,124,0,.45);
+      transition: background .2s, transform .2s, box-shadow .2s;
+    }
+    .cart-fab:hover { background: var(--arancio-chiaro); transform: translateY(-3px); box-shadow: 0 14px 40px rgba(245,124,0,.55); }
     .cart-count {
       background: var(--bianco); color: var(--arancio); border-radius: 50%;
-      width: 20px; height: 20px; font-size: 11px; font-weight: 900;
+      width: 22px; height: 22px; font-size: 11px; font-weight: 900;
       display: flex; align-items: center; justify-content: center;
+    }
+    @media (max-width: 600px) {
+      .cart-fab { bottom: 20px; right: 16px; padding: 12px 16px; font-size: 0; gap: 0; }
+      .cart-fab img { width: 22px; height: 22px; }
+      .cart-fab .cart-label { display: none; }
+      .cart-count { font-size: 10px; width: 20px; height: 20px; margin-left: 6px; }
     }
 
     /* ── HERO ── */
@@ -434,25 +462,11 @@
     .prod-card .taglie { gap: 6px; }
     .prod-card .taglia-btn { width: 40px; height: 40px; font-size: 12px; }
 
-    .cart-label { }
-
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .product-grid { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
       .cart-drawer { width: 100%; }
-      /* Mantieni nav-actions visibile solo per il pulsante carrello */
-      nav.nav-std { grid-template-columns: 1fr auto auto !important; padding: 0 14px !important; }
-      nav.nav-std > .nav-brand { grid-column: 1 !important; justify-self: start !important; }
-      nav.nav-std > .nav-actions { display: flex !important; align-items: center; grid-column: 2; grid-row: 1; }
-      nav.nav-std > .nav-actions > ul.nav-menu,
-      nav.nav-std > .nav-actions > .nav-social { display: none !important; }
-      nav.nav-std .nav-hamburger { grid-column: 3; grid-row: 1; }
-      /* Carrello compatto: solo icona + badge */
-      .cart-btn { padding: 8px 10px; gap: 4px; border-radius: 50px; font-size: 0; letter-spacing: 0; }
-      .cart-btn img { width: 20px; height: 20px; }
-      .cart-label { display: none; }
-      .cart-count { font-size: 11px; }
     }
     @media (max-width: 520px) {
       .modal { border-radius: 16px; }
@@ -476,7 +490,7 @@
         </ul>
       </li>
     </ul>
-    <a href="/" class="nav-brand"><img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'"></a>
+    <a href="/" class="nav-brand"><img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'"><span class="nav-brand-label">Virtus Caserta</span></a>
     <div class="nav-actions">
       <ul class="nav-menu" style="justify-content:flex-start;">
         <li><a href="/risultati">Risultati</a></li>
@@ -489,12 +503,15 @@
         <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
         <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
       </div>
-      <button class="cart-btn" onclick="apriCarrello()">
-        <img src="images/carrello-icon.png" alt="Carrello" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;"> <span class="cart-label">Carrello</span>
-        <span class="cart-count" id="cartCount">0</span>
-      </button>
     </div>
   </nav>
+
+  <!-- FAB Carrello -->
+  <button class="cart-fab" onclick="apriCarrello()">
+    <img src="images/carrello-icon.png" alt="Carrello" style="width:22px;height:22px;object-fit:contain;filter:brightness(0) invert(1);">
+    <span class="cart-label">Carrello</span>
+    <span class="cart-count" id="cartCount">0</span>
+  </button>
 
   <!-- HERO -->
   <div class="shop-hero">
@@ -599,11 +616,11 @@
               <div class="metodo-logo">🅿️</div>
             </div>
 
-            <div class="metodo-btn" onclick="selezionaMetodo(this,'bonifico')">
+            <div class="metodo-btn" onclick="selezionaMetodo(this,'sepa')">
               <div class="metodo-radio"></div>
               <div class="metodo-info">
-                <div class="metodo-nome">Bonifico bancario</div>
-                <div class="metodo-sub">Riceverai le coordinate via email</div>
+                <div class="metodo-nome">Addebito diretto SEPA</div>
+                <div class="metodo-sub">Pagamento bancario tramite IBAN</div>
               </div>
               <div class="metodo-logo">🏦</div>
             </div>
@@ -616,6 +633,19 @@
               <label>Dati carta</label>
               <div class="stripe-element-box" id="stripe-card-element"></div>
               <div id="stripe-error"></div>
+            </div>
+          </div>
+
+          <!-- Form SEPA – IBAN Stripe Elements -->
+          <div id="formSepa" style="display:none;margin-top:14px">
+            <div class="form-group">
+              <label>IBAN</label>
+              <div class="stripe-element-box" id="stripe-iban-element"></div>
+              <div id="sepa-error" style="color:#dc2626;font-size:13px;margin-top:4px"></div>
+            </div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;font-size:12px;color:#374151;margin-top:8px;line-height:1.6">
+              Autorizzando il pagamento accetti il mandato SEPA. L'addebito sarà completato entro 3–5 giorni lavorativi.
+              In caso di addebito non autorizzato hai diritto al rimborso entro 8 settimane dalla data di addebito.
             </div>
           </div>
 
@@ -643,20 +673,29 @@
     let metodoSel = 'carta';
 
     /* ══ STRIPE ══ */
-    let stripe      = null;
-    let cardElement = null;
-    let stripeReady = false;
+    let stripe         = null;
+    let stripeElements = null;
+    let cardElement    = null;
+    let ibanElement    = null;
+    let stripeReady    = false;
+    let sepaReady      = false;
+
+    async function initStripeBase() {
+      if (stripe) return;
+      const { stripePublishableKey } = await fetch('/api/config').then(r => r.json());
+      if (!stripePublishableKey) return;
+      stripe = Stripe(stripePublishableKey);
+      stripeElements = stripe.elements();
+    }
 
     async function initStripe() {
       if (stripeReady) return;
-      const { stripePublishableKey } = await fetch('/api/config').then(r => r.json());
-      if (!stripePublishableKey) {
+      await initStripeBase();
+      if (!stripe) {
         document.getElementById('stripe-error').textContent = '⚠️ Stripe non configurato. Aggiungi STRIPE_PUBLISHABLE_KEY nel file .env';
         return;
       }
-      stripe = Stripe(stripePublishableKey);
-      const elements = stripe.elements();
-      cardElement = elements.create('card', {
+      cardElement = stripeElements.create('card', {
         hidePostalCode: true,
         style: {
           base:    { fontSize: '15px', color: '#111', '::placeholder': { color: '#9ca3af' } },
@@ -668,6 +707,28 @@
         document.getElementById('stripe-error').textContent = e.error ? e.error.message : '';
       });
       stripeReady = true;
+    }
+
+    async function initSepa() {
+      if (sepaReady) return;
+      await initStripeBase();
+      if (!stripe) {
+        document.getElementById('sepa-error').textContent = '⚠️ Stripe non configurato';
+        return;
+      }
+      ibanElement = stripeElements.create('iban', {
+        supportedCountries: ['SEPA'],
+        placeholderCountry: 'IT',
+        style: {
+          base:    { fontSize: '15px', color: '#111', '::placeholder': { color: '#9ca3af' } },
+          invalid: { color: '#dc2626' },
+        },
+      });
+      ibanElement.mount('#stripe-iban-element');
+      ibanElement.on('change', e => {
+        document.getElementById('sepa-error').textContent = e.error ? e.error.message : '';
+      });
+      sepaReady = true;
     }
 
     /* ══ PAYPAL ══ */
@@ -729,10 +790,18 @@
             ${p.immagine ? `<img src="${p.immagine}" alt="${p.nome}">` : (p.emoji || '🏐')}
           </div>
           <div class="prod-card-body">
-            <span class="product-badge">✓ Disponibile</span>
+            ${esaurito(p) ? '<span class="product-badge" style="background:#dc2626">✕ Esaurito</span>' : p.sconto > 0 ? `<span class="product-badge" style="background:linear-gradient(135deg,#f57c00,#ff9800);color:#fff">-${p.sconto}% SCONTO</span>` : '<span class="product-badge">✓ Disponibile</span>'}
             <div class="prod-card-nome">${p.nome}</div>
             <div class="prod-card-desc">${p.descrizione || ''}</div>
-            <div class="prod-card-price">€ ${Number(p.prezzo).toFixed(2).replace('.', ',')} <span class="iva">IVA inclusa</span></div>
+            ${p.sconto > 0
+              ? `<div class="prod-card-price">
+                   <span style="text-decoration:line-through;color:#9ca3af;font-size:14px">€ ${Number(p.prezzo).toFixed(2).replace('.', ',')}</span>
+                   <span style="color:#f57c00;font-weight:900;font-size:20px"> € ${prezzoScontato(p).toFixed(2).replace('.', ',')}</span>
+                   <span class="iva">IVA inclusa</span>
+                 </div>`
+              : `<div class="prod-card-price">€ ${Number(p.prezzo).toFixed(2).replace('.', ',')} <span class="iva">IVA inclusa</span></div>`
+            }
+            ${p.quantita >= 0 && p.quantita <= 5 ? `<div style="font-size:12px;color:${p.quantita === 0 ? '#dc2626' : '#f57c00'};font-weight:700;margin-bottom:6px">${p.quantita === 0 ? '✕ Esaurito' : '⚠️ Ultimi pezzi disponibili'}</div>` : ''}
             <div>
               <div class="label-field">Taglia</div>
               <div class="taglie" id="taglie-${p.id}">
@@ -741,11 +810,19 @@
                 ).join('')}
               </div>
             </div>
-            <button class="btn-add-cart" style="margin-top:4px" onclick="aggiungiProdotto('${p.id}')">
-              🛒 Aggiungi al carrello
+            <button class="btn-add-cart" style="margin-top:4px" onclick="aggiungiProdotto('${p.id}')" ${esaurito(p) ? 'disabled style="opacity:.4;cursor:not-allowed;margin-top:4px"' : ''}>
+              🛒 ${esaurito(p) ? 'Esaurito' : 'Aggiungi al carrello'}
             </button>
           </div>
         </div>`).join('');
+    }
+
+    function prezzoScontato(p) {
+      return p.sconto > 0 ? p.prezzo * (1 - p.sconto / 100) : p.prezzo;
+    }
+
+    function esaurito(p) {
+      return p.quantita === 0;
     }
 
     function selezionaTagliaProdotto(pid, taglia, btn) {
@@ -757,13 +834,15 @@
     function aggiungiProdotto(pid) {
       const p = prodotti.find(x => x.id === pid);
       if (!p) return;
+      if (esaurito(p)) { mostraToast('⚠️ Prodotto esaurito'); return; }
       if (p.taglie && p.taglie.length > 1 && !taglieSel[pid]) {
         mostraToast('⚠️ Seleziona una taglia'); return;
       }
-      const taglia = taglieSel[pid] || p.taglie?.[0] || 'UNICA';
+      const taglia  = taglieSel[pid] || p.taglie?.[0] || 'UNICA';
+      const prezzo  = prezzoScontato(p);
       const esistente = carrello.find(i => i.id === pid && i.taglia === taglia);
       if (esistente) esistente.qty = Math.min(10, esistente.qty + 1);
-      else carrello.push({ id: pid, nome: p.nome, prezzo: p.prezzo, emoji: p.emoji || '🏐', taglia, qty: 1 });
+      else carrello.push({ id: pid, nome: p.nome, prezzo, emoji: p.emoji || '🏐', taglia, qty: 1 });
       aggiornaCarrello();
       mostraToast(`✅ ${p.nome} (${taglia}) aggiunta al carrello`);
     }
@@ -841,12 +920,14 @@
       btn.classList.add('selezionato');
       metodoSel = metodo;
       document.getElementById('formCarta').classList.toggle('visibile', metodo === 'carta');
+      document.getElementById('formSepa').style.display = metodo === 'sepa' ? 'block' : 'none';
       document.getElementById('paypalContainer').style.display = metodo === 'paypal' ? 'block' : 'none';
       document.getElementById('btnPaga').style.display = metodo === 'paypal' ? 'none' : 'block';
       if (metodo === 'paypal') {
         const { totale } = calcolaTotali();
         initPayPal(totale);
       }
+      if (metodo === 'sepa') initSepa();
     }
 
     /* ══ VALIDAZIONE ══ */
@@ -881,50 +962,59 @@
 
     /* ══ CONFERMA ══ */
     function mostraConferma(orderId) {
-      window.location.href = '/ordine-confermato' + (orderId ? '?id=' + encodeURIComponent(orderId) : '');
+      let url = '/ordine-confermato' + (orderId ? '?id=' + encodeURIComponent(orderId) : '');
+      if (metodoSel === 'sepa') url += (orderId ? '&' : '?') + 'metodo=sepa';
+      window.location.href = url;
     }
 
     /* ══ PAGA ORA ══ */
     async function completaOrdine() {
       if (!validaCampi()) return;
-      const nome  = document.getElementById('chkNome').value.trim();
-      const email = document.getElementById('chkEmail').value.trim();
-      const btn   = document.getElementById('btnPaga');
-      const { totale } = calcolaTotali();
+      const nome    = document.getElementById('chkNome').value.trim();
+      const cognome = document.getElementById('chkCognome').value.trim();
+      const email   = document.getElementById('chkEmail').value.trim();
+      const btn     = document.getElementById('btnPaga');
 
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Elaborazione...';
 
       try {
-        if (metodoSel === 'carta') {
-          /* 1. Crea PaymentIntent sul server */
+        if (metodoSel === 'carta' || metodoSel === 'sepa') {
+          /* 1. Crea PaymentIntent sul server – prezzi validati server-side */
           const intentRes = await fetch('/api/create-payment-intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount: Math.round(totale * 100) }),
+            body: JSON.stringify({
+              items:  carrello.map(i => ({ id: i.id, qty: i.qty })),
+              metodo: metodoSel,
+            }),
           });
           const { clientSecret, orderId, error: intentErr } = await intentRes.json();
           if (intentErr) throw new Error(intentErr);
 
-          /* 2. Conferma pagamento con Stripe.js */
-          const { error } = await stripe.confirmCardPayment(clientSecret, {
-            payment_method: {
-              card: cardElement,
-              billing_details: {
-                name:  `${nome} ${document.getElementById('chkCognome').value.trim()}`,
-                email,
+          if (metodoSel === 'carta') {
+            /* Carta: pagamento sincrono */
+            const { error } = await stripe.confirmCardPayment(clientSecret, {
+              payment_method: {
+                card: cardElement,
+                billing_details: { name: `${nome} ${cognome}`, email },
               },
-            },
-          });
-          if (error) throw new Error(error.message);
+            });
+            if (error) throw new Error(error.message);
+          } else {
+            /* SEPA: pagamento asincrono (3-5 gg lavorativi) */
+            const { error } = await stripe.confirmSepaDebitPayment(clientSecret, {
+              payment_method: {
+                sepa_debit: ibanElement,
+                billing_details: { name: `${nome} ${cognome}`, email },
+              },
+            });
+            if (error) throw new Error(error.message);
+          }
 
-          /* 3. Invia email di conferma */
           await inviaEmail(orderId);
           mostraConferma(orderId);
 
-        } else if (metodoSel === 'bonifico') {
-          await inviaEmail(null);
-          mostraConferma(null);
         }
       } catch (err) {
         mostraToast('⚠️ ' + err.message);
@@ -935,7 +1025,8 @@
 
     /* ══ RESET ══ */
     function resetShop() {
-      carrello = []; stripeReady = false; cardElement = null;
+      carrello = []; stripeReady = false; sepaReady = false;
+      cardElement = null; ibanElement = null;
       aggiornaCarrello();
       chiudiModal();
       ['chkNome','chkCognome','chkEmail']

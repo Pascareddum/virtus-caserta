@@ -76,8 +76,15 @@
 </div>
 <script>
   const params = new URLSearchParams(location.search);
-  const id = params.get('id');
+  const id     = params.get('id');
+  const metodo = params.get('metodo');
   if (id) document.getElementById('orderId').textContent = '#' + id;
+  if (metodo === 'sepa') {
+    document.querySelector('.check').textContent = '⏳';
+    document.querySelector('h1').textContent = 'Pagamento in elaborazione';
+    document.querySelector('p:not(.ordine-id)').innerHTML =
+      'Il tuo ordine è stato registrato. Il pagamento SEPA sarà <strong>addebitato entro 3–5 giorni lavorativi</strong>. Riceverai una conferma via email.';
+  }
 </script>
 <script src="common.js"></script>
 </body>

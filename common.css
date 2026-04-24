@@ -186,9 +186,44 @@ body.nav-aperta { overflow: hidden; }
   }
   nav.nav-std > .nav-brand img { height: 40px !important; }
   .nav-hamburger { display: flex !important; }
+  nav.nav-std > .nav-hamburger {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
 
   /* Ensure images don't overflow */
   img { max-width: 100%; }
+}
+
+/* ── Navbar brand label ── */
+.nav-brand-label {
+  display: none;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-left: 10px;
+  background: linear-gradient(90deg, #f57c00, #ffb300, #fff 90%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(245,124,0,0.45));
+}
+
+@media (max-width: 768px) {
+  .nav-brand-label { display: inline; }
+}
+
+/* Su mobile nasconde menu laterali così il brand è visivamente centrato */
+@media (max-width: 600px) {
+  nav .nav-brand {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 0 !important;
+  }
 }
 
 /* ══════════════════════════════════════════════

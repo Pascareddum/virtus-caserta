@@ -643,10 +643,22 @@
           <input type="number" id="pPrezzo" placeholder="25.00" step="0.01" min="0">
         </div>
         <div class="mf">
-          <label>Disponibile</label>
+          <label>Sconto (%)</label>
+          <input type="number" id="pSconto" placeholder="0" min="0" max="100" step="1" style="width:100%">
+          <small style="color:#6b7280;font-size:11px">0 = nessuno sconto. Il prezzo scontato viene calcolato automaticamente.</small>
+        </div>
+      </div>
+      <div class="mf-row">
+        <div class="mf">
+          <label>Pezzi disponibili</label>
+          <input type="number" id="pQuantita" placeholder="-1" min="-1" step="1" style="width:100%">
+          <small style="color:#6b7280;font-size:11px">-1 = illimitato, 0 = esaurito</small>
+        </div>
+        <div class="mf">
+          <label>Visibile nello shop</label>
           <select id="pDisponibile">
             <option value="true">✅ Sì</option>
-            <option value="false">❌ No</option>
+            <option value="false">❌ No (nascosto)</option>
           </select>
         </div>
       </div>
@@ -815,19 +827,24 @@
         <div class="mf"><label>Numero maglia</label><input type="number" id="gNumero" min="1" max="99" placeholder="10"></div>
         <div class="mf">
           <label>Ruolo</label>
-          <select id="gRuolo">
-            <option value="">— Seleziona —</option>
+          <input type="text" id="gRuolo" list="ruoli-giocatrici" placeholder="Es. Palleggiatrice">
+          <datalist id="ruoli-giocatrici">
             <option>Palleggiatrice</option><option>Opposto</option><option>Schiacciatrice</option>
-            <option>Centrale</option><option>Libero</option><option>Staff</option>
-          </select>
+            <option>Centrale</option><option>Libero</option><option>Schiacciatore</option>
+            <option>Alzatore</option><option>Staff</option>
+          </datalist>
         </div>
       </div>
       <div class="mf">
-        <label>Squadra</label>
-        <select id="gSesso">
-          <option value="Femminile">Femminile</option>
-          <option value="Maschile">Maschile</option>
-        </select>
+        <label>Squadra / Categoria</label>
+        <input type="text" id="gSesso" list="squadre-list" placeholder="Es. Femminile, Serie D...">
+        <datalist id="squadre-list">
+          <option>Femminile</option><option>Maschile</option>
+          <option>Serie D Femminile</option><option>Prima Divisione Maschile</option>
+          <option>Prima Divisione Femminile</option><option>U19 Femminile</option>
+          <option>U16 Femminile</option><option>U13 Femminile</option>
+          <option>VolleyS3</option><option>Minivolley</option>
+        </datalist>
       </div>
       <div class="mf"><label>Foto (URL o upload)</label>
         <input type="file" id="gFotoFile" accept="image/*" onchange="anteprima('gFotoFile','gFotoPreview')">
@@ -864,17 +881,13 @@
       </div>
       <div class="mf">
         <label>Ruolo</label>
-        <select id="stRuolo">
-          <option value="Staff">Staff</option>
-          <option value="Allenatore">Allenatore</option>
-          <option value="Vice Allenatore">Vice Allenatore</option>
-          <option value="Preparatore Atletico">Preparatore Atletico</option>
-          <option value="Fisioterapista">Fisioterapista</option>
-          <option value="Team Manager">Team Manager</option>
-          <option value="Dirigente">Dirigente</option>
-          <option value="Accompagnatore">Accompagnatore</option>
-          <option value="Medico">Medico</option>
-        </select>
+        <input type="text" id="stRuolo" list="ruoli-staff" placeholder="Es. Allenatore">
+        <datalist id="ruoli-staff">
+          <option>Staff</option><option>Allenatore</option><option>Vice Allenatore</option>
+          <option>Preparatore Atletico</option><option>Fisioterapista</option>
+          <option>Team Manager</option><option>Dirigente</option>
+          <option>Accompagnatore</option><option>Medico</option>
+        </datalist>
       </div>
       <div class="mf"><label>Foto (upload)</label>
         <input type="file" id="stFotoFile" accept="image/*" onchange="anteprimaStaff()">
@@ -1114,6 +1127,8 @@
     document.getElementById('pEmoji').value       = '🏐';
     document.getElementById('pDescrizione').value = '';
     document.getElementById('pPrezzo').value      = '';
+    document.getElementById('pSconto').value      = '0';
+    document.getElementById('pQuantita').value    = '-1';
     document.getElementById('pDisponibile').value = 'true';
     document.getElementById('pImmagine').value    = '';
     document.getElementById('pImgPreview').style.display = 'none';
@@ -1127,6 +1142,8 @@
         document.getElementById('pEmoji').value       = p.emoji || '🏐';
         document.getElementById('pDescrizione').value = p.descrizione || '';
         document.getElementById('pPrezzo').value      = p.prezzo;
+        document.getElementById('pSconto').value      = p.sconto || 0;
+        document.getElementById('pQuantita').value    = p.quantita !== undefined ? p.quantita : -1;
         document.getElementById('pDisponibile').value = p.disponibile ? 'true' : 'false';
         document.getElementById('pImmagine').value    = p.immagine || '';
         if (p.immagine) {
@@ -1165,10 +1182,12 @@
       const body = {
         nome,
         descrizione: document.getElementById('pDescrizione').value.trim(),
-        prezzo: parseFloat(prezzo),
-        emoji: document.getElementById('pEmoji').value.trim() || '🏐',
+        prezzo:      parseFloat(prezzo),
+        sconto:      parseInt(document.getElementById('pSconto').value) || 0,
+        quantita:    parseInt(document.getElementById('pQuantita').value) ?? -1,
+        emoji:       document.getElementById('pEmoji').value.trim() || '🏐',
         disponibile: document.getElementById('pDisponibile').value === 'true',
-        taglie: [...taglieSelezionate],
+        taglie:      [...taglieSelezionate],
         immagine,
       };
       const url    = prodottoInEditing ? `/api/admin/products/${prodottoInEditing}` : '/api/admin/products';

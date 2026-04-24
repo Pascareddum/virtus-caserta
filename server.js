@@ -115,7 +115,31 @@ function adminFrom() {
 }
 
 app.set('trust proxy', 1);
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:    ["'self'"],
+      scriptSrc:     ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://www.paypal.com", "https://www.sandbox.paypal.com"],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      frameSrc:      [
+        "'self'",
+        "https://js.stripe.com", "https://hooks.stripe.com",
+        "https://www.paypal.com", "https://www.sandbox.paypal.com",
+        "https://maps.google.com", "https://www.google.com",
+        "https://player.twitch.tv",
+        "https://www.youtube.com",
+      ],
+      connectSrc:    ["'self'", "https://api.stripe.com", "https://www.paypal.com", "https://api.paypal.com"],
+      imgSrc:        ["'self'", "data:", "https:"],
+      styleSrc:      ["'self'", "'unsafe-inline'"],
+      fontSrc:       ["'self'", "data:"],
+      objectSrc:     ["'none'"],
+      baseUri:       ["'self'"],
+      formAction:    ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(compression());
 app.use(cookieParser());
 
@@ -149,6 +173,19 @@ app.post('/api/stripe-webhook',
         if (orderId) {
           await db.query(`UPDATE ordini SET stato='in lavorazione', stripe_pi_id=$2 WHERE id=$1`, [orderId, pi.id]);
           await logActivity('Pagamento confermato via webhook', `Ordine #${orderId} – PI: ${pi.id}`);
+        }
+      } catch (dbErr) {
+        console.log('[Webhook] Errore aggiornamento DB:', dbErr.message);
+      }
+    }
+
+    if (event.type === 'payment_intent.processing') {
+      const pi = event.data.object;
+      const orderId = pi.metadata?.orderId;
+      console.log(`[Webhook] SEPA in elaborazione – PI: ${pi.id}${orderId ? ', Ordine: ' + orderId : ''}`);
+      try {
+        if (orderId) {
+          await db.query(`UPDATE ordini SET stato='ricevuto', stripe_pi_id=$2 WHERE id=$1`, [orderId, pi.id]);
         }
       } catch (dbErr) {
         console.log('[Webhook] Errore aggiornamento DB:', dbErr.message);
@@ -430,6 +467,8 @@ app.get('/api/products', async (_req, res) => {
       nome:        r.nome,
       descrizione: r.descrizione,
       prezzo:      parseFloat(r.prezzo),
+      sconto:      parseInt(r.sconto) || 0,
+      quantita:    r.quantita !== undefined ? parseInt(r.quantita) : -1,
       emoji:       r.emoji,
       disponibile: r.disponibile,
       taglie:      r.taglie,
@@ -443,19 +482,22 @@ app.get('/api/products', async (_req, res) => {
 
 /* ─── Admin: aggiungi prodotto ─── */
 app.post('/api/admin/products', adminAuth, async (req, res) => {
-  const { nome, descrizione, prezzo, emoji, taglie, disponibile, immagine } = req.body;
+  const { nome, descrizione, prezzo, emoji, taglie, disponibile, immagine, sconto, quantita } = req.body;
   if (!nome || !prezzo) return res.status(400).json({ error: 'Nome e prezzo obbligatori' });
   const id = Date.now().toString();
+  const scontoVal   = Math.min(100, Math.max(0, parseInt(sconto) || 0));
+  const quantitaVal = parseInt(quantita) !== undefined ? parseInt(quantita) : -1;
   try {
     await db.query(
-      `INSERT INTO products (id, nome, descrizione, prezzo, emoji, disponibile, taglie, immagine)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      `INSERT INTO products (id, nome, descrizione, prezzo, emoji, disponibile, taglie, immagine, sconto, quantita)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [id, nome, descrizione || '', parseFloat(prezzo), emoji || '🏐', disponibile !== false,
-       JSON.stringify(taglie || ['S', 'M', 'L', 'XL']), immagine || '']
+       JSON.stringify(taglie || ['S', 'M', 'L', 'XL']), immagine || '', scontoVal, quantitaVal]
     );
     await logActivity('Prodotto aggiunto', nome);
     res.status(201).json({
       id, nome, descrizione: descrizione || '', prezzo: parseFloat(prezzo),
+      sconto: scontoVal, quantita: quantitaVal,
       emoji: emoji || '🏐', disponibile: disponibile !== false,
       taglie: taglie || ['S', 'M', 'L', 'XL'], immagine: immagine || '',
     });
@@ -466,21 +508,24 @@ app.post('/api/admin/products', adminAuth, async (req, res) => {
 
 /* ─── Admin: aggiorna prodotto ─── */
 app.put('/api/admin/products/:id', adminAuth, async (req, res) => {
-  const { nome, descrizione, prezzo, emoji, taglie, disponibile, immagine } = req.body;
+  const { nome, descrizione, prezzo, emoji, taglie, disponibile, immagine, sconto, quantita } = req.body;
+  const scontoVal   = Math.min(100, Math.max(0, parseInt(sconto) || 0));
+  const quantitaVal = parseInt(quantita) !== undefined ? parseInt(quantita) : -1;
   try {
     const result = await db.query(
       `UPDATE products
-       SET nome=$1, descrizione=$2, prezzo=$3, emoji=$4, disponibile=$5, taglie=$6, immagine=$7
-       WHERE id=$8
+       SET nome=$1, descrizione=$2, prezzo=$3, emoji=$4, disponibile=$5, taglie=$6, immagine=$7, sconto=$8, quantita=$9
+       WHERE id=$10
        RETURNING *`,
       [nome, descrizione || '', parseFloat(prezzo), emoji || '🏐', disponibile !== false,
-       JSON.stringify(taglie || ['S', 'M', 'L', 'XL']), immagine || '', req.params.id]
+       JSON.stringify(taglie || ['S', 'M', 'L', 'XL']), immagine || '', scontoVal, quantitaVal, req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Prodotto non trovato' });
     const r = result.rows[0];
     await logActivity('Prodotto modificato', r.nome);
     res.json({
       id: r.id, nome: r.nome, descrizione: r.descrizione, prezzo: parseFloat(r.prezzo),
+      sconto: parseInt(r.sconto) || 0, quantita: parseInt(r.quantita) || -1,
       emoji: r.emoji, disponibile: r.disponibile, taglie: r.taglie, immagine: r.immagine,
     });
   } catch (err) {
@@ -600,16 +645,56 @@ app.get('/api/config', (_req, res) => {
 app.post('/api/create-payment-intent', paymentLimiter, async (req, res) => {
   if (!stripe) return res.status(503).json({ error: 'Stripe non configurato. Aggiungi STRIPE_SECRET_KEY nel file .env' });
   try {
-    const { amount } = req.body;
-    if (!amount || amount < 50) return res.status(400).json({ error: 'Importo non valido' });
-    const orderId = Date.now().toString();
-    const pi = await stripe.paymentIntents.create({
-      amount: Math.round(amount),
+    const { items, metodo } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Carrello vuoto' });
+    }
+
+    // Calcola il totale lato server dai prezzi reali nel DB (con sconto)
+    const ids = [...new Set(items.map(i => String(i.id)))];
+    const placeholders = ids.map((_, idx) => `$${idx + 1}`).join(',');
+    const { rows: prodRows } = await db.query(
+      `SELECT id, prezzo, sconto, quantita FROM products WHERE id IN (${placeholders}) AND disponibile = true`,
+      ids
+    );
+    const prodMap = {};
+    for (const r of prodRows) prodMap[r.id] = {
+      prezzo:   parseFloat(r.prezzo),
+      sconto:   parseInt(r.sconto) || 0,
+      quantita: parseInt(r.quantita) || -1,
+    };
+
+    let totaleCents = 0;
+    for (const item of items) {
+      const prod = prodMap[String(item.id)];
+      if (!prod) return res.status(400).json({ error: `Prodotto non disponibile: ${item.id}` });
+      if (prod.quantita === 0) return res.status(400).json({ error: `Prodotto esaurito: ${item.id}` });
+      const qty = Math.min(10, Math.max(1, parseInt(item.qty) || 1));
+      const prezzoFinale = prod.sconto > 0
+        ? prod.prezzo * (1 - prod.sconto / 100)
+        : prod.prezzo;
+      totaleCents += Math.round(prezzoFinale * qty * 100);
+    }
+
+    if (totaleCents < 50) return res.status(400).json({ error: 'Importo non valido' });
+
+    const orderId = crypto.randomUUID();
+    const isSepa  = metodo === 'sepa';
+
+    const piOptions = {
+      amount:   totaleCents,
       currency: 'eur',
-      automatic_payment_methods: { enabled: true },
       metadata: { orderId },
-    });
-    res.json({ clientSecret: pi.client_secret, orderId });
+    };
+    if (isSepa) {
+      piOptions.payment_method_types = ['sepa_debit'];
+    } else {
+      piOptions.automatic_payment_methods = { enabled: true };
+    }
+
+    const pi = await stripe.paymentIntents.create(piOptions);
+    res.json({ clientSecret: pi.client_secret, orderId, amount: totaleCents });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -866,17 +951,31 @@ app.delete('/api/admin/ordini/all', adminAuth, async (_req, res) => {
 
 /* ─── Invio email ordine ─── */
 app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
-  const { nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo, orderId } = req.body;
+  let { nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo, orderId } = req.body;
+
+  // Sanitizzazione input (lunghezza massima)
+  nome     = String(nome     || '').slice(0, 100);
+  cognome  = String(cognome  || '').slice(0, 100);
+  email    = String(email    || '').slice(0, 254);
+  indirizzo= String(indirizzo|| '').slice(0, 200);
+  citta    = String(citta    || '').slice(0, 100);
+  cap      = String(cap      || '').slice(0, 10);
+  metodo   = String(metodo   || '').slice(0, 20);
+
+  if (!nome || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Dati obbligatori mancanti o non validi' });
+  }
 
   // Salva ordine nel DB (non bloccante)
   try {
-    const dbOrderId = orderId || Date.now().toString();
+    const dbOrderId = orderId || crypto.randomUUID();
     await db.query(
       `INSERT INTO ordini (id, nome, cognome, email, indirizzo, citta, cap, items, totale, spedizione, metodo)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-      [dbOrderId, nome, cognome, email, indirizzo || '', citta || '', cap || '',
-       JSON.stringify(items || []), parseFloat(totale) || 0, parseFloat(spedizione) || 0, metodo || '']
+      [dbOrderId, nome, cognome, email, indirizzo, citta, cap,
+       JSON.stringify(items || []), parseFloat(totale) || 0, parseFloat(spedizione) || 0, metodo]
     );
+    if (!orderId) orderId = dbOrderId;
   } catch (dbErr) {
     console.log('[Ordini] Errore salvataggio DB:', dbErr.message);
   }
@@ -889,7 +988,7 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
   try {
     const transporter = creaTransporterShop();
 
-    const righeHtml = items.map(i =>
+    const righeHtml = (Array.isArray(items) ? items : []).map(i =>
       `<tr>
          <td style="padding:8px;border-bottom:1px solid #e2e8f0">${esc(i.nome)}</td>
          <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">Taglia ${esc(i.taglia)}</td>
@@ -898,14 +997,32 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
        </tr>`
     ).join('');
 
-    const metodiLabel = { carta: '💳 Carta di credito/debito', paypal: '🅿️ PayPal', bonifico: '🏦 Bonifico bancario' };
+    const metodiLabel = {
+      carta:    '💳 Carta di credito/debito',
+      paypal:   '🅿️ PayPal',
+      bonifico: '🏦 Bonifico bancario',
+      sepa:     '🏦 Addebito diretto SEPA',
+    };
+
+    // IBAN dinamico dalla tabella impostazioni
+    let ibanDb = 'IT00 X000 0000 0000 0000 0000 000';
+    try {
+      const ibanRow = await db.query(`SELECT valore FROM impostazioni WHERE chiave='iban' LIMIT 1`);
+      if (ibanRow.rows.length && ibanRow.rows[0].valore) ibanDb = ibanRow.rows[0].valore;
+    } catch(_) {}
+
+    const sepaHtml = metodo === 'sepa' ? `
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin-top:12px">
+        <strong>✅ Addebito SEPA autorizzato</strong><br>
+        <span style="font-size:13px;color:#374151;">L'addebito bancario è stato autorizzato e sarà completato entro 3–5 giorni lavorativi.</span>
+      </div>` : '';
 
     const bonificoHtml = metodo === 'bonifico' ? `
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-top:12px">
         <strong>Coordinate bancarie:</strong><br>
         Intestatario: Virtus Caserta ASD<br>
-        IBAN: IT00 X000 0000 0000 0000 0000 000<br>
-        Causale: Ordine ${nome} ${cognome}${orderId ? ' – ' + orderId : ''}
+        IBAN: ${esc(ibanDb)}<br>
+        Causale: Ordine ${esc(nome)} ${esc(cognome)}${orderId ? ' – ' + esc(orderId) : ''}
       </div>` : '';
 
     const html = `
@@ -936,8 +1053,8 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Indirizzo di spedizione</h3>
           <p>${esc(nome)} ${esc(cognome)}<br>${esc(indirizzo)}<br>${esc(cap)} ${esc(citta)}</p>
           <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Metodo di pagamento</h3>
-          <p>${metodiLabel[metodo] || metodo}</p>
-          ${bonificoHtml}
+          <p>${metodiLabel[metodo] || esc(metodo)}</p>
+          ${bonificoHtml}${sepaHtml}
           <p style="color:#9ca3af;font-size:13px;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px">
             Consegna prevista entro 3–5 giorni lavorativi.<br>
             Per assistenza scrivi a <a href="mailto:info@virtuscaserta.it" style="color:#1535a8">info@virtuscaserta.it</a>

@@ -197,6 +197,8 @@ async function createTables() {
   // Aggiornamenti schema per DB già esistenti
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
   await query(`ALTER TABLE squadra ADD COLUMN IF NOT EXISTS sesso VARCHAR DEFAULT 'Femminile'`);
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS sconto INTEGER DEFAULT 0`);
+  await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS quantita INTEGER DEFAULT -1`);
 
   // Valori default impostazioni
   await query(`
