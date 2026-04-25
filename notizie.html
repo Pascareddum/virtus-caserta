@@ -290,13 +290,147 @@
       const text = encodeURIComponent(titolo);
       window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
     }
-    function condividiSuInstagram(id) {
-      const url = _newsUrl(id);
-      if (navigator.share) {
-        navigator.share({ url }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(url).then(() => mostraCopyToast('Link copiato! Aprilo su Instagram'));
+    function _wrapText(ctx, text, x, y, maxW, lineH) {
+      const words = text.split(' ');
+      let line = '';
+      let cy = y;
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && line) {
+          ctx.fillText(line, x, cy);
+          line = w;
+          cy += lineH;
+        } else {
+          line = test;
+        }
       }
+      if (line) ctx.fillText(line, x, cy);
+      return cy + lineH;
+    }
+
+    async function condividiSuInstagram(id) {
+      const article = document.getElementById('notizia-' + id);
+      const titolo  = article?.querySelector('.news-titolo')?.textContent?.trim() || 'Virtus Caserta';
+      const testo   = article?.querySelector('.news-testo')?.textContent?.trim()  || '';
+      const cat     = article?.querySelector('.news-cat')?.textContent?.trim()    || 'NOTIZIA';
+
+      const W = 1080, H = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      const SF  = 'bold {s}px "Arial",sans-serif';
+
+      /* ── Background ── */
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, '#0d2055');
+      grad.addColorStop(1, '#1535a8');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      /* ── Top accent bar ── */
+      ctx.fillStyle = '#f57c00';
+      ctx.fillRect(0, 0, W, 14);
+
+      /* ── Diagonal watermark pattern ── */
+      ctx.save();
+      ctx.globalAlpha = 0.04;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 90px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.translate(W/2, H/2);
+      ctx.rotate(-0.35);
+      for (let r = -6; r <= 6; r++) {
+        for (let c = -3; c <= 3; c++) {
+          ctx.fillText('#noisiamolasquadra', c * 520, r * 140);
+        }
+      }
+      ctx.restore();
+
+      /* ── Club badge area ── */
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      _roundRect(ctx, 70, 70, W - 140, 130, 22);
+      ctx.fill();
+      ctx.fillStyle = '#f57c00';
+      ctx.font = SF.replace('{s}', 52);
+      ctx.textAlign = 'center';
+      ctx.fillText('VIRTUS CASERTA', W/2, 154);
+
+      /* ── Category badge ── */
+      const catW = ctx.measureText(cat).width + 48;
+      ctx.font = SF.replace('{s}', 34);
+      const catTW = ctx.measureText(cat).width;
+      ctx.fillStyle = '#f57c00';
+      _roundRect(ctx, 70, 254, catTW + 48, 56, 28);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left';
+      ctx.fillText(cat, 70 + 24, 293);
+
+      /* ── Title ── */
+      ctx.fillStyle = '#ffffff';
+      ctx.font = SF.replace('{s}', 76);
+      ctx.textAlign = 'left';
+      const titleEnd = _wrapText(ctx, titolo.toUpperCase(), 70, 400, W - 140, 96);
+
+      /* ── Divider ── */
+      ctx.fillStyle = 'rgba(245,124,0,0.6)';
+      ctx.fillRect(70, titleEnd + 10, 100, 5);
+
+      /* ── Body text ── */
+      const snippet = testo.length > 320 ? testo.slice(0, 317) + '…' : testo;
+      ctx.fillStyle = 'rgba(255,255,255,0.78)';
+      ctx.font = 'normal 44px "Arial", sans-serif';
+      _wrapText(ctx, snippet, 70, titleEnd + 60, W - 140, 64);
+
+      /* ── Bottom accent ── */
+      ctx.fillStyle = '#f57c00';
+      ctx.fillRect(0, H - 14, W, 14);
+
+      /* ── Footer text ── */
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = 'normal 38px "Arial", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Notizia disponibile su', W/2, H - 120);
+      ctx.fillStyle = '#f57c00';
+      ctx.font = SF.replace('{s}', 44);
+      ctx.fillText('www.virtuscaserta.com', W/2, H - 60);
+
+      /* ── Share or download ── */
+      canvas.toBlob(async blob => {
+        const file = new File([blob], 'virtus-storia.png', { type: 'image/png' });
+        try {
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: titolo });
+          } else {
+            _downloadStoria(canvas);
+          }
+        } catch (e) {
+          if (e.name !== 'AbortError') _downloadStoria(canvas);
+        }
+      }, 'image/png');
+    }
+
+    function _roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function _downloadStoria(canvas) {
+      const a = document.createElement('a');
+      a.download = 'virtus-storia.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
     }
     function copiaLink(id) {
       navigator.clipboard.writeText(_newsUrl(id)).then(() => mostraCopyToast('Link copiato!'));
