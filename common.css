@@ -2,6 +2,25 @@
    COMMON.CSS – Stili condivisi + Hamburger Nav
 ═══════════════════════════════════════════════════ */
 
+/* ── Navbar hashtag (desktop) ── */
+.nav-hashtag {
+  list-style: none;
+  margin-right: auto;
+  flex-shrink: 0;
+}
+.nav-hashtag span {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.40);
+  text-transform: uppercase;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.nav-hashtag:hover span { color: rgba(255,255,255,0.65); }
+
 /* ── "Noi" dropdown ── */
 .nav-dropdown { position: relative; list-style: none; }
 .nav-dropdown-toggle {
@@ -144,13 +163,27 @@
 .nav-drawer a.drawer-link:nth-child(7) { transition-delay: 0.24s; }
 .nav-drawer a.drawer-link:nth-child(8) { transition-delay: 0.28s; }
 
-.nav-drawer .drawer-social {
-  display: flex;
-  gap: 16px;
-  margin-top: 32px;
+.nav-drawer .drawer-hashtag {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 20px;
+  margin-bottom: 4px;
   opacity: 0;
   transform: translateY(14px);
   transition: opacity 0.32s ease 0.28s, transform 0.32s ease 0.28s;
+  text-align: center;
+}
+.nav-drawer.aperto .drawer-hashtag { opacity: 1; transform: translateY(0); }
+
+.nav-drawer .drawer-social {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.32s ease 0.32s, transform 0.32s ease 0.32s;
 }
 .nav-drawer.aperto .drawer-social { opacity: 1; transform: translateY(0); }
 .nav-drawer .drawer-social a {
@@ -168,6 +201,20 @@
 }
 
 body.nav-aperta { overflow: hidden; }
+
+/* ── Tablet breakpoint (769px – 1024px) ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  nav.nav-std {
+    padding: 0 24px !important;
+    height: 68px !important;
+  }
+  nav.nav-std .nav-brand { padding: 0 16px !important; }
+  nav.nav-std .nav-brand img { height: 44px !important; }
+  nav.nav-std .nav-menu a { font-size: 12px !important; letter-spacing: 1px !important; }
+  nav.nav-std .nav-menu { gap: 20px !important; }
+  nav.nav-std .nav-social a { width: 28px !important; height: 28px !important; }
+  nav.nav-std .nav-social { gap: 8px !important; }
+}
 
 /* ── Mobile breakpoint ── */
 @media (max-width: 768px) {
@@ -301,7 +348,14 @@ footer.footer-std .footer-bottom {
 }
 footer.footer-std .footer-bottom a { color: rgba(255,255,255,0.4); text-decoration: none; }
 footer.footer-std .footer-bottom a:hover { color: rgba(255,255,255,0.8); }
+footer.footer-std .footer-inner .footer-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
 @media (max-width: 600px) {
   footer.footer-std .footer-inner { flex-direction: column; align-items: center; text-align: center; padding: 28px 16px 20px; }
   footer.footer-std .footer-links { justify-content: center; }
+  footer.footer-std .footer-inner .footer-auth { align-items: center; }
 }

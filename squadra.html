@@ -62,6 +62,7 @@
 <body>
 <nav>
   <ul class="nav-menu">
+    <li class="nav-hashtag"><span>#noisiamolasquadra</span></li>
     <li><a href="/chi-siamo">Chi siamo</a></li>
     <li><a href="/notizie">Notizie</a></li>
     <li class="nav-dropdown attivo">
@@ -135,6 +136,17 @@
       <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
       <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
       <a href="/live" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+    </div>
+    <div class="footer-auth" id="footerAuthArea">
+      <div class="footer-auth-title">Account</div>
+      <div class="footer-auth-login">
+        <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
+      </div>
+      <div class="footer-auth-logged">
+        <span class="footer-auth-nome" id="footerNome"></span>
+        <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
+        <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
+      </div>
     </div>
   </div>
   <div class="footer-bottom">

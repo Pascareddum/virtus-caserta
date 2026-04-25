@@ -124,14 +124,28 @@
       text-decoration:none; transition:opacity .2s;
     }
     .share-btn:hover { opacity:.82; }
-    .share-fb  { background:#1877f2; color:#fff; }
+    .share-fb   { background:#1877f2; color:#fff; }
+    .share-wa   { background:#25d366; color:#fff; }
+    .share-x    { background:#000; color:#fff; }
+    .share-ig   { background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); color:#fff; }
+    .share-copy { background:#6b7280; color:#fff; }
+    #copyToast {
+      position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:#222; color:#fff; padding:10px 20px; border-radius:20px;
+      font-size:13px; font-weight:700; opacity:0; pointer-events:none;
+      transition:opacity .25s, transform .25s; z-index:9999;
+    }
+    #copyToast.visibile { opacity:1; transform:translateX(-50%) translateY(0); }
 
+    @media (max-width:768px) {
+      .hero { margin-top:64px; }
+    }
     @media (max-width:600px) {
-      nav { padding:0 16px; height:60px; }
+      nav { padding:0 16px; height:64px; }
       .nav-brand img { height:38px; }
       .nav-menu { gap:16px; }
       .nav-menu a { font-size:11px; letter-spacing:.8px; }
-      .hero { padding:44px 16px 36px; }
+      .hero { margin-top:64px; padding:44px 16px 36px; }
       .container { padding:28px 14px 60px; }
       .news-body { padding:18px 20px; }
     }
@@ -171,9 +185,11 @@
   </style>
 </head>
 <body>
+  <div id="copyToast"></div>
 
   <nav>
     <ul class="nav-menu">
+      <li class="nav-hashtag"><span>#noisiamolasquadra</span></li>
       <li><a href="/chi-siamo">Chi siamo</a></li>
       <li><a href="/notizie" class="attivo">Notizie</a></li>
       <li class="nav-dropdown">
@@ -215,12 +231,16 @@
 
   <footer>
     <div class="footer-top">
-      <div class="footer-col">
-        <div class="footer-col-title">Esplora</div>
-        <a href="index.html">Home</a>
-        <a href="chiSiamo.html">Chi siamo</a>
-        <a href="notizie.html">Notizie</a>
-        <a href="shop.html">Shop</a>
+      <div class="footer-auth" id="footerAuthArea">
+        <div class="footer-auth-title">Account</div>
+        <div class="footer-auth-login">
+          <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
+        </div>
+        <div class="footer-auth-logged">
+          <span class="footer-auth-nome" id="footerNome"></span>
+          <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
+          <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
+        </div>
       </div>
       <div class="footer-center">
         <div class="footer-logo">
@@ -253,10 +273,41 @@
       return 'cat-blu';
     }
 
-    function condividiSuFacebook(titolo) {
-      const url = encodeURIComponent(window.location.href);
+    function _newsUrl(id) {
+      return window.location.origin + window.location.pathname + '#notizia-' + id;
+    }
+    function condividiSuFacebook(titolo, id) {
+      const url = encodeURIComponent(id ? _newsUrl(id) : window.location.href);
       const q   = encodeURIComponent(titolo);
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${q}`, '_blank', 'width=600,height=400');
+    }
+    function condividiSuWhatsapp(titolo, id) {
+      const text = encodeURIComponent(titolo + '\n' + _newsUrl(id));
+      window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
+    }
+    function condividiSuX(titolo, id) {
+      const url  = encodeURIComponent(_newsUrl(id));
+      const text = encodeURIComponent(titolo);
+      window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+    }
+    function condividiSuInstagram(id) {
+      const url = _newsUrl(id);
+      if (navigator.share) {
+        navigator.share({ url }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(url).then(() => mostraCopyToast('Link copiato! Aprilo su Instagram'));
+      }
+    }
+    function copiaLink(id) {
+      navigator.clipboard.writeText(_newsUrl(id)).then(() => mostraCopyToast('Link copiato!'));
+    }
+    let _copyTimer;
+    function mostraCopyToast(msg) {
+      const t = document.getElementById('copyToast');
+      t.textContent = msg;
+      t.classList.add('visibile');
+      clearTimeout(_copyTimer);
+      _copyTimer = setTimeout(() => t.classList.remove('visibile'), 2200);
     }
 
 async function carica() {
@@ -273,8 +324,9 @@ async function carica() {
             ? `<img src="${n.immagine}" alt="" class="news-img" loading="lazy">`
             : '';
           const titoloSafe = (n.titolo || '').replace(/'/g, "\\'");
+          const id = n.id;
           return `
-            <article class="news-card" id="notizia-${n.id}">
+            <article class="news-card" id="notizia-${id}">
               <div class="news-accent" style="background:${colore};"></div>
               <div class="news-body">
                 ${img}
@@ -285,8 +337,24 @@ async function carica() {
                 <div class="news-titolo">${n.titolo}</div>
                 <div class="news-testo">${n.testo}</div>
                 <div class="news-share">
-                  <button class="share-btn share-fb" onclick="condividiSuFacebook('${titoloSafe}')">
-                    <img src="images/facebook-icon.png" style="height:14px;vertical-align:middle;margin-right:5px;"> Facebook
+                  <button class="share-btn share-fb"   onclick="condividiSuFacebook('${titoloSafe}',${id})">
+                    <img src="images/facebook-icon.png" style="height:14px;filter:brightness(0)invert(1);vertical-align:middle;margin-right:4px;"> Facebook
+                  </button>
+                  <button class="share-btn share-wa"   onclick="condividiSuWhatsapp('${titoloSafe}',${id})">
+                    <svg style="width:14px;height:14px;fill:currentColor;flex-shrink:0" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.852L.057 23.714a.5.5 0 0 0 .611.637l5.975-1.494A11.954 11.954 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.846 0-3.574-.498-5.065-1.368l-.363-.214-3.546.886.901-3.451-.235-.375A9.954 9.954 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                    WhatsApp
+                  </button>
+                  <button class="share-btn share-x"    onclick="condividiSuX('${titoloSafe}',${id})">
+                    <svg style="width:13px;height:13px;fill:currentColor;flex-shrink:0" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    X
+                  </button>
+                  <button class="share-btn share-ig"   onclick="condividiSuInstagram(${id})">
+                    <svg style="width:14px;height:14px;fill:currentColor;flex-shrink:0" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                    Instagram
+                  </button>
+                  <button class="share-btn share-copy" onclick="copiaLink(${id})">
+                    <svg style="width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    Copia link
                   </button>
                 </div>
               </div>
