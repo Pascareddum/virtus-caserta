@@ -623,12 +623,18 @@
       .squadra-card:nth-child(6),
       .squadra-card:nth-child(7) { grid-column: span 1; height: 220px; background-position: top center; }
       .squadra-card:nth-child(1) { grid-column: span 2; height: 260px; }
+      .squadra-card:nth-child(1) { background-position: center 25%; }
+      .squadra-card:nth-child(2) { background-position: center 25%; }
+      .squadra-card:nth-child(5) { background-position: center 25%; }
     }
 
     @media (max-width: 540px) {
       .squadre-grid { grid-template-columns: 1fr; gap: 12px; }
       .squadra-card,
       .squadra-card:nth-child(1) { grid-column: span 1; height: 180px; background-position: top center; background-size: cover; }
+      .squadra-card:nth-child(1) { background-position: center 25%; }
+      .squadra-card:nth-child(2) { background-position: center 25%; }
+      .squadra-card:nth-child(5) { background-position: center 25%; }
       .squadra-card.visible:hover { transform: none; box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
       .squadra-overlay { padding: 14px 16px 16px; }
       .squadra-overlay h3 { font-size: 16px; }
