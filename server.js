@@ -250,6 +250,39 @@ app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/'));
 app.get('/sponsor.html',            (_req, res) => res.redirect(301, '/'));
 app.get('/reset-password.html',     (_req, res) => res.redirect(301, '/'));
 
+// Per-article OG tags for social sharing
+app.get('/notizia/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await db.query('SELECT id,titolo,testo,immagine FROM notizie WHERE id=$1', [id]);
+    if (!result.rows.length) return res.redirect('/notizie');
+    const n = result.rows[0];
+    const base = process.env.BASE_URL || 'https://www.virtuscaserta.com';
+    const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const imgUrl = n.immagine ? (n.immagine.startsWith('http') ? n.immagine : `${base}${n.immagine}`) : `${base}/images/logo.png`;
+    const desc = esc((n.testo || '').slice(0, 160));
+    const titolo = esc(n.titolo);
+    res.send(`<!DOCTYPE html>
+<html lang="it"><head>
+  <meta charset="UTF-8">
+  <title>${titolo} – Virtus Caserta</title>
+  <meta name="description" content="${desc}">
+  <meta property="og:title" content="${titolo} – Virtus Caserta">
+  <meta property="og:description" content="${desc}">
+  <meta property="og:image" content="${imgUrl}">
+  <meta property="og:url" content="${base}/notizia/${n.id}">
+  <meta property="og:type" content="article">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${titolo} – Virtus Caserta">
+  <meta name="twitter:description" content="${desc}">
+  <meta name="twitter:image" content="${imgUrl}">
+  <script>window.location.replace('/notizie#notizia-${n.id}');</script>
+</head><body></body></html>`);
+  } catch (e) {
+    res.redirect('/notizie');
+  }
+});
+
 // URL puliti
 app.get('/',                  sendPage('index.html'));
 app.get('/chi-siamo',         sendPage('chiSiamo.html'));

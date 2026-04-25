@@ -274,7 +274,7 @@
     }
 
     function _newsUrl(id) {
-      return window.location.origin + window.location.pathname + '#notizia-' + id;
+      return window.location.origin + '/notizia/' + id;
     }
     function condividiSuFacebook(titolo, id) {
       const url = encodeURIComponent(id ? _newsUrl(id) : window.location.href);
