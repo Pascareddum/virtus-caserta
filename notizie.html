@@ -316,6 +316,31 @@
       return lines * lineH;
     }
 
+    /* returns array of lines, last truncated with [...] if text didn't fit */
+    function _fitLines(ctx, text, maxW, lineH, maxH) {
+      const maxLines = Math.max(1, Math.floor(maxH / lineH));
+      const words = text.split(' ');
+      const lines = [];
+      let line = '', overflow = false;
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && line) {
+          if (lines.length + 1 >= maxLines) { overflow = true; break; }
+          lines.push(line); line = w;
+        } else line = test;
+      }
+      if (!overflow && line) lines.push(line);
+      if (overflow) {
+        lines.push(line);
+        const suffix = ' [...]';
+        let last = lines[lines.length - 1];
+        while (last.length > 0 && ctx.measureText(last + suffix).width > maxW)
+          last = last.slice(0, last.lastIndexOf(' ') || last.length - 1);
+        lines[lines.length - 1] = last + suffix;
+      }
+      return lines;
+    }
+
     function _roundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
       ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
@@ -338,10 +363,6 @@
       ctx.translate(W/2, H/2);
       ctx.rotate(-0.35);
       for (let r = -7; r <= 7; r++)
-        for (let c = -3; c <= 3; c++) {
-          ctx.strokeText('#noisiamolasquadra', c*520, r*130);
-          ctx.fillText('#noisiamolasquadra', c*520, r*130);
-        }
       ctx.restore();
     }
 
@@ -375,84 +396,86 @@
     }
 
     /* ── STORIA 1080×1920 ── */
-    function _buildStoria(W, H, img, titolo, testo, cat) {
+    function _buildStoria(W, H, img, titolo, testo, cat, logo) {
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
-      const PAD = 70, PHOTO_H = img ? Math.round(H * 0.42) : 0;
+      const PAD = 72;
 
       /* bg */
-      const bg = ctx.createLinearGradient(0,0,W,H);
-      bg.addColorStop(0,'#0d2055'); bg.addColorStop(1,'#1535a8');
-      ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+      const bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, '#0d2055'); bg.addColorStop(1, '#1535a8');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-      /* photo */
+    
+
+      /* photo – fixed top 700px */
+      const PHOTO_H = img ? 700 : 0;
       if (img) {
         ctx.save();
-        ctx.beginPath(); ctx.rect(0,0,W,PHOTO_H); ctx.clip();
+        ctx.beginPath(); ctx.rect(0, 0, W, PHOTO_H); ctx.clip();
         _coverImage(ctx, img, 0, 0, W, PHOTO_H);
         ctx.restore();
-        /* fade bottom of photo into bg */
-        const fade = ctx.createLinearGradient(0, PHOTO_H-220, 0, PHOTO_H+10);
-        fade.addColorStop(0,'rgba(13,32,85,0)');
-        fade.addColorStop(1,'rgba(13,32,85,1)');
-        ctx.fillStyle = fade; ctx.fillRect(0, PHOTO_H-220, W, 230);
+        const fade = ctx.createLinearGradient(0, PHOTO_H - 260, 0, PHOTO_H + 10);
+        fade.addColorStop(0, 'rgba(13,32,85,0)');
+        fade.addColorStop(1, 'rgba(13,32,85,1)');
+        ctx.fillStyle = fade; ctx.fillRect(0, PHOTO_H - 260, W, 270);
+      }
+
+      /* top vignette so logo is visible on any photo */
+      if (img) {
+        const topOv = ctx.createLinearGradient(0, 0, 0, 280);
+        topOv.addColorStop(0, 'rgba(13,32,85,0.72)');
+        topOv.addColorStop(1, 'rgba(13,32,85,0)');
+        ctx.fillStyle = topOv; ctx.fillRect(0, 0, W, 280);
       }
 
       /* watermark */
       _drawWatermark(ctx, W, H);
 
       /* orange top bar */
-      ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,14);
+      ctx.fillStyle = '#f57c00'; ctx.fillRect(0, 0, W, 14);
 
-      /* club badge */
-      const BADGE_Y = img ? PHOTO_H - 80 : 80;
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
-      _roundRect(ctx, PAD, BADGE_Y, W-PAD*2, 112, 20); ctx.fill();
-      ctx.fillStyle = '#f57c00';
-      ctx.font = 'bold 50px Arial,sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('VIRTUS CASERTA', W/2, BADGE_Y + 74);
-
-      /* category pill */
-      const CAT_Y = BADGE_Y + 148;
-      ctx.font = 'bold 34px Arial,sans-serif';
-      const catTW = ctx.measureText(cat).width;
-      ctx.fillStyle = '#f57c00';
-      _roundRect(ctx, PAD, CAT_Y, catTW+48, 56, 28); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
-      ctx.fillText(cat, PAD+24, CAT_Y+39);
-
-      /* title */
-      const TITLE_Y = CAT_Y + 90;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 72px Arial,sans-serif'; ctx.textAlign = 'left';
-      const titleEnd = _wrapText(ctx, titolo.toUpperCase(), PAD, TITLE_Y, W-PAD*2, 92);
-
-      /* divider */
-      ctx.fillStyle = 'rgba(245,124,0,0.7)';
-      ctx.fillRect(PAD, titleEnd+8, 90, 5);
-
-      /* body text – auto-size to fit available space */
-      const FOOTER_RESERVE = 180;
-      const avail = H - FOOTER_RESERVE - (titleEnd + 70);
-      let fs = 42, lh = 60;
-      while (fs >= 26) {
-        ctx.font = `normal ${fs}px Arial,sans-serif`;
-        const need = _wrapTextHeight(ctx, testo, W-PAD*2, lh);
-        if (need <= avail) break;
-        fs -= 2; lh = Math.round(fs * 1.45);
+      /* logo top center */
+      if (logo) {
+        const logoH = 110;
+        const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
+        ctx.drawImage(logo, W / 2 - logoW / 2, 36, logoW, logoH);
       }
-      ctx.fillStyle = 'rgba(255,255,255,0.82)';
-      ctx.font = `normal ${fs}px Arial,sans-serif`;
-      _wrapText(ctx, testo, PAD, titleEnd+70, W-PAD*2, lh);
+
+      /* ── content cursor ── */
+      const FOOTER_TOP = H - 175;
+      let y = PHOTO_H + 96;
+
+      /* title – max 3 lines */
+      const TITLE_LH = 86;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 66px Arial,sans-serif';
+      ctx.textAlign = 'left';
+      const titleLines = _fitLines(ctx, titolo.toUpperCase(), W - PAD * 2, TITLE_LH, TITLE_LH * 3);
+      for (const line of titleLines) { ctx.fillText(line, PAD, y); y += TITLE_LH; }
+      y += 10;
+
+      /* orange divider */
+   /*   ctx.fillStyle = 'rgba(245,124,0,0.75)';
+      ctx.fillRect(PAD, y, 90, 5);
+      y += 30;*/
+
+      /* body text – 38px fixed, truncate with [...] to fit */
+      const BODY_LH = 60;
+      const bodyAvail = FOOTER_TOP - y - 20;
+      ctx.font = 'normal 38px Arial,sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.84)';
+      ctx.textAlign = 'left';
+      const bodyLines = _fitLines(ctx, testo, W - PAD * 2, BODY_LH, bodyAvail);
+      for (const line of bodyLines) { ctx.fillText(line, PAD, y); y += BODY_LH; }
 
       _drawFooter(ctx, W, H);
       return canvas;
     }
 
     /* ── POST 1080×1080 ── */
-    function _buildPost(W, img, titolo) {
+    function _buildPost(W, img, titolo, logo) {
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = W;
       const ctx = canvas.getContext('2d');
@@ -473,11 +496,24 @@
       ov.addColorStop(1,'rgba(13,32,85,0.97)');
       ctx.fillStyle = ov; ctx.fillRect(0,0,W,W);
 
+      /* top vignette so logo is visible on any photo */
+      const topOv = ctx.createLinearGradient(0, 0, 0, W*0.28);
+      topOv.addColorStop(0,'rgba(13,32,85,0.72)');
+      topOv.addColorStop(1,'rgba(13,32,85,0)');
+      ctx.fillStyle = topOv; ctx.fillRect(0,0,W,W*0.28);
+
       /* watermark */
       _drawWatermark(ctx, W, W);
 
       /* orange top bar */
       ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,14);
+
+      /* logo top center */
+      if (logo) {
+        const logoH = 120;
+        const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
+        ctx.drawImage(logo, W/2 - logoW/2, 36, logoW, logoH);
+      }
 
       /* club name */
       ctx.fillStyle = '#f57c00';
@@ -526,8 +562,11 @@
     async function condividiStoriaIG(id) {
       const { titolo, testo, cat, imgSrc } = _artData(id);
       mostraCopyToast('Generazione storia…');
-      const photo = await _loadImage(imgSrc);
-      const canvas = _buildStoria(1080, 1920, photo, titolo, testo, cat);
+      const [photo, logo] = await Promise.all([
+        _loadImage(imgSrc),
+        _loadImage('images/negativo@4x.png'),
+      ]);
+      const canvas = _buildStoria(1080, 1920, photo, titolo, testo, cat, logo);
       const file   = await _toFile(canvas, 'virtus-storia.png');
       await _shareFile(file, canvas, 'virtus-storia.png', titolo);
     }
@@ -535,8 +574,11 @@
     async function condividiPostIG(id) {
       const { titolo, imgSrc } = _artData(id);
       mostraCopyToast('Generazione post…');
-      const photo = await _loadImage(imgSrc);
-      const canvas = _buildPost(1080, photo, titolo);
+      const [photo, logo] = await Promise.all([
+        _loadImage(imgSrc),
+        _loadImage('images/negativo@4x.png'),
+      ]);
+      const canvas = _buildPost(1080, photo, titolo, logo);
       const file   = await _toFile(canvas, 'virtus-post.png');
       await _shareFile(file, canvas, 'virtus-post.png', titolo);
     }
