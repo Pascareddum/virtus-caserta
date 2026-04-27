@@ -1800,15 +1800,21 @@ app.get('/api/sponsor', async (_req, res) => {
     res.json(r.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
+app.get('/api/admin/sponsor', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM sponsor ORDER BY livello, nome');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 app.post('/api/admin/sponsor', adminAuth, async (req, res) => {
-  const { nome, logo, url, livello } = req.body;
+  const { nome, logo, url, livello, attivo } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
   const id = Date.now().toString();
   try {
-    await db.query(`INSERT INTO sponsor (id,nome,logo,url,livello) VALUES ($1,$2,$3,$4,$5)`,
-      [id, nome, logo || '', url || '', livello || 'standard']);
+    await db.query(`INSERT INTO sponsor (id,nome,logo,url,livello,attivo) VALUES ($1,$2,$3,$4,$5,$6)`,
+      [id, nome, logo || '', url || '', Number(livello) || 1, attivo !== false]);
     await logActivity('Sponsor aggiunto', nome);
-    res.status(201).json({ id, nome, logo, url, livello });
+    res.status(201).json({ id, nome, logo, url, livello, attivo });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 app.put('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
@@ -1816,7 +1822,7 @@ app.put('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
   try {
     const r = await db.query(
       `UPDATE sponsor SET nome=$1,logo=$2,url=$3,livello=$4,attivo=$5 WHERE id=$6 RETURNING *`,
-      [nome, logo || '', url || '', livello || 'standard', attivo !== false, req.params.id]);
+      [nome, logo || '', url || '', Number(livello) || 1, attivo !== false, req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
     await logActivity('Sponsor modificato', nome);
     res.json(r.rows[0]);

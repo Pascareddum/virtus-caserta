@@ -391,6 +391,7 @@
   <button class="tab-btn"        onclick="switchTab('squadra')">🏐 Squadra</button>
   <button class="tab-btn"        onclick="switchTab('staff')">👥 Staff</button>
   <button class="tab-btn"        onclick="switchTab('live')">📡 Live</button>
+  <button class="tab-btn"        onclick="switchTab('sponsor')">🤝 Sponsor</button>
 </div>
 
 <!-- ══ DASHBOARD ══ -->
@@ -586,6 +587,52 @@
       <div id="spikeLog" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
     </div>
 
+  </div>
+</div>
+
+<!-- ══ SPONSOR ══ -->
+<div class="pannello" id="pan-sponsor">
+  <div class="toolbar">
+    <h2>Sponsor</h2>
+    <button class="btn-aggiungi" onclick="apriFormSponsor()">+ Aggiungi sponsor</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr><th>Logo</th><th>Nome</th><th>URL</th><th>Livello</th><th>Attivo</th><th></th></tr></thead>
+      <tbody id="sponsorBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL SPONSOR -->
+<div class="modal-overlay" id="modalSponsor">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr">
+      <h3 id="sponsorModalTitolo">Aggiungi sponsor</h3>
+      <button class="modal-close" onclick="chiudiModal('modalSponsor')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
+      <input type="hidden" id="sponsorId">
+      <div><label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Nome *</label>
+        <input id="sponsorNome" type="text" placeholder="Nome sponsor" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;"></div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Logo sponsor</label>
+        <input type="file" id="sponsorLogoFile" accept="image/*" onchange="anteprima('sponsorLogoFile','sponsorLogoPreview')" style="width:100%;font-size:13px;margin-bottom:8px;">
+        <img id="sponsorLogoPreview" src="" alt="" style="display:none;max-height:60px;max-width:180px;object-fit:contain;border-radius:6px;margin-bottom:8px;border:1px solid #e5e7eb;">
+        <input id="sponsorLogo" type="text" placeholder="URL logo (auto dopo upload, o incolla direttamente)" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;color:#6b7280;">
+      </div>
+      <div><label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Sito web sponsor</label>
+        <input id="sponsorUrl" type="text" placeholder="https://..." style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;"></div>
+      <div><label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Livello (1=principale)</label>
+        <input id="sponsorLivello" type="number" value="1" min="1" max="10" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;"></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;">
+        <input id="sponsorAttivo" type="checkbox" checked style="width:16px;height:16px;"> Attivo (visibile sul sito)
+      </label>
+    </div>
+    <div class="modal-footer" style="padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="chiudiModal('modalSponsor')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">Annulla</button>
+      <button onclick="salvaSponsor()" style="padding:9px 22px;border-radius:9px;border:none;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Salva</button>
+    </div>
   </div>
 </div>
 
@@ -1052,6 +1099,7 @@
     if (nome === 'squadra')    caricaSquadra();
     if (nome === 'staff')      caricaStaff();
     if (nome === 'live')       caricaLiveLinks();
+    if (nome === 'sponsor')    caricaSponsor();
   }
 
   function caricaTutto() {
@@ -1896,6 +1944,70 @@
       setLiveStatus('spikeLiveStatus', '○ Inattiva', false);
       spikeLog('✅ Live disattivata.', true);
     } catch (e) { spikeLog('Errore di rete: ' + e.message, false); }
+  }
+
+  /* ══ SPONSOR ══ */
+  async function caricaSponsor() {
+    const tbody = document.getElementById('sponsorBody');
+    try {
+      const list = await fetch('/api/admin/sponsor', { headers: headers() }).then(r => r.json());
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Nessuno sponsor.</td></tr>'; return; }
+      tbody.innerHTML = list.map(s => `
+        <tr>
+          <td>${s.logo ? `<img src="${s.logo}" style="height:36px;max-width:100px;object-fit:contain;" alt="${s.nome}">` : '—'}</td>
+          <td style="font-weight:700;">${s.nome}</td>
+          <td style="font-size:12px;color:#6b7280;">${s.url ? `<a href="${s.url}" target="_blank" rel="noopener" style="color:#1535a8;">${s.url}</a>` : '—'}</td>
+          <td>${s.livello}</td>
+          <td>${s.attivo ? '<span style="color:#16a34a;font-weight:700;">✓</span>' : '<span style="color:#999;">✗</span>'}</td>
+          <td style="display:flex;gap:6px;">
+            <button onclick="modificaSponsor(${JSON.stringify(s).replace(/"/g,'&quot;')})" class="btn-azione btn-edit">✏️</button>
+            <button onclick="eliminaSponsor(${s.id},'${s.nome.replace(/'/g,"\\\'")}')" class="btn-azione btn-delete">🗑</button>
+          </td>
+        </tr>`).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="6">Errore caricamento.</td></tr>'; }
+  }
+
+  function apriFormSponsor(s) {
+    sponsorInEditing = s?.id || null;
+    document.getElementById('sponsorModalTitolo').textContent = s ? 'Modifica sponsor' : 'Aggiungi sponsor';
+    document.getElementById('sponsorId').value      = s?.id    || '';
+    document.getElementById('sponsorNome').value    = s?.nome  || '';
+    document.getElementById('sponsorLogo').value    = s?.logo  || '';
+    document.getElementById('sponsorUrl').value     = s?.url   || '';
+    document.getElementById('sponsorLivello').value = s?.livello ?? 1;
+    document.getElementById('sponsorAttivo').checked = s ? !!s.attivo : true;
+    const prev = document.getElementById('sponsorLogoPreview');
+    if (s?.logo) { prev.src = s.logo; prev.style.display = 'block'; }
+    else         { prev.src = ''; prev.style.display = 'none'; }
+    document.getElementById('sponsorLogoFile').value = '';
+    document.getElementById('modalSponsor').classList.add('aperto');
+  }
+  function modificaSponsor(s) { apriFormSponsor(s); }
+
+  async function salvaSponsor() {
+    const id = document.getElementById('sponsorId').value;
+    let logo = document.getElementById('sponsorLogo').value.trim();
+    const uploadedUrl = await uploadImmagine('sponsorLogoFile');
+    if (uploadedUrl) logo = uploadedUrl;
+    const body = {
+      nome:    document.getElementById('sponsorNome').value.trim(),
+      logo,
+      url:     document.getElementById('sponsorUrl').value.trim(),
+      livello: parseInt(document.getElementById('sponsorLivello').value) || 1,
+      attivo:  document.getElementById('sponsorAttivo').checked,
+    };
+    if (!body.nome) { alert('Nome obbligatorio.'); return; }
+    const method = id ? 'PUT' : 'POST';
+    const endpoint = id ? `/api/admin/sponsor/${id}` : '/api/admin/sponsor';
+    const res = await fetch(endpoint, { method, headers: headers(), body: JSON.stringify(body) });
+    if (res.ok) { chiudiModal('modalSponsor'); caricaSponsor(); }
+    else        { alert('Errore salvataggio sponsor.'); }
+  }
+
+  async function eliminaSponsor(id, nome) {
+    if (!confirm(`Eliminare sponsor "${nome}"?`)) return;
+    const res = await fetch(`/api/admin/sponsor/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaSponsor(); else alert('Errore eliminazione.');
   }
 
   /* ══ GALLERIA ══ */
