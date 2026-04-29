@@ -668,19 +668,8 @@
     }
 
     async function _shareFile(file, canvas, name, titolo) {
-      try {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: titolo });
-        } else {
-          _downloadCanvas(canvas, name);
-          mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
-        }
-      } catch(e) {
-        if (e.name !== 'AbortError') {
-          _downloadCanvas(canvas, name);
-          mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
-        }
-      }
+      _downloadCanvas(canvas, name);
+      mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
     }
 
     async function _shareOriginalImg(imgSrc, titolo, fname) {
@@ -692,20 +681,8 @@
         const blob = await resp.blob();
         const ext  = blob.type === 'image/png' ? 'png' : (blob.type === 'image/webp' ? 'webp' : 'jpg');
         const name = fname || `virtus-ig.${ext}`;
-        const file = new File([blob], name, { type: blob.type });
-        try {
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: titolo });
-          } else {
-            _downloadBlob(blob, name);
-            mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
-          }
-        } catch(e) {
-          if (e.name !== 'AbortError') {
-            _downloadBlob(blob, name);
-            mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
-          }
-        }
+        _downloadBlob(blob, name);
+        mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
       } catch(e) {
         mostraCopyToast('Errore caricamento immagine');
       }
