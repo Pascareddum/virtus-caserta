@@ -556,13 +556,13 @@
       return canvas;
     }
 
-    /* ── POST 1080×608 (16:9 landscape) ── */
+    /* ── POST 1080×566 (1.91:1 Instagram landscape) ── */
     function _buildPost(W, img, titolo, logo) {
-      const H = Math.round(W * 9 / 16);   // 608 for W=1080
+      const H = Math.round(W / 1.91);   // 566 for W=1080
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
-      const PAD = 64;
+      const PAD = 70;
 
       if (img) {
         _containWithBlurBg(ctx, img, 0, 0, W, H);
@@ -572,10 +572,10 @@
         ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
       }
 
-      /* dark overlay bottom 55% */
-      const ov = ctx.createLinearGradient(0, H*0.3, 0, H);
+      /* dark overlay bottom 60% */
+      const ov = ctx.createLinearGradient(0, H*0.28, 0, H);
       ov.addColorStop(0,'rgba(13,32,85,0)');
-      ov.addColorStop(0.4,'rgba(13,32,85,0.82)');
+      ov.addColorStop(0.38,'rgba(13,32,85,0.82)');
       ov.addColorStop(1,'rgba(13,32,85,0.97)');
       ctx.fillStyle = ov; ctx.fillRect(0,0,W,H);
 
@@ -585,17 +585,53 @@
       /* orange top bar */
       ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,10);
 
-      /* club name */
-      ctx.fillStyle = '#f57c00';
-      ctx.font = 'bold 38px Arial,sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('VIRTUS CASERTA', W/2, H - 220);
+      /* ── title: word-wrap (no truncation), auto-shrink font ── */
+      const maxW = W - PAD * 2;
+      const TITLE_BOTTOM = H - 96;  // last line baseline anchor
+      const TITLE_TOP_LIMIT = Math.round(H * 0.36); // ~204px, don't go above
 
-      /* title – max 2 lines */
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 50px Arial,sans-serif'; ctx.textAlign = 'left';
-      const postTitleLines = _fitLines(ctx, titolo.toUpperCase(), W-PAD*2, 66, 66*2);
-      let postY = H - 172;
-      for (const line of postTitleLines) { ctx.fillText(line, PAD, postY); postY += 66; }
+      function wrapAll(text, font) {
+        ctx.font = font;
+        const words = text.split(' ');
+        const lines = []; let line = '';
+        for (const w of words) {
+          const test = line ? line + ' ' + w : w;
+          if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+          else line = test;
+        }
+        if (line) lines.push(line);
+        return lines;
+      }
+
+      let fontSize = 44;
+      let titleLines, lineH;
+      while (fontSize >= 18) {
+        lineH = Math.round(fontSize * 1.28);
+        titleLines = wrapAll(titolo.toUpperCase(), `bold ${fontSize}px Arial,sans-serif`);
+        const clubFontSizeTest = Math.max(16, Math.round(fontSize * 0.68));
+        const clubGapTest = Math.round(fontSize * 0.4) + 6;
+        const totalNeeded = clubFontSizeTest + clubGapTest + titleLines.length * lineH;
+        if (TITLE_BOTTOM - totalNeeded >= TITLE_TOP_LIMIT || fontSize === 18) break;
+        fontSize -= 3;
+      }
+
+      ctx.font = `bold ${fontSize}px Arial,sans-serif`;
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'left';
+      const totalTitleH = titleLines.length * lineH;
+      const firstLineY = TITLE_BOTTOM - totalTitleH + lineH;
+      for (let i = 0; i < titleLines.length; i++) {
+        ctx.fillText(titleLines[i], PAD, firstLineY + i * lineH);
+      }
+
+      /* club name above title */
+      const clubFontSize = Math.max(18, Math.round(fontSize * 0.68));
+      const clubY = firstLineY - Math.round(fontSize * 0.4) - 22;
+      if (clubY > 18) {
+        ctx.fillStyle = '#f57c00';
+        ctx.font = `bold ${clubFontSize}px Arial,sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('VIRTUS CASERTA', W/2, clubY);
+      }
 
       /* logo bottom center */
       if (logo) {
@@ -609,7 +645,7 @@
       /* bottom bar + URL */
       ctx.fillStyle = '#f57c00'; ctx.fillRect(0, H-8, W, 8);
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.font = 'normal 22px Arial,sans-serif'; ctx.textAlign = 'center';
+      ctx.font = 'normal 20px Arial,sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('www.virtuscaserta.com', W/2, H - 16);
 
       return canvas;

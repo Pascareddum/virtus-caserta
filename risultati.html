@@ -542,6 +542,29 @@
 
       // Mostra barra controlli solo dopo caricamento
       document.getElementById('controlliBar').style.display = 'flex';
+
+      // Auto-apply URL params: ?fonte=fipav&cat=NOME  or  ?fonte=opes
+      const params  = new URLSearchParams(window.location.search);
+      const fonteP  = params.get('fonte');
+      const catP    = params.get('cat');
+      if (fonteP) {
+        const fonteSelect = document.getElementById('fonteSelect');
+        if ([...fonteSelect.options].some(o => o.value === fonteP)) {
+          fonteSelect.value = fonteP;
+          applyFiltro(fonteSelect);
+        }
+        if (catP && fonteP === 'fipav') {
+          const catSel = document.getElementById('fipavCatSelect');
+          catSel.style.display = '';
+          const decoded = decodeURIComponent(catP);
+          const match = [...catSel.options].find(o =>
+            o.value === decoded ||
+            o.value.toLowerCase().includes(decoded.toLowerCase()) ||
+            decoded.toLowerCase().includes(o.value.toLowerCase())
+          );
+          if (match) { catSel.value = match.value; applySubFiltro(catSel); }
+        }
+      }
     } catch (err) {
       cont.innerHTML = `
         <div class="vuota">

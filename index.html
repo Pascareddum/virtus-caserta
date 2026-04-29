@@ -797,6 +797,7 @@
       box-shadow: 0 1px 4px rgba(13,32,85,.06);
     }
     .sq-link-btn:hover { background: var(--grigio-chiaro); border-color: var(--blu-scuro); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(13,32,85,.12); }
+    .sq-link-btn.disabilitato { pointer-events:none; cursor:not-allowed; opacity:.45; background:#f1f5f9; color:#9ca3af; border-color:#e2e8f0; box-shadow:none; transform:none; }
     .sq-link-icon { font-size: 22px; }
 
     .sq-subteams-grid {
@@ -883,16 +884,25 @@
     }
     .sq-subteam-table td:last-child { color: #666; font-size: 11px; font-weight: 400; }
     .sq-subteam-table tr:last-child td { border-bottom: none; }
-    .sq-subteam-links { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+    .sq-subteam-links { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
+    .sq-subteam-links-row { display:flex; gap:6px; }
+    .sq-subteam-links-row .sq-subteam-link { flex:1; justify-content:center; }
+    .sq-subteam-link-full { width:100%; justify-content:center; }
     .sq-subteam-link {
-      display:inline-flex; align-items:center; gap:3px;
-      font-size:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
-      color:var(--blu-scuro); text-decoration:none;
-      padding:4px 9px; border-radius:8px;
-      border:1.5px solid rgba(13,32,85,.15); background:#fff;
-      transition:background .15s, border-color .15s;
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:10px; font-weight:800; letter-spacing:.4px; text-transform:uppercase;
+      color:#fff; text-decoration:none;
+      padding:6px 14px; border-radius:20px;
+      background:var(--blu-scuro);
+      transition:opacity .15s, transform .15s;
+      white-space:nowrap;
     }
-    .sq-subteam-link:hover { background:var(--grigio-chiaro); border-color:var(--blu-scuro); }
+    .sq-subteam-link:hover { opacity:.82; transform:translateY(-1px); }
+    .sq-subteam-link.disabilitato {
+      background:#d1d5db; color:#6b7280;
+      pointer-events:none; cursor:not-allowed;
+      transform:none !important;
+    }
 
     @media (max-width: 540px) {
       .sq-panel { border-radius: 20px; max-height: 95vh; }
@@ -2787,7 +2797,7 @@
           { giorno: 'Venerdì', ora: '21:00 – 23:00' },
         ],
         immagine: 'images/Serie D.jpeg',
-        linkRisultati: '/risultati',
+        linkRisultati: '/risultati?fonte=fipav&cat=Serie+D+Femminile',
         linkClassifica: '/risultati',
         linkSquadra: '/squadra',
       },
@@ -2804,7 +2814,7 @@
           { giorno: 'Venerdì', ora: '21:00 - 23:00' },
         ],
         immagine: 'images/Prima divisione maschile.jpeg',
-        linkRisultati: '/risultati',
+        linkRisultati: '/risultati?fonte=fipav&cat=Prima+Divisione+Maschile',
         linkClassifica: '/risultati',
         linkSquadra: '/squadra',
       },
@@ -2819,7 +2829,7 @@
           { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
         ],
         immagine: 'images/Prima divisione femminile.jpeg',
-        linkRisultati: '/risultati',
+        linkRisultati: '/risultati?fonte=fipav&cat=Prima+Divisione+Femminile',
         linkClassifica: '/risultati',
         linkSquadra: '/squadra',
       },
@@ -2829,9 +2839,6 @@
         categoria: 'Under 13 · Under 14 · Under 16 · Under 18',
         categoriaInfo: 'Campionati Provinciali e Regionali FIPAV',
         immagine: 'images/Giovanili.jpeg',
-        linkRisultati: '/risultati',
-        linkClassifica: '/risultati',
-        linkSquadra: '/squadra',
         subteams: [
           {
             nome: 'Under 13 - Livello base',
@@ -2841,8 +2848,11 @@
               { giorno: 'Lunedì', ora: '19:00 – 21:00' },
               { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
             ],
+            linkRisultati: '/risultati?fonte=fipav&cat=Under+13+Femminile',
+            linkClassifica: '/risultati',
+            linkSquadra: '/squadra',
           },
-              {
+          {
             nome: 'Under 13 - Livello avanzato',
             allenatore: "Mirko D'Addio",
             luogo: 'Tensostrutttura Tenda di Abrama',
@@ -2850,15 +2860,21 @@
               { giorno: 'Martedì', ora: '17:30 – 19:30' },
               { giorno: 'Giovedì', ora: '17:30 – 19:00' },
             ],
+            linkRisultati: '/risultati?fonte=fipav&cat=Under+13+Femminile',
+            linkClassifica: '/risultati',
+            linkSquadra: '/squadra',
           },
-    {
-            nome:'Under 16 - Livello base',
+          {
+            nome: 'Under 16 - Livello base',
             allenatore: 'Giorgia Basso',
             luogo: 'Liceo Manzoni',
-            orari:[
-              { giorno: 'Martedì', ora: '20:00 - 21:30'},
-              { giorno: 'Venerdì', ora: '20:00 - 21:30'},
-            ]
+            orari: [
+              { giorno: 'Martedì', ora: '20:00 - 21:30' },
+              { giorno: 'Venerdì', ora: '20:00 - 21:30' },
+            ],
+            linkRisultati: '/risultati?fonte=fipav&cat=Under+16+Femminile',
+            linkClassifica: '/risultati',
+            linkSquadra: '/squadra',
           },
           {
             nome: 'Under 16 APRILE',
@@ -2869,6 +2885,9 @@
               { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
               { giorno: 'Giovedì', ora: '19:00 – 21:00' },
             ],
+            linkRisultati: '/risultati?fonte=fipav&cat=Under+16+Femminile',
+            linkClassifica: '/risultati',
+            linkSquadra: '/squadra',
           },
           {
             nome: 'Under 18 (Virtus Caserta)',
@@ -2879,9 +2898,12 @@
               { giorno: 'Mercoledì', ora: '18:30 – 20:00' },
               { giorno: 'Giovedì', ora: '19:00 – 21:00' },
             ],
+            linkRisultati: '/risultati?fonte=fipav&cat=Under+18+Femminile',
+            linkClassifica: '/risultati',
+            linkSquadra: '/squadra',
           },
-            {
-            nome: 'Under 18(Virtus Caserta Academy)',
+          {
+            nome: 'Under 18 (Virtus Caserta Academy)',
             allenatore: "Mirko D'Addio",
             luogo: 'Liceo Manzoni',
             orari: [
@@ -2889,8 +2911,11 @@
               { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
               { giorno: 'Giovedì', ora: '19:00 – 21:00' },
             ],
+            linkRisultati: '/risultati?fonte=fipav&cat=Under+18+Femminile',
+            linkClassifica: '/risultati',
+            linkSquadra: '/squadra',
           },
-                {
+          {
             nome: 'Under 14 BIGMAT',
             allenatore: "Mirko D'Addio",
             luogo: 'Tensostruttura Tenda di Abramo',
@@ -2898,6 +2923,9 @@
               { giorno: 'Martedì', ora: '17:30 – 19:30' },
               { giorno: 'Giovedì', ora: '17:30 – 19:00' },
             ],
+            linkRisultati: '/risultati?fonte=fipav&cat=Under+14+Femminile',
+            linkClassifica: '/risultati',
+            linkSquadra: '/squadra',
           }
         ],
       },
@@ -2913,7 +2941,7 @@
           { giorno: 'Venerdì', ora: '19:00 – 21:00' },
         ],
         immagine: 'images/Under 13-15 maschile.jpeg',
-        linkRisultati: '/risultati',
+        linkRisultati: '/risultati?fonte=fipav&cat=Under',
         linkClassifica: '/risultati',
         linkSquadra: '/squadra',
       },
@@ -2923,7 +2951,7 @@
         categoria: 'Attività inclusive e tornei',
         categoriaInfo: 'Tornei OPES e attività ricreative',
         immagine: 'images/Mista.jpeg',
-        linkRisultati: '/risultati',
+        linkRisultati: '/risultati?fonte=opes',
         linkClassifica: '',
         linkSquadra: '/squadra',
          subteams: [
@@ -2935,6 +2963,9 @@
               { giorno: 'Lunedì', ora: '21:00 – 23:00' },
               { giorno: 'Mercoledì', ora: '21:00 – 23:00' },
             ],
+            linkRisultati: '/risultati?fonte=opes',
+            linkClassifica: '',
+            linkSquadra: '/squadra',
           },
           {
             nome: 'Virtus Caserta Red',
@@ -2944,6 +2975,9 @@
               { giorno: 'Lunedì', ora: '21:00 – 23:00' },
               { giorno: 'Mercoledì', ora: '21:00 – 23:00' },
             ],
+            linkRisultati: '/risultati?fonte=opes',
+            linkClassifica: '',
+            linkSquadra: '/squadra',
           },
         ],
       },
@@ -2972,9 +3006,15 @@
       document.getElementById('sqPanelCategoria').textContent = d.categoria;
       document.getElementById('sqPanelCategoriaInfo').textContent = d.categoriaInfo || d.categoria;
       document.getElementById('sqPanelHeader').style.backgroundImage = `url('${d.immagine}'), linear-gradient(135deg,#0d2055,#1535a8)`;
-      document.getElementById('sqLinkRisultati').href = d.linkRisultati;
-      document.getElementById('sqLinkClassifica').href = d.linkClassifica;
-      document.getElementById('sqLinkSquadra').href = d.linkSquadra;
+      [
+        ['sqLinkRisultati', d.linkRisultati],
+        ['sqLinkClassifica', d.linkClassifica],
+        ['sqLinkSquadra',    d.linkSquadra],
+      ].forEach(([id, link]) => {
+        const el = document.getElementById(id);
+        el.href = link || '#';
+        el.classList.toggle('disabilitato', !link);
+      });
 
       if (d.subteams) {
         document.getElementById('sqAllenatoreRow').style.display = 'none';
@@ -2982,12 +3022,21 @@
         document.getElementById('sqOrariSimple').style.display = 'none';
         const container = document.getElementById('sqSubteamsContainer');
         container.style.display = '';
-        const stLinks = [
-          d.linkClassifica ? `<a href="${d.linkClassifica}" class="sq-subteam-link">🏆 Classifica</a>` : '',
-          d.linkRisultati  ? `<a href="${d.linkRisultati}"  class="sq-subteam-link">📋 Risultati</a>`  : '',
-          d.linkSquadra    ? `<a href="${d.linkSquadra}"    class="sq-subteam-link">👥 Squadra</a>`    : '',
-        ].filter(Boolean).join('');
-        container.innerHTML = '<div class="sq-subteams-grid">' + d.subteams.map(st => `
+        container.innerHTML = '<div class="sq-subteams-grid">' + d.subteams.map(st => {
+          const mkBtn = (key, icon, label, extraClass) => {
+            if (!(key in st)) return '';
+            const href = st[key];
+            const cls = 'sq-subteam-link' + (extraClass ? ' ' + extraClass : '') + (!href ? ' disabilitato' : '');
+            if (!href) return `<span class="${cls}">${icon} ${label}</span>`;
+            return `<a href="${href}" class="${cls}">${icon} ${label}</a>`;
+          };
+          const btnR = mkBtn('linkRisultati', '📋','Risultati');
+          const btnS = mkBtn('linkSquadra',   '👥','Squadra');
+          const btnC = mkBtn('linkClassifica','🏆','Classifica','sq-subteam-link-full');
+          const row1 = (btnR || btnS) ? `<div class="sq-subteam-links-row">${btnR}${btnS}</div>` : '';
+          const row2 = btnC ? `<div class="sq-subteam-links-row">${btnC}</div>` : '';
+          const linksHtml = (row1 || row2) ? `<div class="sq-subteam-links">${row1}${row2}</div>` : '';
+          return `
           <div class="sq-subteam">
             <div class="sq-subteam-title">${st.nome}</div>
             <div class="sq-subteam-meta">
@@ -2998,8 +3047,9 @@
               <thead><tr><th>Giorno</th><th>Orario</th></tr></thead>
               <tbody>${st.orari.map(o => `<tr><td>${o.giorno}</td><td>${o.ora}</td></tr>`).join('')}</tbody>
             </table>
-            ${stLinks ? `<div class="sq-subteam-links">${stLinks}</div>` : ''}
-          </div>`).join('') + '</div>';
+            ${linksHtml}
+          </div>`;
+        }).join('') + '</div>';
       } else {
         document.getElementById('sqAllenatoreRow').style.display = '';
         document.getElementById('sqPanelAllenatore').textContent = d.allenatore || '–';
