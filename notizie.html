@@ -107,19 +107,15 @@
     .news-testo  { font-size:15px; color:#444; line-height:1.65; }
 
     .news-img-wrap {
-      position:relative; width:100%; aspect-ratio:16/9; overflow:hidden;
+      position:relative; width:100%; overflow:hidden;
       border-radius:10px; margin-bottom:16px;
-      background:#f0f4f8; background-size:cover; background-position:center;
-    }
-    .news-img-wrap::before {
-      content:''; position:absolute; inset:-10px;
-      background:inherit; filter:blur(20px) brightness(.65) saturate(1.2);
-      z-index:0;
+      background:#f0f4f8;
     }
     .news-img {
       position:relative; z-index:1;
-      width:100%; height:100%; object-fit:contain;
+      width:100%; height:auto;
       display:block; cursor:zoom-in;
+      border-radius:10px;
     }
 
     /* ── ZOOM LIGHTBOX ── */
@@ -469,6 +465,8 @@
     function _containWithBlurBg(ctx, img, x, y, w, h) {
       /* blurred cover behind, contain on top */
       ctx.save();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
       /* blurred bg */
       const scCover = Math.max(w / img.naturalWidth, h / img.naturalHeight);
@@ -556,13 +554,15 @@
       return canvas;
     }
 
-    /* ── POST 566×566 (1:1 Instagram square) ── */
+    /* ── POST 1080×1080 (1:1 Instagram square) ── */
     function _buildPost(W, img, titolo, logo) {
       const H = W;   // square
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
-      const PAD = 42;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      const PAD = 80;
 
       if (img) {
         _containWithBlurBg(ctx, img, 0, 0, W, H);
@@ -583,11 +583,11 @@
       _drawWatermark(ctx, W, H);
 
       /* orange top bar */
-      ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,8);
+      ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,16);
 
       /* ── title: word-wrap (no truncation), auto-shrink font ── */
       const maxW = W - PAD * 2;
-      const TITLE_BOTTOM = H - 72;
+      const TITLE_BOTTOM = H - 140;
       const TITLE_TOP_LIMIT = Math.round(H * 0.42);
 
       function wrapAll(text, font) {
@@ -603,16 +603,16 @@
         return lines;
       }
 
-      let fontSize = 34;
+      let fontSize = 64;
       let titleLines, lineH;
-      while (fontSize >= 14) {
+      while (fontSize >= 26) {
         lineH = Math.round(fontSize * 1.28);
         titleLines = wrapAll(titolo.toUpperCase(), `bold ${fontSize}px Arial,sans-serif`);
-        const clubFontSizeTest = Math.max(12, Math.round(fontSize * 0.68));
-        const clubGapTest = Math.round(fontSize * 0.4) + 8;
+        const clubFontSizeTest = Math.max(22, Math.round(fontSize * 0.68));
+        const clubGapTest = Math.round(fontSize * 0.4) + 16;
         const totalNeeded = clubFontSizeTest + clubGapTest + titleLines.length * lineH;
-        if (TITLE_BOTTOM - totalNeeded >= TITLE_TOP_LIMIT || fontSize === 14) break;
-        fontSize -= 2;
+        if (TITLE_BOTTOM - totalNeeded >= TITLE_TOP_LIMIT || fontSize === 26) break;
+        fontSize -= 4;
       }
 
       ctx.font = `bold ${fontSize}px Arial,sans-serif`;
@@ -624,9 +624,9 @@
       }
 
       /* club name above title */
-      const clubFontSize = Math.max(14, Math.round(fontSize * 0.68));
-      const clubY = firstLineY - Math.round(fontSize * 0.4) - 14;
-      if (clubY > 14) {
+      const clubFontSize = Math.max(22, Math.round(fontSize * 0.68));
+      const clubY = firstLineY - Math.round(fontSize * 0.4) - 22;
+      if (clubY > 22) {
         ctx.fillStyle = '#f57c00';
         ctx.font = `bold ${clubFontSize}px Arial,sans-serif`;
         ctx.textAlign = 'center';
@@ -635,18 +635,18 @@
 
       /* logo bottom center */
       if (logo) {
-        const logoH = 36;
+        const logoH = 70;
         const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
         ctx.globalAlpha = 0.92;
-        ctx.drawImage(logo, W/2 - logoW/2, H - 66, logoW, logoH);
+        ctx.drawImage(logo, W/2 - logoW/2, H - 130, logoW, logoH);
         ctx.globalAlpha = 1;
       }
 
       /* bottom bar + URL */
-      ctx.fillStyle = '#f57c00'; ctx.fillRect(0, H-7, W, 7);
+      ctx.fillStyle = '#f57c00'; ctx.fillRect(0, H-14, W, 14);
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.font = 'normal 15px Arial,sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('www.virtuscaserta.com', W/2, H - 12);
+      ctx.font = 'normal 28px Arial,sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('www.virtuscaserta.com', W/2, H - 22);
 
       return canvas;
     }
@@ -657,13 +657,13 @@
         titolo: article?.querySelector('.news-titolo')?.textContent?.trim() || 'Virtus Caserta',
         testo:  article?.querySelector('.news-testo')?.textContent?.trim()  || '',
         cat:    article?.querySelector('.news-cat')?.textContent?.trim()    || 'NOTIZIA',
-        imgSrc: article?.querySelector('.news-img')?.src || null,
+        imgSrc: article?.dataset.immagine || article?.querySelector('.news-img')?.src || null,
       };
     }
 
     function _toFile(canvas, name, jpeg) {
       const mime = jpeg ? 'image/jpeg' : 'image/png';
-      const q    = jpeg ? 0.88 : undefined;
+      const q    = jpeg ? 0.95 : undefined;
       return new Promise(res => canvas.toBlob(b => res(new File([b], name, { type: mime })), mime, q));
     }
 
@@ -681,6 +681,41 @@
           mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
         }
       }
+    }
+
+    async function _shareOriginalImg(imgSrc, titolo, fname) {
+      if (!imgSrc) { mostraCopyToast('Nessuna immagine disponibile'); return; }
+      mostraCopyToast('Preparazione immagine…');
+      try {
+        const resp = await fetch(imgSrc);
+        if (!resp.ok) throw new Error('fetch fail');
+        const blob = await resp.blob();
+        const ext  = blob.type === 'image/png' ? 'png' : (blob.type === 'image/webp' ? 'webp' : 'jpg');
+        const name = fname || `virtus-ig.${ext}`;
+        const file = new File([blob], name, { type: blob.type });
+        try {
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: titolo });
+          } else {
+            _downloadBlob(blob, name);
+            mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
+          }
+        } catch(e) {
+          if (e.name !== 'AbortError') {
+            _downloadBlob(blob, name);
+            mostraCopyToast('Immagine scaricata — pubblicala su Instagram!');
+          }
+        }
+      } catch(e) {
+        mostraCopyToast('Errore caricamento immagine');
+      }
+    }
+
+    function _downloadBlob(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.download = name; a.href = url; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 
     async function condividiStoriaIG(id) {
@@ -702,7 +737,7 @@
         _loadImage(imgSrc),
         _loadImage('images/negativo@4x.png'),
       ]);
-      const canvas = _buildPost(566, photo, titolo, logo);
+      const canvas = _buildPost(1080, photo, titolo, logo);
       const file   = await _toFile(canvas, 'virtus-post.jpg', true);
       await _shareFile(file, canvas, 'virtus-post.jpg', titolo);
     }
@@ -711,7 +746,7 @@
       const jpeg = name.endsWith('.jpg');
       const a = document.createElement('a');
       a.download = name;
-      a.href = jpeg ? canvas.toDataURL('image/jpeg', 0.88) : canvas.toDataURL('image/png');
+      a.href = jpeg ? canvas.toDataURL('image/jpeg', 0.95) : canvas.toDataURL('image/png');
       a.click();
     }
     function copiaLink(id) {
@@ -738,12 +773,12 @@ async function carica() {
           const colore = COLORI[n.colore] || COLORI.blu;
           const imgAlt = (n.titolo || '').replace(/'/g, "\\'");
           const img = n.immagine
-            ? `<div class="news-img-wrap" style="background-image:url('${n.immagine}')"><img src="${n.immagine}" alt="${imgAlt}" class="news-img" loading="lazy" onclick="apriZoom(this.src,this.alt)"></div>`
+            ? `<div class="news-img-wrap"><img src="${n.immagine}" alt="${imgAlt}" class="news-img" loading="lazy" onclick="apriZoom(this.src,this.alt)"></div>`
             : '';
           const titoloSafe = (n.titolo || '').replace(/'/g, "\\'");
           const id = n.id;
           return `
-            <article class="news-card" id="notizia-${id}">
+            <article class="news-card" id="notizia-${id}" data-immagine="${n.immagine || ''}">
               <div class="news-accent" style="background:${colore};"></div>
               <div class="news-body">
                 ${img}
