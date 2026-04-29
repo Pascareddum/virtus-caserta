@@ -194,6 +194,47 @@ async function createTables() {
     );
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS fipav_matches (
+      id              VARCHAR PRIMARY KEY,
+      fonte           VARCHAR   NOT NULL,
+      categoria       VARCHAR   NOT NULL DEFAULT '',
+      cid             VARCHAR,
+      tid             VARCHAR,
+      giornata        VARCHAR   DEFAULT '',
+      data_ora        TIMESTAMPTZ,
+      casa            VARCHAR   NOT NULL,
+      ospite          VARCHAR   NOT NULL,
+      risultato       VARCHAR   DEFAULT '',
+      played          BOOLEAN   DEFAULT false,
+      postponed       BOOLEAN   DEFAULT false,
+      parziali        JSONB,
+      luogo           VARCHAR   DEFAULT '',
+      logo_home       VARCHAR   DEFAULT '',
+      logo_away       VARCHAR   DEFAULT '',
+      match_url       VARCHAR   DEFAULT '',
+      classifica_url  VARCHAR   DEFAULT '',
+      result_fetched  BOOLEAN   DEFAULT false,
+      created_at      TIMESTAMPTZ DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS fipav_classifica_cache (
+      id          SERIAL PRIMARY KEY,
+      categoria   VARCHAR   NOT NULL,
+      fonte       VARCHAR   NOT NULL,
+      cid         VARCHAR,
+      tid         VARCHAR,
+      squadre     JSONB     NOT NULL DEFAULT '[]',
+      updated_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS fipav_cl_cid_idx ON fipav_classifica_cache (cid, fonte) WHERE cid IS NOT NULL`);
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS fipav_cl_tid_idx ON fipav_classifica_cache (tid) WHERE tid IS NOT NULL`);
+
   // Aggiornamenti schema per DB già esistenti
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
   await query(`ALTER TABLE squadra ADD COLUMN IF NOT EXISTS sesso VARCHAR DEFAULT 'Femminile'`);

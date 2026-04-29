@@ -262,9 +262,11 @@
       .week-grid{grid-template-columns:repeat(7,minmax(110px,1fr));overflow-x:auto;}
       .giorni-head{grid-template-columns:repeat(7,minmax(110px,1fr));overflow-x:auto;}
     }
+    .nav-brand-label{display:none!important;}
     @media(max-width:600px){
       nav{padding:0 14px;height:64px;}
       .nav-brand img{height:38px;}
+      .nav-back{font-size:11px;padding:6px 10px;}
       .sett-range{font-size:14px;}
       .sett-header,.filtri-wrap{padding-left:14px;padding-right:14px;}
 
@@ -327,7 +329,7 @@
     <a href="/" class="nav-back">← Home</a>
   </div>
   <a href="/" class="nav-brand">
-    <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'"><span class="nav-brand-label">Virtus Caserta</span>
+    <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
   </a>
   <div class="nav-right"></div>
 </nav>

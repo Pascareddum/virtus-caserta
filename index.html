@@ -782,7 +782,8 @@
       flex-direction: column;
       align-items: center;
       gap: 6px;
-      background: var(--grigio-chiaro);
+      background: #fff;
+      border: 1.5px solid rgba(13,32,85,0.18);
       border-radius: 14px;
       padding: 14px 8px;
       text-decoration: none;
@@ -791,10 +792,11 @@
       font-weight: 700;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      transition: background 0.2s, transform 0.2s;
+      transition: all 0.2s;
       text-align: center;
+      box-shadow: 0 1px 4px rgba(13,32,85,.06);
     }
-    .sq-link-btn:hover { background: #c5d7ef; transform: translateY(-2px); }
+    .sq-link-btn:hover { background: var(--grigio-chiaro); border-color: var(--blu-scuro); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(13,32,85,.12); }
     .sq-link-icon { font-size: 22px; }
 
     .sq-subteams-grid {
@@ -993,7 +995,14 @@
     .notizia-img.blu    { background: linear-gradient(135deg, var(--blu-scuro), #1565c0); }
     .notizia-img.arancio{ background: linear-gradient(135deg, #e65100, var(--arancio-chiaro)); }
     .notizia-img.azzurro{ background: linear-gradient(135deg, #0277bd, var(--blu-chiaro)); }
-    .notizia-img img    { width:100%; height:100%; object-fit:cover; }
+    .notizia-img { position:relative; overflow:hidden; }
+    .notizia-img img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; background:transparent; }
+    .notizia-img img.has-bg::before { content:none; }
+    .notizia-img-bg {
+      position:absolute; inset:-12px; z-index:0;
+      background-size:cover; background-position:center;
+      filter:blur(22px) brightness(.6) saturate(1.2);
+    }
 
     .notizia-body {
       padding: 20px 22px;
@@ -2215,7 +2224,9 @@
         track.innerHTML = notizie.map(n => `
           <div class="notizia-card">
             <div class="notizia-img ${n.colore || 'blu'}">
-              ${n.immagine ? `<img src="${n.immagine}" alt="${n.titolo}">` : `<span style="font-size:48px">${coloreEmoji(n.colore)}</span>`}
+              ${n.immagine
+                ? `<div class="notizia-img-bg" style="background-image:url('${n.immagine}')"></div><img src="${n.immagine}" alt="${n.titolo}">`
+                : `<span style="font-size:48px">${coloreEmoji(n.colore)}</span>`}
             </div>
             <div class="notizia-body">
               <div class="notizia-data">${n.data || ''}</div>
@@ -2412,9 +2423,6 @@
           <div class="partite-footer-btns">
             <a href="${data.fipavUrl}" target="_blank" rel="noopener" class="partite-fipav-btn">
               Tutta la stagione sul portale FIPAV
-            </a>
-            <a href="/classifica" class="partite-fipav-btn">
-              Mostra classifiche
             </a>
           </div>`;
       } catch (err) {
@@ -2770,8 +2778,8 @@
         ],
         immagine: 'images/Serie D.jpeg',
         linkRisultati: '/risultati',
-        linkClassifica: '/classifica',
-        linkSquadra: '/squadre/serie-d',
+        linkClassifica: '/risultati',
+        linkSquadra: '/squadra',
       },
       'prima-div-m': {
         nome: 'Prima Divisione Maschile',
@@ -2787,8 +2795,8 @@
         ],
         immagine: 'images/Prima divisione maschile.jpeg',
         linkRisultati: '/risultati',
-        linkClassifica: '/classifica',
-        linkSquadra: '/squadre/prima-divisione-maschile',
+        linkClassifica: '/risultati',
+        linkSquadra: '/squadra',
       },
       'prima-div-f': {
         nome: 'Prima Divisione Femminile',
@@ -2802,8 +2810,8 @@
         ],
         immagine: 'images/Prima divisione femminile.jpeg',
         linkRisultati: '/risultati',
-        linkClassifica: '/classifica',
-        linkSquadra: '/squadre/prima-divisione-femminile',
+        linkClassifica: '/risultati',
+        linkSquadra: '/squadra',
       },
       'giovanile-f': {
         nome: 'Giovanile Femminile',
@@ -2812,8 +2820,8 @@
         categoriaInfo: 'Campionati Provinciali e Regionali FIPAV',
         immagine: 'images/Giovanili.jpeg',
         linkRisultati: '/risultati',
-        linkClassifica: '/classifica',
-        linkSquadra: '/squadre/giovanile-femminile',
+        linkClassifica: '/risultati',
+        linkSquadra: '/squadra',
         subteams: [
           {
             nome: 'Under 13',
@@ -2845,7 +2853,7 @@
             ],
           },
           {
-            nome:'Amatoriale Femminile',
+            nome:'Under 16 - Livello base',
             allenatore: 'Giorgia Basso',
             luogo: 'Liceo Manzoni',
             orari:[
@@ -2877,8 +2885,8 @@
         ],
         immagine: 'images/Under 13-15 maschile.jpeg',
         linkRisultati: '/risultati',
-        linkClassifica: '/classifica',
-        linkSquadra: '/squadre/under1315-maschile',
+        linkClassifica: '/risultati',
+        linkSquadra: '/squadra',
       },
       'miste': {
         nome: 'Squadre Miste',
@@ -2887,8 +2895,8 @@
         categoriaInfo: 'Tornei OPES e attività ricreative',
         immagine: 'images/Mista.jpeg',
         linkRisultati: '/risultati',
-        linkClassifica: '/classifica',
-        linkSquadra: '/squadre/miste',
+        linkClassifica: '',
+        linkSquadra: '/squadra',
          subteams: [
           {
             nome: 'Virtus Caserta White',
@@ -2917,12 +2925,13 @@
         categoriaInfo: 'VolleyS3 – Attività di base FIPAV',
         allenatore: 'Giorgia Basso',
         orari: [
-          { giorno: 'Sabato', ora: '09:00 – 11:00' },
+          { giorno: 'Martedì', ora: '19:00 – 20:00' },
+          { giorno: 'Venerdì', ora: '19:00 - 20:00' },
         ],
         immagine: 'images/Volley S3.jpeg',
-        linkRisultati: '/risultati',
-        linkClassifica: '/classifica',
-        linkSquadra: '/squadre/volleys3',
+        linkRisultati: '',
+        linkClassifica: '',
+        linkSquadra: '',
       },
     };
 

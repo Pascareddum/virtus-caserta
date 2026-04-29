@@ -462,6 +462,29 @@
     .prod-card .taglie { gap: 6px; }
     .prod-card .taglia-btn { width: 40px; height: 40px; font-size: 12px; }
 
+    /* ── ZOOM LIGHTBOX ── */
+    .zoom-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.88);
+      z-index:4000; display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .25s;
+      cursor:zoom-out;
+    }
+    .zoom-overlay.aperto { opacity:1; pointer-events:all; }
+    .zoom-overlay img {
+      max-width:92vw; max-height:90vh; object-fit:contain;
+      border-radius:12px; box-shadow:0 8px 60px rgba(0,0,0,.6);
+      transform:scale(.95); transition:transform .25s;
+      cursor:default;
+    }
+    .zoom-overlay.aperto img { transform:scale(1); }
+    .zoom-close {
+      position:absolute; top:20px; right:24px;
+      background:rgba(255,255,255,.15); border:none; color:#fff;
+      font-size:22px; width:44px; height:44px; border-radius:50%;
+      cursor:pointer; transition:background .2s;
+    }
+    .zoom-close:hover { background:rgba(255,255,255,.28); }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
       .product-grid { grid-template-columns: 1fr; }
@@ -664,6 +687,12 @@
     </div>
   </div>
 
+  <!-- ZOOM LIGHTBOX -->
+  <div class="zoom-overlay" id="zoomOverlay" onclick="chiudiZoom(event)">
+    <button class="zoom-close" onclick="chiudiZoom(event)">✕</button>
+    <img id="zoomImg" src="" alt="">
+  </div>
+
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
@@ -789,7 +818,7 @@
       grid.innerHTML = disponibili.map(p => `
         <div class="prod-card">
           <div class="prod-card-img">
-            ${p.immagine ? `<img src="${p.immagine}" alt="${p.nome}">` : (p.emoji || '🏐')}
+            ${p.immagine ? `<img src="${p.immagine}" alt="${p.nome}" style="cursor:zoom-in" onclick="apriZoom('${p.immagine}','${p.nome.replace(/'/g,"\\'")}')">` : (p.emoji || '🏐')}
           </div>
           <div class="prod-card-body">
             ${esaurito(p) ? '<span class="product-badge" style="background:#dc2626">✕ Esaurito</span>' : p.sconto > 0 ? `<span class="product-badge" style="background:linear-gradient(135deg,#f57c00,#ff9800);color:#fff">-${p.sconto}% SCONTO</span>` : '<span class="product-badge">✓ Disponibile</span>'}
@@ -1043,8 +1072,19 @@
       setTimeout(() => t.classList.remove('visibile'), 3500);
     }
 
+    function apriZoom(src, alt) {
+      const o = document.getElementById('zoomOverlay');
+      const i = document.getElementById('zoomImg');
+      i.src = src; i.alt = alt || '';
+      o.classList.add('aperto');
+    }
+    function chiudiZoom(e) {
+      if (e && e.target === document.getElementById('zoomImg')) return;
+      document.getElementById('zoomOverlay').classList.remove('aperto');
+    }
+
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { chiudiModal(); chiudiCarrello(); }
+      if (e.key === 'Escape') { chiudiModal(); chiudiCarrello(); chiudiZoom(); }
     });
 
     caricaProdotti();

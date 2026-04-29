@@ -38,6 +38,10 @@
     .team-badge{background:var(--blu);color:#fff;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 18px;border-radius:20px;}
     .team-badge.maschile{background:var(--blu-m);}
     .team-badge.femminile{background:var(--arancio);}
+    .cat-section{margin-bottom:80px;}
+    .cat-section-header{text-align:center;margin-bottom:48px;}
+    .cat-section-header .etichetta{display:inline-block;background:var(--arancio);color:#fff;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:12px;}
+    .cat-section-header h2{font-size:clamp(24px,4vw,34px);font-weight:900;color:var(--blu);letter-spacing:2px;text-transform:uppercase;}
     .team-titolo{font-size:clamp(20px,3vw,28px);font-weight:900;color:var(--blu);text-transform:uppercase;letter-spacing:2px;}
     .squadra-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px;}
     .giocatrice-card{background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.06);transition:transform .2s,box-shadow .2s;}
@@ -91,30 +95,43 @@
 
 <div class="hero">
   <h1>Le Squadre</h1>
-  <p>La prima squadra maschile e femminile di Virtus Caserta.</p>
+  <p>Prima squadra e settore giovanile di Virtus Caserta.</p>
 </div>
 
 <section>
   <div class="container">
 
-    <div class="team-block" id="blockFemminile">
-      <div class="team-header">
-        <span class="team-badge femminile">Femminile</span>
-        <h2 class="team-titolo">Prima Squadra Femminile</h2>
+    <!-- SENIORES -->
+    <div class="cat-section">
+      <div class="cat-section-header">
+        <div class="etichetta">Seniores</div>
+        <h2>Prima Squadra</h2>
       </div>
-      <div class="squadra-grid" id="gridFemminile">
-        <div class="vuota">Caricamento in corso…</div>
+
+      <div class="team-block" id="blockSenF">
+        <div class="team-header">
+          <span class="team-badge femminile">Femminile</span>
+          <h2 class="team-titolo">Prima Squadra Femminile</h2>
+        </div>
+        <div class="squadra-grid" id="gridSenF"><div class="vuota">Caricamento…</div></div>
+      </div>
+
+      <div class="team-block" id="blockSenM">
+        <div class="team-header">
+          <span class="team-badge maschile">Maschile</span>
+          <h2 class="team-titolo">Prima Squadra Maschile</h2>
+        </div>
+        <div class="squadra-grid" id="gridSenM"><div class="vuota">Caricamento…</div></div>
       </div>
     </div>
 
-    <div class="team-block" id="blockMaschile">
-      <div class="team-header">
-        <span class="team-badge maschile">Maschile</span>
-        <h2 class="team-titolo">Prima Squadra Maschile</h2>
+    <!-- GIOVANILE -->
+    <div class="cat-section">
+      <div class="cat-section-header">
+        <div class="etichetta" style="background:var(--blu-m)">Giovanile</div>
+        <h2>Settore Giovanile</h2>
       </div>
-      <div class="squadra-grid" id="gridMaschile">
-        <div class="vuota">Caricamento in corso…</div>
-      </div>
+      <div id="giovContainer"><div class="vuota">Caricamento…</div></div>
     </div>
 
   </div>
@@ -156,51 +173,10 @@
   </div>
 </footer>
 
-<!-- 
-<footer class="footer-std">
-  <div class="footer-inner">
-    <img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy" onerror="this.style.display='none'">
-    <div class="footer-links">
-      <a href="/">Home</a>
-      <a href="/chi-siamo">Chi siamo</a>
-      <a href="/notizie">Notizie</a>
-      <a href="/risultati">Risultati</a>
-      <a href="/shop">Shop</a>
-      <a href="/live">Live</a>
-    </div>
-    <div class="footer-soc">
-      <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
-      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
-      <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
-      <a href="/live" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
-    </div>
-    <div class="footer-auth" id="footerAuthArea">
-      <div class="footer-auth-title">Account</div>
-      <div class="footer-auth-login">
-        <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
-      </div>
-      <div class="footer-auth-logged">
-        <span class="footer-auth-nome" id="footerNome"></span>
-        <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-        <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
-      </div>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <p>© 2024 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a> · Sito realizzato da Alessandro Pascarella</p>
-  </div>
-</footer> -->
 
 <script>
-  function renderGriglia(lista, gridId, blockId) {
-    const grid = document.getElementById(gridId);
-    const block = document.getElementById(blockId);
-    if (!lista.length) {
-      block.style.display = 'none';
-      return;
-    }
-    block.style.display = '';
-    grid.innerHTML = lista.map(g => `
+  function cardHtml(g) {
+    return `
       <div class="giocatrice-card">
         <div class="card-foto">
           ${g.foto ? `<img src="${g.foto}" alt="${g.nome} ${g.cognome}" loading="lazy">` : '🏐'}
@@ -211,19 +187,57 @@
           ${g.ruolo ? `<div class="card-ruolo">${g.ruolo}</div>` : ''}
           ${g.bio ? `<div class="card-bio">${g.bio}</div>` : ''}
         </div>
-      </div>`).join('');
+      </div>`;
+  }
+
+  function renderGriglia(lista, gridId, blockId) {
+    const grid  = document.getElementById(gridId);
+    const block = document.getElementById(blockId);
+    if (!lista.length) { block.style.display = 'none'; return; }
+    block.style.display = '';
+    grid.innerHTML = lista.map(cardHtml).join('');
+  }
+
+  function isGiov(sesso) {
+    return /u\d+|under|volleys\d|mini/i.test(sesso || '');
   }
 
   async function carica() {
     try {
       const tutti = await fetch('/api/squadra').then(r => r.json());
-      const femminile = tutti.filter(g => g.sesso !== 'Staff' && (!g.sesso || g.sesso === 'Femminile'));
-      const maschile  = tutti.filter(g => g.sesso === 'Maschile');
-      renderGriglia(femminile, 'gridFemminile', 'blockFemminile');
-      renderGriglia(maschile,  'gridMaschile',  'blockMaschile');
+
+      // Seniores: not Staff, not giovanile
+      const senF = tutti.filter(g => g.sesso !== 'Staff' && g.sesso !== 'Maschile' && !isGiov(g.sesso));
+      const senM = tutti.filter(g => g.sesso === 'Maschile');
+      renderGriglia(senF, 'gridSenF', 'blockSenF');
+      renderGriglia(senM, 'gridSenM', 'blockSenM');
+
+      // Giovanile: group by sesso value
+      const giov = tutti.filter(g => isGiov(g.sesso));
+      const cont = document.getElementById('giovContainer');
+      if (!giov.length) {
+        cont.innerHTML = '<div class="vuota">Nessun giocatore nel settore giovanile registrato.</div>';
+      } else {
+        const gruppi = {};
+        giov.forEach(g => {
+          const k = g.sesso || 'Under';
+          if (!gruppi[k]) gruppi[k] = [];
+          gruppi[k].push(g);
+        });
+        cont.innerHTML = Object.entries(gruppi).map(([cat, lista]) => {
+          const gid = 'giov-' + cat.replace(/\s+/g, '-').replace(/[^\w-]/g, '').toLowerCase();
+          return `
+            <div class="team-block">
+              <div class="team-header">
+                <span class="team-badge" style="background:var(--blu-m)">${cat}</span>
+                <h2 class="team-titolo">${cat}</h2>
+              </div>
+              <div class="squadra-grid" id="${gid}">${lista.map(cardHtml).join('')}</div>
+            </div>`;
+        }).join('');
+      }
     } catch {
-      document.getElementById('gridFemminile').innerHTML = '<div class="vuota">Errore caricamento dati.</div>';
-      document.getElementById('gridMaschile').innerHTML  = '<div class="vuota">Errore caricamento dati.</div>';
+      document.getElementById('giovContainer').innerHTML = '<div class="vuota">Errore caricamento dati.</div>';
     }
   }
 

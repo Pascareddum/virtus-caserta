@@ -111,6 +111,16 @@
     .fipav-footer{text-align:center;padding-top:8px;}
 
     .vuota{text-align:center;padding:60px;color:#888;font-size:15px;}
+    /* Classifica banner per categoria */
+    .cl-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,var(--blu),var(--blu-m));color:#fff;text-decoration:none;padding:11px 18px;border-radius:12px;margin-bottom:20px;font-size:13px;font-weight:700;letter-spacing:.5px;transition:opacity .15s;}
+    .cl-banner:hover{opacity:.85;}
+    .cl-banner-icon{font-size:16px;flex-shrink:0;}
+    .cl-banner-text{flex:1;}
+    .cl-banner-ext{font-size:13px;opacity:.7;flex-shrink:0;}
+    /* Pulsante classifica nella card */
+    .card-cl-row{text-align:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f4f8;}
+    .btn-cl-card{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--blu);text-decoration:none;padding:5px 12px;border-radius:8px;background:#eef2ff;letter-spacing:.3px;transition:background .15s;}
+    .btn-cl-card:hover{background:#c7d9ff;}
     footer{background:var(--blu);color:rgba(255,255,255,.5);text-align:center;padding:24px;font-size:13px;}
     footer a{color:rgba(255,255,255,.4);text-decoration:none;}
     @media(max-width:600px){
@@ -190,7 +200,6 @@
           <option value="Virtus Caserta (White)">Virtus Caserta White</option>
         </select>
       </div>
-      <a href="/classifica" class="btn-classifiche-fisso">Mostra le classifiche</a>
     </div>
     <div id="risultatiContent"><div class="vuota">Caricamento…</div></div>
     <div id="flatView" style="display:none"></div>
@@ -285,6 +294,13 @@
       ? `<div class="luogo-row"><span class="luogo-icon">📍</span><span class="luogo-text">${m.luogo}</span></div>`
       : '';
 
+    const classificaCardUrl = m.fonte === 'opes'
+      ? `https://www.opespallavolo.it/it/t-teamtable/${m.tid}/`
+      : (m.classificaUrl || '');
+    const classificaCardBtn = classificaCardUrl
+      ? `<div class="card-cl-row"><a href="${classificaCardUrl}" target="_blank" rel="noopener" class="btn-cl-card">🏆 Classifica</a></div>`
+      : '';
+
     const fonte = m.fonte === 'opes'
       ? `<span class="fonte-badge fonte-opes">OPES</span>`
       : `<span class="fonte-badge fonte-fipav">FIPAV</span>`;
@@ -310,6 +326,7 @@
         ${renderRisultato(m)}
         ${parziali}
         ${luogo}
+        ${classificaCardBtn}
       </div>`;
   }
 
@@ -480,10 +497,17 @@
         const visibili = getVisibiliIndices(partite);
         const extra    = partite.length - visibili.size;
 
-        // Classifica link: OPES → pagina classifica (dropdown), FIPAV → per cid
         const classificaHref = fonte === 'opes'
-          ? '/classifica'
-          : (gruppo.cid ? `/classifica?cid=${gruppo.cid}` : (gruppo.classificaUrl || '/classifica'));
+          ? `https://www.opespallavolo.it/it/t-teamtable/${gruppo.tid}/`
+          : (gruppo.classificaUrl || `https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA`);
+
+        const classificaBanner = classificaHref
+          ? `<a href="${classificaHref}" target="_blank" rel="noopener" class="cl-banner">
+              <span class="cl-banner-icon">🏆</span>
+              <span class="cl-banner-text">Classifica ${cat}</span>
+              <span class="cl-banner-ext">↗</span>
+            </a>`
+          : '';
 
         const visibiliArr = JSON.stringify([...visibili]);
         const btnEspandi  = extra > 0
@@ -496,6 +520,7 @@
               <span class="cat-titolo">${cat}</span>
               <span class="cat-count">${partite.length} gare</span>
             </div>
+            ${classificaBanner}
             <div class="partite-grid" id="${gridId}">
               ${partite.map((m, idx) => renderCard(m, !visibili.has(idx))).join('')}
             </div>

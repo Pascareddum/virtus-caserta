@@ -238,7 +238,7 @@ app.get('/admin.html',              adminCookieCheck, sendPage('admin.html'));
 app.get('/admin-login.html',        (_req, res) => res.redirect(301, '/admin-login'));
 app.get('/squadra.html',            (_req, res) => res.redirect(301, '/squadra'));
 app.get('/risultati.html',          (_req, res) => res.redirect(301, '/risultati'));
-app.get('/classifica.html',         (_req, res) => res.redirect(301, '/classifica'));
+app.get('/classifica.html',         (_req, res) => res.redirect(301, '/risultati'));
 app.get('/staff.html',              (_req, res) => res.redirect(301, '/staff'));
 app.get('/privacy.html',            (_req, res) => res.redirect(301, '/privacy'));
 app.get('/termini.html',            (_req, res) => res.redirect(301, '/termini'));
@@ -293,7 +293,7 @@ app.get('/admin',             adminCookieCheck, sendPage('admin.html'));
 app.get('/admin-login',       sendPage('admin-login.html'));
 app.get('/squadra',           sendPage('squadra.html'));
 app.get('/risultati',         sendPage('risultati.html'));
-app.get('/classifica',        sendPage('classifica.html'));
+app.get('/classifica',        (_req, res) => res.redirect(301, '/risultati'));
 app.get('/staff',             sendPage('staff.html'));
 app.get('/privacy',           sendPage('privacy.html'));
 app.get('/termini',           sendPage('termini.html'));
@@ -1199,6 +1199,236 @@ const FIPAV_CAMPANIA_BASE  = 'https://www.fipavcampania.it';
 const FIPAV_CASERTA_URL    = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA';
 const FIPAV_CAMPANIA_URL   = 'https://www.fipavcampania.it/risultati-classifiche.aspx?ComitatoId=15&StId=2277&DataDa=&StatoGara=&CId=&SId=5150&PId=1078&btFiltro=CERCA';
 
+/* ─── Scheduler: fetch risultato 2.5h dopo kick-off ─── */
+const RESULT_FETCH_DELAY    = 2.5 * 60 * 60 * 1000;   // 2h30
+const SCHEDULE_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 1 giorno
+const pendingTimers = new Map();  // match_id → Timeout
+
+// Converte riga DB in oggetto match usato dal frontend
+function dbMatchToObj(row) {
+  const ts = row.data_ora ? new Date(row.data_ora).getTime() : null;
+  let dataOra = '';
+  if (ts) {
+    const d = new Date(ts);
+    dataOra = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+  return {
+    id: row.id, fonte: row.fonte, categoria: row.categoria,
+    cid: row.cid || null, tid: row.tid || null, giornata: row.giornata || '',
+    timestamp: ts, dataOra,
+    casa: row.casa, ospite: row.ospite,
+    risultato: row.risultato || '', played: row.played, postponed: row.postponed,
+    parziali: row.parziali || null, luogo: row.luogo || '',
+    logoHome: row.logo_home || '', logoAway: row.logo_away || '',
+    matchUrl: row.match_url || '', classificaUrl: row.classifica_url || '',
+  };
+}
+
+// Upsert batch di match nel DB
+async function saveMatchesToDB(matches) {
+  if (!matches.length) return;
+  for (const m of matches) {
+    await db.query(`
+      INSERT INTO fipav_matches
+        (id,fonte,categoria,cid,tid,giornata,data_ora,casa,ospite,
+         risultato,played,postponed,parziali,luogo,logo_home,logo_away,
+         match_url,classifica_url,result_fetched,updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+        CASE WHEN $11 THEN true ELSE false END, NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        risultato      = CASE WHEN EXCLUDED.played THEN EXCLUDED.risultato ELSE fipav_matches.risultato END,
+        played         = EXCLUDED.played,
+        postponed      = EXCLUDED.postponed,
+        parziali       = COALESCE(EXCLUDED.parziali, fipav_matches.parziali),
+        luogo          = COALESCE(NULLIF(EXCLUDED.luogo,''), fipav_matches.luogo),
+        logo_home      = COALESCE(NULLIF(EXCLUDED.logo_home,''), fipav_matches.logo_home),
+        logo_away      = COALESCE(NULLIF(EXCLUDED.logo_away,''), fipav_matches.logo_away),
+        classifica_url = COALESCE(NULLIF(EXCLUDED.classifica_url,''), fipav_matches.classifica_url),
+        result_fetched = CASE WHEN EXCLUDED.played THEN true ELSE fipav_matches.result_fetched END,
+        updated_at     = NOW()
+    `, [
+      m.id, m.fonte, m.categoria || '', m.cid || null, m.tid ? String(m.tid) : null,
+      m.giornata || '',
+      m.timestamp ? new Date(m.timestamp) : null,
+      m.casa, m.ospite,
+      m.risultato || '', m.played || false, m.postponed || false,
+      m.parziali ? JSON.stringify(m.parziali) : null,
+      m.luogo || '', m.logoHome || '', m.logoAway || '',
+      m.matchUrl || '', m.classificaUrl || '',
+    ]);
+  }
+}
+
+// Calcola classifica volley da array di match (regola 3/2/1/0 punti)
+function calcolaClassificaFromMatches(matches) {
+  const table = {};
+  const ensure = (name) => {
+    if (!table[name]) table[name] = { squadra: name, pg:0, pv:0, pp:0, punti:0, sf:0, ss:0 };
+    return table[name];
+  };
+  for (const m of matches) {
+    if (!m.played || m.postponed) continue;
+    const parts = (m.risultato || '').match(/^(\d+)\s*[-–]\s*(\d+)$/);
+    if (!parts) continue;
+    const sh = parseInt(parts[1]), sa = parseInt(parts[2]);
+    if (isNaN(sh) || isNaN(sa)) continue;
+    const home = ensure(m.casa), away = ensure(m.ospite);
+    home.pg++; away.pg++;
+    home.sf += sh; home.ss += sa;
+    away.sf += sa; away.ss += sh;
+    const homeWon = sh > sa;
+    const tight   = sh + sa === 5; // 3-2 o 2-3
+    if (homeWon) {
+      home.pv++; away.pp++;
+      home.punti += tight ? 2 : 3;
+      away.punti += tight ? 1 : 0;
+    } else {
+      away.pv++; home.pp++;
+      away.punti += tight ? 2 : 3;
+      home.punti += tight ? 1 : 0;
+    }
+  }
+  return Object.values(table)
+    .sort((a, b) => b.punti - a.punti || b.pv - a.pv || (b.sf - b.ss) - (a.sf - a.ss))
+    .map((s, i) => ({
+      pos: String(i + 1), squadra: s.squadra, logo: '',
+      punti: String(s.punti), pg: String(s.pg), pv: String(s.pv), pp: String(s.pp),
+      sf: String(s.sf), ss: String(s.ss),
+      qs: s.ss > 0 ? (s.sf / s.ss).toFixed(3) : (s.sf > 0 ? '∞' : '-'),
+      pf: '-', ps: '-', penal: '0',
+    }));
+}
+
+// Ricalcola e salva classifica in cache DB
+async function aggiornaCacheClassifica(cid, fonte, tid) {
+  try {
+    let rows, categoria;
+    if (tid) {
+      const r = await db.query('SELECT * FROM fipav_matches WHERE tid=$1', [String(tid)]);
+      rows = r.rows; categoria = rows[0]?.categoria || String(tid);
+      const squadre = calcolaClassificaFromMatches(rows.map(dbMatchToObj));
+      await db.query(`
+        INSERT INTO fipav_classifica_cache (categoria,fonte,cid,tid,squadre,updated_at)
+        VALUES ($1,'opes',NULL,$2,$3,NOW())
+        ON CONFLICT (tid) WHERE tid IS NOT NULL
+        DO UPDATE SET squadre=EXCLUDED.squadre, categoria=EXCLUDED.categoria, updated_at=NOW()
+      `, [categoria, String(tid), JSON.stringify(squadre)]);
+    } else if (cid) {
+      const r = await db.query('SELECT * FROM fipav_matches WHERE cid=$1 AND fonte=$2', [String(cid), fonte]);
+      rows = r.rows; categoria = rows[0]?.categoria || String(cid);
+      const squadre = calcolaClassificaFromMatches(rows.map(dbMatchToObj));
+      await db.query(`
+        INSERT INTO fipav_classifica_cache (categoria,fonte,cid,tid,squadre,updated_at)
+        VALUES ($1,$2,$3,NULL,$4,NOW())
+        ON CONFLICT (cid, fonte) WHERE cid IS NOT NULL
+        DO UPDATE SET squadre=EXCLUDED.squadre, categoria=EXCLUDED.categoria, updated_at=NOW()
+      `, [categoria, fonte, String(cid), JSON.stringify(squadre)]);
+    }
+  } catch (err) {
+    console.log('[Classifica cache] Errore:', err.message);
+  }
+}
+
+// Fetch risultato per una singola partita (chiamato 2.5h dopo kick-off)
+async function fetchAndStoreMatchResult(match) {
+  try {
+    console.log(`[FIPAV Scheduler] Fetch risultato: ${match.casa} vs ${match.ospite} (${match.fonte})`);
+    let freshMatches;
+    if (match.fonte === 'opes') {
+      freshMatches = await fetchOpesAll();
+    } else {
+      const url  = match.fonte === 'campania' ? FIPAV_CAMPANIA_URL : FIPAV_CASERTA_URL;
+      const base = match.fonte === 'campania' ? FIPAV_CAMPANIA_BASE : FIPAV_CASERTA_BASE;
+      freshMatches = await fetchFipav(url, base, match.fonte);
+    }
+    await saveMatchesToDB(freshMatches);
+    // Aggiorna classifica per questa categoria
+    if (match.tid) await aggiornaCacheClassifica(null, match.fonte, match.tid);
+    else if (match.cid) await aggiornaCacheClassifica(match.cid, match.fonte, null);
+    // Invalida cache in-memory
+    _fipavCache = null; _fipavCacheAt = 0;
+    console.log(`[FIPAV Scheduler] Risultato salvato: ${match.casa} vs ${match.ospite}`);
+  } catch (err) {
+    console.log(`[FIPAV Scheduler] Errore fetch ${match.id}:`, err.message);
+  }
+}
+
+// Registra timer per fetch risultato 2.5h dopo kick-off
+function scheduleResultFetch(match) {
+  if (!match.timestamp || match.played || match.postponed) return;
+  if (pendingTimers.has(match.id)) return; // già schedulato
+  const fireAt = match.timestamp + RESULT_FETCH_DELAY;
+  const delay  = fireAt - Date.now();
+  if (delay <= -RESULT_FETCH_DELAY) return; // troppo vecchia, salta
+  if (delay <= 0) {
+    // Partita già terminata (entro 2.5h) → fetch subito
+    setImmediate(() => fetchAndStoreMatchResult(match));
+    return;
+  }
+  const timer = setTimeout(() => {
+    pendingTimers.delete(match.id);
+    fetchAndStoreMatchResult(match);
+  }, Math.min(delay, 2_147_483_647));
+  pendingTimers.set(match.id, timer);
+  console.log(`[FIPAV Scheduler] ${match.casa} vs ${match.ospite} → risultato atteso ${new Date(fireAt).toLocaleString('it')}`);
+}
+
+// Discovery giornaliero: scrape pagina risultati FIPAV per nuove partite
+async function refreshFutureMatches() {
+  console.log('[FIPAV Scheduler] Refresh giornaliero partite...');
+  try {
+    const [caserta, campania, opes] = await Promise.allSettled([
+      fetchFipav(FIPAV_CASERTA_URL,  FIPAV_CASERTA_BASE,  'caserta'),
+      fetchFipav(FIPAV_CAMPANIA_URL, FIPAV_CAMPANIA_BASE, 'campania'),
+      fetchOpesAll(),
+    ]);
+    let all = [];
+    if (caserta.status  === 'fulfilled') all = all.concat(caserta.value);
+    if (campania.status === 'fulfilled') all = all.concat(campania.value);
+    if (opes.status     === 'fulfilled') all = all.concat(opes.value);
+    await saveMatchesToDB(all);
+    // Ricalcola classifiche per tutte le categorie (dedup corretta con Map)
+    const cidsMap = new Map();
+    for (const m of all) { if (m.cid) cidsMap.set(`${m.cid}|${m.fonte}`, { cid: m.cid, fonte: m.fonte }); }
+    const tidsSet = new Set(all.filter(m => m.tid).map(m => String(m.tid)));
+    for (const { cid, fonte } of cidsMap.values()) await aggiornaCacheClassifica(cid, fonte, null);
+    for (const tid of tidsSet) await aggiornaCacheClassifica(null, null, tid);
+    // Schedula timer per partite future non ancora schedulate
+    const future = all.filter(m => !m.played && !m.postponed && m.timestamp && m.timestamp > Date.now());
+    for (const m of future) scheduleResultFetch(m);
+    // Invalida cache in-memory
+    _fipavCache = null; _fipavCacheAt = 0;
+    console.log(`[FIPAV Scheduler] Refresh: ${all.length} partite, ${future.length} future, ${pendingTimers.size} timer attivi`);
+  } catch (err) {
+    console.log('[FIPAV Scheduler] Errore refresh:', err.message);
+  }
+}
+
+// Boot: carica match da DB, registra timer, avvia refresh giornaliero
+async function initFipavScheduler() {
+  try {
+    const r = await db.query(`
+      SELECT * FROM fipav_matches
+      WHERE NOT played AND NOT postponed AND data_ora IS NOT NULL
+        AND data_ora > NOW() - INTERVAL '3 hours'
+    `);
+    let scheduled = 0;
+    for (const row of r.rows) {
+      scheduleResultFetch(dbMatchToObj(row));
+      scheduled++;
+    }
+    console.log(`[FIPAV Scheduler] Boot: ${scheduled} partite caricate da DB`);
+    // Refresh immediato per popolare/aggiornare il DB
+    await refreshFutureMatches();
+    // Refresh giornaliero
+    setInterval(refreshFutureMatches, SCHEDULE_REFRESH_INTERVAL);
+  } catch (err) {
+    console.log('[FIPAV Scheduler] Errore boot:', err.message);
+    setTimeout(refreshFutureMatches, 60_000);
+    setInterval(refreshFutureMatches, SCHEDULE_REFRESH_INTERVAL);
+  }
+}
+
 /* ─── OPES Partite ─── */
 const OPES_BASE = 'https://www.opespallavolo.it';
 const OPES_AJAX = 'https://www.opespallavolo.it/system/include/ajax/public/league.php';
@@ -1506,14 +1736,25 @@ async function fetchFipavAll() {
   return all;
 }
 
+// Legge partite da DB; fallback a scraping in-memory solo se DB vuoto
+async function getMatchesFromDB() {
+  try {
+    const r = await db.query('SELECT * FROM fipav_matches ORDER BY data_ora DESC NULLS LAST');
+    if (r.rows.length === 0) return fetchFipavAll();
+    return r.rows.map(dbMatchToObj);
+  } catch (err) {
+    console.log('[DB] getMatchesFromDB fallback scraping:', err.message);
+    return fetchFipavAll();
+  }
+}
+
 app.get('/api/partite', async (_req, res) => {
   try {
-    const all    = await fetchFipavAll();
-    const now    = Date.now();
-    const past   = all.filter(m => m.played);
-    const live   = all.filter(m => !m.played && !m.postponed && m.timestamp && m.timestamp < now && m.timestamp + 7200000 > now);
-    // prossime: partite future + quelle iniziate da <2h senza risultato (live), ordinate per orario
-    const future = all.filter(m => !m.played && !m.postponed && m.timestamp !== null && m.timestamp > now - 7200000)
+    const all  = await getMatchesFromDB();
+    const now  = Date.now();
+    const past = all.filter(m => m.played);
+    const live = all.filter(m => !m.played && !m.postponed && m.timestamp && m.timestamp < now && m.timestamp + 7_200_000 > now);
+    const future = all.filter(m => !m.played && !m.postponed && m.timestamp !== null && m.timestamp > now - 7_200_000)
                       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     res.json({ ultime: past.slice(0, 3), live, prossime: future.slice(0, 6), fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
@@ -1524,7 +1765,7 @@ app.get('/api/partite', async (_req, res) => {
 
 app.get('/api/partite/tutte', async (_req, res) => {
   try {
-    const all = await fetchFipavAll();
+    const all    = await getMatchesFromDB();
     const gruppi = {};
     all.forEach(m => {
       const cat = m.categoria || 'Altre partite';
@@ -1581,6 +1822,29 @@ const OPES_TOURNEY_MAP = Object.fromEntries(
   OPES_TOURNAMENTS.map(t => [String(t.tid), t])
 );
 
+// Se DB ha 0 match per questa categoria, fetch on-demand la pagina risultati e salva
+async function ensureFipavMatchesLoaded(cid, fonte) {
+  const r = await db.query('SELECT 1 FROM fipav_matches WHERE cid=$1 AND fonte=$2 LIMIT 1', [String(cid), fonte]);
+  if (r.rows.length > 0) return; // già popolato
+  console.log(`[Classifica] DB vuoto per cid=${cid} fonte=${fonte}, fetch on-demand...`);
+  const url  = fonte === 'campania' ? FIPAV_CAMPANIA_URL : FIPAV_CASERTA_URL;
+  const base = fonte === 'campania' ? FIPAV_CAMPANIA_BASE : FIPAV_CASERTA_BASE;
+  const matches = await fetchFipav(url, base, fonte);
+  await saveMatchesToDB(matches);
+  // Schedula timer per partite future appena scoperte
+  for (const m of matches.filter(m2 => !m2.played && !m2.postponed && m2.timestamp && m2.timestamp > Date.now())) {
+    scheduleResultFetch(m);
+  }
+}
+
+async function ensureOpesMatchesLoaded(tid) {
+  const r = await db.query('SELECT 1 FROM fipav_matches WHERE tid=$1 LIMIT 1', [String(tid)]);
+  if (r.rows.length > 0) return;
+  console.log(`[Classifica OPES] DB vuoto per tid=${tid}, fetch on-demand...`);
+  const matches = await fetchOpesAll();
+  await saveMatchesToDB(matches);
+}
+
 app.get('/api/classifica-opes/:tid', async (req, res) => {
   const { tid } = req.params;
   const tourney = OPES_TOURNEY_MAP[tid];
@@ -1598,11 +1862,7 @@ app.get('/api/classifica-opes/:tid', async (req, res) => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const json    = await r.json();
     const squadre = parseOpesClassifica(json.html || '');
-    res.json({
-      titolo:  tourney.categoria,
-      squadre,
-      url: `${OPES_BASE}/it/t-teamtable/${tid}/`,
-    });
+    res.json({ titolo: tourney.categoria, squadre, url: `${OPES_BASE}/it/t-teamtable/${tid}/` });
   } catch (err) {
     console.log('[Classifica OPES] Errore:', err.message);
     res.status(500).json({ error: err.message });
@@ -1615,7 +1875,7 @@ app.get('/api/classifica/:cid', async (req, res) => {
   const fonte = req.query.fonte === 'campania' ? 'campania' : 'caserta';
   const base  = fonte === 'campania' ? FIPAV_CAMPANIA_BASE : FIPAV_CASERTA_BASE;
   try {
-    const r = await fetch(`${base}/classifica.aspx?CId=${cid}`, { headers: FIPAV_HEADERS });
+    const r = await fetch(`${base}/classifica.aspx?CId=${cid}`, { headers: { ...FIPAV_HEADERS, Referer: `${base}/` } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const html = await r.text();
 
@@ -1623,7 +1883,6 @@ app.get('/api/classifica/:cid', async (req, res) => {
     const titolo = titleMatch ? stripTagsFipav(titleMatch[1]).trim() : '';
 
     const squadre = [];
-    // FIPAV HTML usa <tr> senza </tr> — split invece di regex
     const rowSegments = html.split(/<tr[^>]*>/i).slice(1);
     for (const row of rowSegments) {
       const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
@@ -1635,19 +1894,12 @@ app.get('/api/classifica/:cid', async (req, res) => {
         const srcMatch = tdRaws[1] && tdRaws[1].match(/src="([^"]+)"/i);
         if (srcMatch) logo = (srcMatch[1].startsWith('http') ? '' : base) + srcMatch[1];
         squadre.push({
-          pos:   tds[0].trim(),
-          squadra: tds[1].trim(),
-          logo,
-          punti: tds[2]?.trim() || '0',
-          pg:    tds[3]?.trim() || '0',
-          pv:    tds[4]?.trim() || '0',
-          pp:    tds[5]?.trim() || '0',
-          sf:    tds[6]?.trim() || '0',
-          ss:    tds[7]?.trim() || '0',
-          qs:    tds[8]?.trim() || '0',
-          pf:    tds[9]?.trim() || '0',
-          ps:    tds[10]?.trim() || '0',
-          penal: tds[12]?.trim() || '0',
+          pos: tds[0].trim(), squadra: tds[1].trim(), logo,
+          punti: tds[2]?.trim()  || '0', pg:    tds[3]?.trim()  || '0',
+          pv:   tds[4]?.trim()   || '0', pp:    tds[5]?.trim()  || '0',
+          sf:   tds[6]?.trim()   || '0', ss:    tds[7]?.trim()  || '0',
+          qs:   tds[8]?.trim()   || '0', pf:    tds[9]?.trim()  || '0',
+          ps:   tds[10]?.trim()  || '0', penal: tds[12]?.trim() || '0',
         });
       }
     }
@@ -2004,6 +2256,8 @@ db.init().then(async () => {
     console.log(`[OK] Stripe configurato: ${stripe ? 'SI' : 'NO'}`);
     if (!INSTAGRAM_ACCESS_TOKEN) console.log('[--] Instagram: nessun access token.');
   });
+  // Avvia scheduler FIPAV: carica partite da DB, registra timer, refresh giornaliero
+  initFipavScheduler().catch(err => console.log('[FIPAV Scheduler] Boot fallito:', err.message));
 }).catch(err => {
   console.error('[DB] Errore inizializzazione:', err.message);
   app.listen(PORT, () => {

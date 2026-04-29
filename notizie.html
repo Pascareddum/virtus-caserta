@@ -106,9 +106,19 @@
     .news-titolo { font-size:20px; font-weight:800; color:var(--testo); margin-bottom:10px; line-height:1.3; }
     .news-testo  { font-size:15px; color:#444; line-height:1.65; }
 
+    .news-img-wrap {
+      position:relative; width:100%; aspect-ratio:16/9; overflow:hidden;
+      border-radius:10px; margin-bottom:16px;
+      background:#f0f4f8; background-size:cover; background-position:center;
+    }
+    .news-img-wrap::before {
+      content:''; position:absolute; inset:-10px;
+      background:inherit; filter:blur(20px) brightness(.65) saturate(1.2);
+      z-index:0;
+    }
     .news-img {
-      width:100%; max-height:280px; object-fit:contain;
-      background:#f0f4f8; border-radius:10px; margin-bottom:16px;
+      position:relative; z-index:1;
+      width:100%; height:100%; object-fit:contain;
       display:block;
     }
 
@@ -431,6 +441,23 @@
       ctx.drawImage(img, x + (w-sw)/2, y + (h-sh)/2, sw, sh);
     }
 
+    function _containWithBlurBg(ctx, img, x, y, w, h) {
+      /* blurred cover behind, contain on top */
+      ctx.save();
+      ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+      /* blurred bg */
+      const scCover = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+      const bw = img.naturalWidth * scCover, bh = img.naturalHeight * scCover;
+      ctx.filter = 'blur(28px) brightness(0.55) saturate(1.2)';
+      ctx.drawImage(img, x + (w-bw)/2, y + (h-bh)/2, bw, bh);
+      ctx.filter = 'none';
+      /* contain */
+      const scContain = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+      const cw = img.naturalWidth * scContain, ch = img.naturalHeight * scContain;
+      ctx.drawImage(img, x + (w-cw)/2, y + (h-ch)/2, cw, ch);
+      ctx.restore();
+    }
+
     /* ── STORIA 1080×1920 ── */
     function _buildStoria(W, H, img, titolo, testo, cat, logo) {
       const canvas = document.createElement('canvas');
@@ -448,10 +475,7 @@
       /* photo – fixed top 700px */
       const PHOTO_H = img ? 700 : 0;
       if (img) {
-        ctx.save();
-        ctx.beginPath(); ctx.rect(0, 0, W, PHOTO_H); ctx.clip();
-        _coverImage(ctx, img, 0, 0, W, PHOTO_H);
-        ctx.restore();
+        _containWithBlurBg(ctx, img, 0, 0, W, PHOTO_H);
         const fade = ctx.createLinearGradient(0, PHOTO_H - 260, 0, PHOTO_H + 10);
         fade.addColorStop(0, 'rgba(13,32,85,0)');
         fade.addColorStop(1, 'rgba(13,32,85,1)');
@@ -472,15 +496,8 @@
       /* orange top bar */
       ctx.fillStyle = '#f57c00'; ctx.fillRect(0, 0, W, 14);
 
-      /* logo top center */
-      if (logo) {
-        const logoH = 110;
-        const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
-        ctx.drawImage(logo, W / 2 - logoW / 2, 36, logoW, logoH);
-      }
-
       /* ── content cursor ── */
-      const FOOTER_TOP = H - 175;
+      const FOOTER_TOP = H - 265;
       let y = PHOTO_H + 96;
 
       /* title – max 3 lines */
@@ -492,11 +509,6 @@
       for (const line of titleLines) { ctx.fillText(line, PAD, y); y += TITLE_LH; }
       y += 10;
 
-      /* orange divider */
-   /*   ctx.fillStyle = 'rgba(245,124,0,0.75)';
-      ctx.fillRect(PAD, y, 90, 5);
-      y += 30;*/
-
       /* body text – 38px fixed, truncate with [...] to fit */
       const BODY_LH = 60;
       const bodyAvail = FOOTER_TOP - y - 20;
@@ -505,6 +517,15 @@
       ctx.textAlign = 'left';
       const bodyLines = _fitLines(ctx, testo, W - PAD * 2, BODY_LH, bodyAvail);
       for (const line of bodyLines) { ctx.fillText(line, PAD, y); y += BODY_LH; }
+
+      /* logo bottom center */
+      if (logo) {
+        const logoH = 90;
+        const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
+        ctx.globalAlpha = 0.92;
+        ctx.drawImage(logo, W / 2 - logoW / 2, H - 255, logoW, logoH);
+        ctx.globalAlpha = 1;
+      }
 
       _drawFooter(ctx, W, H);
       return canvas;
@@ -518,7 +539,7 @@
       const PAD = 70;
 
       if (img) {
-        _coverImage(ctx, img, 0, 0, W, W);
+        _containWithBlurBg(ctx, img, 0, 0, W, W);
       } else {
         const bg = ctx.createLinearGradient(0,0,W,W);
         bg.addColorStop(0,'#0d2055'); bg.addColorStop(1,'#1535a8');
@@ -532,34 +553,32 @@
       ov.addColorStop(1,'rgba(13,32,85,0.97)');
       ctx.fillStyle = ov; ctx.fillRect(0,0,W,W);
 
-      /* top vignette so logo is visible on any photo */
-      const topOv = ctx.createLinearGradient(0, 0, 0, W*0.28);
-      topOv.addColorStop(0,'rgba(13,32,85,0.72)');
-      topOv.addColorStop(1,'rgba(13,32,85,0)');
-      ctx.fillStyle = topOv; ctx.fillRect(0,0,W,W*0.28);
-
       /* watermark */
       _drawWatermark(ctx, W, W);
 
       /* orange top bar */
       ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,14);
 
-      /* logo top center */
-      if (logo) {
-        const logoH = 120;
-        const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
-        ctx.drawImage(logo, W/2 - logoW/2, 36, logoW, logoH);
-      }
-
       /* club name */
       ctx.fillStyle = '#f57c00';
       ctx.font = 'bold 54px Arial,sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('VIRTUS CASERTA', W/2, W*0.62);
 
-      /* title */
+      /* title – max 2 lines */
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 64px Arial,sans-serif'; ctx.textAlign = 'left';
-      _wrapText(ctx, titolo.toUpperCase(), PAD, W*0.68, W-PAD*2, 82);
+      const postTitleLines = _fitLines(ctx, titolo.toUpperCase(), W-PAD*2, 82, 82*2);
+      let postY = W*0.68;
+      for (const line of postTitleLines) { ctx.fillText(line, PAD, postY); postY += 82; }
+
+      /* logo bottom center */
+      if (logo) {
+        const logoH = 70;
+        const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
+        ctx.globalAlpha = 0.92;
+        ctx.drawImage(logo, W/2 - logoW/2, W - 230, logoW, logoH);
+        ctx.globalAlpha = 1;
+      }
 
       _drawFooter(ctx, W, W);
       return canvas;
@@ -651,7 +670,7 @@ async function carica() {
         grid.innerHTML = notizie.map((n, i) => {
           const colore = COLORI[n.colore] || COLORI.blu;
           const img = n.immagine
-            ? `<img src="${n.immagine}" alt="" class="news-img" loading="lazy">`
+            ? `<div class="news-img-wrap" style="background-image:url('${n.immagine}')"><img src="${n.immagine}" alt="" class="news-img" loading="lazy"></div>`
             : '';
           const titoloSafe = (n.titolo || '').replace(/'/g, "\\'");
           const id = n.id;
