@@ -119,8 +119,29 @@
     .news-img {
       position:relative; z-index:1;
       width:100%; height:100%; object-fit:contain;
-      display:block;
+      display:block; cursor:zoom-in;
     }
+
+    /* ── ZOOM LIGHTBOX ── */
+    .zoom-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.88);
+      z-index:4000; display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity .25s; cursor:zoom-out;
+    }
+    .zoom-overlay.aperto { opacity:1; pointer-events:all; }
+    .zoom-overlay img {
+      max-width:92vw; max-height:90vh; object-fit:contain;
+      border-radius:12px; box-shadow:0 8px 60px rgba(0,0,0,.6);
+      transform:scale(.95); transition:transform .25s; cursor:default;
+    }
+    .zoom-overlay.aperto img { transform:scale(1); }
+    .zoom-close {
+      position:absolute; top:20px; right:24px;
+      background:rgba(255,255,255,.15); border:none; color:#fff;
+      font-size:22px; width:44px; height:44px; border-radius:50%;
+      cursor:pointer; transition:background .2s;
+    }
+    .zoom-close:hover { background:rgba(255,255,255,.28); }
 
     .news-vuote {
       text-align:center; padding:60px 24px; color:var(--sub); font-size:16px;
@@ -196,6 +217,10 @@
 </head>
 <body>
   <div id="copyToast"></div>
+  <div class="zoom-overlay" id="zoomOverlay" onclick="chiudiZoom(event)">
+    <button class="zoom-close" onclick="chiudiZoom(event)">✕</button>
+    <img id="zoomImg" src="" alt="">
+  </div>
 
   <nav>
     <ul class="nav-menu">
@@ -531,56 +556,62 @@
       return canvas;
     }
 
-    /* ── POST 1080×1080 ── */
+    /* ── POST 1080×608 (16:9 landscape) ── */
     function _buildPost(W, img, titolo, logo) {
+      const H = Math.round(W * 9 / 16);   // 608 for W=1080
       const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = W;
+      canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
-      const PAD = 70;
+      const PAD = 64;
 
       if (img) {
-        _containWithBlurBg(ctx, img, 0, 0, W, W);
+        _containWithBlurBg(ctx, img, 0, 0, W, H);
       } else {
-        const bg = ctx.createLinearGradient(0,0,W,W);
+        const bg = ctx.createLinearGradient(0,0,W,H);
         bg.addColorStop(0,'#0d2055'); bg.addColorStop(1,'#1535a8');
-        ctx.fillStyle = bg; ctx.fillRect(0,0,W,W);
+        ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
       }
 
-      /* dark overlay bottom 45% */
-      const ov = ctx.createLinearGradient(0, W*0.45, 0, W);
+      /* dark overlay bottom 55% */
+      const ov = ctx.createLinearGradient(0, H*0.3, 0, H);
       ov.addColorStop(0,'rgba(13,32,85,0)');
-      ov.addColorStop(0.35,'rgba(13,32,85,0.75)');
+      ov.addColorStop(0.4,'rgba(13,32,85,0.82)');
       ov.addColorStop(1,'rgba(13,32,85,0.97)');
-      ctx.fillStyle = ov; ctx.fillRect(0,0,W,W);
+      ctx.fillStyle = ov; ctx.fillRect(0,0,W,H);
 
       /* watermark */
-      _drawWatermark(ctx, W, W);
+      _drawWatermark(ctx, W, H);
 
       /* orange top bar */
-      ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,14);
+      ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,10);
 
       /* club name */
       ctx.fillStyle = '#f57c00';
-      ctx.font = 'bold 54px Arial,sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('VIRTUS CASERTA', W/2, W*0.62);
+      ctx.font = 'bold 38px Arial,sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('VIRTUS CASERTA', W/2, H - 220);
 
       /* title – max 2 lines */
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 64px Arial,sans-serif'; ctx.textAlign = 'left';
-      const postTitleLines = _fitLines(ctx, titolo.toUpperCase(), W-PAD*2, 82, 82*2);
-      let postY = W*0.68;
-      for (const line of postTitleLines) { ctx.fillText(line, PAD, postY); postY += 82; }
+      ctx.font = 'bold 50px Arial,sans-serif'; ctx.textAlign = 'left';
+      const postTitleLines = _fitLines(ctx, titolo.toUpperCase(), W-PAD*2, 66, 66*2);
+      let postY = H - 172;
+      for (const line of postTitleLines) { ctx.fillText(line, PAD, postY); postY += 66; }
 
       /* logo bottom center */
       if (logo) {
-        const logoH = 70;
+        const logoH = 44;
         const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
         ctx.globalAlpha = 0.92;
-        ctx.drawImage(logo, W/2 - logoW/2, W - 230, logoW, logoH);
+        ctx.drawImage(logo, W/2 - logoW/2, H - 88, logoW, logoH);
         ctx.globalAlpha = 1;
       }
 
-      _drawFooter(ctx, W, W);
+      /* bottom bar + URL */
+      ctx.fillStyle = '#f57c00'; ctx.fillRect(0, H-8, W, 8);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = 'normal 22px Arial,sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('www.virtuscaserta.com', W/2, H - 16);
+
       return canvas;
     }
 
@@ -669,8 +700,9 @@ async function carica() {
         }
         grid.innerHTML = notizie.map((n, i) => {
           const colore = COLORI[n.colore] || COLORI.blu;
+          const imgAlt = (n.titolo || '').replace(/'/g, "\\'");
           const img = n.immagine
-            ? `<div class="news-img-wrap" style="background-image:url('${n.immagine}')"><img src="${n.immagine}" alt="" class="news-img" loading="lazy"></div>`
+            ? `<div class="news-img-wrap" style="background-image:url('${n.immagine}')"><img src="${n.immagine}" alt="${imgAlt}" class="news-img" loading="lazy" onclick="apriZoom(this.src,this.alt)"></div>`
             : '';
           const titoloSafe = (n.titolo || '').replace(/'/g, "\\'");
           const id = n.id;
@@ -730,6 +762,20 @@ async function carica() {
         grid.innerHTML = '<div class="news-vuote">Errore nel caricamento delle notizie.</div>';
       }
     }
+
+    function apriZoom(src, alt) {
+      const o = document.getElementById('zoomOverlay');
+      document.getElementById('zoomImg').src = src;
+      document.getElementById('zoomImg').alt = alt || '';
+      o.classList.add('aperto');
+    }
+    function chiudiZoom(e) {
+      if (e && e.target === document.getElementById('zoomImg')) return;
+      document.getElementById('zoomOverlay').classList.remove('aperto');
+    }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') chiudiZoom();
+    });
 
     carica();
   </script>
