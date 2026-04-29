@@ -644,6 +644,254 @@
       .squadra-arrow { display: none; }
     }
 
+    /* ===== SQUADRA PANEL ===== */
+    .sq-panel-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.58);
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .sq-panel-overlay.attivo {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .sq-panel {
+      background: #fff;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+      transform: translateY(32px) scale(0.97);
+      transition: transform 0.32s cubic-bezier(0.22,1,0.36,1);
+    }
+    .sq-panel-overlay.attivo .sq-panel {
+      transform: translateY(0) scale(1);
+    }
+    .sq-panel-header {
+      border-radius: 24px 24px 0 0;
+      padding: 28px 28px 22px;
+      position: relative;
+      background: var(--blu-scuro) center/cover no-repeat;
+    }
+    .sq-panel-header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(13,32,85,0.65) 0%, rgba(13,32,85,0.96) 100%);
+      border-radius: 24px 24px 0 0;
+    }
+    .sq-panel-header > * { position: relative; z-index: 1; }
+    .sq-panel-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.9);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .sq-panel-header h2 {
+      font-size: 24px;
+      font-weight: 900;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .sq-panel-header p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.65);
+    }
+    .sq-panel-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+      z-index: 2;
+    }
+    .sq-panel-close:hover { background: rgba(255,255,255,0.3); }
+    .sq-panel-body { padding: 24px 28px; }
+    .sq-info-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+    .sq-info-icon {
+      width: 38px; height: 38px;
+      background: var(--grigio-chiaro);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .sq-info-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 3px;
+    }
+    .sq-info-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #222;
+    }
+    .sq-orari-list { list-style: none; padding: 0; margin: 0; }
+    .sq-orari-list li {
+      font-size: 13px;
+      font-weight: 600;
+      color: #222;
+      padding: 2px 0;
+    }
+    .sq-orari-list li span {
+      color: #888;
+      font-weight: 400;
+      font-size: 12px;
+    }
+    .sq-divider { border: none; border-top: 1px solid #eee; margin: 16px 0; }
+    .sq-links {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .sq-link-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: var(--grigio-chiaro);
+      border-radius: 14px;
+      padding: 14px 8px;
+      text-decoration: none;
+      color: var(--blu-scuro);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: background 0.2s, transform 0.2s;
+      text-align: center;
+    }
+    .sq-link-btn:hover { background: #c5d7ef; transform: translateY(-2px); }
+    .sq-link-icon { font-size: 22px; }
+
+    .sq-subteams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+      gap: 12px;
+    }
+    /* Ultimo figlio in riga dispari → full-width (es. 5 subteam → 5°) */
+    .sq-subteams-grid > .sq-subteam:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+    .sq-subteam {
+      background: linear-gradient(145deg, #f8fbff 0%, var(--grigio-chiaro) 100%);
+      border-radius: 14px;
+      padding: 14px 14px 12px;
+      border: 1px solid #dce8f8;
+      border-left: 3px solid var(--blu-medio);
+      position: relative;
+      overflow: hidden;
+    }
+    .sq-subteam::after {
+      content: '';
+      position: absolute;
+      top: -10px; right: -10px;
+      width: 50px; height: 50px;
+      background: radial-gradient(circle, rgba(21,53,168,0.07), transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .sq-subteam-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--blu-medio);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sq-subteam-title::before {
+      content: '';
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: var(--arancio);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .sq-subteam-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 10px;
+    }
+    .sq-subteam-meta span {
+      font-size: 11px;
+      color: #555;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sq-subteam-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .sq-subteam-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      color: #9ca3af;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 0 8px 5px 0;
+      border-bottom: 1px solid #dde5f0;
+    }
+    .sq-subteam-table td {
+      padding: 5px 8px 5px 0;
+      color: #222;
+      font-weight: 500;
+      border-bottom: 1px solid #edf1f7;
+      vertical-align: top;
+    }
+    .sq-subteam-table td:last-child { color: #666; font-size: 11px; font-weight: 400; }
+    .sq-subteam-table tr:last-child td { border-bottom: none; }
+
+    @media (max-width: 540px) {
+      .sq-panel { border-radius: 20px; max-height: 95vh; }
+      .sq-panel-body { padding: 18px 18px; }
+      .sq-panel-header { padding: 22px 18px 18px; }
+      .sq-panel-header h2 { font-size: 20px; }
+      .sq-links { grid-template-columns: 1fr 1fr; }
+      .sq-subteams-grid { grid-template-columns: 1fr; }
+      .sq-subteams-grid > .sq-subteam:last-child:nth-child(odd) { grid-column: auto; }
+    }
+
     /* ===== NOTIZIE CAROUSEL ===== */
     #notizie {
       background: var(--bianco);
@@ -1361,126 +1609,7 @@
       text-decoration: none;
     }
 
-    /* ===== FOOTER ===== */
-    /*
-    footer {
-      background: #0d1730;
-      color: rgba(255,255,255,0.5);
-      font-size: 14px;
-    }
 
-    .footer-top {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: start;
-      gap: 40px;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 48px 40px 36px;
-    }
-
-    .footer-auth { display: flex; flex-direction: column; gap: 10px; }
-
-    .footer-auth-title {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.35);
-      margin-bottom: 4px;
-    }
-
-    .footer-auth-logged { display: none; }
-
-    #footerAuthArea.logged .footer-auth-login  { display: none; }
-    #footerAuthArea.logged .footer-auth-logged { display: flex; align-items: center; gap: 12px; }
-
-    .footer-auth-nome {
-      color: var(--bianco);
-      font-weight: 700;
-      font-size: 14px;
-    }
-
-    .footer-btn {
-      display: inline-flex;
-      align-items: center;
-      background: var(--arancio);
-      color: var(--bianco);
-      border: none;
-      border-radius: 50px;
-      padding: 8px 20px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-
-    .footer-btn:hover { background: #d4520a; }
-
-    .footer-btn-outline {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.25);
-      color: rgba(255,255,255,0.65);
-    }
-
-    .footer-btn-outline:hover { background: rgba(255,255,255,0.08); color: var(--bianco); }
-
-    .footer-center { text-align: center; }
-
-    .footer-logo img { height: 56px; width: auto; opacity: 0.85; margin-bottom: 12px; }
-
-    .footer-social {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .footer-social a {
-      width: 38px; height: 38px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-
-    .footer-social a:hover { opacity: 0.8; }
-    .footer-social .ig-btn, .footer-social .fb-btn { background: none; }
-    .footer-social a img { width: 100%; height: 100%; object-fit: contain; display: block; filter: brightness(0) invert(1); }
-
-    .footer-links { text-align: right; display: flex; flex-direction: column; gap: 8px; }
-
-    .footer-links a {
-      color: rgba(255,255,255,0.45);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      transition: color 0.2s;
-    }
-
-    .footer-links a:hover { color: rgba(255,255,255,0.85); }
-
-    .footer-bottom {
-      border-top: 1px solid rgba(255,255,255,0.07);
-      text-align: center;
-      padding: 18px 24px;
-      font-size: 12px;
-    }
-
-    footer .footer-bottom span { color: var(--arancio); }
-
-    @media (max-width: 700px) {
-      .footer-top { grid-template-columns: 1fr; text-align: center; }
-      .footer-links { text-align: center; }
-      .footer-auth { align-items: center; }
-    }
-*/
   footer { background:#0d1730; color:rgba(255,255,255,0.5); font-size:14px; }
     footer span { color:#f57c00; }
     .footer-top {
@@ -1552,6 +1681,62 @@
   </style>
 </head>
 <body>
+
+  <!-- SQUADRA PANEL -->
+  <div class="sq-panel-overlay" id="sqPanelOverlay" onclick="chiudiSquadraSePannel(event)">
+    <div class="sq-panel" id="sqPanel">
+      <div class="sq-panel-header" id="sqPanelHeader">
+        <button class="sq-panel-close" onclick="chiudiSquadra()">✕</button>
+        <div class="sq-panel-badge" id="sqPanelBadge"></div>
+        <h2 id="sqPanelTitolo"></h2>
+        <p id="sqPanelCategoria"></p>
+      </div>
+      <div class="sq-panel-body">
+        <div class="sq-info-row" id="sqAllenatoreRow">
+          <div class="sq-info-icon">👤</div>
+          <div>
+            <div class="sq-info-label">Allenatore</div>
+            <div class="sq-info-value" id="sqPanelAllenatore"></div>
+          </div>
+        </div>
+        <div class="sq-info-row" id="sqLuogoRow">
+          <div class="sq-info-icon">📍</div>
+          <div>
+            <div class="sq-info-label">Palestra</div>
+            <div class="sq-info-value" id="sqPanelLuogo"></div>
+          </div>
+        </div>
+        <div class="sq-info-row">
+          <div class="sq-info-icon">🏐</div>
+          <div>
+            <div class="sq-info-label">Categoria</div>
+            <div class="sq-info-value" id="sqPanelCategoriaInfo"></div>
+          </div>
+        </div>
+        <hr class="sq-divider">
+        <div class="sq-info-row" id="sqOrariSimple">
+          <div class="sq-info-icon">🕐</div>
+          <div>
+            <div class="sq-info-label">Orari allenamenti</div>
+            <ul class="sq-orari-list" id="sqPanelOrari"></ul>
+          </div>
+        </div>
+        <div id="sqSubteamsContainer" style="display:none"></div>
+        <hr class="sq-divider">
+        <div class="sq-links">
+          <a class="sq-link-btn" id="sqLinkRisultati" href="#" target="_blank" rel="noopener">
+            <span class="sq-link-icon">📊</span>Risultati
+          </a>
+          <a class="sq-link-btn" id="sqLinkClassifica" href="#" target="_blank" rel="noopener">
+            <span class="sq-link-icon">🏆</span>Classifica
+          </a>
+          <a class="sq-link-btn" id="sqLinkSquadra" href="#">
+            <span class="sq-link-icon">👥</span>Squadra
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL LOGIN / REGISTRAZIONE -->
   <div class="modal-overlay" id="modalLogin" onclick="chiudiModalSeOverlay(event)">
@@ -1658,7 +1843,7 @@
         <p>Dalla Serie D al VolleyS3</p>
       </div>
       <div class="squadre-grid">
-        <div class="squadra-card" style="background-image:url('images/Serie D.jpeg'), linear-gradient(135deg,#0d1f5c,#1a3a8f); --card-accent:#f57c00;">
+        <div class="squadra-card" onclick="apriSquadra('serie-d-f')" style="background-image:url('images/Serie D.jpeg'), linear-gradient(135deg,#0d1f5c,#1a3a8f); --card-accent:#f57c00;">
           <span class="squadra-badge">Serie D</span>
           <div class="squadra-overlay">
             <h3>Serie D Femminile</h3>
@@ -1666,7 +1851,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/Prima divisione maschile.jpeg'), linear-gradient(135deg,#0d3355,#0a5a9e); --card-accent:#f57c00;">
+        <div class="squadra-card" onclick="apriSquadra('prima-div-m')" style="background-image:url('images/Prima divisione maschile.jpeg'), linear-gradient(135deg,#0d3355,#0a5a9e); --card-accent:#f57c00;">
           <span class="squadra-badge">Prima Divisione</span>
           <div class="squadra-overlay">
             <h3>Prima Divisione Maschile</h3>
@@ -1674,7 +1859,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/Prima divisione femminile.jpeg'), linear-gradient(135deg,#3d0d55,#7b2fa8); --card-accent:#f57c00;">
+        <div class="squadra-card" onclick="apriSquadra('prima-div-f')" style="background-image:url('images/Prima divisione femminile.jpeg'), linear-gradient(135deg,#3d0d55,#7b2fa8); --card-accent:#f57c00;">
           <span class="squadra-badge">Prima Divisione</span>
           <div class="squadra-overlay">
             <h3>Prima Divisione Femminile</h3>
@@ -1682,7 +1867,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/Giovanili.jpeg'), linear-gradient(135deg,#4a1a00,#b04a10); --card-accent:#f57c00;">
+        <div class="squadra-card" onclick="apriSquadra('giovanile-f')" style="background-image:url('images/Giovanili.jpeg'), linear-gradient(135deg,#4a1a00,#b04a10); --card-accent:#f57c00;">
           <span class="squadra-badge">Settore Giovanile</span>
           <div class="squadra-overlay">
             <h3>Giovanile Femminile</h3>
@@ -1690,7 +1875,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/Under 13-15 maschile.jpeg'), linear-gradient(135deg,#0d3320,#1a7a45); --card-accent:#f57c00;">
+        <div class="squadra-card" onclick="apriSquadra('under1315-m')" style="background-image:url('images/Under 13-15 maschile.jpeg'), linear-gradient(135deg,#0d3320,#1a7a45); --card-accent:#f57c00;">
           <span class="squadra-badge">Settore Giovanile</span>
           <div class="squadra-overlay">
             <h3>Under 13/15 Maschile</h3>
@@ -1698,7 +1883,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/Mista.jpeg'), linear-gradient(135deg,#1a0d55,#4a2fa8); --card-accent:#f57c00;">
+        <div class="squadra-card" onclick="apriSquadra('miste')" style="background-image:url('images/Mista.jpeg'), linear-gradient(135deg,#1a0d55,#4a2fa8); --card-accent:#f57c00;">
           <span class="squadra-badge">Attività Miste</span>
           <div class="squadra-overlay">
             <h3>Squadre Miste</h3>
@@ -1706,7 +1891,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" style="background-image:url('images/Volley S3.jpeg'), linear-gradient(135deg,#553d0d,#c49a10); --card-accent:#f57c00;">
+        <div class="squadra-card" onclick="apriSquadra('volleys3')" style="background-image:url('images/Volley S3.jpeg'), linear-gradient(135deg,#553d0d,#c49a10); --card-accent:#f57c00;">
           <span class="squadra-badge">Mini Volley</span>
           <div class="squadra-overlay">
             <h3>VolleyS3</h3>
@@ -1955,50 +2140,6 @@
     <p>© 2024 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a> · Sito realizzato da Alessandro Pascarella</p>
   </div>
 </footer>
-   <!-- 
-  <footer>
-    <div class="footer-top">
-
-     
-      <div class="footer-auth" id="footerAuthArea">
-        <div class="footer-auth-title">Account</div>
-        <div class="footer-auth-login">
-          <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
-        </div>
-        <div class="footer-auth-logged">
-          <span class="footer-auth-nome" id="footerNome"></span>
-          <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-          <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
-        </div>
-      </div>
-
-  
-      <div class="footer-center">
-        <div class="footer-logo">
-          <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
-        </div>
-        <div class="footer-social">
-          <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="fb-btn" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
-          <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="ig-btn" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
-          <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
-          <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
-        </div>
-      </div>
-
-  
-      <div class="footer-links">
-        <a href="chiSiamo.html">Chi siamo</a>
-        <a href="shop.html">Shop</a>
-        <a href="#partite">Risultati & Calendario</a>
-        <a href="#contatti">Contatti</a>
-      </div>
-
-    </div>
-    <div class="footer-bottom">
-      <p>© 2024 <span>Virtus Caserta</span> – Società Sportiva Pallavolo · P.IVA 00000000000 · Affiliata <span>FIPAV</span> · Sito realizzato da Alessandro Pascarella</p>
-    </div>
-  </footer>
--->
 
   <script>
     function formatNum(n) {
@@ -2281,7 +2422,7 @@
           <div style="text-align:center;padding:32px;color:#6b7280;">
             <p style="margin-bottom:16px;">Impossibile caricare le partite: ${err.message}</p>
             <a href="https://caserta.portalefipav.net/" target="_blank" rel="noopener" class="partite-fipav-btn">
-              🏐 Portale FIPAV Caserta
+               Portale FIPAV Caserta
             </a>
           </div>`;
       }
@@ -2614,6 +2755,239 @@
     })();
 
     /* ── SELETTORE LUOGHI ── */
+    const SQUADRE_DATA = {
+      'serie-d-f': {
+        nome: 'Serie D Femminile',
+        badge: 'Serie D',
+        categoria: 'Campionato Regionale FIPAV',
+        categoriaInfo: 'Serie D – Campionato Regionale',
+        allenatore: 'Mirko D addio',
+        luogo: 'Liceo Manzoni',
+        orari: [
+          { giorno: 'Lunedì', ora: '21:00 – 23:00' },
+          { giorno: 'Mercoledì', ora: '21:00 – 23:00' },
+          { giorno: 'Venerdì', ora: '21:00 – 23:00' },
+        ],
+        immagine: 'images/Serie D.jpeg',
+        linkRisultati: '/risultati',
+        linkClassifica: '/classifica',
+        linkSquadra: '/squadre/serie-d',
+      },
+      'prima-div-m': {
+        nome: 'Prima Divisione Maschile',
+        badge: 'Prima Divisione',
+        categoria: 'Campionato Provinciale FIPAV',
+        categoriaInfo: 'Prima Divisione – Campionato Provinciale',
+        allenatore: 'Sara De Matteo',
+        luogo: ' Liceo Mazzocchi',
+        orari: [
+          { giorno: 'Martedì', ora: '21:00 – 23:00' },
+          { giorno: 'Giovedì', ora: '21:00 – 23:00' },
+          { giorno: 'Venerdì', ora: '21:00 - 23:00' },
+        ],
+        immagine: 'images/Prima divisione maschile.jpeg',
+        linkRisultati: '/risultati',
+        linkClassifica: '/classifica',
+        linkSquadra: '/squadre/prima-divisione-maschile',
+      },
+      'prima-div-f': {
+        nome: 'Prima Divisione Femminile',
+        badge: 'Prima Divisione',
+        categoria: 'Campionato Provinciale FIPAV',
+        categoriaInfo: 'Prima Divisione – Campionato Provinciale',
+        allenatore: '',
+        orari: [
+          { giorno: 'Lunedì', ora: '19:00 – 21:00' },
+          { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
+        ],
+        immagine: 'images/Prima divisione femminile.jpeg',
+        linkRisultati: '/risultati',
+        linkClassifica: '/classifica',
+        linkSquadra: '/squadre/prima-divisione-femminile',
+      },
+      'giovanile-f': {
+        nome: 'Giovanile Femminile',
+        badge: 'Settore Giovanile',
+        categoria: 'Under 13 · Under 14 · Under 16 · Under 18',
+        categoriaInfo: 'Campionati Provinciali e Regionali FIPAV',
+        immagine: 'images/Giovanili.jpeg',
+        linkRisultati: '/risultati',
+        linkClassifica: '/classifica',
+        linkSquadra: '/squadre/giovanile-femminile',
+        subteams: [
+          {
+            nome: 'Under 13',
+            allenatore: 'Sara De Matteo',
+            luogo: 'Liceo Manzoni',
+            orari: [
+              { giorno: 'Lunedì', ora: '19:00 – 21:00' },
+              { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
+            ],
+          },
+          {
+            nome: 'Under 16',
+            allenatore: "Mirko D'Addio",
+            luogo: 'Liceo Manzoni',
+            orari: [
+              { giorno: 'Lunedì', ora: '18:30 – 20:00' },
+              { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
+              { giorno: 'Giovedì', ora: '19:00 – 21:00' },
+            ],
+          },
+          {
+            nome: 'Under 18',
+            allenatore: 'Alessandro Pascarella',
+            luogo: 'Tenso struttura Tenda di Abramo',
+            orari: [
+              { giorno: 'Lunedì', ora: '19:00 – 21:00' },
+              { giorno: 'Mercoledì', ora: '18:30 – 20:00' },
+              { giorno: 'Giovedì', ora: '19:00 – 21:00' },
+            ],
+          },
+          {
+            nome:'Amatoriale Femminile',
+            allenatore: 'Giorgia Basso',
+            luogo: 'Liceo Manzoni',
+            orari:[
+              { giorno: 'Martedì', ora: '20:00 - 21:30'},
+              { giorno: 'Venerdì', ora: '20:00 - 21:30'},
+            ]
+          },
+                {
+            nome: 'Under 14',
+            allenatore: "Mirko D'Addio",
+            luogo: 'Tensostruttura Tenda di Abramo',
+            orari: [
+              { giorno: 'Martedì', ora: '17:30 – 19:30' },
+              { giorno: 'Giovedì', ora: '17:30 – 19:00' },
+            ],
+          }
+        ],
+      },
+      'under1315-m': {
+        nome: 'Under 13/15 Maschile',
+        badge: 'Settore Giovanile',
+        categoria: 'Under 13 · Under 15',
+        categoriaInfo: 'Campionato Provinciale FIPAV',
+        allenatore: 'Angelo Rosanio',
+        luogo: 'Tensostruttura Tenda di Abramo',
+        orari: [
+          { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
+          { giorno: 'Venerdì', ora: '19:00 – 21:00' },
+        ],
+        immagine: 'images/Under 13-15 maschile.jpeg',
+        linkRisultati: '/risultati',
+        linkClassifica: '/classifica',
+        linkSquadra: '/squadre/under1315-maschile',
+      },
+      'miste': {
+        nome: 'Squadre Miste',
+        badge: 'Attività Miste',
+        categoria: 'Attività inclusive e tornei',
+        categoriaInfo: 'Tornei OPES e attività ricreative',
+        immagine: 'images/Mista.jpeg',
+        linkRisultati: '/risultati',
+        linkClassifica: '/classifica',
+        linkSquadra: '/squadre/miste',
+         subteams: [
+          {
+            nome: 'Virtus Caserta White',
+            allenatore: 'Roberto Palladino',
+            luogo: 'Liceo Manzoni',
+            orari: [
+              { giorno: 'Lunedì', ora: '21:00 – 23:00' },
+              { giorno: 'Mercoledì', ora: '21:00 – 23:00' },
+            ],
+          },
+          {
+            nome: 'Virtus Caserta Red',
+            allenatore: "Alessandro Pascarella",
+            luogo: 'Tensostruttura Tenda di Abramo',
+            orari: [
+              { giorno: 'Lunedì', ora: '21:00 – 23:00' },
+              { giorno: 'Mercoledì', ora: '21:00 – 23:00' },
+            ],
+          },
+        ],
+      },
+      'volleys3': {
+        nome: 'VolleyS3',
+        badge: 'Mini Volley',
+        categoria: 'Settore di base FIPAV',
+        categoriaInfo: 'VolleyS3 – Attività di base FIPAV',
+        allenatore: 'Giorgia Basso',
+        orari: [
+          { giorno: 'Sabato', ora: '09:00 – 11:00' },
+        ],
+        immagine: 'images/Volley S3.jpeg',
+        linkRisultati: '/risultati',
+        linkClassifica: '/classifica',
+        linkSquadra: '/squadre/volleys3',
+      },
+    };
+
+    function apriSquadra(key) {
+      const d = SQUADRE_DATA[key];
+      if (!d) return;
+      document.getElementById('sqPanelBadge').textContent = d.badge;
+      document.getElementById('sqPanelTitolo').textContent = d.nome;
+      document.getElementById('sqPanelCategoria').textContent = d.categoria;
+      document.getElementById('sqPanelCategoriaInfo').textContent = d.categoriaInfo || d.categoria;
+      document.getElementById('sqPanelHeader').style.backgroundImage = `url('${d.immagine}'), linear-gradient(135deg,#0d2055,#1535a8)`;
+      document.getElementById('sqLinkRisultati').href = d.linkRisultati;
+      document.getElementById('sqLinkClassifica').href = d.linkClassifica;
+      document.getElementById('sqLinkSquadra').href = d.linkSquadra;
+
+      if (d.subteams) {
+        document.getElementById('sqAllenatoreRow').style.display = 'none';
+        document.getElementById('sqLuogoRow').style.display = 'none';
+        document.getElementById('sqOrariSimple').style.display = 'none';
+        const container = document.getElementById('sqSubteamsContainer');
+        container.style.display = '';
+        container.innerHTML = '<div class="sq-subteams-grid">' + d.subteams.map(st => `
+          <div class="sq-subteam">
+            <div class="sq-subteam-title">${st.nome}</div>
+            <div class="sq-subteam-meta">
+              <span>👤 ${st.allenatore}</span>
+              <span>📍 ${st.luogo}</span>
+            </div>
+            <table class="sq-subteam-table">
+              <thead><tr><th>Giorno</th><th>Orario</th></tr></thead>
+              <tbody>${st.orari.map(o => `<tr><td>${o.giorno}</td><td>${o.ora}</td></tr>`).join('')}</tbody>
+            </table>
+          </div>`).join('') + '</div>';
+      } else {
+        document.getElementById('sqAllenatoreRow').style.display = '';
+        document.getElementById('sqPanelAllenatore').textContent = d.allenatore || '–';
+        const luogoRow = document.getElementById('sqLuogoRow');
+        if (d.luogo) {
+          luogoRow.style.display = '';
+          document.getElementById('sqPanelLuogo').textContent = d.luogo;
+        } else {
+          luogoRow.style.display = 'none';
+        }
+        document.getElementById('sqOrariSimple').style.display = '';
+        document.getElementById('sqSubteamsContainer').style.display = 'none';
+        document.getElementById('sqPanelOrari').innerHTML = d.orari.map(o => `<li>${o.giorno} <span>${o.ora}</span></li>`).join('');
+      }
+
+      document.getElementById('sqPanelOverlay').classList.add('attivo');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function chiudiSquadra() {
+      document.getElementById('sqPanelOverlay').classList.remove('attivo');
+      document.body.style.overflow = '';
+    }
+
+    function chiudiSquadraSePannel(e) {
+      if (e.target === document.getElementById('sqPanelOverlay')) chiudiSquadra();
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') chiudiSquadra();
+    });
+
     function selezionaLuogo(idx) {
       document.querySelectorAll('.luogo-item').forEach((el, i) => el.classList.toggle('attivo', i === idx));
       const iframes = document.querySelectorAll('#luoghiMappa iframe');
