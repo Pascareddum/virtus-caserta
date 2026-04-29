@@ -556,13 +556,13 @@
       return canvas;
     }
 
-    /* ── POST 1080×566 (1.91:1 Instagram landscape) ── */
+    /* ── POST 566×566 (1:1 Instagram square) ── */
     function _buildPost(W, img, titolo, logo) {
-      const H = Math.round(W / 1.91);   // 566 for W=1080
+      const H = W;   // square
       const canvas = document.createElement('canvas');
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
-      const PAD = 70;
+      const PAD = 42;
 
       if (img) {
         _containWithBlurBg(ctx, img, 0, 0, W, H);
@@ -572,8 +572,8 @@
         ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
       }
 
-      /* dark overlay bottom 60% */
-      const ov = ctx.createLinearGradient(0, H*0.28, 0, H);
+      /* dark overlay bottom 55% */
+      const ov = ctx.createLinearGradient(0, H*0.32, 0, H);
       ov.addColorStop(0,'rgba(13,32,85,0)');
       ov.addColorStop(0.38,'rgba(13,32,85,0.82)');
       ov.addColorStop(1,'rgba(13,32,85,0.97)');
@@ -583,12 +583,12 @@
       _drawWatermark(ctx, W, H);
 
       /* orange top bar */
-      ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,10);
+      ctx.fillStyle = '#f57c00'; ctx.fillRect(0,0,W,8);
 
       /* ── title: word-wrap (no truncation), auto-shrink font ── */
       const maxW = W - PAD * 2;
-      const TITLE_BOTTOM = H - 96;  // last line baseline anchor
-      const TITLE_TOP_LIMIT = Math.round(H * 0.36); // ~204px, don't go above
+      const TITLE_BOTTOM = H - 72;
+      const TITLE_TOP_LIMIT = Math.round(H * 0.42);
 
       function wrapAll(text, font) {
         ctx.font = font;
@@ -603,16 +603,16 @@
         return lines;
       }
 
-      let fontSize = 44;
+      let fontSize = 34;
       let titleLines, lineH;
-      while (fontSize >= 18) {
+      while (fontSize >= 14) {
         lineH = Math.round(fontSize * 1.28);
         titleLines = wrapAll(titolo.toUpperCase(), `bold ${fontSize}px Arial,sans-serif`);
-        const clubFontSizeTest = Math.max(16, Math.round(fontSize * 0.68));
-        const clubGapTest = Math.round(fontSize * 0.4) + 6;
+        const clubFontSizeTest = Math.max(12, Math.round(fontSize * 0.68));
+        const clubGapTest = Math.round(fontSize * 0.4) + 8;
         const totalNeeded = clubFontSizeTest + clubGapTest + titleLines.length * lineH;
-        if (TITLE_BOTTOM - totalNeeded >= TITLE_TOP_LIMIT || fontSize === 18) break;
-        fontSize -= 3;
+        if (TITLE_BOTTOM - totalNeeded >= TITLE_TOP_LIMIT || fontSize === 14) break;
+        fontSize -= 2;
       }
 
       ctx.font = `bold ${fontSize}px Arial,sans-serif`;
@@ -624,9 +624,9 @@
       }
 
       /* club name above title */
-      const clubFontSize = Math.max(18, Math.round(fontSize * 0.68));
-      const clubY = firstLineY - Math.round(fontSize * 0.4) - 22;
-      if (clubY > 18) {
+      const clubFontSize = Math.max(14, Math.round(fontSize * 0.68));
+      const clubY = firstLineY - Math.round(fontSize * 0.4) - 14;
+      if (clubY > 14) {
         ctx.fillStyle = '#f57c00';
         ctx.font = `bold ${clubFontSize}px Arial,sans-serif`;
         ctx.textAlign = 'center';
@@ -635,18 +635,18 @@
 
       /* logo bottom center */
       if (logo) {
-        const logoH = 44;
+        const logoH = 36;
         const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
         ctx.globalAlpha = 0.92;
-        ctx.drawImage(logo, W/2 - logoW/2, H - 88, logoW, logoH);
+        ctx.drawImage(logo, W/2 - logoW/2, H - 66, logoW, logoH);
         ctx.globalAlpha = 1;
       }
 
       /* bottom bar + URL */
-      ctx.fillStyle = '#f57c00'; ctx.fillRect(0, H-8, W, 8);
+      ctx.fillStyle = '#f57c00'; ctx.fillRect(0, H-7, W, 7);
       ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.font = 'normal 20px Arial,sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('www.virtuscaserta.com', W/2, H - 16);
+      ctx.font = 'normal 15px Arial,sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('www.virtuscaserta.com', W/2, H - 12);
 
       return canvas;
     }
@@ -702,7 +702,7 @@
         _loadImage(imgSrc),
         _loadImage('images/negativo@4x.png'),
       ]);
-      const canvas = _buildPost(1080, photo, titolo, logo);
+      const canvas = _buildPost(566, photo, titolo, logo);
       const file   = await _toFile(canvas, 'virtus-post.jpg', true);
       await _shareFile(file, canvas, 'virtus-post.jpg', titolo);
     }
