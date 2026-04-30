@@ -260,19 +260,27 @@ app.get('/notizia/:id', async (req, res) => {
     const base = process.env.BASE_URL || 'https://www.virtuscaserta.com';
     const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const imgUrl = n.immagine ? (n.immagine.startsWith('http') ? n.immagine : `${base}${n.immagine}`) : `${base}/images/logo.png`;
-    const desc = esc((n.testo || '').slice(0, 160));
+    const plainTesto = (n.testo || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const desc = esc(plainTesto.slice(0, 160));
     const titolo = esc(n.titolo);
     res.send(`<!DOCTYPE html>
 <html lang="it"><head>
   <meta charset="UTF-8">
   <title>${titolo} – Virtus Caserta</title>
   <meta name="description" content="${desc}">
+  <meta property="og:site_name" content="Virtus Caserta">
+  <meta property="og:locale" content="it_IT">
   <meta property="og:title" content="${titolo} – Virtus Caserta">
   <meta property="og:description" content="${desc}">
   <meta property="og:image" content="${imgUrl}">
+  <meta property="og:image:secure_url" content="${imgUrl}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:url" content="${base}/notizia/${n.id}">
   <meta property="og:type" content="article">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@virtuscaserta">
   <meta name="twitter:title" content="${titolo} – Virtus Caserta">
   <meta name="twitter:description" content="${desc}">
   <meta name="twitter:image" content="${imgUrl}">

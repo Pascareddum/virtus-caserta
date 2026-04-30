@@ -2797,8 +2797,8 @@
           { giorno: 'Venerdì', ora: '21:00 – 23:00' },
         ],
         immagine: 'images/Serie D.jpeg',
-        linkRisultati: '/risultati?fonte=fipav&cat=Serie+D+Femminile',
-        linkClassifica: '/risultati',
+        linkRisultati: '/risultati?fonte=fipav&cat=SERIE+D',
+        linkClassifica: 'https://caserta.portalefipav.net/',
         linkSquadra: '/squadra',
       },
       'prima-div-m': {
@@ -2814,8 +2814,8 @@
           { giorno: 'Venerdì', ora: '21:00 - 23:00' },
         ],
         immagine: 'images/Prima divisione maschile.jpeg',
-        linkRisultati: '/risultati?fonte=fipav&cat=Prima+Divisione+Maschile',
-        linkClassifica: '/risultati',
+        linkRisultati: '/risultati?fonte=fipav&cat=Divisione+Maschile',
+        linkClassifica: 'https://caserta.portalefipav.net/',
         linkSquadra: '/squadra',
       },
       'prima-div-f': {
@@ -2829,8 +2829,8 @@
           { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
         ],
         immagine: 'images/Prima divisione femminile.jpeg',
-        linkRisultati: '/risultati?fonte=fipav&cat=Prima+Divisione+Femminile',
-        linkClassifica: '/risultati',
+        linkRisultati: '/risultati?fonte=fipav&cat=1+Divisione+Femminile+-+gir.B',
+        linkClassifica: 'https://caserta.portalefipav.net/',
         linkSquadra: '/squadra',
       },
       'giovanile-f': {
@@ -2849,7 +2849,7 @@
               { giorno: 'Mercoledì', ora: '19:00 – 21:00' },
             ],
             linkRisultati: '/risultati?fonte=fipav&cat=Under+13+Femminile',
-            linkClassifica: '/risultati',
+            linkClassifica: 'https://caserta.portalefipav.net/',
             linkSquadra: '/squadra',
           },
           {
@@ -2861,7 +2861,7 @@
               { giorno: 'Giovedì', ora: '17:30 – 19:00' },
             ],
             linkRisultati: '/risultati?fonte=fipav&cat=Under+13+Femminile',
-            linkClassifica: '/risultati',
+            linkClassifica: 'https://caserta.portalefipav.net/',
             linkSquadra: '/squadra',
           },
           {
@@ -2873,7 +2873,7 @@
               { giorno: 'Venerdì', ora: '20:00 - 21:30' },
             ],
             linkRisultati: '/risultati?fonte=fipav&cat=Under+16+Femminile',
-            linkClassifica: '/risultati',
+            linkClassifica: 'https://caserta.portalefipav.net/',
             linkSquadra: '/squadra',
           },
           {
@@ -2886,7 +2886,7 @@
               { giorno: 'Giovedì', ora: '19:00 – 21:00' },
             ],
             linkRisultati: '/risultati?fonte=fipav&cat=Under+16+Femminile',
-            linkClassifica: '/risultati',
+            linkClassifica: 'https://caserta.portalefipav.net/',
             linkSquadra: '/squadra',
           },
           {
@@ -2899,7 +2899,7 @@
               { giorno: 'Giovedì', ora: '19:00 – 21:00' },
             ],
             linkRisultati: '/risultati?fonte=fipav&cat=Under+18+Femminile',
-            linkClassifica: '/risultati',
+            linkClassifica: 'https://caserta.portalefipav.net/',
             linkSquadra: '/squadra',
           },
           {
@@ -2912,7 +2912,7 @@
               { giorno: 'Giovedì', ora: '19:00 – 21:00' },
             ],
             linkRisultati: '/risultati?fonte=fipav&cat=Under+18+Femminile',
-            linkClassifica: '/risultati',
+            linkClassifica: 'https://caserta.portalefipav.net/',
             linkSquadra: '/squadra',
           },
           {
@@ -2924,7 +2924,7 @@
               { giorno: 'Giovedì', ora: '17:30 – 19:00' },
             ],
             linkRisultati: '/risultati?fonte=fipav&cat=Under+14+Femminile',
-            linkClassifica: '/risultati',
+            linkClassifica: 'https://caserta.portalefipav.net/',
             linkSquadra: '/squadra',
           }
         ],
@@ -2942,7 +2942,7 @@
         ],
         immagine: 'images/Under 13-15 maschile.jpeg',
         linkRisultati: '/risultati?fonte=fipav&cat=Under',
-        linkClassifica: '/risultati',
+        linkClassifica: 'https://caserta.portalefipav.net/',
         linkSquadra: '/squadra',
       },
       'miste': {
@@ -3028,7 +3028,8 @@
             const href = st[key];
             const cls = 'sq-subteam-link' + (extraClass ? ' ' + extraClass : '') + (!href ? ' disabilitato' : '');
             if (!href) return `<span class="${cls}">${icon} ${label}</span>`;
-            return `<a href="${href}" class="${cls}">${icon} ${label}</a>`;
+            const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
+            return `<a href="${href}"${ext} class="${cls}">${icon} ${label}</a>`;
           };
           const btnR = mkBtn('linkRisultati', '📋','Risultati');
           const btnS = mkBtn('linkSquadra',   '👥','Squadra');

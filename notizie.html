@@ -350,7 +350,7 @@
     }
     function condividiSuWhatsapp(titolo, id) {
       const text = encodeURIComponent(titolo + '\n' + _newsUrl(id));
-      window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
+      window.open('https://wa.me/?text=' + text, '_blank');
     }
     function condividiSuX(titolo, id) {
       const url  = encodeURIComponent(_newsUrl(id));
@@ -492,8 +492,6 @@
       const bg = ctx.createLinearGradient(0, 0, W, H);
       bg.addColorStop(0, '#0d2055'); bg.addColorStop(1, '#1535a8');
       ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-
-    
 
       /* photo – fixed top 700px */
       const PHOTO_H = img ? 700 : 0;

@@ -556,12 +556,20 @@
         if (catP && fonteP === 'fipav') {
           const catSel = document.getElementById('fipavCatSelect');
           catSel.style.display = '';
-          const decoded = decodeURIComponent(catP);
-          const match = [...catSel.options].find(o =>
-            o.value === decoded ||
-            o.value.toLowerCase().includes(decoded.toLowerCase()) ||
-            decoded.toLowerCase().includes(o.value.toLowerCase())
-          );
+          const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/gi,' ').replace(/\s+/g,' ').trim();
+          const decoded = norm(decodeURIComponent(catP));
+          const dWords = decoded.split(' ').filter(w => w.length >= 2);
+          const match = [...catSel.options].find(o => {
+            if (!o.value) return false;
+            const ov = norm(o.value);
+            if (ov === decoded || ov.includes(decoded) || decoded.includes(ov)) return true;
+            const oWords = ov.split(' ');
+            const dNums = dWords.filter(w => /^\d+$/.test(w));
+            if (dNums.length && !dNums.every(n => oWords.includes(n))) return false;
+            const dText = dWords.filter(w => !/^\d+$/.test(w));
+            const hits = dText.filter(w => oWords.some(ow => ow === w || ow.startsWith(w) || w.startsWith(ow)));
+            return hits.length >= Math.max(1, Math.ceil(dText.length * 0.6));
+          });
           if (match) { catSel.value = match.value; applySubFiltro(catSel); }
         }
       }
