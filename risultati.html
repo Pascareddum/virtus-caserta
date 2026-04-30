@@ -252,7 +252,7 @@
   }
 
   function renderRisultato(m) {
-    if (m.postponed)   return `<div class="partita-risultato rinviata">⚠️ Rinviata</div>`;
+    if (m.postponed)   return `<div class="partita-risultato rinviata">Rinviata</div>`;
     if (isInCorso(m))  return `<div class="partita-risultato in-corso"><span class="live-dot"></span>In corso</div>`;
     if (!m.played)     return `<div class="partita-risultato prossima">da disputare</div>`;
     const parts = m.risultato.match(/(\d+)\s*-\s*(\d+)/);
@@ -266,7 +266,7 @@
     return `<div class="partita-risultato ${cls}">${m.risultato}</div><div class="esito-label ${cls}">${label}</div>`;
   }
 
-  function renderCard(m, nascosta, catLabel = null) {
+  function renderCard(m, nascosta, catLabel = null, showCl = true) {
     const casaCls      = isVirtus(m.casa)   ? ' virtus' : '';
     const ospiteCls    = isVirtus(m.ospite) ? ' virtus' : '';
     const nascostaClass  = nascosta ? ' nascosta' : '';
@@ -297,8 +297,8 @@
     const classificaCardUrl = m.fonte === 'opes'
       ? `https://www.opespallavolo.it/it/t-teamtable/${m.tid}/`
       : (m.classificaUrl || '');
-    const classificaCardBtn = classificaCardUrl
-      ? `<div class="card-cl-row"><a href="${classificaCardUrl}" target="_blank" rel="noopener" class="btn-cl-card">🏆 Classifica</a></div>`
+    const classificaCardBtn = (showCl && classificaCardUrl)
+      ? `<div class="card-cl-row"><a href="${classificaCardUrl}" target="_blank" rel="noopener" class="btn-cl-card">Classifica</a></div>`
       : '';
 
     const fonte = m.fonte === 'opes'
@@ -503,9 +503,7 @@
 
         const classificaBanner = classificaHref
           ? `<a href="${classificaHref}" target="_blank" rel="noopener" class="cl-banner">
-              <span class="cl-banner-icon">🏆</span>
               <span class="cl-banner-text">Classifica ${cat}</span>
-              <span class="cl-banner-ext">↗</span>
             </a>`
           : '';
 
@@ -522,7 +520,7 @@
             </div>
             ${classificaBanner}
             <div class="partite-grid" id="${gridId}">
-              ${partite.map((m, idx) => renderCard(m, !visibili.has(idx))).join('')}
+              ${partite.map((m, idx) => renderCard(m, !visibili.has(idx), null, false)).join('')}
             </div>
             ${btnEspandi}
           </div>`;
@@ -558,18 +556,25 @@
           catSel.style.display = '';
           const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/gi,' ').replace(/\s+/g,' ').trim();
           const decoded = norm(decodeURIComponent(catP));
-          const dWords = decoded.split(' ').filter(w => w.length >= 2);
-          const match = [...catSel.options].find(o => {
-            if (!o.value) return false;
+          const opts = [...catSel.options].filter(o => o.value);
+          // Pass 1: exact or substring match (preserves single-char differentiators like gir.A vs gir.B)
+          let match = opts.find(o => {
             const ov = norm(o.value);
-            if (ov === decoded || ov.includes(decoded) || decoded.includes(ov)) return true;
-            const oWords = ov.split(' ');
-            const dNums = dWords.filter(w => /^\d+$/.test(w));
-            if (dNums.length && !dNums.every(n => oWords.includes(n))) return false;
-            const dText = dWords.filter(w => !/^\d+$/.test(w));
-            const hits = dText.filter(w => oWords.some(ow => ow === w || ow.startsWith(w) || w.startsWith(ow)));
-            return hits.length >= Math.max(1, Math.ceil(dText.length * 0.6));
+            return ov === decoded || ov.includes(decoded) || decoded.includes(ov);
           });
+          // Pass 2: word-based fallback (handles partial/abbreviated cat params)
+          if (!match) {
+            const dWords = decoded.split(' ').filter(w => w.length >= 2);
+            match = opts.find(o => {
+              const ov = norm(o.value);
+              const oWords = ov.split(' ');
+              const dNums = dWords.filter(w => /^\d+$/.test(w));
+              if (dNums.length && !dNums.every(n => oWords.includes(n))) return false;
+              const dText = dWords.filter(w => !/^\d+$/.test(w));
+              const hits = dText.filter(w => oWords.some(ow => ow === w || ow.startsWith(w) || w.startsWith(ow)));
+              return hits.length >= Math.max(1, Math.ceil(dText.length * 0.6));
+            });
+          }
           if (match) { catSel.value = match.value; applySubFiltro(catSel); }
         }
       }

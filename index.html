@@ -1753,10 +1753,10 @@
         <div id="sqSubteamsContainer" style="display:none"></div>
         <hr class="sq-divider">
         <div class="sq-links">
-          <a class="sq-link-btn" id="sqLinkRisultati" href="#" target="_blank" rel="noopener">
+          <a class="sq-link-btn" id="sqLinkRisultati" href="#">
             <span class="sq-link-icon">📊</span>Risultati
           </a>
-          <a class="sq-link-btn" id="sqLinkClassifica" href="#" target="_blank" rel="noopener">
+          <a class="sq-link-btn" id="sqLinkClassifica" href="#">
             <span class="sq-link-icon">🏆</span>Classifica
           </a>
           <a class="sq-link-btn" id="sqLinkSquadra" href="#">
@@ -2095,28 +2095,28 @@
               <div class="luogo-nome">Tenda di Abramo</div>
               <div class="luogo-citta">Caserta</div>
             </div>
-            <a href="https://www.google.com/maps/place/Parrocchia+S.+Augusto+Vescovo/@41.0799207,14.3516706,19.65z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+            <a href="https://www.google.com/maps/place/Parrocchia+S.+Augusto+Vescovo/@41.0799207,14.3516706,19.65z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">Google maps</a>
           </div>
           <div class="luogo-item" onclick="selezionaLuogo(1)">
             <div>
               <div class="luogo-nome">Liceo Manzoni</div>
               <div class="luogo-citta">Caserta</div>
             </div>
-            <a href="https://www.google.com/maps/place/Liceo+Statale+Alessandro+Manzoni/@41.0787748,14.336116,16z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+            <a href="https://www.google.com/maps/place/Liceo+Statale+Alessandro+Manzoni/@41.0787748,14.336116,16z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">Google maps</a>
           </div>
           <div class="luogo-item" onclick="selezionaLuogo(2)">
             <div>
               <div class="luogo-nome">Palazzetto dello Sport</div>
               <div class="luogo-citta">Casagiove</div>
             </div>
-            <a href="https://www.google.com/maps/place/Palazzetto+dello+Sport/@41.0828219,14.3143262,16.8z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+            <a href="https://www.google.com/maps/place/Palazzetto+dello+Sport/@41.0828219,14.3143262,16.8z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">Google maps</a>
           </div>
           <div class="luogo-item" onclick="selezionaLuogo(3)">
             <div>
               <div class="luogo-nome">Scuola Media Mazzocchi</div>
               <div class="luogo-citta">S. Maria Capua Vetere</div>
             </div>
-            <a href="https://www.google.com/maps/place/Scuola+Media+Mazzocchi/@41.071582,14.32101,15z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">↗</a>
+            <a href="https://www.google.com/maps/place/Scuola+Media+Mazzocchi/@41.071582,14.32101,15z" target="_blank" rel="noopener" class="luogo-apri" onclick="event.stopPropagation()">Google maps</a>
           </div>
         </div>
 
@@ -2798,7 +2798,7 @@
         ],
         immagine: 'images/Serie D.jpeg',
         linkRisultati: '/risultati?fonte=fipav&cat=SERIE+D',
-        linkClassifica: 'https://caserta.portalefipav.net/',
+        linkClassifica: 'https://www.fipavcampania.it/classifica.aspx?CId=88831',
         linkSquadra: '/squadra',
       },
       'prima-div-m': {
@@ -2941,7 +2941,7 @@
           { giorno: 'Venerdì', ora: '19:00 – 21:00' },
         ],
         immagine: 'images/Under 13-15 maschile.jpeg',
-        linkRisultati: '/risultati?fonte=fipav&cat=Under',
+        linkRisultati: '/risultati?fonte=fipav&cat=Under+Maschile',
         linkClassifica: 'https://caserta.portalefipav.net/',
         linkSquadra: '/squadra',
       },
@@ -2997,6 +2997,24 @@
         linkSquadra: '',
       },
     };
+
+    // Merge DB-managed links into SQUADRE_DATA (admin-editable)
+    fetch('/api/squadre-links').then(r => r.json()).then(links => {
+      for (const [k, v] of Object.entries(links)) {
+        if (!v) continue;
+        const m = k.match(/^sq_([a-z0-9-]+?)_(?:(\d+)_)?(ris|cla)$/);
+        if (!m) continue;
+        const sq = SQUADRE_DATA[m[1]];
+        if (!sq) continue;
+        const field = m[3] === 'ris' ? 'linkRisultati' : 'linkClassifica';
+        if (m[2] !== undefined) {
+          const st = sq.subteams && sq.subteams[parseInt(m[2])];
+          if (st) st[field] = v;
+        } else {
+          sq[field] = v;
+        }
+      }
+    }).catch(() => {});
 
     function apriSquadra(key) {
       const d = SQUADRE_DATA[key];

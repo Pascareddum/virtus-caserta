@@ -794,6 +794,36 @@ app.get('/api/live-links', async (_req, res) => {
   }
 });
 
+/* ─── Squadre links (pubblico) ─── */
+app.get('/api/squadre-links', async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT chiave, valore FROM impostazioni WHERE chiave ~ '^sq_'`);
+    const obj = {};
+    for (const row of r.rows) obj[row.chiave] = row.valore;
+    res.json(obj);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ─── Squadre links (admin) ─── */
+app.put('/api/admin/squadre-links', adminAuth, async (req, res) => {
+  try {
+    const entries = Object.entries(req.body).filter(([k]) => /^sq_[a-z0-9-]+(_\d+)?_(ris|cla)$/.test(k));
+    for (const [chiave, valore] of entries) {
+      await db.query(
+        `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ($1,$2,NOW())
+         ON CONFLICT (chiave) DO UPDATE SET valore=$2, updated_at=NOW()`,
+        [chiave, valore || '']
+      );
+    }
+    await logActivity('Link squadre aggiornati', entries.length + ' link');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.put('/api/admin/impostazioni', adminAuth, async (req, res) => {
   try {
     const campi = ['nome_associazione','telefono','email_contatto','indirizzo','iban','p_iva','youtube_live_url','spike_live_url'];

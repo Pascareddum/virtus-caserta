@@ -392,6 +392,7 @@
   <button class="tab-btn"        onclick="switchTab('staff')">👥 Staff</button>
   <button class="tab-btn"        onclick="switchTab('live')">📡 Live</button>
   <button class="tab-btn"        onclick="switchTab('sponsor')">🤝 Sponsor</button>
+  <button class="tab-btn"        onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
 </div>
 
 <!-- ══ DASHBOARD ══ -->
@@ -602,6 +603,105 @@
       <tbody id="sponsorBody"></tbody>
     </table>
   </div>
+</div>
+
+<!-- ══ LINK SQUADRE ══ -->
+<div class="pannello" id="pan-link-squadre">
+  <div class="toolbar"><h2>Link Squadre</h2><button class="btn-aggiungi" onclick="salvaLinkSquadre()">💾 Salva tutto</button></div>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:24px;">Seleziona la categoria per risultati e classifica di ogni squadra. Scegli "— predefinito —" per usare il valore del sito.</p>
+
+  <style>
+    .sq-link-section{margin-bottom:32px;}
+    .sq-link-section h3{font-size:13px;font-weight:800;color:#0d2055;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e5e7eb;}
+    .sq-link-row{display:grid;grid-template-columns:180px 1fr 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;}
+    .sq-link-label{font-size:13px;font-weight:700;color:#374151;}
+    .sq-link-sel{appearance:none;-webkit-appearance:none;padding:8px 32px 8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:12px;width:100%;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230d2055' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;}
+    .sq-link-sel:focus{outline:none;border-color:#0d2055;}
+    .sq-link-sel.cla{border-color:#6d28d9;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236d28d9' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");}
+    .sq-link-loading{font-size:12px;color:#9ca3af;font-style:italic;}
+    @media(max-width:700px){.sq-link-row{grid-template-columns:1fr;}.sq-link-label{font-size:12px;}}
+  </style>
+
+  <div id="sqLinkPanelBody">
+    <div class="sq-link-section">
+      <h3>Squadre principali</h3>
+      <div class="sq-link-row" style="font-size:11px;font-weight:700;color:#9ca3af;">
+        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div>
+      </div>
+      <div class="sq-link-row">
+        <div class="sq-link-label">Serie D Femminile</div>
+        <select class="sq-link-sel" id="sq_serie-d-f_ris"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_serie-d-f_cla"><option class="sq-link-loading">Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row">
+        <div class="sq-link-label">Prima Div. Maschile</div>
+        <select class="sq-link-sel" id="sq_prima-div-m_ris"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_prima-div-m_cla"><option class="sq-link-loading">Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row">
+        <div class="sq-link-label">Prima Div. Femminile</div>
+        <select class="sq-link-sel" id="sq_prima-div-f_ris"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_prima-div-f_cla"><option class="sq-link-loading">Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row">
+        <div class="sq-link-label">Under 13/15 Maschile</div>
+        <select class="sq-link-sel" id="sq_under1315-m_ris"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_under1315-m_cla"><option class="sq-link-loading">Caricamento…</option></select>
+      </div>
+    </div>
+
+    <div class="sq-link-section">
+      <h3>Giovanile Femminile – sottosquadre</h3>
+      <div class="sq-link-row" style="font-size:11px;font-weight:700;color:#9ca3af;">
+        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Under 13 – base</div>
+        <select class="sq-link-sel" id="sq_giovanile-f_0_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_giovanile-f_0_cla"><option>Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Under 13 – avanzato</div>
+        <select class="sq-link-sel" id="sq_giovanile-f_1_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_giovanile-f_1_cla"><option>Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Under 16 – base</div>
+        <select class="sq-link-sel" id="sq_giovanile-f_2_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_giovanile-f_2_cla"><option>Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Under 16 APRILE</div>
+        <select class="sq-link-sel" id="sq_giovanile-f_3_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_giovanile-f_3_cla"><option>Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Under 18 (Virtus)</div>
+        <select class="sq-link-sel" id="sq_giovanile-f_4_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_giovanile-f_4_cla"><option>Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Under 18 (Academy)</div>
+        <select class="sq-link-sel" id="sq_giovanile-f_5_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_giovanile-f_5_cla"><option>Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Under 14 BIGMAT</div>
+        <select class="sq-link-sel" id="sq_giovanile-f_6_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_giovanile-f_6_cla"><option>Caricamento…</option></select>
+      </div>
+    </div>
+
+    <div class="sq-link-section">
+      <h3>Miste – sottosquadre</h3>
+      <div class="sq-link-row" style="font-size:11px;font-weight:700;color:#9ca3af;">
+        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Virtus White</div>
+        <select class="sq-link-sel" id="sq_miste_0_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_miste_0_cla"><option>Caricamento…</option></select>
+      </div>
+      <div class="sq-link-row"><div class="sq-link-label">Virtus Red</div>
+        <select class="sq-link-sel" id="sq_miste_1_ris"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cla" id="sq_miste_1_cla"><option>Caricamento…</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div id="sqLinkLog" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-top:8px;"></div>
 </div>
 
 <!-- MODAL SPONSOR -->
@@ -1086,7 +1186,7 @@
   /* ══ TABS ══ */
   function switchTab(nome) {
     document.querySelectorAll('.tab-btn').forEach((b,i) => {
-      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','staff','live'];
+      const nomi = ['dashboard','prodotti','notizie','calendario','ordini','squadra','staff','live','sponsor','link-squadre'];
       b.classList.toggle('attivo', nomi[i] === nome);
     });
     document.querySelectorAll('.pannello').forEach(p => p.classList.remove('attivo'));
@@ -1099,7 +1199,8 @@
     if (nome === 'squadra')    caricaSquadra();
     if (nome === 'staff')      caricaStaff();
     if (nome === 'live')       caricaLiveLinks();
-    if (nome === 'sponsor')    caricaSponsor();
+    if (nome === 'sponsor')       caricaSponsor();
+    if (nome === 'link-squadre')  caricaLinkSquadre();
   }
 
   function caricaTutto() {
@@ -2058,6 +2159,83 @@
     if (!confirm('Eliminare questa foto?')) return;
     const res = await fetch(`/api/admin/galleria/${id}`, { method:'DELETE', headers: headers() });
     if (res.ok) caricaGalleriaAdmin(); else alert('Errore eliminazione.');
+  }
+
+  /* ══ LINK SQUADRE ══ */
+  const SQ_LINK_KEYS = [
+    'sq_serie-d-f_ris','sq_serie-d-f_cla',
+    'sq_prima-div-m_ris','sq_prima-div-m_cla',
+    'sq_prima-div-f_ris','sq_prima-div-f_cla',
+    'sq_under1315-m_ris','sq_under1315-m_cla',
+    'sq_giovanile-f_0_ris','sq_giovanile-f_0_cla',
+    'sq_giovanile-f_1_ris','sq_giovanile-f_1_cla',
+    'sq_giovanile-f_2_ris','sq_giovanile-f_2_cla',
+    'sq_giovanile-f_3_ris','sq_giovanile-f_3_cla',
+    'sq_giovanile-f_4_ris','sq_giovanile-f_4_cla',
+    'sq_giovanile-f_5_ris','sq_giovanile-f_5_cla',
+    'sq_giovanile-f_6_ris','sq_giovanile-f_6_cla',
+    'sq_miste_0_ris','sq_miste_0_cla',
+    'sq_miste_1_ris','sq_miste_1_cla',
+  ];
+
+  async function caricaLinkSquadre() {
+    try {
+      const [saved, tutte] = await Promise.all([
+        fetch('/api/squadre-links', { headers: headers() }).then(r => r.json()),
+        fetch('/api/partite/tutte').then(r => r.json()),
+      ]);
+
+      const gruppi = tutte.gruppi || {};
+      const fipavCats = Object.entries(gruppi)
+        .filter(([, g]) => g.fonte !== 'opes')
+        .map(([cat, g]) => ({ cat, classificaUrl: g.classificaUrl || '' }));
+
+      const risOpts =
+        `<option value="">— predefinito —</option>` +
+        fipavCats.map(({ cat }) =>
+          `<option value="/risultati?fonte=fipav&cat=${encodeURIComponent(cat)}">${cat}</option>`
+        ).join('') +
+        `<option value="/risultati?fonte=opes">OPES – Tornei misti</option>`;
+
+      const claOpts =
+        `<option value="">— predefinito —</option>` +
+        fipavCats.filter(f => f.classificaUrl).map(({ cat, classificaUrl }) =>
+          `<option value="${classificaUrl}">${cat}</option>`
+        ).join('');
+
+      for (const k of SQ_LINK_KEYS) {
+        const el = document.getElementById(k);
+        if (!el) continue;
+        el.innerHTML = k.endsWith('_ris') ? risOpts : claOpts;
+        el.value = saved[k] || '';
+      }
+    } catch (e) { sqLinkLog('Errore caricamento: ' + e.message, false); }
+  }
+
+  async function salvaLinkSquadre() {
+    const body = {};
+    for (const k of SQ_LINK_KEYS) {
+      const el = document.getElementById(k);
+      if (el) body[k] = el.value.trim();
+    }
+    try {
+      const res = await fetch('/api/admin/squadre-links', {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { sqLinkLog('Errore: ' + (data.error || res.status), false); return; }
+      sqLinkLog('✅ Link salvati correttamente.', true);
+    } catch (e) { sqLinkLog('Errore di rete: ' + e.message, false); }
+  }
+
+  function sqLinkLog(msg, ok) {
+    const el = document.getElementById('sqLinkLog');
+    el.style.display = '';
+    el.textContent = msg;
+    el.style.background = ok ? '#dcfce7' : '#fee2e2';
+    el.style.color = ok ? '#15803d' : '#dc2626';
   }
 
   /* ══ EXPORT CSV ORDINI ══ */
