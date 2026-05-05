@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Il mio account – Virtus Caserta</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f7f8fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .wip-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+    }
+    .wip-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 52px 48px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 32px rgba(13,32,85,.08);
+      border: 1px solid #e5e7eb;
+    }
+    .wip-logo { height: 56px; margin-bottom: 32px; }
+    .wip-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff8f0;
+      color: #f57c00;
+      border: 1px solid #fdd9aa;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      margin-bottom: 20px;
+    }
+    .wip-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0d2055;
+      margin-bottom: 12px;
+      letter-spacing: -.02em;
+    }
+    .wip-sub {
+      font-size: 15px;
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+    .wip-progress {
+      background: #f1f5f9;
+      border-radius: 8px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 36px;
+    }
+    .wip-progress-bar {
+      height: 100%;
+      width: 35%;
+      background: linear-gradient(90deg, #0d2055, #f57c00);
+      border-radius: 8px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .6; }
+    }
+    .wip-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #0d2055;
+      color: #fff;
+      text-decoration: none;
+      padding: 11px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background .2s;
+    }
+    .btn-home:hover { background: #1535a8; }
+    .btn-logout {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+      padding: 11px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .2s;
+    }
+    .btn-logout:hover { background: #f9fafb; color: #374151; border-color: #d1d5db; }
+    @media (max-width: 480px) {
+      .wip-card { padding: 36px 24px; }
+      .wip-title { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wip-wrap">
+    <div class="wip-card">
+      <img class="wip-logo" src="images/positivo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+      <div class="wip-badge">⚙️ In elaborazione</div>
+      <div class="wip-title">Area personale</div>
+      <div class="wip-sub">
+        Stiamo lavorando alla tua area personale.<br>
+        Sarà disponibile a breve con tutte le funzionalità.
+      </div>
+      <div class="wip-progress">
+        <div class="wip-progress-bar"></div>
+      </div>
+      <div class="wip-actions">
+        <a href="/" class="btn-home">← Torna alla home</a>
+        <button class="btn-logout" onclick="doLogout()">Esci</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Redirect a login se non loggato
+    if (!localStorage.getItem('vc_token') && !localStorage.getItem('vc_admin_token')) {
+      location.replace('/login');
+    }
+    function doLogout() {
+      localStorage.removeItem('vc_token');
+      localStorage.removeItem('vc_admin_token');
+      localStorage.removeItem('vc_role');
+      localStorage.removeItem('vc_nome');
+      localStorage.removeItem('vc_user');
+      location.replace('/');
+    }
+  </script>
+</body>
+</html>

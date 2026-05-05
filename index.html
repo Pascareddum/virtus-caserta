@@ -2506,16 +2506,16 @@
       const token      = localStorage.getItem('vc_token');
       const adminToken = localStorage.getItem('vc_admin_token');
       const isLoggedIn = !!(token || adminToken);
-      const role  = localStorage.getItem('vc_role');
-      const nome  = localStorage.getItem('vc_nome');
+      const role       = localStorage.getItem('vc_role');
+      const isAdmin    = !!(adminToken || role === 'admin' || role === 'dirigente');
 
-      // footer auth
-      const area = document.getElementById('footerAuthArea');
-      if (area) {
-        area.classList.toggle('logged', isLoggedIn);
-        const adminLink = document.getElementById('footerAdminLink');
-        if (adminLink) adminLink.style.display = (adminToken || role === 'admin' || role === 'dirigente') ? '' : 'none';
-      }
+      const loginDiv  = document.querySelector('.footer-auth-login');
+      const loggedDiv = document.querySelector('.footer-auth-logged');
+      const adminLink = document.getElementById('footerAdminLink');
+
+      if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
+      if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
+      if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
     }
 
     function apriModal() {

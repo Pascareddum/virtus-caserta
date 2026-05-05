@@ -188,6 +188,12 @@
   </div>
 
   <script>
+    // Redirect se già loggato
+    (function() {
+      if (localStorage.getItem('vc_admin_token')) { location.replace('/admin'); return; }
+      if (localStorage.getItem('vc_token'))        { location.replace('/utente'); return; }
+    })();
+
     const panels = ['utente', 'registrati', 'admin'];
 
     function showPanel(name) {

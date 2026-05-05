@@ -1705,7 +1705,7 @@
     localStorage.removeItem('vc_admin_token');
     TOKEN = '';
     await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
-    location.href = '/admin-login';
+    location.href = '/login';
   }
 
   /* ══ TABS ══ */

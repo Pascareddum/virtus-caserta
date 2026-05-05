@@ -217,14 +217,14 @@ const sendPage = (file) => (_req, res) => res.sendFile(path.join(__dirname, file
 
 function adminCookieCheck(req, res, next) {
   const token = req.cookies.vc_admin_session;
-  if (!token) return res.redirect('/admin-login');
+  if (!token) return res.redirect('/login');
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    if (payload.role !== 'admin') return res.redirect('/admin-login');
+    if (payload.role !== 'admin') return res.redirect('/login');
     next();
   } catch {
     res.clearCookie('vc_admin_session');
-    return res.redirect('/admin-login');
+    return res.redirect('/login');
   }
 }
 
@@ -235,7 +235,8 @@ app.get('/notizie.html',            (_req, res) => res.redirect(301, '/notizie')
 app.get('/calendario.html',         (_req, res) => res.redirect(301, '/calendario'));
 app.get('/shop.html',               (_req, res) => res.redirect(301, '/shop'));
 app.get('/admin.html',              adminCookieCheck, sendPage('admin.html'));
-app.get('/admin-login.html',        (_req, res) => res.redirect(301, '/admin-login'));
+app.get('/admin-login.html',        (_req, res) => res.redirect(301, '/login'));
+app.get('/admin-login',             (_req, res) => res.redirect(301, '/login'));
 app.get('/squadra.html',            (_req, res) => res.redirect(301, '/squadra'));
 app.get('/risultati.html',          (_req, res) => res.redirect(301, '/risultati'));
 app.get('/classifica.html',         (_req, res) => res.redirect(301, '/risultati'));
@@ -245,6 +246,7 @@ app.get('/termini.html',            (_req, res) => res.redirect(301, '/termini')
 app.get('/ordine-confermato.html',  (_req, res) => res.redirect(301, '/ordine-confermato'));
 app.get('/live.html',               (_req, res) => res.redirect(301, '/live'));
 app.get('/login.html',              (_req, res) => res.redirect(301, '/login'));
+app.get('/utente.html',             (_req, res) => res.redirect(301, '/utente'));
 // Vecchi URL rimossi → redirect home
 app.get('/galleria.html',           (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/'));
@@ -299,7 +301,6 @@ app.get('/notizie',           sendPage('notizie.html'));
 app.get('/calendario',        sendPage('calendario.html'));
 app.get('/shop',              sendPage('shop.html'));
 app.get('/admin',             adminCookieCheck, sendPage('admin.html'));
-app.get('/admin-login',       sendPage('admin-login.html'));
 app.get('/squadra',           sendPage('squadra.html'));
 app.get('/risultati',         sendPage('risultati.html'));
 app.get('/classifica',        (_req, res) => res.redirect(301, '/risultati'));
@@ -309,11 +310,12 @@ app.get('/termini',           sendPage('termini.html'));
 app.get('/ordine-confermato', sendPage('ordine-confermato.html'));
 app.get('/live',              sendPage('live.html'));
 app.get('/login',             sendPage('login.html'));
+app.get('/utente',            sendPage('utente.html'));
 // Vecchi URL rimossi → redirect home
 app.get('/galleria',          (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione',        (_req, res) => res.redirect(301, '/'));
 app.get('/sponsor',           (_req, res) => res.redirect(301, '/'));
-app.get('/reset-password',    (_req, res) => res.redirect(301, '/admin-login'));
+app.get('/reset-password',    (_req, res) => res.redirect(301, '/login'));
 
 const BLOCKED_FILES = /^\/?(server\.js|db\.js|package(?:-lock)?\.json|railway\.json|\.env[^/]*)$/i;
 app.use((req, res, next) => {
@@ -2263,28 +2265,113 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
   if (!nome || !email || !messaggio) return res.status(400).json({ error: 'Nome, email e messaggio sono obbligatori.' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Email non valida.' });
   if (!emailConfigurata()) return res.status(503).json({ error: 'Sistema email non configurato.' });
+
+  const siteUrl  = process.env.BASE_URL || 'https://www.virtuscaserta.com';
+  const logoUrl  = `${siteUrl}/images/positivo@4x.png`;
+  const now      = new Date().toLocaleString('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'long', timeStyle: 'short' });
+
+  const emailHeader = `
+    <div style="background:#0d2055;padding:28px 32px;text-align:center;">
+      <img src="${logoUrl}" alt="Virtus Caserta" style="height:52px;max-width:200px;object-fit:contain;" />
+    </div>`;
+
+  const emailFooter = `
+    <div style="background:#f8f9fb;border-top:1px solid #e5e7eb;padding:24px 32px;text-align:center;font-size:12px;color:#9ca3af;line-height:1.7;">
+      <strong style="color:#374151;font-size:13px;">Virtus Caserta A.S.D.</strong><br>
+      📧 <a href="mailto:info@virtuscaserta.it" style="color:#0d2055;text-decoration:none;">info@virtuscaserta.it</a>
+      &nbsp;·&nbsp;
+      🌐 <a href="${siteUrl}" style="color:#0d2055;text-decoration:none;">virtuscaserta.com</a><br>
+      Caserta, Campania – Italia
+    </div>`;
+
   try {
     const t = creaTransporter();
+
+    /* ── Email all'admin ── */
     await t.sendMail({
-      from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
-      to: (process.env.EMAIL_ADMIN || process.env.EMAIL_USER || '').trim(),
+      from:    `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+      to:      (process.env.EMAIL_ADMIN || process.env.EMAIL_USER || '').trim(),
       replyTo: email.trim(),
       subject: `[Contatto Sito] ${esc(oggetto || 'Nuovo messaggio')} – ${esc(nome)}`,
-      html: `<h2>Nuovo messaggio dal sito</h2>
-<p><strong>Nome:</strong> ${esc(nome)}</p>
-<p><strong>Email:</strong> ${esc(email)}</p>
-<p><strong>Oggetto:</strong> ${esc(oggetto || '—')}</p>
-<p><strong>Messaggio:</strong></p>
-<p style="white-space:pre-wrap">${esc(messaggio)}</p>`,
+      html: `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);" cellpadding="0" cellspacing="0">
+        <tr><td>${emailHeader}</td></tr>
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#f57c00;">Nuovo messaggio dal sito</p>
+          <h2 style="margin:0 0 24px;font-size:20px;font-weight:800;color:#0d2055;">${esc(oggetto || 'Messaggio di contatto')}</h2>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+            <tr>
+              <td style="padding:10px 14px;background:#f8f9fb;border-radius:8px 8px 0 0;border-bottom:1px solid #e5e7eb;">
+                <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Da</span><br>
+                <span style="font-size:14px;font-weight:600;color:#111827;">${esc(nome)}</span>
+                <span style="font-size:13px;color:#6b7280;">&lt;${esc(email)}&gt;</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 14px;background:#f8f9fb;border-radius:0 0 8px 8px;">
+                <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Ricevuto</span><br>
+                <span style="font-size:13px;color:#374151;">${now}</span>
+              </td>
+            </tr>
+          </table>
+          <div style="background:#f8f9fb;border-left:4px solid #0d2055;border-radius:0 8px 8px 0;padding:18px 20px;margin-bottom:24px;">
+            <p style="margin:0;font-size:14px;color:#374151;white-space:pre-wrap;line-height:1.7;">${esc(messaggio)}</p>
+          </div>
+          <a href="mailto:${esc(email)}" style="display:inline-block;background:#0d2055;color:#fff;text-decoration:none;padding:11px 24px;border-radius:8px;font-size:13px;font-weight:700;">Rispondi a ${esc(nome)}</a>
+        </td></tr>
+        <tr><td>${emailFooter}</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
     });
+
+    /* ── Email di conferma all'utente ── */
     await t.sendMail({
-      from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
-      to: email.trim(),
+      from:    `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+      to:      email.trim(),
       subject: 'Abbiamo ricevuto il tuo messaggio – Virtus Caserta',
-      html: `<p>Ciao ${esc(nome)},</p>
-<p>Grazie per averci scritto. Abbiamo ricevuto il tuo messaggio e ti risponderemo al più presto.</p>
-<p>– Staff Virtus Caserta</p>`,
+      html: `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08);" cellpadding="0" cellspacing="0">
+        <tr><td>${emailHeader}</td></tr>
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#f57c00;">Conferma ricezione</p>
+          <h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#0d2055;">Ciao, ${esc(nome)}!</h2>
+          <p style="margin:0 0 20px;font-size:14px;color:#374151;line-height:1.7;">
+            Abbiamo ricevuto il tuo messaggio e ti risponderemo il prima possibile.<br>Di seguito il riepilogo di quanto ci hai inviato.
+          </p>
+          <div style="background:#f8f9fb;border:1px solid #e5e7eb;border-radius:10px;padding:18px 20px;margin-bottom:28px;">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Il tuo messaggio</p>
+            <p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#0d2055;">${esc(oggetto || '—')}</p>
+            <p style="margin:0;font-size:13.5px;color:#6b7280;white-space:pre-wrap;line-height:1.65;">${esc(messaggio)}</p>
+          </div>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 24px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;">
+                <span style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Email</span><br>
+                <a href="mailto:info@virtuscaserta.it" style="font-size:13.5px;color:#0d2055;text-decoration:none;font-weight:600;">info@virtuscaserta.it</a>
+              </td>
+              <td style="padding:10px 0 10px 20px;border-bottom:1px solid #f3f4f6;">
+                <span style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Sito web</span><br>
+                <a href="${siteUrl}" style="font-size:13.5px;color:#0d2055;text-decoration:none;font-weight:600;">virtuscaserta.com</a>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td>${emailFooter}</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`,
     });
+
     res.json({ success: true });
   } catch (err) {
     console.error('[Contact] Errore:', err);
