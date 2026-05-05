@@ -91,8 +91,8 @@
     .fpill[data-c="fipav-under"].on {background:var(--cu);}
     .fpill[data-c="opes"].on       {background:var(--co);}
 
-    /* ── SCROLL WRAP (aligns header + grid on medium screens) ── */
-    .cal-scroll-wrap{flex:1;display:flex;flex-direction:column;overflow-x:auto;overflow-y:clip;-webkit-overflow-scrolling:touch;}
+    /* ── SCROLL WRAP (solo griglia, header sincronizzato via JS) ── */
+    .cal-scroll-wrap{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
     /* ── GIORNI INTESTAZIONE ── */
     .giorni-head{
@@ -102,6 +102,7 @@
       position:sticky;top:68px;z-index:100;
       box-shadow:0 2px 8px rgba(0,0,0,.06);
       min-width:700px;
+      overflow-x:hidden;
     }
     .gh-cell{
       padding:12px 4px 10px;text-align:center;
@@ -133,8 +134,8 @@
     .day-col{
       border-right:1px solid var(--bordo);
       min-height:0;
-      padding:8px 5px;
-      display:flex;flex-direction:column;gap:4px;
+      padding:12px 6px 10px;
+      display:flex;flex-direction:column;gap:5px;
     }
     .day-col:last-child{border-right:none;}
     .day-col.oggi-col{background:rgba(245,124,0,.03);}
@@ -393,9 +394,11 @@
     </button>
   </div>
 
-  <!-- DESKTOP: intestazione giorni + griglia (shared scroll container) -->
-  <div class="cal-scroll-wrap">
-    <div class="giorni-head" id="giorniHead"></div>
+  <!-- DESKTOP: intestazione giorni (sticky, fuori dallo scroll wrap) -->
+  <div class="giorni-head" id="giorniHead"></div>
+
+  <!-- DESKTOP: griglia settimana (scroll orizzontale, sincronizzato con header via JS) -->
+  <div class="cal-scroll-wrap" id="calScrollWrap">
     <div class="week-grid" id="weekGrid">
       <div class="loading-overlay" style="grid-column:span 7;">
         <div class="spin"></div> Caricamento eventi…
@@ -857,6 +860,11 @@
   }
 
   carica();
+
+  /* ── SYNC scroll orizzontale header ↔ griglia ── */
+  document.getElementById('calScrollWrap').addEventListener('scroll', function() {
+    document.getElementById('giorniHead').scrollLeft = this.scrollLeft;
+  });
 </script>
 <script src="common.js"></script>
 </body>
