@@ -92,7 +92,7 @@
     .fpill[data-c="opes"].on       {background:var(--co);}
 
     /* ── SCROLL WRAP (aligns header + grid on medium screens) ── */
-    .cal-scroll-wrap{overflow-x:auto;overflow-y:clip;-webkit-overflow-scrolling:touch;}
+    .cal-scroll-wrap{flex:1;display:flex;flex-direction:column;overflow-x:auto;overflow-y:clip;-webkit-overflow-scrolling:touch;}
 
     /* ── GIORNI INTESTAZIONE ── */
     .giorni-head{
@@ -125,13 +125,14 @@
     /* ── WEEK GRID ── */
     .week-grid{
       display:grid;grid-template-columns:repeat(7,1fr);
-      flex:1;align-items:start;
+      flex:1;align-items:stretch;
       border-bottom:1px solid var(--bordo);
       min-width:700px;
+      min-height:420px;
     }
     .day-col{
       border-right:1px solid var(--bordo);
-      min-height:280px;
+      min-height:0;
       padding:8px 5px;
       display:flex;flex-direction:column;gap:4px;
     }
@@ -191,10 +192,14 @@
     /* ── NOTICE ALLENAMENTI ── */
     .notice-allenamenti{
       display:flex;align-items:center;gap:8px;
-      padding:9px 20px;
-      background:rgba(13,32,85,.04);
-      border-bottom:1px solid var(--bordo);
+      padding:0 20px;max-height:0;overflow:hidden;opacity:0;
+      background:rgba(13,32,85,.06);
+      border-bottom:1px solid transparent;
       font-size:12px;color:var(--sub);font-weight:500;
+      transition:max-height .35s ease,opacity .3s ease,padding .3s ease,border-color .3s ease;
+    }
+    .notice-allenamenti.visible{
+      max-height:50px;opacity:1;padding:9px 20px;border-bottom-color:var(--bordo);
     }
 
     /* ── LOADING / EMPTY ── */
@@ -364,7 +369,7 @@
   </div>
 
   <!-- NOTA ALLENAMENTI -->
-  <div class="notice-allenamenti">
+  <div class="notice-allenamenti" id="noticeAllenamenti">
     <span>🔒</span>
     Gli allenamenti sono visibili solo agli utenti registrati appartenenti alla rispettiva squadra
   </div>
@@ -530,10 +535,23 @@
   function evVisible(e){ return filtroAtt==='tutte' || e.cat===filtroAtt; }
 
   /* ── FILTRI ── */
+  let _noticeTimer = null;
   function setFiltro(cat, btn) {
     filtroAtt = cat;
     document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('on'));
     btn.classList.add('on');
+
+    const notice = document.getElementById('noticeAllenamenti');
+    if (notice) {
+      clearTimeout(_noticeTimer);
+      if (cat === 'allenamento') {
+        notice.classList.add('visible');
+        _noticeTimer = setTimeout(() => notice.classList.remove('visible'), 3500);
+      } else {
+        notice.classList.remove('visible');
+      }
+    }
+
     render();
   }
 
