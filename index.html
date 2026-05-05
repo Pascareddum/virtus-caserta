@@ -2539,7 +2539,7 @@
       document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
     }
 
-    async function submitLogin() {
+  /*  async function submitLogin() {
       document.getElementById('loginError').textContent = '';
       const email    = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
@@ -2603,7 +2603,7 @@
       } catch {
         errEl.textContent = 'Errore di rete. Riprova.';
       }
-    }
+    }*/
 
     function logout() {
       localStorage.removeItem('vc_token');
