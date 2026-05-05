@@ -278,7 +278,8 @@
     }
     .prod-nome { font-weight:600; color:var(--testo); font-size:14px; }
     .prod-desc { font-size:12.5px; color:var(--sub); margin-top:2px; line-height:1.4; }
-    .prod-emoji { font-size:24px; text-align:center; }
+    .prod-img-thumb { width:48px; height:48px; object-fit:cover; border-radius:8px; display:block; }
+    .prod-img-placeholder { width:48px; height:48px; border-radius:8px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:20px; }
 
     /* ── BADGES ─────────────────────────────────────── */
     .badge {
@@ -1783,7 +1784,7 @@
       }
       tbody.innerHTML = products.map(p => `
         <tr>
-          <td class="prod-emoji" data-label="">${p.emoji || '🏐'}</td>
+          <td data-label="">${p.immagine ? `<img class="prod-img-thumb" src="${p.immagine}" alt="${p.nome}">` : `<div class="prod-img-placeholder">📦</div>`}</td>
           <td data-label="Prodotto">
             <div class="prod-nome">${p.nome}</div>
             <div class="prod-desc">${p.descrizione || ''}</div>
