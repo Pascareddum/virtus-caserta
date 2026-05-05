@@ -1766,38 +1766,7 @@
       </div>
     </div>
   </div>
-
-  <!-- MODAL LOGIN / REGISTRAZIONE -->
-  <div class="modal-overlay" id="modalLogin" onclick="chiudiModalSeOverlay(event)">
-    <div class="modal-box">
-      <button class="modal-close" onclick="chiudiModal()">✕</button>
-      <div class="modal-tabs">
-        <button class="modal-tab attiva" id="tabAccedi" onclick="switchTab('accedi')">Accedi</button>
-        <button class="modal-tab" id="tabRegistrati" onclick="switchTab('registrati')">Registrati</button>
-      </div>
-      <!-- PANNELLO ACCEDI -->
-      <div class="modal-panel attivo" id="panelAccedi">
-        <div class="modal-field"><label>Email</label><input type="email" id="loginEmail" placeholder="tua@email.com" autocomplete="email"></div>
-        <div class="modal-field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••" autocomplete="current-password"></div>
-        <button class="modal-submit" onclick="submitLogin()">Accedi</button>
-        <div class="modal-error" id="loginError"></div>
-      </div>
-      <!-- PANNELLO REGISTRATI -->
-      <div class="modal-panel" id="panelRegistrati">
-        <div class="modal-row">
-          <div class="modal-field"><label>Nome</label><input type="text" id="regNome" placeholder="Mario"></div>
-          <div class="modal-field"><label>Cognome</label><input type="text" id="regCognome" placeholder="Rossi"></div>
-        </div>
-        <div class="modal-field"><label>Email</label><input type="email" id="regEmail" placeholder="tua@email.com" autocomplete="email"></div>
-        <div class="modal-field"><label>Conferma Email</label><input type="email" id="regEmailConferma" placeholder="Ripeti email"></div>
-        <div class="modal-field"><label>Password</label><input type="password" id="regPassword" placeholder="Almeno 6 caratteri" autocomplete="new-password"></div>
-        <div class="modal-field"><label>Conferma Password</label><input type="password" id="regPasswordConferma" placeholder="Ripeti password" autocomplete="new-password"></div>
-        <button class="modal-submit" onclick="submitRegistrazione()">Crea account</button>
-        <div class="modal-error" id="regError"></div>
-        <div class="modal-success" id="regSuccess"></div>
-      </div>
-    </div>
-  </div>
+ 
   <!-- NAVBAR -->
   <nav>
     <ul class="nav-menu">
@@ -1826,7 +1795,7 @@
         <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
         <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
         <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
-        <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+        <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
       </div>
     </div>
   </nav>
@@ -1985,8 +1954,6 @@
       </div>
     </div>
   </section>
-
-  <!-- INSTAGRAM (temporaneamente disabilitato) -->
 
   <!-- CONTATTI -->
   <section id="contatti">
@@ -2156,12 +2123,11 @@
     <div class="footer-auth" id="footerAuthArea">
       <div class="footer-auth-title">Account</div>
       <div class="footer-auth-login">
-        <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
+        <a href="/login" aria-label="Accedi al tuo account">Accedi</a>
       </div>
       <div class="footer-auth-logged">
-        <span class="footer-auth-nome" id="footerNome"></span>
-        <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-        <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
+        <a href="/admin" class="footer-btn" id="footerAdminLink" style="display:none" aria-label="Vai alla sezione amministratore">Sezione amministratore</a>
+        <button class="footer-btn footer-btn-outline" onclick="logout()" aria-label="Esci dall'account">Esci</button>
       </div>
     </div>
   </div>
@@ -2537,19 +2503,18 @@
 
     /* ─── AUTH ─── */
     function aggiornaNavbar() {
-      const token = localStorage.getItem('vc_token');
+      const token      = localStorage.getItem('vc_token');
+      const adminToken = localStorage.getItem('vc_admin_token');
+      const isLoggedIn = !!(token || adminToken);
       const role  = localStorage.getItem('vc_role');
       const nome  = localStorage.getItem('vc_nome');
-      const isGest = role === 'admin' || role === 'dirigente';
 
       // footer auth
       const area = document.getElementById('footerAuthArea');
       if (area) {
-        area.classList.toggle('logged', !!token);
-        const nomeEl = document.getElementById('footerNome');
-        if (nomeEl) nomeEl.textContent = nome || '';
+        area.classList.toggle('logged', isLoggedIn);
         const adminLink = document.getElementById('footerAdminLink');
-        if (adminLink) adminLink.style.display = (role === 'admin' || role === 'dirigente') ? '' : 'none';
+        if (adminLink) adminLink.style.display = (adminToken || role === 'admin' || role === 'dirigente') ? '' : 'none';
       }
     }
 
@@ -2642,8 +2607,10 @@
 
     function logout() {
       localStorage.removeItem('vc_token');
+      localStorage.removeItem('vc_admin_token');
       localStorage.removeItem('vc_role');
       localStorage.removeItem('vc_nome');
+      localStorage.removeItem('vc_user');
       aggiornaNavbar();
     }
 

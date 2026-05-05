@@ -4,7 +4,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(python3 *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(awk '/footer-auth|footer-btn/{found=1} found && /\\\\{/{start=NR} start && start>=NR-5 && start<=NR+10{print NR\": \"$0}' /Users/alessandrro/Documents/GitHub/virtus-caserta/index.html)",
+      "Bash(awk '/catch \\\\\\(err\\\\\\).*res\\\\.status\\\\\\(500\\\\\\)\\\\.json\\\\\\(\\\\{ error: err\\\\.message \\\\}\\\\\\)|console\\\\.error.*err\\\\.message|console\\\\.log.*err\\\\.message|res\\\\.status.*\\\\.json\\\\\\(\\\\{ error: err\\\\.message \\\\}\\\\\\)|res\\\\.status.*\\\\.send\\\\\\(err\\\\.message\\\\\\)|res\\\\.status.*\\\\.send\\\\\\(`.*err\\\\.message/ {print NR\": \"$0}' /Users/alessandrro/Documents/GitHub/virtus-caserta/server.js)"
     ]
   }
 }

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accesso – Virtus Caserta</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0d2055;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px 32px 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.4);
+    }
+    .logo-wrap { text-align: center; margin-bottom: 24px; }
+    .logo { height: 60px; }
+    .panel { display: none; }
+    .panel.attivo { display: block; }
+    .panel-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0d2055;
+      margin-bottom: 4px;
+    }
+    .panel-sub {
+      font-size: 13px;
+      color: #8e8e93;
+      margin-bottom: 20px;
+    }
+    .field { margin-bottom: 12px; text-align: left; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 4px;
+    }
+    .field input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #e5e5ea;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .field input:focus { border-color: #0d2055; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .submit-btn {
+      width: 100%;
+      padding: 13px;
+      background: #0d2055;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s;
+      margin-top: 8px;
+    }
+    .submit-btn:hover { background: #1535a8; }
+    .error { color: #dc2626; font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .success { color: #16a34a; font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .switch-link {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 13px;
+      color: #8e8e93;
+    }
+    .switch-link a { color: #0d2055; font-weight: 600; text-decoration: none; }
+    .switch-link a:hover { text-decoration: underline; }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e5ea;
+      font-size: 12px;
+      color: #c0c0c8;
+      text-decoration: none;
+      letter-spacing: .3px;
+    }
+    .back-link:hover { color: #8e8e93; }
+  </style>
+</head>
+<body>
+  <div class="card" role="main">
+    <div class="logo-wrap">
+      <img class="logo" src="images/positivo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    </div>
+
+    <!-- LOGIN UTENTE (default) -->
+    <div class="panel attivo" id="panelUtente" role="region" aria-label="Accesso utente">
+      <div class="panel-title">Bentornato</div>
+      <div class="panel-sub">Accedi con il tuo account</div>
+      <form onsubmit="doLoginUtente(event)" aria-label="Form di accesso">
+        <div class="field">
+          <label for="utenteEmail">Email</label>
+          <input type="email" id="utenteEmail" placeholder="tua@email.com" autocomplete="email" required aria-required="true" />
+        </div>
+        <div class="field">
+          <label for="utentePass">Password</label>
+          <input type="password" id="utentePass" placeholder="••••••" autocomplete="current-password" required aria-required="true" />
+        </div>
+        <button type="submit" class="submit-btn" aria-label="Accedi al tuo account">Accedi</button>
+      </form>
+      <div class="error" id="utenteError" role="alert" aria-live="polite"></div>
+      <div class="switch-link">Non hai un account? <a href="#" role="button" aria-label="Vai alla registrazione" onclick="showPanel('registrati');return false;">Registrati!</a></div>
+      <div class="switch-link" style="margin-top:8px"><a href="#" role="button" aria-label="Accedi come amministratore" onclick="showPanel('admin');return false;">Accedi come admin</a></div>
+    </div>
+
+    <!-- REGISTRAZIONE -->
+    <div class="panel" id="panelRegistrati" role="region" aria-label="Registrazione nuovo account">
+      <div class="panel-title">Crea account</div>
+      <div class="panel-sub">Unisciti alla Virtus Caserta</div>
+      <form onsubmit="doRegistra(event)" aria-label="Form di registrazione">
+        <div class="row2">
+          <div class="field">
+            <label for="regNome">Nome</label>
+            <input type="text" id="regNome" placeholder="Mario" required aria-required="true" />
+          </div>
+          <div class="field">
+            <label for="regCognome">Cognome</label>
+            <input type="text" id="regCognome" placeholder="Rossi" required aria-required="true" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="regEmail">Email</label>
+          <input type="email" id="regEmail" placeholder="tua@email.com" required aria-required="true" />
+        </div>
+        <div class="field">
+          <label for="regEmailConferma">Conferma Email</label>
+          <input type="email" id="regEmailConferma" placeholder="tua@email.com" required aria-required="true" aria-describedby="regError" />
+        </div>
+        <div class="field">
+          <label for="regPass">Password</label>
+          <input type="password" id="regPass" placeholder="••••••" required aria-required="true" />
+        </div>
+        <div class="field">
+          <label for="regPassConferma">Conferma Password</label>
+          <input type="password" id="regPassConferma" placeholder="••••••" required aria-required="true" aria-describedby="regError" />
+        </div>
+        <div class="field">
+          <label for="regNascita">Data di nascita</label>
+          <input type="date" id="regNascita" required aria-required="true" />
+        </div>
+        <button type="submit" class="submit-btn" aria-label="Crea il tuo account">Registrati</button>
+      </form>
+      <div class="error" id="regError" role="alert" aria-live="polite"></div>
+      <div class="success" id="regSuccess" role="status" aria-live="polite"></div>
+      <div class="switch-link">Hai già un account? <a href="#" role="button" aria-label="Torna al login" onclick="showPanel('utente');return false;">Accedi!</a></div>
+    </div>
+
+    <!-- LOGIN ADMIN -->
+    <div class="panel" id="panelAdmin" role="region" aria-label="Accesso amministratore">
+      <div class="panel-title">Pannello Admin</div>
+      <div class="panel-sub">Accesso riservato agli amministratori</div>
+      <form onsubmit="doLoginAdmin(event)" aria-label="Form di accesso admin">
+        <div class="field">
+          <label for="adminUser">Username</label>
+          <input type="text" id="adminUser" autocomplete="username" required aria-required="true" />
+        </div>
+        <div class="field">
+          <label for="adminPass">Password</label>
+          <input type="password" id="adminPass" autocomplete="current-password" required aria-required="true" />
+        </div>
+        <button type="submit" class="submit-btn" aria-label="Accedi come amministratore">Accedi</button>
+      </form>
+      <div class="error" id="adminError" role="alert" aria-live="polite"></div>
+      <div class="switch-link"><a href="#" role="button" aria-label="Torna al login utente" onclick="showPanel('utente');return false;">← Sei un normale utente?</a></div>
+    </div>
+
+    <a href="/" class="back-link" aria-label="Torna alla home page">← Torna alla home</a>
+  </div>
+
+  <script>
+    const panels = ['utente', 'registrati', 'admin'];
+
+    function showPanel(name) {
+      panels.forEach(id =>
+        document.getElementById('panel' + id.charAt(0).toUpperCase() + id.slice(1))
+          .classList.toggle('attivo', id === name)
+      );
+    }
+
+    async function doRegistra(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('regError');
+      const okEl  = document.getElementById('regSuccess');
+      errEl.textContent = '';
+      okEl.textContent  = '';
+
+      const nome    = document.getElementById('regNome').value.trim();
+      const cognome = document.getElementById('regCognome').value.trim();
+      const email   = document.getElementById('regEmail').value.trim();
+      const emailC  = document.getElementById('regEmailConferma').value.trim();
+      const pass    = document.getElementById('regPass').value;
+      const passC   = document.getElementById('regPassConferma').value;
+      const nascita = document.getElementById('regNascita').value;
+
+      if (email !== emailC) { errEl.textContent = 'Le email non coincidono.'; return; }
+      if (pass  !== passC)  { errEl.textContent = 'Le password non coincidono.'; return; }
+      if (pass.length < 6)  { errEl.textContent = 'Password minimo 6 caratteri.'; return; }
+
+      try {
+        const res  = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, cognome, email, password: pass, dataNascita: nascita }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || 'Errore registrazione.'; return; }
+        okEl.textContent = 'Registrazione completata! Ora puoi accedere.';
+        setTimeout(() => showPanel('utente'), 1500);
+      } catch {
+        errEl.textContent = 'Errore di rete. Riprova.';
+      }
+    }
+
+    async function doLoginUtente(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('utenteError');
+      errEl.textContent = '';
+      const email    = document.getElementById('utenteEmail').value.trim();
+      const password = document.getElementById('utentePass').value;
+      try {
+        const res  = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || 'Credenziali non valide.'; return; }
+        localStorage.setItem('vc_token', data.token);
+        if (data.user) localStorage.setItem('vc_user', JSON.stringify(data.user));
+        location.href = '/index.html';
+      } catch {
+        errEl.textContent = 'Errore di rete. Riprova.';
+      }
+    }
+
+    async function doLoginAdmin(e) {
+      e.preventDefault();
+      const errEl = document.getElementById('adminError');
+      errEl.textContent = '';
+      try {
+        const res  = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('adminUser').value.trim(),
+            password: document.getElementById('adminPass').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data.error || 'Credenziali non valide.'; return; }
+        localStorage.setItem('vc_admin_token', data.token);
+        location.href = '/admin.html';
+      } catch {
+        errEl.textContent = 'Errore di rete. Riprova.';
+      }
+    }
+  </script>
+</body>
+</html>

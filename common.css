@@ -351,8 +351,56 @@ footer.footer-std .footer-bottom a:hover { color: rgba(255,255,255,0.8); }
 footer.footer-std .footer-inner .footer-auth {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-end;
+}
+footer.footer-std .footer-auth-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin-bottom: 2px;
+}
+footer.footer-std .footer-auth-login a {
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+footer.footer-std .footer-auth-login a:hover {
+  color: #fff;
+}
+footer.footer-std .footer-auth-logged {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+footer.footer-std .footer-auth.logged .footer-auth-login { display: none; }
+footer.footer-std .footer-auth.logged .footer-auth-logged { display: flex; }
+footer.footer-std .footer-auth-nome {
+  color: rgba(255,255,255,0.75);
+  font-size: 13px;
+  font-weight: 600;
+}
+footer.footer-std .footer-btn {
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+footer.footer-std .footer-btn:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.55);
 }
 @media (max-width: 600px) {
   footer.footer-std .footer-inner { flex-direction: column; align-items: center; text-align: center; padding: 28px 16px 20px; }

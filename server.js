@@ -161,8 +161,8 @@ app.post('/api/stripe-webhook',
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
-      console.log('[Webhook] Firma non valida:', err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+      console.error('[Webhook] Firma non valida:', err);
+      return res.status(400).send('Webhook Error: firma non valida');
     }
 
     if (event.type === 'payment_intent.succeeded') {
@@ -244,6 +244,7 @@ app.get('/privacy.html',            (_req, res) => res.redirect(301, '/privacy')
 app.get('/termini.html',            (_req, res) => res.redirect(301, '/termini'));
 app.get('/ordine-confermato.html',  (_req, res) => res.redirect(301, '/ordine-confermato'));
 app.get('/live.html',               (_req, res) => res.redirect(301, '/live'));
+app.get('/login.html',              (_req, res) => res.redirect(301, '/login'));
 // Vecchi URL rimossi → redirect home
 app.get('/galleria.html',           (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/'));
@@ -307,6 +308,7 @@ app.get('/privacy',           sendPage('privacy.html'));
 app.get('/termini',           sendPage('termini.html'));
 app.get('/ordine-confermato', sendPage('ordine-confermato.html'));
 app.get('/live',              sendPage('live.html'));
+app.get('/login',             sendPage('login.html'));
 // Vecchi URL rimossi → redirect home
 app.get('/galleria',          (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione',        (_req, res) => res.redirect(301, '/'));
@@ -429,7 +431,8 @@ app.get('/api/calendario', async (_req, res) => {
     }));
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -465,7 +468,8 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
     );
     res.status(201).json({ id, titolo, data, ora, luogo: luogo || '', categoria: categoria || '', note: note || '' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -484,7 +488,8 @@ app.put('/api/calendario/:id', adminAuth, async (req, res) => {
     const r = result.rows[0];
     res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, luogo: r.luogo, categoria: r.categoria, note: r.note });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -495,7 +500,8 @@ app.delete('/api/calendario/:id', adminAuth, async (req, res) => {
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -517,7 +523,8 @@ app.get('/api/products', async (_req, res) => {
     }));
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -543,7 +550,8 @@ app.post('/api/admin/products', adminAuth, async (req, res) => {
       taglie: taglie || ['S', 'M', 'L', 'XL'], immagine: immagine || '',
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -570,7 +578,8 @@ app.put('/api/admin/products/:id', adminAuth, async (req, res) => {
       emoji: r.emoji, disponibile: r.disponibile, taglie: r.taglie, immagine: r.immagine,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -582,7 +591,8 @@ app.delete('/api/admin/products/:id', adminAuth, async (req, res) => {
     await logActivity('Prodotto eliminato', result.rows[0].nome);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -601,8 +611,8 @@ app.post('/api/admin/upload', adminAuth, upload.single('immagine'), async (req, 
       const { data: { publicUrl } } = supabaseStorage.from(SUPABASE_BUCKET).getPublicUrl(safeFilename);
       return res.json({ url: publicUrl });
     } catch (e) {
-      console.error('[Upload] Supabase error:', e.message);
-      return res.status(500).json({ error: 'Errore upload Supabase: ' + e.message });
+      console.error(e);
+      return res.status(500).json({ error: 'Errore interno del server.' });
     }
   }
 
@@ -623,7 +633,8 @@ app.get('/api/notizie', async (_req, res) => {
     }));
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -641,7 +652,8 @@ app.post('/api/admin/notizie', adminAuth, async (req, res) => {
     await logActivity('Notizia aggiunta', titolo);
     res.status(201).json({ id, titolo, testo, colore: colore || 'blu', immagine: immagine || '', data: dataStr });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -658,7 +670,8 @@ app.put('/api/admin/notizie/:id', adminAuth, async (req, res) => {
     await logActivity('Notizia modificata', r.titolo);
     res.json({ id: r.id, titolo: r.titolo, testo: r.testo, colore: r.colore, immagine: r.immagine, data: r.data_str });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -670,7 +683,8 @@ app.delete('/api/admin/notizie/:id', adminAuth, async (req, res) => {
     await logActivity('Notizia eliminata', result.rows[0].titolo);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -737,7 +751,8 @@ app.post('/api/create-payment-intent', paymentLimiter, async (req, res) => {
     const pi = await stripe.paymentIntents.create(piOptions);
     res.json({ clientSecret: pi.client_secret, orderId, amount: totaleCents });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -766,7 +781,8 @@ app.get('/api/admin/stats', adminAuth, async (_req, res) => {
       ordini,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -778,7 +794,8 @@ app.get('/api/admin/impostazioni', adminAuth, async (_req, res) => {
     for (const r of result.rows) obj[r.chiave] = r.valore;
     res.json(obj);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -790,7 +807,8 @@ app.get('/api/live-links', async (_req, res) => {
     for (const row of r.rows) obj[row.chiave] = row.valore;
     res.json({ youtube_live_url: obj.youtube_live_url || '', spike_live_url: obj.spike_live_url || '' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -802,7 +820,8 @@ app.get('/api/squadre-links', async (_req, res) => {
     for (const row of r.rows) obj[row.chiave] = row.valore;
     res.json(obj);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -820,7 +839,8 @@ app.put('/api/admin/squadre-links', adminAuth, async (req, res) => {
     await logActivity('Link squadre aggiornati', entries.length + ' link');
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -839,7 +859,8 @@ app.put('/api/admin/impostazioni', adminAuth, async (req, res) => {
     await logActivity('Impostazioni aggiornate', Object.keys(req.body).join(', '));
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -849,7 +870,8 @@ app.get('/api/admin/log', adminAuth, async (_req, res) => {
     const result = await db.query('SELECT * FROM log_attivita ORDER BY created_at DESC LIMIT 100');
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -863,7 +885,8 @@ app.get('/api/admin/ordini', adminAuth, async (req, res) => {
     const result = await db.query(`SELECT * FROM ordini ${where} ORDER BY created_at DESC`, params);
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -925,7 +948,8 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
 
     res.json({ success: true, stato });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1005,7 +1029,8 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
 
     res.json({ success: true, rimborso: rimborsoEffettuato, erroreStripe: rimborsoErrore });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1016,7 +1041,8 @@ app.delete('/api/admin/ordini/all', adminAuth, async (_req, res) => {
     await logActivity('Database ordini svuotato', `${r.rowCount} ordini eliminati`);
     res.json({ success: true, eliminati: r.rowCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1155,8 +1181,8 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
     console.log(`[Email] Ordine confermato inviato a ${email}`);
     res.json({ success: true });
   } catch (err) {
-    console.error(`[Email] ERRORE (${err.code || 'unknown'}): ${err.message}`);
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1209,12 +1235,12 @@ app.get('/api/instagram', async (_req, res) => {
     igCache = { data: result, ts: Date.now() };
     return res.json(result);
   } catch (err) {
-    console.log('[Instagram] Errore:', err.message);
+    console.error('[Instagram] Errore:', err);
     if (igCache) return res.json({ ...igCache.data, cached: true });
     return res.json({
       source: 'static', username: INSTAGRAM_USERNAME,
       profileUrl: `https://www.instagram.com/${INSTAGRAM_USERNAME}/`,
-      message: `Errore Instagram: ${err.message}`, recentPosts: [],
+      message: 'Errore Instagram', recentPosts: [],
     });
   }
 });
@@ -1227,7 +1253,8 @@ app.post('/api/instagram/refresh-token', async (_req, res) => {
     if (json.error) throw new Error(json.error.message);
     res.json({ access_token: json.access_token, expires_in: json.expires_in });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1796,8 +1823,8 @@ app.get('/api/partite', async (_req, res) => {
                       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     res.json({ ultime: past.slice(0, 3), live, prossime: future.slice(0, 6), fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
-    console.log('[Partite] Errore:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[Partite] Errore:', err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1812,8 +1839,8 @@ app.get('/api/partite/tutte', async (_req, res) => {
     });
     res.json({ gruppi, fipavUrl: FIPAV_CASERTA_URL });
   } catch (err) {
-    console.log('[Partite/tutte] Errore:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[Partite/tutte] Errore:', err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1902,8 +1929,8 @@ app.get('/api/classifica-opes/:tid', async (req, res) => {
     const squadre = parseOpesClassifica(json.html || '');
     res.json({ titolo: tourney.categoria, squadre, url: `${OPES_BASE}/it/t-teamtable/${tid}/` });
   } catch (err) {
-    console.log('[Classifica OPES] Errore:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[Classifica OPES] Errore:', err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1943,8 +1970,8 @@ app.get('/api/classifica/:cid', async (req, res) => {
     }
     res.json({ titolo, cid, fonte, squadre, url: `${base}/classifica.aspx?CId=${cid}` });
   } catch (err) {
-    console.log('[Classifica] Errore:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[Classifica] Errore:', err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1969,7 +1996,8 @@ app.get('/api/proxy-image', async (req, res) => {
     const buf = await imgRes.arrayBuffer();
     res.end(Buffer.from(buf));
   } catch (err) {
-    res.status(500).send(err.message);
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
@@ -1978,7 +2006,7 @@ app.get('/api/squadra', async (_req, res) => {
   try {
     const r = await db.query('SELECT * FROM squadra WHERE attiva=true ORDER BY numero ASC NULLS LAST, cognome');
     res.json(r.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.post('/api/admin/squadra', adminAuth, async (req, res) => {
   const { nome, cognome, numero, ruolo, foto, bio, sesso } = req.body;
@@ -1989,7 +2017,7 @@ app.post('/api/admin/squadra', adminAuth, async (req, res) => {
       [id, nome, cognome, numero || null, ruolo || '', foto || '', bio || '', sesso || 'Femminile']);
     await logActivity('Giocatrice aggiunta', `${nome} ${cognome}`);
     res.status(201).json({ id, nome, cognome, numero, ruolo, foto, bio, sesso });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.put('/api/admin/squadra/:id', adminAuth, async (req, res) => {
   const { nome, cognome, numero, ruolo, foto, bio, attiva, sesso } = req.body;
@@ -2000,7 +2028,7 @@ app.put('/api/admin/squadra/:id', adminAuth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Giocatrice non trovata' });
     await logActivity('Giocatrice modificata', `${nome} ${cognome}`);
     res.json(r.rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.delete('/api/admin/squadra/:id', adminAuth, async (req, res) => {
   try {
@@ -2008,7 +2036,7 @@ app.delete('/api/admin/squadra/:id', adminAuth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Non trovata' });
     await logActivity('Giocatrice eliminata', `${r.rows[0].nome} ${r.rows[0].cognome}`);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
 /* ─── Galleria ─── */
@@ -2019,13 +2047,13 @@ app.get('/api/galleria', async (req, res) => {
       ? await db.query('SELECT * FROM galleria WHERE album=$1 ORDER BY created_at DESC', [album])
       : await db.query('SELECT * FROM galleria ORDER BY created_at DESC');
     res.json(r.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.get('/api/galleria/albums', async (_req, res) => {
   try {
     const r = await db.query('SELECT DISTINCT album FROM galleria ORDER BY album');
     res.json(r.rows.map(row => row.album));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.post('/api/admin/galleria', adminAuth, async (req, res) => {
   const { album, titolo, immagine } = req.body;
@@ -2036,7 +2064,7 @@ app.post('/api/admin/galleria', adminAuth, async (req, res) => {
       [id, album || 'Generale', titolo || '', immagine]);
     await logActivity('Foto aggiunta in galleria', album || 'Generale');
     res.status(201).json({ id, album, titolo, immagine });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.delete('/api/admin/galleria/:id', adminAuth, async (req, res) => {
   try {
@@ -2044,7 +2072,7 @@ app.delete('/api/admin/galleria/:id', adminAuth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Non trovata' });
     await logActivity('Foto eliminata dalla galleria', req.params.id);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
 /* ─── Iscrizioni ─── */
@@ -2067,20 +2095,20 @@ app.post('/api/iscrizioni', iscrizioniLimiter, async (req, res) => {
     }
     await logActivity('Nuova iscrizione', `${nome} ${cognome} – ${email}`);
     res.status(201).json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.get('/api/admin/iscrizioni', adminAuth, async (_req, res) => {
   try {
     const r = await db.query('SELECT * FROM iscrizioni ORDER BY created_at DESC');
     res.json(r.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.put('/api/admin/iscrizioni/:id/stato', adminAuth, async (req, res) => {
   const { stato } = req.body;
   try {
     await db.query('UPDATE iscrizioni SET stato=$1 WHERE id=$2', [stato, req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
 /* ─── Sponsor ─── */
@@ -2088,13 +2116,13 @@ app.get('/api/sponsor', async (_req, res) => {
   try {
     const r = await db.query('SELECT * FROM sponsor WHERE attivo=true ORDER BY livello, nome');
     res.json(r.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.get('/api/admin/sponsor', adminAuth, async (_req, res) => {
   try {
     const r = await db.query('SELECT * FROM sponsor ORDER BY livello, nome');
     res.json(r.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.post('/api/admin/sponsor', adminAuth, async (req, res) => {
   const { nome, logo, url, livello, attivo } = req.body;
@@ -2105,7 +2133,7 @@ app.post('/api/admin/sponsor', adminAuth, async (req, res) => {
       [id, nome, logo || '', url || '', Number(livello) || 1, attivo !== false]);
     await logActivity('Sponsor aggiunto', nome);
     res.status(201).json({ id, nome, logo, url, livello, attivo });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.put('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
   const { nome, logo, url, livello, attivo } = req.body;
@@ -2116,7 +2144,7 @@ app.put('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
     await logActivity('Sponsor modificato', nome);
     res.json(r.rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.delete('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
   try {
@@ -2124,7 +2152,7 @@ app.delete('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
     await logActivity('Sponsor eliminato', r.rows[0].nome);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
 /* ─── Risultati ─── */
@@ -2132,7 +2160,7 @@ app.get('/api/risultati', async (_req, res) => {
   try {
     const r = await db.query('SELECT * FROM risultati ORDER BY data_str DESC');
     res.json(r.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.post('/api/admin/risultati', adminAuth, async (req, res) => {
   const { data, avversario, set_noi, set_loro, categoria, tipo } = req.body;
@@ -2143,7 +2171,7 @@ app.post('/api/admin/risultati', adminAuth, async (req, res) => {
       [id, data, avversario, parseInt(set_noi), parseInt(set_loro), categoria || '', tipo || 'campionato']);
     await logActivity('Risultato aggiunto', `vs ${avversario} ${set_noi}-${set_loro}`);
     res.status(201).json({ id, data_str: data, avversario, set_noi, set_loro, categoria, tipo });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.put('/api/admin/risultati/:id', adminAuth, async (req, res) => {
   const { data, avversario, set_noi, set_loro, categoria, tipo } = req.body;
@@ -2153,7 +2181,7 @@ app.put('/api/admin/risultati/:id', adminAuth, async (req, res) => {
       [data, avversario, parseInt(set_noi), parseInt(set_loro), categoria || '', tipo || 'campionato', req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
     res.json(r.rows[0]);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.delete('/api/admin/risultati/:id', adminAuth, async (req, res) => {
   try {
@@ -2161,7 +2189,7 @@ app.delete('/api/admin/risultati/:id', adminAuth, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
     await logActivity('Risultato eliminato', `vs ${r.rows[0].avversario}`);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
 /* ─── Export ordini CSV ─── */
@@ -2179,7 +2207,7 @@ app.get('/api/admin/ordini/export', adminAuth, async (_req, res) => {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="ordini-${new Date().toISOString().slice(0,10)}.csv"`);
     res.send('\uFEFF' + header + '\n' + rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
 /* ─── Push notifications ─── */
@@ -2204,7 +2232,7 @@ app.post('/api/push/subscribe', async (req, res) => {
        ON CONFLICT (endpoint) DO UPDATE SET keys=$2`,
       [endpoint, JSON.stringify(keys)]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.post('/api/admin/push/send', adminAuth, async (req, res) => {
   if (!webpush) return res.status(503).json({ error: 'Push non configurato (VAPID keys mancanti)' });
@@ -2224,7 +2252,7 @@ app.post('/api/admin/push/send', adminAuth, async (req, res) => {
     }
     await logActivity('Push notification inviata', `${titolo} → ${ok} recapitate, ${fail} fallite`);
     res.json({ success: true, ok, fail });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
 /* ─── Modulo contatti ─── */
@@ -2259,7 +2287,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     });
     res.json({ success: true });
   } catch (err) {
-    console.error('[Contact] Errore:', err.message);
+    console.error('[Contact] Errore:', err);
     res.status(500).json({ error: 'Invio fallito. Riprova più tardi.' });
   }
 });
@@ -2279,8 +2307,8 @@ app.post('/api/admin/test-email', adminAuth, async (_req, res) => {
     await logActivity('Test email inviato', process.env.EMAIL_USER || '');
     res.json({ success: true });
   } catch (err) {
-    console.error('[Test email] Errore:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('[Test email] Errore:', err);
+    res.status(500).json({ error: 'Errore interno del server.' });
   }
 });
 
