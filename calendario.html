@@ -62,12 +62,13 @@
       display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;
     }
     .btn-sett-nav:hover{background:rgba(255,255,255,.24);}
+    .sett-oggi-row{display:flex;justify-content:center;padding-bottom:16px;}
     .btn-oggi{
-      background:var(--arancio);border:none;color:#fff;
-      font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
-      padding:6px 14px;border-radius:20px;cursor:pointer;transition:opacity .2s;margin-left:12px;
+      background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.28);color:rgba(255,255,255,.85);
+      font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+      padding:7px 22px;border-radius:20px;cursor:pointer;transition:all .2s;
     }
-    .btn-oggi:hover{opacity:.85;}
+    .btn-oggi:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);color:#fff;}
 
     /* ── FILTRI ── */
     .filtri-wrap{
@@ -90,6 +91,9 @@
     .fpill[data-c="fipav-under"].on {background:var(--cu);}
     .fpill[data-c="opes"].on       {background:var(--co);}
 
+    /* ── SCROLL WRAP (aligns header + grid on medium screens) ── */
+    .cal-scroll-wrap{overflow-x:auto;overflow-y:clip;-webkit-overflow-scrolling:touch;}
+
     /* ── GIORNI INTESTAZIONE ── */
     .giorni-head{
       display:grid;grid-template-columns:repeat(7,1fr);
@@ -97,6 +101,7 @@
       border-bottom:2px solid var(--bordo);
       position:sticky;top:68px;z-index:100;
       box-shadow:0 2px 8px rgba(0,0,0,.06);
+      min-width:700px;
     }
     .gh-cell{
       padding:12px 4px 10px;text-align:center;
@@ -122,6 +127,7 @@
       display:grid;grid-template-columns:repeat(7,1fr);
       flex:1;align-items:start;
       border-bottom:1px solid var(--bordo);
+      min-width:700px;
     }
     .day-col{
       border-right:1px solid var(--bordo);
@@ -181,6 +187,15 @@
     }
     .legenda-item{display:flex;align-items:center;gap:6px;font-weight:600;}
     .legenda-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+    /* ── NOTICE ALLENAMENTI ── */
+    .notice-allenamenti{
+      display:flex;align-items:center;gap:8px;
+      padding:9px 20px;
+      background:rgba(13,32,85,.04);
+      border-bottom:1px solid var(--bordo);
+      font-size:12px;color:var(--sub);font-weight:500;
+    }
 
     /* ── LOADING / EMPTY ── */
     .loading-overlay{
@@ -259,8 +274,8 @@
 
     /* ── MOBILE OVERRIDE ── */
     @media(max-width:900px){
-      .week-grid{grid-template-columns:repeat(7,minmax(110px,1fr));overflow-x:auto;}
-      .giorni-head{grid-template-columns:repeat(7,minmax(110px,1fr));overflow-x:auto;}
+      .week-grid{grid-template-columns:repeat(7,minmax(110px,1fr));min-width:770px;}
+      .giorni-head{grid-template-columns:repeat(7,minmax(110px,1fr));min-width:770px;}
     }
     .nav-brand-label{display:none!important;}
     @media(max-width:600px){
@@ -340,12 +355,18 @@
   <div class="sett-header">
     <div class="sett-nav">
       <button class="btn-sett-nav" id="btnPrec">&#8249;</button>
-      <div style="display:flex;align-items:center;justify-content:center;flex:1;">
-        <div class="sett-range" id="weekRange">—</div>
-        <button class="btn-oggi" onclick="vaiOggi()">Oggi</button>
-      </div>
+      <div class="sett-range" id="weekRange">—</div>
       <button class="btn-sett-nav" id="btnSucc">&#8250;</button>
     </div>
+    <div class="sett-oggi-row">
+      <button class="btn-oggi" onclick="vaiOggi()">Oggi</button>
+    </div>
+  </div>
+
+  <!-- NOTA ALLENAMENTI -->
+  <div class="notice-allenamenti">
+    <span>🔒</span>
+    Gli allenamenti sono visibili solo agli utenti registrati appartenenti alla rispettiva squadra
   </div>
 
   <!-- FILTRI -->
@@ -367,13 +388,13 @@
     </button>
   </div>
 
-  <!-- DESKTOP: intestazione giorni (sticky) -->
-  <div class="giorni-head" id="giorniHead"></div>
-
-  <!-- DESKTOP: griglia settimana -->
-  <div class="week-grid" id="weekGrid">
-    <div class="loading-overlay" style="grid-column:span 7;">
-      <div class="spin"></div> Caricamento eventi…
+  <!-- DESKTOP: intestazione giorni + griglia (shared scroll container) -->
+  <div class="cal-scroll-wrap">
+    <div class="giorni-head" id="giorniHead"></div>
+    <div class="week-grid" id="weekGrid">
+      <div class="loading-overlay" style="grid-column:span 7;">
+        <div class="spin"></div> Caricamento eventi…
+      </div>
     </div>
   </div>
 
