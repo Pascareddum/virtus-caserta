@@ -67,23 +67,26 @@ function creaTransporter() {
 }
 
 function emailConfigurata() {
-  return !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+  return brevoConfigurato() || !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 }
 
 /* ─── Brevo SMTP: transporter per email shop/ordini ─── */
 function brevoConfigurato() {
-  return !!(process.env.BREVO_SMTP_LOGIN && process.env.BREVO_SMTP_KEY);
+  return !!(
+    (process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN) &&
+    (process.env.SMTP_PASS || process.env.BREVO_SMTP_KEY)
+  );
 }
 
 function creaTransporterBrevo() {
   return nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
+    host: (process.env.SMTP_HOST || 'smtp-relay.brevo.com').trim(),
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
     secure: false,
     family: 4,
     auth: {
-      user: (process.env.BREVO_SMTP_LOGIN || '').trim(),
-      pass: (process.env.BREVO_SMTP_KEY   || '').trim(),
+      user: (process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || '').trim(),
+      pass: (process.env.SMTP_PASS || process.env.BREVO_SMTP_KEY   || '').trim(),
     },
     connectionTimeout: 10000,
     greetingTimeout: 10000,
@@ -93,7 +96,7 @@ function creaTransporterBrevo() {
 
 /* Mittente verificato Brevo (deve essere un sender autenticato in Brevo) */
 function brevoFrom() {
-  const from = (process.env.BREVO_FROM_EMAIL || process.env.BREVO_SMTP_LOGIN || '').trim();
+  const from = (process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || process.env.BREVO_SMTP_LOGIN || '').trim();
   return `"Virtus Caserta Shop" <${from}>`;
 }
 
@@ -1266,9 +1269,11 @@ const FIPAV_CAMPANIA_BASE  = 'https://www.fipavcampania.it';
 const FIPAV_CASERTA_URL    = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA';
 const FIPAV_CAMPANIA_URL   = 'https://www.fipavcampania.it/risultati-classifiche.aspx?ComitatoId=15&StId=2277&DataDa=&StatoGara=&CId=&SId=5150&PId=1078&btFiltro=CERCA';
 
-/* ─── Scheduler: fetch risultato 2.5h dopo kick-off ─── */
-const RESULT_FETCH_DELAY    = 2.5 * 60 * 60 * 1000;   // 2h30
-const SCHEDULE_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // 1 giorno
+/* ─── Scheduler: fetch risultato FIPAV (1.5h, retry ogni 30min, stop a 3h) ─── */
+const RESULT_FETCH_INITIAL_DELAY = 1.5 * 60 * 60 * 1000;  // 1h30
+const RESULT_RETRY_INTERVAL      = 30  * 60 * 1000;        // 30min
+const RESULT_MAX_WINDOW          = 3   * 60 * 60 * 1000;   // 3h dal kick-off
+const SCHEDULE_REFRESH_INTERVAL  = 24  * 60 * 60 * 1000;   // 1 giorno
 const pendingTimers = new Map();  // match_id → Timeout
 
 // Converte riga DB in oggetto match usato dal frontend
@@ -1396,87 +1401,120 @@ async function aggiornaCacheClassifica(cid, fonte, tid) {
   }
 }
 
-// Fetch risultato per una singola partita (chiamato 2.5h dopo kick-off)
+// Fetch risultato per una singola partita FIPAV; ritorna true se risultato trovato
 async function fetchAndStoreMatchResult(match) {
   try {
     console.log(`[FIPAV Scheduler] Fetch risultato: ${match.casa} vs ${match.ospite} (${match.fonte})`);
-    let freshMatches;
-    if (match.fonte === 'opes') {
-      freshMatches = await fetchOpesAll();
-    } else {
-      const url  = match.fonte === 'campania' ? FIPAV_CAMPANIA_URL : FIPAV_CASERTA_URL;
-      const base = match.fonte === 'campania' ? FIPAV_CAMPANIA_BASE : FIPAV_CASERTA_BASE;
-      freshMatches = await fetchFipav(url, base, match.fonte);
-    }
+    const url  = match.fonte === 'campania' ? FIPAV_CAMPANIA_URL : FIPAV_CASERTA_URL;
+    const base = match.fonte === 'campania' ? FIPAV_CAMPANIA_BASE : FIPAV_CASERTA_BASE;
+    const freshMatches = await fetchFipav(url, base, match.fonte);
+    const found = freshMatches.some(m => m.id === match.id && m.played);
     await saveMatchesToDB(freshMatches);
-    // Aggiorna classifica per questa categoria
-    if (match.tid) await aggiornaCacheClassifica(null, match.fonte, match.tid);
-    else if (match.cid) await aggiornaCacheClassifica(match.cid, match.fonte, null);
-    // Invalida cache in-memory
+    if (match.cid) await aggiornaCacheClassifica(match.cid, match.fonte, null);
     _fipavCache = null; _fipavCacheAt = 0;
-    console.log(`[FIPAV Scheduler] Risultato salvato: ${match.casa} vs ${match.ospite}`);
+    if (found) console.log(`[FIPAV Scheduler] Risultato salvato: ${match.casa} vs ${match.ospite}`);
+    else console.log(`[FIPAV Scheduler] Risultato non ancora disponibile: ${match.casa} vs ${match.ospite}`);
+    return found;
   } catch (err) {
     console.log(`[FIPAV Scheduler] Errore fetch ${match.id}:`, err.message);
+    return false;
   }
 }
 
-// Registra timer per fetch risultato 2.5h dopo kick-off
+// Registra primo timer FIPAV (1.5h dal kick-off); OPES ignorato (check settimanale)
 function scheduleResultFetch(match) {
   if (!match.timestamp || match.played || match.postponed) return;
-  if (pendingTimers.has(match.id)) return; // già schedulato
-  const fireAt = match.timestamp + RESULT_FETCH_DELAY;
-  const delay  = fireAt - Date.now();
-  if (delay <= -RESULT_FETCH_DELAY) return; // troppo vecchia, salta
-  if (delay <= 0) {
-    // Partita già terminata (entro 2.5h) → fetch subito
-    setImmediate(() => fetchAndStoreMatchResult(match));
-    return;
-  }
-  const timer = setTimeout(() => {
-    pendingTimers.delete(match.id);
-    fetchAndStoreMatchResult(match);
-  }, Math.min(delay, 2_147_483_647));
-  pendingTimers.set(match.id, timer);
-  console.log(`[FIPAV Scheduler] ${match.casa} vs ${match.ospite} → risultato atteso ${new Date(fireAt).toLocaleString('it')}`);
+  if (match.fonte === 'opes') return;
+  if (pendingTimers.has(match.id)) return;
+  if (Date.now() > match.timestamp + RESULT_MAX_WINDOW) return; // finestra 3h scaduta
+  const firstFire = Math.max(Date.now(), match.timestamp + RESULT_FETCH_INITIAL_DELAY);
+  _scheduleFipavCheck(match, firstFire);
 }
 
-// Discovery giornaliero: scrape pagina risultati FIPAV per nuove partite
+// Schedulazione interna con retry ogni 30min fino a 3h dal kick-off
+function _scheduleFipavCheck(match, fireAt) {
+  const deadline = match.timestamp + RESULT_MAX_WINDOW;
+  const delay = Math.max(0, fireAt - Date.now());
+  const timer = setTimeout(async () => {
+    pendingTimers.delete(match.id);
+    const found = await fetchAndStoreMatchResult(match);
+    if (!found) {
+      const nextFire = Date.now() + RESULT_RETRY_INTERVAL;
+      if (nextFire <= deadline) {
+        _scheduleFipavCheck(match, nextFire);
+      } else {
+        console.log(`[FIPAV Scheduler] ${match.casa} vs ${match.ospite} → finestra 3h scaduta, stop check`);
+      }
+    }
+  }, Math.min(delay, 2_147_483_647));
+  pendingTimers.set(match.id, timer);
+  console.log(`[FIPAV Scheduler] ${match.casa} vs ${match.ospite} → check ${new Date(Date.now() + delay).toLocaleString('it')}`);
+}
+
+// Discovery giornaliero FIPAV (solo Caserta + Campania, OPES separato)
 async function refreshFutureMatches() {
-  console.log('[FIPAV Scheduler] Refresh giornaliero partite...');
+  console.log('[FIPAV Scheduler] Refresh giornaliero partite FIPAV...');
   try {
-    const [caserta, campania, opes] = await Promise.allSettled([
+    const [caserta, campania] = await Promise.allSettled([
       fetchFipav(FIPAV_CASERTA_URL,  FIPAV_CASERTA_BASE,  'caserta'),
       fetchFipav(FIPAV_CAMPANIA_URL, FIPAV_CAMPANIA_BASE, 'campania'),
-      fetchOpesAll(),
     ]);
     let all = [];
     if (caserta.status  === 'fulfilled') all = all.concat(caserta.value);
     if (campania.status === 'fulfilled') all = all.concat(campania.value);
-    if (opes.status     === 'fulfilled') all = all.concat(opes.value);
     await saveMatchesToDB(all);
-    // Ricalcola classifiche per tutte le categorie (dedup corretta con Map)
     const cidsMap = new Map();
     for (const m of all) { if (m.cid) cidsMap.set(`${m.cid}|${m.fonte}`, { cid: m.cid, fonte: m.fonte }); }
-    const tidsSet = new Set(all.filter(m => m.tid).map(m => String(m.tid)));
     for (const { cid, fonte } of cidsMap.values()) await aggiornaCacheClassifica(cid, fonte, null);
-    for (const tid of tidsSet) await aggiornaCacheClassifica(null, null, tid);
-    // Schedula timer per partite future non ancora schedulate
     const future = all.filter(m => !m.played && !m.postponed && m.timestamp && m.timestamp > Date.now());
     for (const m of future) scheduleResultFetch(m);
-    // Invalida cache in-memory
     _fipavCache = null; _fipavCacheAt = 0;
-    console.log(`[FIPAV Scheduler] Refresh: ${all.length} partite, ${future.length} future, ${pendingTimers.size} timer attivi`);
+    console.log(`[FIPAV Scheduler] Refresh FIPAV: ${all.length} partite, ${future.length} future, ${pendingTimers.size} timer attivi`);
   } catch (err) {
-    console.log('[FIPAV Scheduler] Errore refresh:', err.message);
+    console.log('[FIPAV Scheduler] Errore refresh FIPAV:', err.message);
   }
 }
 
-// Boot: carica match da DB, registra timer, avvia refresh giornaliero
+// Refresh settimanale OPES (ogni lunedì alle 9)
+async function refreshOpesMatches() {
+  console.log('[OPES Scheduler] Refresh settimanale OPES...');
+  try {
+    opesCache = null; // Bypass cache in-memory, forza re-fetch
+    const opes = await fetchOpesAll();
+    await saveMatchesToDB(opes);
+    const tidsSet = new Set(opes.filter(m => m.tid).map(m => String(m.tid)));
+    for (const tid of tidsSet) await aggiornaCacheClassifica(null, null, tid);
+    _fipavCache = null; _fipavCacheAt = 0;
+    console.log(`[OPES Scheduler] Refresh: ${opes.length} partite OPES`);
+  } catch (err) {
+    console.log('[OPES Scheduler] Errore refresh:', err.message);
+  }
+}
+
+// Schedulazione ricorrente OPES: ogni lunedì alle 09:00
+function scheduleOpesWeekly() {
+  const now = new Date();
+  const next = new Date(now);
+  let daysUntilMonday = (1 - now.getDay() + 7) % 7;
+  // Se oggi è lunedì e le 9 non sono ancora passate → oggi stesso; altrimenti prossimo lunedì
+  if (daysUntilMonday === 0 && now.getHours() >= 9) daysUntilMonday = 7;
+  next.setDate(now.getDate() + daysUntilMonday);
+  next.setHours(9, 0, 0, 0);
+  const delay = next.getTime() - Date.now();
+  setTimeout(async () => {
+    await refreshOpesMatches();
+    scheduleOpesWeekly();
+  }, delay);
+  console.log(`[OPES Scheduler] Prossimo check lunedì: ${next.toLocaleString('it')}`);
+}
+
+// Boot: carica match FIPAV da DB, registra timer, avvia refresh giornaliero FIPAV + settimanale OPES
 async function initFipavScheduler() {
   try {
     const r = await db.query(`
       SELECT * FROM fipav_matches
       WHERE NOT played AND NOT postponed AND data_ora IS NOT NULL
+        AND fonte != 'opes'
         AND data_ora > NOW() - INTERVAL '3 hours'
     `);
     let scheduled = 0;
@@ -1484,11 +1522,12 @@ async function initFipavScheduler() {
       scheduleResultFetch(dbMatchToObj(row));
       scheduled++;
     }
-    console.log(`[FIPAV Scheduler] Boot: ${scheduled} partite caricate da DB`);
-    // Refresh immediato per popolare/aggiornare il DB
+    console.log(`[FIPAV Scheduler] Boot: ${scheduled} partite FIPAV caricate da DB`);
     await refreshFutureMatches();
-    // Refresh giornaliero
     setInterval(refreshFutureMatches, SCHEDULE_REFRESH_INTERVAL);
+    // OPES: refresh immediato al boot + settimanale lunedì alle 9
+    await refreshOpesMatches();
+    scheduleOpesWeekly();
   } catch (err) {
     console.log('[FIPAV Scheduler] Errore boot:', err.message);
     setTimeout(refreshFutureMatches, 60_000);
@@ -2285,12 +2324,16 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
     </div>`;
 
   try {
-    const t = creaTransporter();
+    const t = brevoConfigurato() ? creaTransporterBrevo() : creaTransporter();
+    const fromAddr = brevoConfigurato()
+      ? (process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim()
+      : (process.env.EMAIL_USER || '').trim();
+    const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
 
     /* ── Email all'admin ── */
     await t.sendMail({
-      from:    `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
-      to:      (process.env.EMAIL_ADMIN || process.env.EMAIL_USER || '').trim(),
+      from:    `"Virtus Caserta" <${fromAddr}>`,
+      to:      adminTo,
       replyTo: email.trim(),
       subject: `[Contatto Sito] ${esc(oggetto || 'Nuovo messaggio')} – ${esc(nome)}`,
       html: `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -2331,7 +2374,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
 
     /* ── Email di conferma all'utente ── */
     await t.sendMail({
-      from:    `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
+      from:    `"Virtus Caserta" <${fromAddr}>`,
       to:      email.trim(),
       subject: 'Abbiamo ricevuto il tuo messaggio – Virtus Caserta',
       html: `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -2381,17 +2424,21 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
 
 /* ─── Admin: test email ─── */
 app.post('/api/admin/test-email', adminAuth, async (_req, res) => {
-  if (!emailConfigurata()) return res.status(503).json({ error: 'EMAIL_USER o EMAIL_PASS non configurati' });
+  if (!emailConfigurata()) return res.status(503).json({ error: 'Nessun provider email configurato.' });
   try {
-    const t = creaTransporter();
+    const t = brevoConfigurato() ? creaTransporterBrevo() : creaTransporter();
+    const fromAddr = brevoConfigurato()
+      ? (process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim()
+      : (process.env.EMAIL_USER || '').trim();
+    const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
     await t.verify();
     await t.sendMail({
-      from: `"Virtus Caserta" <${(process.env.EMAIL_USER || '').trim()}>`,
-      to: (process.env.EMAIL_ADMIN || process.env.EMAIL_USER || '').trim(),
+      from: `"Virtus Caserta" <${fromAddr}>`,
+      to: adminTo,
       subject: 'Test email – Virtus Caserta',
       text: `Email di test inviata da ${process.env.NODE_ENV || 'development'} alle ${new Date().toISOString()}`,
     });
-    await logActivity('Test email inviato', process.env.EMAIL_USER || '');
+    await logActivity('Test email inviato', fromAddr);
     res.json({ success: true });
   } catch (err) {
     console.error('[Test email] Errore:', err);
