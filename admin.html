@@ -897,7 +897,8 @@
     <button class="tab-btn"        data-tab="staff"        onclick="switchTab('staff')">👥 Staff</button>
     <button class="tab-btn"        data-tab="live"         onclick="switchTab('live')">📡 Live</button>
     <button class="tab-btn"        data-tab="sponsor"      onclick="switchTab('sponsor')">🤝 Sponsor</button>
-    <button class="tab-btn"        data-tab="link-squadre" onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
+    <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
+    <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
     <div class="drawer-home">
       <a href="/">🏠 Torna alla home</a>
     </div>
@@ -915,7 +916,8 @@
   <button class="tab-btn"        data-tab="staff"        onclick="switchTab('staff')">👥 Staff</button>
   <button class="tab-btn"        data-tab="live"         onclick="switchTab('live')">📡 Live</button>
   <button class="tab-btn"        data-tab="sponsor"      onclick="switchTab('sponsor')">🤝 Sponsor</button>
-  <button class="tab-btn"        data-tab="link-squadre" onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
+  <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
+  <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
   <div class="sidebar-home">
     <a href="/">🏠 Torna alla home</a>
   </div>
@@ -1139,11 +1141,12 @@
   <style>
     .sq-link-section{margin-bottom:32px;}
     .sq-link-section h3{font-size:13px;font-weight:800;color:#0d2055;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #e5e7eb;}
-    .sq-link-row{display:grid;grid-template-columns:180px 1fr 1fr;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;}
+    .sq-link-row{display:grid;grid-template-columns:180px 1fr 1fr 120px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;}
     .sq-link-label{font-size:13px;font-weight:700;color:#374151;}
     .sq-link-sel{appearance:none;-webkit-appearance:none;padding:8px 32px 8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:12px;width:100%;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230d2055' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;cursor:pointer;}
     .sq-link-sel:focus{outline:none;border-color:#0d2055;}
     .sq-link-sel.cla{border-color:#6d28d9;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236d28d9' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");}
+    .sq-link-sel.cat{border-color:#f57c00;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23f57c00' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");}
     .sq-link-loading{font-size:12px;color:#9ca3af;font-style:italic;}
     @media(max-width:700px){.sq-link-row{grid-template-columns:1fr;}.sq-link-label{font-size:12px;}}
   </style>
@@ -1152,82 +1155,149 @@
     <div class="sq-link-section">
       <h3>Squadre principali</h3>
       <div class="sq-link-row" style="font-size:11px;font-weight:700;color:#9ca3af;">
-        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div>
+        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div><div>Tipo</div>
       </div>
       <div class="sq-link-row">
         <div class="sq-link-label">Serie D Femminile</div>
         <select class="sq-link-sel" id="sq_serie-d-f_ris"><option class="sq-link-loading">Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_serie-d-f_cla"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_serie-d-f_cat"></select>
       </div>
       <div class="sq-link-row">
         <div class="sq-link-label">Prima Div. Maschile</div>
         <select class="sq-link-sel" id="sq_prima-div-m_ris"><option class="sq-link-loading">Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_prima-div-m_cla"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_prima-div-m_cat"></select>
       </div>
       <div class="sq-link-row">
         <div class="sq-link-label">Prima Div. Femminile</div>
         <select class="sq-link-sel" id="sq_prima-div-f_ris"><option class="sq-link-loading">Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_prima-div-f_cla"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_prima-div-f_cat"></select>
       </div>
       <div class="sq-link-row">
         <div class="sq-link-label">Under 13/15 Maschile</div>
         <select class="sq-link-sel" id="sq_under1315-m_ris"><option class="sq-link-loading">Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_under1315-m_cla"><option class="sq-link-loading">Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_under1315-m_cat"></select>
       </div>
     </div>
 
     <div class="sq-link-section">
       <h3>Giovanile Femminile – sottosquadre</h3>
       <div class="sq-link-row" style="font-size:11px;font-weight:700;color:#9ca3af;">
-        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div>
+        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div><div>Tipo</div>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Under 13 – base</div>
         <select class="sq-link-sel" id="sq_giovanile-f_0_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_giovanile-f_0_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_giovanile-f_0_cat"></select>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Under 13 – avanzato</div>
         <select class="sq-link-sel" id="sq_giovanile-f_1_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_giovanile-f_1_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_giovanile-f_1_cat"></select>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Under 16 – base</div>
         <select class="sq-link-sel" id="sq_giovanile-f_2_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_giovanile-f_2_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_giovanile-f_2_cat"></select>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Under 16 APRILE</div>
         <select class="sq-link-sel" id="sq_giovanile-f_3_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_giovanile-f_3_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_giovanile-f_3_cat"></select>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Under 18 (Virtus)</div>
         <select class="sq-link-sel" id="sq_giovanile-f_4_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_giovanile-f_4_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_giovanile-f_4_cat"></select>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Under 18 (Academy)</div>
         <select class="sq-link-sel" id="sq_giovanile-f_5_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_giovanile-f_5_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_giovanile-f_5_cat"></select>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Under 14 BIGMAT</div>
         <select class="sq-link-sel" id="sq_giovanile-f_6_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_giovanile-f_6_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_giovanile-f_6_cat"></select>
       </div>
     </div>
 
     <div class="sq-link-section">
       <h3>Miste – sottosquadre</h3>
       <div class="sq-link-row" style="font-size:11px;font-weight:700;color:#9ca3af;">
-        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div>
+        <div>Squadra</div><div>Categoria Risultati</div><div>Categoria Classifica</div><div>Tipo</div>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Virtus White</div>
         <select class="sq-link-sel" id="sq_miste_0_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_miste_0_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_miste_0_cat"></select>
       </div>
       <div class="sq-link-row"><div class="sq-link-label">Virtus Red</div>
         <select class="sq-link-sel" id="sq_miste_1_ris"><option>Caricamento…</option></select>
         <select class="sq-link-sel cla" id="sq_miste_1_cla"><option>Caricamento…</option></select>
+        <select class="sq-link-sel cat" id="sq_miste_1_cat"></select>
       </div>
     </div>
   </div>
 
   <div id="sqLinkLog" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-top:8px;"></div>
+</div>
+
+<!-- PANNELLO CATEGORIE SQUADRE -->
+<div class="pannello" id="pan-cat-squadre">
+  <div class="toolbar">
+    <h2>Categorie Squadre</h2>
+    <button class="btn-aggiungi" onclick="apriModalCatSquadra(null)">+ Aggiungi squadra</button>
+  </div>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Gestisci l'elenco delle squadre e la loro classificazione (Seniores / Giovanili / Juniores). Usato per filtrare la pagina Squadre.</p>
+
+  <style>
+    .cat-sq-table{width:100%;border-collapse:collapse;font-size:14px;}
+    .cat-sq-table th{padding:10px 12px;background:#f1f5f9;color:#374151;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;text-align:left;}
+    .cat-sq-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+    .cat-sq-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+    .cat-sq-badge.Seniores{background:#dbeafe;color:#1d4ed8;}
+    .cat-sq-badge.Giovanili{background:#dcfce7;color:#15803d;}
+    .cat-sq-badge.Juniores{background:#fef3c7;color:#b45309;}
+  </style>
+
+  <div id="catSquadreList"><p style="color:#9ca3af;text-align:center;padding:40px">Caricamento…</p></div>
+</div>
+
+<!-- MODAL CATEGORIA SQUADRA -->
+<div class="modal-overlay" id="modalCatSquadra">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-hdr">
+      <h3 id="catSquadraTitolo">Aggiungi squadra</h3>
+      <button class="modal-close" onclick="chiudiModal('modalCatSquadra')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
+      <input type="hidden" id="catSquadraId">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px">Nome squadra *</label>
+        <input id="catSquadraNome" type="text" placeholder="es. Prima Squadra Femminile" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px">Categoria *</label>
+        <select id="catSquadraCategoria" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;background:#fff;">
+          <option value="Seniores">Seniores</option>
+          <option value="Giovanili">Giovanili</option>
+          <option value="Juniores">Juniores</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px">Ordine (numero intero, opzionale)</label>
+        <input id="catSquadraOrdine" type="number" placeholder="0" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;padding:16px 20px;border-top:1px solid #f1f5f9;justify-content:flex-end;">
+      <button onclick="chiudiModal('modalCatSquadra')" style="padding:9px 18px;border:1.5px solid #d1d5db;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">Annulla</button>
+      <button onclick="salvaCatSquadra()" style="padding:9px 18px;border:none;border-radius:8px;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Salva</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL SPONSOR -->
@@ -1727,6 +1797,7 @@
     if (nome === 'live')         caricaLiveLinks();
     if (nome === 'sponsor')      caricaSponsor();
     if (nome === 'link-squadre') caricaLinkSquadre();
+    if (nome === 'cat-squadre')  caricaCatSquadre();
   }
 
   function toggleDrawer() {
@@ -2699,20 +2770,22 @@
 
   /* ══ LINK SQUADRE ══ */
   const SQ_LINK_KEYS = [
-    'sq_serie-d-f_ris','sq_serie-d-f_cla',
-    'sq_prima-div-m_ris','sq_prima-div-m_cla',
-    'sq_prima-div-f_ris','sq_prima-div-f_cla',
-    'sq_under1315-m_ris','sq_under1315-m_cla',
-    'sq_giovanile-f_0_ris','sq_giovanile-f_0_cla',
-    'sq_giovanile-f_1_ris','sq_giovanile-f_1_cla',
-    'sq_giovanile-f_2_ris','sq_giovanile-f_2_cla',
-    'sq_giovanile-f_3_ris','sq_giovanile-f_3_cla',
-    'sq_giovanile-f_4_ris','sq_giovanile-f_4_cla',
-    'sq_giovanile-f_5_ris','sq_giovanile-f_5_cla',
-    'sq_giovanile-f_6_ris','sq_giovanile-f_6_cla',
-    'sq_miste_0_ris','sq_miste_0_cla',
-    'sq_miste_1_ris','sq_miste_1_cla',
+    'sq_serie-d-f_ris','sq_serie-d-f_cla','sq_serie-d-f_cat',
+    'sq_prima-div-m_ris','sq_prima-div-m_cla','sq_prima-div-m_cat',
+    'sq_prima-div-f_ris','sq_prima-div-f_cla','sq_prima-div-f_cat',
+    'sq_under1315-m_ris','sq_under1315-m_cla','sq_under1315-m_cat',
+    'sq_giovanile-f_0_ris','sq_giovanile-f_0_cla','sq_giovanile-f_0_cat',
+    'sq_giovanile-f_1_ris','sq_giovanile-f_1_cla','sq_giovanile-f_1_cat',
+    'sq_giovanile-f_2_ris','sq_giovanile-f_2_cla','sq_giovanile-f_2_cat',
+    'sq_giovanile-f_3_ris','sq_giovanile-f_3_cla','sq_giovanile-f_3_cat',
+    'sq_giovanile-f_4_ris','sq_giovanile-f_4_cla','sq_giovanile-f_4_cat',
+    'sq_giovanile-f_5_ris','sq_giovanile-f_5_cla','sq_giovanile-f_5_cat',
+    'sq_giovanile-f_6_ris','sq_giovanile-f_6_cla','sq_giovanile-f_6_cat',
+    'sq_miste_0_ris','sq_miste_0_cla','sq_miste_0_cat',
+    'sq_miste_1_ris','sq_miste_1_cla','sq_miste_1_cat',
   ];
+
+  const CAT_OPTS = `<option value="">— non classificata —</option><option value="Seniores">Seniores</option><option value="Giovanili">Giovanili</option><option value="Juniores">Juniores</option>`;
 
   async function caricaLinkSquadre() {
     try {
@@ -2742,7 +2815,9 @@
       for (const k of SQ_LINK_KEYS) {
         const el = document.getElementById(k);
         if (!el) continue;
-        el.innerHTML = k.endsWith('_ris') ? risOpts : claOpts;
+        if (k.endsWith('_ris')) el.innerHTML = risOpts;
+        else if (k.endsWith('_cla')) el.innerHTML = claOpts;
+        else if (k.endsWith('_cat')) el.innerHTML = CAT_OPTS;
         el.value = saved[k] || '';
       }
     } catch (e) { sqLinkLog('Errore caricamento: ' + e.message, false); }
@@ -2772,6 +2847,88 @@
     el.textContent = msg;
     el.style.background = ok ? '#dcfce7' : '#fee2e2';
     el.style.color = ok ? '#15803d' : '#dc2626';
+  }
+
+  /* ══ CATEGORIE SQUADRE ══ */
+  let _catSquadreList = [];
+
+  async function caricaCatSquadre() {
+    try {
+      const data = await fetch('/api/squadre-categorie', { headers: headers() }).then(r => r.json());
+      _catSquadreList = Array.isArray(data) ? data : [];
+      renderCatSquadre();
+    } catch (e) {
+      document.getElementById('catSquadreList').innerHTML = `<p style="color:#dc2626;text-align:center;padding:40px">Errore: ${e.message}</p>`;
+    }
+  }
+
+  function renderCatSquadre() {
+    const el = document.getElementById('catSquadreList');
+    if (!_catSquadreList.length) {
+      el.innerHTML = `<p style="color:#9ca3af;text-align:center;padding:40px">Nessuna squadra. Clicca "+ Aggiungi squadra".</p>`;
+      return;
+    }
+    const sorted = [..._catSquadreList].sort((a, b) => (a.ordine || 0) - (b.ordine || 0) || a.nome.localeCompare(b.nome));
+    el.innerHTML = `<table class="cat-sq-table">
+      <thead><tr><th>Nome squadra</th><th>Categoria</th><th>Ordine</th><th></th></tr></thead>
+      <tbody>
+        ${sorted.map(sq => `
+          <tr>
+            <td style="font-weight:600">${sq.nome}</td>
+            <td><span class="cat-sq-badge ${sq.categoria}">${sq.categoria}</span></td>
+            <td style="color:#9ca3af">${sq.ordine ?? '—'}</td>
+            <td style="text-align:right;white-space:nowrap">
+              <button onclick="apriModalCatSquadra('${sq.id}')" style="padding:5px 12px;border:1.5px solid #d1d5db;border-radius:7px;background:#fff;font-size:12px;cursor:pointer;margin-right:6px">✏️ Modifica</button>
+              <button onclick="eliminaCatSquadra('${sq.id}')" style="padding:5px 12px;border:none;border-radius:7px;background:#fee2e2;color:#dc2626;font-size:12px;cursor:pointer">✕ Elimina</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function apriModalCatSquadra(id) {
+    const sq = id ? _catSquadreList.find(s => s.id === id) : null;
+    document.getElementById('catSquadraTitolo').textContent = sq ? 'Modifica squadra' : 'Aggiungi squadra';
+    document.getElementById('catSquadraId').value       = sq?.id || '';
+    document.getElementById('catSquadraNome').value     = sq?.nome || '';
+    document.getElementById('catSquadraCategoria').value = sq?.categoria || 'Seniores';
+    document.getElementById('catSquadraOrdine').value   = sq?.ordine ?? '';
+    document.getElementById('modalCatSquadra').classList.add('aperto');
+  }
+
+  async function salvaCatSquadra() {
+    const id       = document.getElementById('catSquadraId').value;
+    const nome     = document.getElementById('catSquadraNome').value.trim();
+    const categoria = document.getElementById('catSquadraCategoria').value;
+    const ordine   = parseInt(document.getElementById('catSquadraOrdine').value) || 0;
+    if (!nome) { alert('Nome obbligatorio'); return; }
+    if (id) {
+      const idx = _catSquadreList.findIndex(s => s.id === id);
+      if (idx >= 0) _catSquadreList[idx] = { id, nome, categoria, ordine };
+    } else {
+      _catSquadreList.push({ id: Date.now().toString(), nome, categoria, ordine });
+    }
+    await _salvaCatSquadreRemote();
+    chiudiModal('modalCatSquadra');
+    renderCatSquadre();
+  }
+
+  async function eliminaCatSquadra(id) {
+    if (!confirm('Eliminare questa squadra?')) return;
+    _catSquadreList = _catSquadreList.filter(s => s.id !== id);
+    await _salvaCatSquadreRemote();
+    renderCatSquadre();
+  }
+
+  async function _salvaCatSquadreRemote() {
+    try {
+      const res = await fetch('/api/admin/squadre-categorie', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+        body: JSON.stringify(_catSquadreList),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || res.status);
+    } catch (e) { alert('Errore salvataggio: ' + e.message); }
   }
 
   /* ══ EXPORT CSV ORDINI ══ */

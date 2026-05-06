@@ -61,6 +61,15 @@
     .footer-bottom{max-width:1100px;margin:16px auto 0;text-align:center;font-size:12px;}
     @media(max-width:700px){nav{padding:0 16px;}.nav-menu a{font-size:11px;letter-spacing:.6px;}.squadra-grid{grid-template-columns:1fr 1fr;}}
     @media(max-width:420px){.squadra-grid{grid-template-columns:1fr;}}
+
+    /* ── FILTRO CATEGORIA ── */
+    .filtro-bar{display:flex;justify-content:center;gap:10px;padding:28px 24px 0;flex-wrap:wrap;}
+    .filtro-pill{padding:9px 24px;border-radius:50px;border:2px solid #e2e8f0;background:#fff;
+      font-size:13px;font-weight:700;color:#374151;cursor:pointer;letter-spacing:.5px;
+      transition:all .2s;}
+    .filtro-pill:hover{border-color:var(--blu);color:var(--blu);}
+    .filtro-pill.attivo{background:var(--blu);border-color:var(--blu);color:#fff;}
+    .filtro-pill.attivo.giovanili{background:var(--blu-m);border-color:var(--blu-m);}
   </style>
 </head>
 <body>
@@ -103,11 +112,18 @@
   <p>Prima squadra e settore giovanile di Virtus Caserta.</p>
 </div>
 
+<!-- FILTRO -->
+<div class="filtro-bar" id="filtroBar">
+  <button class="filtro-pill attivo" onclick="filtraCategoria('tutte',this)">Tutte</button>
+  <button class="filtro-pill" onclick="filtraCategoria('seniores',this)">Seniores</button>
+  <button class="filtro-pill giovanili" onclick="filtraCategoria('giovanili',this)">Giovanili</button>
+</div>
+
 <section>
   <div class="container">
 
     <!-- SENIORES -->
-    <div class="cat-section">
+    <div class="cat-section" id="catSeniores">
       <div class="cat-section-header">
         <div class="etichetta">Seniores</div>
         <h2>Prima Squadra</h2>
@@ -131,7 +147,7 @@
     </div>
 
     <!-- GIOVANILE -->
-    <div class="cat-section">
+    <div class="cat-section" id="catGiovanili">
       <div class="cat-section-header">
         <div class="etichetta" style="background:var(--blu-m)">Giovanile</div>
         <h2>Settore Giovanile</h2>
@@ -293,6 +309,15 @@
     } catch {
       document.getElementById('giovContainer').innerHTML = '<div class="vuota">Errore caricamento dati.</div>';
     }
+  }
+
+  function filtraCategoria(tipo, btn) {
+    document.querySelectorAll('.filtro-pill').forEach(b => b.classList.remove('attivo'));
+    btn.classList.add('attivo');
+    const s = document.getElementById('catSeniores');
+    const g = document.getElementById('catGiovanili');
+    s.style.display = tipo === 'giovanili' ? 'none' : '';
+    g.style.display = tipo === 'seniores'  ? 'none' : '';
   }
 
   carica();

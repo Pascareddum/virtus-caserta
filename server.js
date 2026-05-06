@@ -833,7 +833,7 @@ app.get('/api/squadre-links', async (_req, res) => {
 /* ─── Squadre links (admin) ─── */
 app.put('/api/admin/squadre-links', adminAuth, async (req, res) => {
   try {
-    const entries = Object.entries(req.body).filter(([k]) => /^sq_[a-z0-9-]+(_\d+)?_(ris|cla)$/.test(k));
+    const entries = Object.entries(req.body).filter(([k]) => /^sq_[a-z0-9-]+(_\d+)?_(ris|cla|cat)$/.test(k));
     for (const [chiave, valore] of entries) {
       await db.query(
         `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ($1,$2,NOW())
@@ -842,6 +842,40 @@ app.put('/api/admin/squadre-links', adminAuth, async (req, res) => {
       );
     }
     await logActivity('Link squadre aggiornati', entries.length + ' link');
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Categorie Squadre ─── */
+app.get('/api/squadre-categorie', async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_categorie'`);
+    const raw = r.rows[0]?.valore || '[]';
+    res.json(JSON.parse(raw));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.put('/api/admin/squadre-categorie', adminAuth, async (req, res) => {
+  try {
+    if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Array richiesto' });
+    const safe = req.body.map(s => ({
+      id:        String(s.id || Date.now()).slice(0, 40),
+      nome:      String(s.nome || '').slice(0, 100),
+      categoria: ['Seniores','Giovanili','Juniores'].includes(s.categoria) ? s.categoria : 'Seniores',
+      ordine:    parseInt(s.ordine) || 0,
+    }));
+    await db.query(
+      `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_categorie',$1,NOW())
+       ON CONFLICT (chiave) DO UPDATE SET valore=$1, updated_at=NOW()`,
+      [JSON.stringify(safe)]
+    );
+    await logActivity('Categorie squadre aggiornate', safe.length + ' squadre');
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -1207,100 +1241,152 @@ app.post('/api/richiesta-ordine', paymentLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Carrello vuoto' });
   }
 
-  const ordineId = crypto.randomUUID();
-  const totaleNum = parseFloat(totale) || 0;
-
+  // Valida prezzi e disponibilità dal DB (non fidarsi del client)
+  const ids = [...new Set(items.map(i => String(i.id)))];
+  const placeholders = ids.map((_, idx) => `$${idx + 1}`).join(',');
+  let prodMap = {};
   try {
-    await db.query(
-      `INSERT INTO ordini (id, nome, cognome, email, items, totale, spedizione, metodo, stato)
-       VALUES ($1,$2,$3,$4,$5,$6,0,'richiesta','ricevuto')`,
-      [ordineId, nome, cognome, email, JSON.stringify(items), totaleNum]
+    const { rows } = await db.query(
+      `SELECT id, nome, prezzo, sconto, quantita FROM products WHERE id IN (${placeholders}) AND disponibile = true`,
+      ids
     );
+    for (const r of rows) prodMap[r.id] = {
+      nome:     r.nome,
+      prezzo:   parseFloat(r.prezzo),
+      sconto:   parseInt(r.sconto) || 0,
+      quantita: r.quantita !== null ? parseInt(r.quantita) : -1,
+    };
   } catch (dbErr) {
-    console.log('[Richiesta ordine] Errore DB:', dbErr.message);
+    console.error('[Richiesta ordine] Errore lettura prodotti DB:', dbErr.message);
   }
 
-  if (emailShopConfigurata()) {
-    const righeHtml = items.map(i =>
-      `<tr>
-         <td style="padding:8px;border-bottom:1px solid #e2e8f0">${esc(i.nome)}</td>
-         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">Taglia ${esc(String(i.taglia || '—'))}</td>
-         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">${Number(i.qty)}</td>
-         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">€ ${(i.prezzo * i.qty).toFixed(2)}</td>
-       </tr>`
-    ).join('');
+  // Ricalcola totale dai prezzi reali; filtra prodotti non trovati o esauriti
+  let totaleNum = 0;
+  const itemsValidati = [];
+  for (const item of items) {
+    const prod = prodMap[String(item.id)];
+    if (!prod) continue; // prodotto non trovato/non disponibile
+    if (prod.quantita === 0) continue; // esaurito
+    const qty = Math.min(10, Math.max(1, parseInt(item.qty) || 1));
+    const prezzo = prod.sconto > 0 ? prod.prezzo * (1 - prod.sconto / 100) : prod.prezzo;
+    totaleNum += prezzo * qty;
+    itemsValidati.push({ ...item, nome: prod.nome, prezzo, qty });
+  }
+  if (!itemsValidati.length) {
+    return res.status(400).json({ error: 'Nessun prodotto disponibile nel carrello' });
+  }
 
-    const noteHtml = note
-      ? `<div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-top:16px">
-           <strong>📝 Note aggiuntive</strong><br>
-           <span style="font-size:13px;color:#374151;">${esc(note)}</span>
-         </div>`
-      : '';
+  const ordineId = crypto.randomUUID();
 
-    const htmlCliente = `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
-        <div style="background:#0d2055;padding:28px 24px;text-align:center">
-          <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
-          <p style="color:#ff9800;margin:6px 0 0;font-size:14px;letter-spacing:1px">RICHIESTA RICEVUTA</p>
-        </div>
-        <div style="padding:32px 24px">
-          <p style="font-size:16px">Ciao <strong>${esc(nome)}</strong>,</p>
-          <p>Abbiamo ricevuto la tua richiesta d'acquisto (<strong>#${esc(ordineId)}</strong>).<br>
-          Ti contatteremo al più presto per confermare la disponibilità e concordare il ritiro in sede.</p>
-          <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Riepilogo ordine</h3>
-          <table style="width:100%;border-collapse:collapse;font-size:14px">
-            <thead><tr style="background:#f8fafc">
-              <th style="padding:8px;text-align:left">Prodotto</th>
-              <th style="padding:8px;text-align:center">Taglia</th>
-              <th style="padding:8px;text-align:center">Qtà</th>
-              <th style="padding:8px;text-align:right">Importo</th>
-            </tr></thead>
-            <tbody>${righeHtml}</tbody>
-          </table>
-          <p style="text-align:right;font-size:18px;font-weight:bold;color:#0d2055;margin-top:8px">
-            Totale: € ${totaleNum.toFixed(2)}
-          </p>
-          <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px;margin-top:24px">Dati di contatto</h3>
-          <p style="font-size:14px;margin:0">
-            <strong>Telefono:</strong> ${esc(telefono)}<br>
-            <strong>Email:</strong> ${esc(email)}
-          </p>
-          ${noteHtml}
-          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-top:16px">
-            <strong>📍 Ritiro e pagamento in sede</strong><br>
-            <span style="font-size:13px;color:#374151;">Il pagamento avviene direttamente in sede al momento del ritiro presso la <strong>Virtus Caserta ASD</strong>.</span>
-          </div>
-          <p style="color:#9ca3af;font-size:13px;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px">
-            Per informazioni scrivi a <a href="mailto:virtuscaserta@gmail.com" style="color:#1535a8">virtuscaserta@gmail.com</a>
-          </p>
-        </div>
-        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#9ca3af">
-          © 2026 Virtus Caserta – Società Sportiva Pallavolo
-        </div>
-      </div>`;
+  // Salva in DB (non bloccante)
+  db.query(
+    `INSERT INTO ordini (id, nome, cognome, email, items, totale, spedizione, metodo, stato)
+     VALUES ($1,$2,$3,$4,$5,$6,0,'richiesta','ricevuto')`,
+    [ordineId, nome, cognome, email, JSON.stringify(itemsValidati), totaleNum]
+  ).catch(e => console.log('[Richiesta ordine] Errore DB:', e.message));
 
-    try {
-      const t = creaTransporterShop();
-      await t.sendMail({
-        from: shopFrom(),
-        to: email,
-        subject: `Richiesta d'acquisto ricevuta – Virtus Caserta #${ordineId}`,
-        html: htmlCliente,
-      });
-      const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim();
-      if (adminTo) {
-        await t.sendMail({
-          from: adminFrom(),
-          to: adminTo,
-          replyTo: email,
-          subject: `Nuova richiesta ordine da ${nome} ${cognome} (#${ordineId})`,
-          html: htmlCliente,
-        });
-      }
-      console.log(`[Richiesta ordine] Email inviata a ${email}`);
-    } catch (mailErr) {
-      console.error('[Richiesta ordine] Errore email:', mailErr.message);
-    }
+  if (!emailShopConfigurata()) {
+    console.log('[Richiesta ordine] Brevo non configurato – email non inviata');
+    return res.json({ success: true, ordineId });
+  }
+
+  const righe = itemsValidati.map(i =>
+    `<tr>
+       <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0">${esc(String(i.nome || ''))}</td>
+       <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:center">${esc(String(i.taglia || 'UNICA'))}</td>
+       <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:center">${Number(i.qty || 1)}</td>
+       <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700">€ ${(Number(i.prezzo) * Number(i.qty || 1)).toFixed(2)}</td>
+     </tr>`
+  ).join('');
+
+  const tabellaHtml = `
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px">
+      <thead>
+        <tr style="background:#f1f5f9">
+          <th style="padding:8px;text-align:left;color:#374151">Prodotto</th>
+          <th style="padding:8px;text-align:center;color:#374151">Taglia</th>
+          <th style="padding:8px;text-align:center;color:#374151">Qtà</th>
+          <th style="padding:8px;text-align:right;color:#374151">Importo</th>
+        </tr>
+      </thead>
+      <tbody>${righe}</tbody>
+    </table>
+    <p style="text-align:right;font-size:18px;font-weight:900;color:#0d2055;margin:12px 0 0">
+      Totale: € ${totaleNum.toFixed(2)}
+    </p>`;
+
+  const noteHtml = note
+    ? `<div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-top:16px">
+         <strong>📝 Note:</strong> ${esc(note)}
+       </div>`
+    : '';
+
+  // Email al cliente
+  const htmlCliente = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+      <div style="background:#0d2055;padding:28px 24px;text-align:center">
+        <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+        <p style="color:#ff9800;margin:6px 0 0;font-size:14px;letter-spacing:1px">RICHIESTA RICEVUTA ✓</p>
+      </div>
+      <div style="padding:32px 24px">
+        <p style="font-size:16px">Ciao <strong>${esc(nome)}</strong>,</p>
+        <p>Abbiamo ricevuto la tua richiesta d'acquisto <strong>#${esc(ordineId.slice(0,8).toUpperCase())}</strong>.<br>
+        Ti contatteremo presto per confermare disponibilità e concordare il ritiro in sede.</p>
+        <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px;margin-top:24px">Riepilogo ordine</h3>
+        ${tabellaHtml}
+        ${noteHtml}
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-top:20px">
+          <strong>📍 Ritiro e pagamento in sede</strong><br>
+          <span style="font-size:13px;color:#374151">Il pagamento avviene in sede al momento del ritiro presso la <strong>Virtus Caserta ASD</strong>.</span>
+        </div>
+        <p style="color:#9ca3af;font-size:13px;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px">
+          Per info: <a href="mailto:virtuscaserta@gmail.com" style="color:#1535a8">virtuscaserta@gmail.com</a>
+        </p>
+      </div>
+      <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
+        © 2026 Virtus Caserta – Società Sportiva Pallavolo
+      </div>
+    </div>`;
+
+  // Email all'admin (virtuscaserta@gmail.com)
+  const htmlAdmin = `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+      <div style="background:#0d2055;padding:20px 24px;text-align:center">
+        <h1 style="color:#fff;font-size:20px;margin:0">🛒 NUOVA RICHIESTA ORDINE</h1>
+        <p style="color:#ff9800;margin:4px 0 0;font-size:13px">#${esc(ordineId.slice(0,8).toUpperCase())}</p>
+      </div>
+      <div style="padding:24px">
+        <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:16px 20px;margin-bottom:20px">
+          <p style="margin:0;font-size:15px;font-weight:700;color:#15803d">👤 CLIENTE DA CONTATTARE</p>
+          <p style="margin:8px 0 0;font-size:16px;font-weight:900;color:#111">${esc(nome)} ${esc(cognome)}</p>
+          <p style="margin:4px 0 0;font-size:15px">📞 <a href="tel:${esc(telefono)}" style="color:#0d2055;font-weight:700">${esc(telefono)}</a></p>
+          <p style="margin:4px 0 0;font-size:14px">✉️ <a href="mailto:${esc(email)}" style="color:#1535a8">${esc(email)}</a></p>
+        </div>
+        <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Prodotti richiesti</h3>
+        ${tabellaHtml}
+        ${noteHtml}
+      </div>
+    </div>`;
+
+  try {
+    const t = creaTransporterShop();
+    await t.sendMail({
+      from: shopFrom(),
+      to: email,
+      subject: `Richiesta ricevuta – Virtus Caserta #${ordineId.slice(0,8).toUpperCase()}`,
+      html: htmlCliente,
+    });
+    await t.sendMail({
+      from: shopFrom(),
+      to: 'virtuscaserta@gmail.com',
+      replyTo: email,
+      subject: `🛒 Nuova richiesta ordine da ${esc(nome)} ${esc(cognome)} (#${ordineId.slice(0,8).toUpperCase()})`,
+      html: htmlAdmin,
+    });
+    console.log(`[Richiesta ordine] Email inviate – cliente: ${email}, admin: virtuscaserta@gmail.com`);
+  } catch (mailErr) {
+    console.error('[Richiesta ordine] Errore email Brevo:', mailErr.message);
+    // Non blocchiamo: ordine salvato in DB, risposta success comunque
   }
 
   res.json({ success: true, ordineId });
