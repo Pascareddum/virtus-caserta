@@ -261,9 +261,9 @@
       <div class="news-vuote">Caricamento notizie…</div>
     </div>
   </div>
-
   
-  <footer class="footer-std">
+  <!-- FOOTER -->
+   <footer class="footer-std">
   <div class="footer-inner">
     <img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy" onerror="this.style.display='none'">
     <div class="footer-links">
@@ -284,12 +284,11 @@
     <div class="footer-auth" id="footerAuthArea">
       <div class="footer-auth-title">Account</div>
       <div class="footer-auth-login">
-        <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
+        <a href="/login" aria-label="Accedi al tuo account">Accedi</a>
       </div>
       <div class="footer-auth-logged">
-        <span class="footer-auth-nome" id="footerNome"></span>
-        <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-        <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
+        <a href="/admin" class="footer-btn" id="footerAdminLink" style="display:none" aria-label="Vai alla sezione amministratore">Sezione amministratore</a>
+        <button class="footer-btn footer-btn-outline" onclick="logout()" aria-label="Esci dall'account">Esci</button>
       </div>
     </div>
   </div>
@@ -297,43 +296,59 @@
     <p>© 2024 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a> · Sito realizzato da Alessandro Pascarella</p>
   </div>
 </footer>
-<!-- 
-  <footer>
-    <div class="footer-top">
-      <div class="footer-auth" id="footerAuthArea">
-        <div class="footer-auth-title">Account</div>
-        <div class="footer-auth-login">
-          <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
-        </div>
-        <div class="footer-auth-logged">
-          <span class="footer-auth-nome" id="footerNome"></span>
-          <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-          <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
-        </div>
-      </div>
-      <div class="footer-center">
-        <div class="footer-logo">
-          <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'"><span class="nav-brand-label">Virtus Caserta</span>
-        </div>
-        <div class="footer-social">
-          <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
-          <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
-          <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
-          <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
-        </div>
-      </div>
-      <div class="footer-col footer-col-right">
-        <div class="footer-col-title">Contatti</div>
-        <a href="index.html#contatti">Contattaci</a>
-        <a href="index.html#partite">Risultati</a>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>© 2024 <span>Virtus Caserta</span> – Società Sportiva Pallavolo · Affiliata <span>FIPAV</span> · Sito realizzato da Alessandro Pascarella</p>
-    </div>
-  </footer> -->
 
   <script>
+
+    /* ─── AUTH ─── */
+    function aggiornaNavbar() {
+      const token      = localStorage.getItem('vc_token');
+      const adminToken = localStorage.getItem('vc_admin_token');
+      const isLoggedIn = !!(token || adminToken);
+      const role       = localStorage.getItem('vc_role');
+      const isAdmin    = !!(adminToken || role === 'admin' || role === 'dirigente');
+
+      const loginDiv  = document.querySelector('.footer-auth-login');
+      const loggedDiv = document.querySelector('.footer-auth-logged');
+      const adminLink = document.getElementById('footerAdminLink');
+
+      if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
+      if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
+      if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
+    }
+
+    function apriModal() {
+      document.getElementById('modalLogin').classList.add('aperta');
+      document.getElementById('loginError').textContent = '';
+    }
+
+    function chiudiModal() {
+      document.getElementById('modalLogin').classList.remove('aperta');
+    }
+
+    function chiudiModalSeOverlay(e) {
+      if (e.target === document.getElementById('modalLogin')) chiudiModal();
+    }
+
+    function switchTab(tab) {
+      const isAccedi = tab === 'accedi';
+      document.getElementById('tabAccedi').classList.toggle('attiva', isAccedi);
+      document.getElementById('tabRegistrati').classList.toggle('attiva', !isAccedi);
+      document.getElementById('panelAccedi').classList.toggle('attivo', isAccedi);
+      document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
+    }
+    
+     function logout() {
+      localStorage.removeItem('vc_token');
+      localStorage.removeItem('vc_admin_token');
+      localStorage.removeItem('vc_role');
+      localStorage.removeItem('vc_nome');
+      localStorage.removeItem('vc_user');
+      aggiornaNavbar();
+    }
+
+
+    aggiornaNavbar();
+
     const COLORI = { blu:'#0d2055', arancio:'#f57c00', azzurro:'#1565c0' };
 
     function catClass(c) {

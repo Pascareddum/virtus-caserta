@@ -933,7 +933,7 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
             </div>
             ${stato === 'pronto' ? '<p>Il tuo ordine è pronto per il ritiro presso la sede della <strong>Virtus Caserta ASD</strong>. Ti aspettiamo!</p>' : ''}
             ${stato === 'ritirato' ? '<p>Grazie per il tuo acquisto! Speriamo di rivederti presto. Forza Virtus!</p>' : ''}
-            ${stato === 'annullato' ? '<p>Per informazioni contatta <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a></p>' : ''}
+            ${stato === 'annullato' ? '<p>Per informazioni contatta <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a></p>' : ''}
           </div>
           <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
             © 2026 Virtus Caserta – Società Sportiva Pallavolo
@@ -1016,9 +1016,9 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
             </div>` : `
             <div style="background:#fef9c3;border-left:4px solid #ca8a04;padding:16px;border-radius:4px;margin:16px 0;">
               <strong>ℹ️ Rimborso</strong><br>
-              <span style="font-size:13px;">Per informazioni sul rimborso contatta <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a></span>
+              <span style="font-size:13px;">Per informazioni sul rimborso contatta <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a></span>
             </div>`}
-            <p style="font-size:13px;color:#6b7280;">Per qualsiasi domanda siamo disponibili a <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a>. Forza Virtus!</p>
+            <p style="font-size:13px;color:#6b7280;">Per qualsiasi domanda siamo disponibili a <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a>. Forza Virtus!</p>
           </div>
           <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
             © 2026 Virtus Caserta – Società Sportiva Pallavolo
@@ -1159,7 +1159,7 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
           ${bonificoHtml}${sepaHtml}
           <p style="color:#9ca3af;font-size:13px;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px">
             Consegna prevista entro 3–5 giorni lavorativi.<br>
-            Per assistenza scrivi a <a href="mailto:info@virtuscaserta.it" style="color:#1535a8">info@virtuscaserta.it</a>
+            Per assistenza scrivi a <a href="mailto:virtuscaserta@gmail.com" style="color:#1535a8">virtuscaserta@gmail.com</a>
           </p>
         </div>
         <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#9ca3af">
@@ -1189,6 +1189,121 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
   }
+});
+
+/* ─── Richiesta acquisto senza pagamento online ─── */
+app.post('/api/richiesta-ordine', paymentLimiter, async (req, res) => {
+  let { nome, cognome, email, telefono, note, items, totale } = req.body;
+  nome     = String(nome     || '').slice(0, 100).trim();
+  cognome  = String(cognome  || '').slice(0, 100).trim();
+  email    = String(email    || '').slice(0, 254).trim();
+  telefono = String(telefono || '').slice(0, 30).trim();
+  note     = String(note     || '').slice(0, 500).trim();
+
+  if (!nome || !cognome || !email || !telefono || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Dati obbligatori mancanti o non validi' });
+  }
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ error: 'Carrello vuoto' });
+  }
+
+  const ordineId = crypto.randomUUID();
+  const totaleNum = parseFloat(totale) || 0;
+
+  try {
+    await db.query(
+      `INSERT INTO ordini (id, nome, cognome, email, items, totale, spedizione, metodo, stato)
+       VALUES ($1,$2,$3,$4,$5,$6,0,'richiesta','ricevuto')`,
+      [ordineId, nome, cognome, email, JSON.stringify(items), totaleNum]
+    );
+  } catch (dbErr) {
+    console.log('[Richiesta ordine] Errore DB:', dbErr.message);
+  }
+
+  if (emailShopConfigurata()) {
+    const righeHtml = items.map(i =>
+      `<tr>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0">${esc(i.nome)}</td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">Taglia ${esc(String(i.taglia || '—'))}</td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:center">${Number(i.qty)}</td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right">€ ${(i.prezzo * i.qty).toFixed(2)}</td>
+       </tr>`
+    ).join('');
+
+    const noteHtml = note
+      ? `<div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-top:16px">
+           <strong>📝 Note aggiuntive</strong><br>
+           <span style="font-size:13px;color:#374151;">${esc(note)}</span>
+         </div>`
+      : '';
+
+    const htmlCliente = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+        <div style="background:#0d2055;padding:28px 24px;text-align:center">
+          <h1 style="color:#fff;font-size:22px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+          <p style="color:#ff9800;margin:6px 0 0;font-size:14px;letter-spacing:1px">RICHIESTA RICEVUTA</p>
+        </div>
+        <div style="padding:32px 24px">
+          <p style="font-size:16px">Ciao <strong>${esc(nome)}</strong>,</p>
+          <p>Abbiamo ricevuto la tua richiesta d'acquisto (<strong>#${esc(ordineId)}</strong>).<br>
+          Ti contatteremo al più presto per confermare la disponibilità e concordare il ritiro in sede.</p>
+          <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Riepilogo ordine</h3>
+          <table style="width:100%;border-collapse:collapse;font-size:14px">
+            <thead><tr style="background:#f8fafc">
+              <th style="padding:8px;text-align:left">Prodotto</th>
+              <th style="padding:8px;text-align:center">Taglia</th>
+              <th style="padding:8px;text-align:center">Qtà</th>
+              <th style="padding:8px;text-align:right">Importo</th>
+            </tr></thead>
+            <tbody>${righeHtml}</tbody>
+          </table>
+          <p style="text-align:right;font-size:18px;font-weight:bold;color:#0d2055;margin-top:8px">
+            Totale: € ${totaleNum.toFixed(2)}
+          </p>
+          <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px;margin-top:24px">Dati di contatto</h3>
+          <p style="font-size:14px;margin:0">
+            <strong>Telefono:</strong> ${esc(telefono)}<br>
+            <strong>Email:</strong> ${esc(email)}
+          </p>
+          ${noteHtml}
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-top:16px">
+            <strong>📍 Ritiro e pagamento in sede</strong><br>
+            <span style="font-size:13px;color:#374151;">Il pagamento avviene direttamente in sede al momento del ritiro presso la <strong>Virtus Caserta ASD</strong>.</span>
+          </div>
+          <p style="color:#9ca3af;font-size:13px;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px">
+            Per informazioni scrivi a <a href="mailto:virtuscaserta@gmail.com" style="color:#1535a8">virtuscaserta@gmail.com</a>
+          </p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#9ca3af">
+          © 2026 Virtus Caserta – Società Sportiva Pallavolo
+        </div>
+      </div>`;
+
+    try {
+      const t = creaTransporterShop();
+      await t.sendMail({
+        from: shopFrom(),
+        to: email,
+        subject: `Richiesta d'acquisto ricevuta – Virtus Caserta #${ordineId}`,
+        html: htmlCliente,
+      });
+      const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim();
+      if (adminTo) {
+        await t.sendMail({
+          from: adminFrom(),
+          to: adminTo,
+          replyTo: email,
+          subject: `Nuova richiesta ordine da ${nome} ${cognome} (#${ordineId})`,
+          html: htmlCliente,
+        });
+      }
+      console.log(`[Richiesta ordine] Email inviata a ${email}`);
+    } catch (mailErr) {
+      console.error('[Richiesta ordine] Errore email:', mailErr.message);
+    }
+  }
+
+  res.json({ success: true, ordineId });
 });
 
 /* ─── Instagram Basic Display API ─── */
@@ -2306,7 +2421,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
   if (!emailConfigurata()) return res.status(503).json({ error: 'Sistema email non configurato.' });
 
   const siteUrl  = process.env.BASE_URL || 'https://www.virtuscaserta.com';
-  const logoUrl  = `${siteUrl}/images/positivo@4x.png`;
+  const logoUrl  = `${siteUrl}/images/negativo@4x.png`;
   const now      = new Date().toLocaleString('it-IT', { timeZone: 'Europe/Rome', dateStyle: 'long', timeStyle: 'short' });
 
   const emailHeader = `
@@ -2317,7 +2432,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
   const emailFooter = `
     <div style="background:#f8f9fb;border-top:1px solid #e5e7eb;padding:24px 32px;text-align:center;font-size:12px;color:#9ca3af;line-height:1.7;">
       <strong style="color:#374151;font-size:13px;">Virtus Caserta A.S.D.</strong><br>
-      📧 <a href="mailto:info@virtuscaserta.it" style="color:#0d2055;text-decoration:none;">info@virtuscaserta.it</a>
+      📧 <a href="mailto:virtuscaserta@gmail.com" style="color:#0d2055;text-decoration:none;">virtuscaserta@gmail.com</a>
       &nbsp;·&nbsp;
       🌐 <a href="${siteUrl}" style="color:#0d2055;text-decoration:none;">virtuscaserta.com</a><br>
       Caserta, Campania – Italia
@@ -2399,7 +2514,7 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
             <tr>
               <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;">
                 <span style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Email</span><br>
-                <a href="mailto:info@virtuscaserta.it" style="font-size:13.5px;color:#0d2055;text-decoration:none;font-weight:600;">info@virtuscaserta.it</a>
+                <a href="mailto:virtuscaserta@gmail.com" style="font-size:13.5px;color:#0d2055;text-decoration:none;font-weight:600;">virtuscaserta@gmail.com</a>
               </td>
               <td style="padding:10px 0 10px 20px;border-bottom:1px solid #f3f4f6;">
                 <span style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;">Sito web</span><br>

@@ -271,7 +271,8 @@
   </div>
 </section>
 
-<footer class="footer-std">
+<!-- FOOTER -->
+   <footer class="footer-std">
   <div class="footer-inner">
     <img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy" onerror="this.style.display='none'">
     <div class="footer-links">
@@ -292,12 +293,11 @@
     <div class="footer-auth" id="footerAuthArea">
       <div class="footer-auth-title">Account</div>
       <div class="footer-auth-login">
-        <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
+        <a href="/login" aria-label="Accedi al tuo account">Accedi</a>
       </div>
       <div class="footer-auth-logged">
-        <span class="footer-auth-nome" id="footerNome"></span>
-        <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-        <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
+        <a href="/admin" class="footer-btn" id="footerAdminLink" style="display:none" aria-label="Vai alla sezione amministratore">Sezione amministratore</a>
+        <button class="footer-btn footer-btn-outline" onclick="logout()" aria-label="Esci dall'account">Esci</button>
       </div>
     </div>
   </div>
@@ -307,6 +307,57 @@
 </footer>
 
 <script>
+
+   /* ─── AUTH ─── */
+    function aggiornaNavbar() {
+      const token      = localStorage.getItem('vc_token');
+      const adminToken = localStorage.getItem('vc_admin_token');
+      const isLoggedIn = !!(token || adminToken);
+      const role       = localStorage.getItem('vc_role');
+      const isAdmin    = !!(adminToken || role === 'admin' || role === 'dirigente');
+
+      const loginDiv  = document.querySelector('.footer-auth-login');
+      const loggedDiv = document.querySelector('.footer-auth-logged');
+      const adminLink = document.getElementById('footerAdminLink');
+
+      if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
+      if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
+      if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
+    }
+
+    function apriModal() {
+      document.getElementById('modalLogin').classList.add('aperta');
+      document.getElementById('loginError').textContent = '';
+    }
+
+    function chiudiModal() {
+      document.getElementById('modalLogin').classList.remove('aperta');
+    }
+
+    function chiudiModalSeOverlay(e) {
+      if (e.target === document.getElementById('modalLogin')) chiudiModal();
+    }
+
+    function switchTab(tab) {
+      const isAccedi = tab === 'accedi';
+      document.getElementById('tabAccedi').classList.toggle('attiva', isAccedi);
+      document.getElementById('tabRegistrati').classList.toggle('attiva', !isAccedi);
+      document.getElementById('panelAccedi').classList.toggle('attivo', isAccedi);
+      document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
+    }
+    
+     function logout() {
+      localStorage.removeItem('vc_token');
+      localStorage.removeItem('vc_admin_token');
+      localStorage.removeItem('vc_role');
+      localStorage.removeItem('vc_nome');
+      localStorage.removeItem('vc_user');
+      aggiornaNavbar();
+    }
+
+
+    aggiornaNavbar();
+
   function isVirtus(name) { return /virtus caserta|virtus santa maria/i.test(name); }
   function isDerby(m)    { return isVirtus(m.casa) && isVirtus(m.ospite); }
 

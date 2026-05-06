@@ -9,7 +9,6 @@
   <meta property="og:description" content="Shop ufficiale Virtus Caserta. Maglie, kit e gadget.">
   <meta property="og:image" content="/images/logo.png">
   <meta property="og:type" content="website">
-  <script src="https://js.stripe.com/v3/"></script>
   <link rel="stylesheet" href="common.css">
   <style>
     :root {
@@ -584,108 +583,59 @@
     <div class="modal" id="modal">
       <div class="modal-header">
         <h2>Checkout</h2>
-        <button class="close-btn" onclick="chiudiModal()">✕</button>
+        <button class="close-btn" onclick="chiudiCheckout()">✕</button>
       </div>
       <div class="modal-body" id="modalBody">
 
-        <!-- Riepilogo ordine -->
+        <!-- Riepilogo carrello -->
+        <div class="form-section" style="padding-bottom:0">
+          <h3>🛒 Riepilogo ordine</h3>
+        </div>
         <div class="checkout-riepilogo" id="checkoutRiepilogo"></div>
 
         <!-- Dati personali -->
         <div class="form-section">
-          <h3>👤 Dati personali</h3>
+          <h3>👤 I tuoi dati</h3>
           <div class="form-grid">
             <div class="form-group">
-              <label>Nome</label>
-              <input type="text" id="chkNome" placeholder="Mario">
+              <label>Nome <span style="color:#dc2626">*</span></label>
+              <input type="text" id="chkNome" placeholder="Mario" autocomplete="given-name">
             </div>
             <div class="form-group">
-              <label>Cognome</label>
-              <input type="text" id="chkCognome" placeholder="Rossi">
+              <label>Cognome <span style="color:#dc2626">*</span></label>
+              <input type="text" id="chkCognome" placeholder="Rossi" autocomplete="family-name">
+            </div>
+            <div class="form-group">
+              <label>Email <span style="color:#dc2626">*</span></label>
+              <input type="email" id="chkEmail" placeholder="mario@email.it" autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label>Telefono <span style="color:#dc2626">*</span></label>
+              <input type="tel" id="chkTel" placeholder="+39 333 1234567" autocomplete="tel">
             </div>
             <div class="form-group" style="grid-column:1/-1">
-              <label>Email</label>
-              <input type="email" id="chkEmail" placeholder="mario@email.it">
+              <label>Note aggiuntive <span style="color:#9ca3af;font-size:12px">(opzionale)</span></label>
+              <textarea id="chkNote" placeholder="Taglia alternativa, richieste speciali..." rows="2" style="width:100%;resize:vertical;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit"></textarea>
             </div>
           </div>
         </div>
 
-        <!-- Ritiro in sede -->
+        <!-- Come funziona -->
         <div class="form-section">
-          <div class="ritiro-box">
-            <div class="ritiro-icon">📍</div>
-            <div class="ritiro-info">
-              <div class="ritiro-titolo">Ritiro in sede</div>
-              <div class="ritiro-testo">Il tuo ordine sarà disponibile al ritiro presso la sede della <strong>Virtus Caserta ASD</strong>.<br>Ti contatteremo via email per comunicarti quando l'ordine è pronto.</div>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 18px;font-size:13px;color:#374151;line-height:1.7">
+            <div style="font-weight:700;color:#0d2055;margin-bottom:8px">ℹ️ Come funziona</div>
+            <div>
+              <strong>1.</strong> Invia la richiesta — riceverai una email di conferma.<br>
+              <strong>2.</strong> Ti contatteremo per confermare la disponibilità e concordare il ritiro.<br>
+              <strong>3.</strong> Ritira il tuo ordine in sede e paga al momento del ritiro.<br>
+              <span style="color:#6b7280;font-size:12px">📍 Virtus Caserta ASD – Caserta</span>
             </div>
           </div>
-        </div>
-
-        <!-- Metodo di pagamento -->
-        <div class="form-section">
-          <h3>💳 Metodo di pagamento</h3>
-          <div class="metodi-pagamento">
-
-            <div class="metodo-btn selezionato" onclick="selezionaMetodo(this,'carta')">
-              <div class="metodo-radio"></div>
-              <div class="metodo-info">
-                <div class="metodo-nome">Carta di credito / debito</div>
-                <div class="metodo-sub">Visa, Mastercard, American Express</div>
-              </div>
-              <div class="metodo-logo">💳</div>
-            </div>
-
-            <div class="metodo-btn" onclick="selezionaMetodo(this,'paypal')">
-              <div class="metodo-radio"></div>
-              <div class="metodo-info">
-                <div class="metodo-nome">PayPal</div>
-                <div class="metodo-sub">Paga con il tuo conto PayPal</div>
-              </div>
-              <div class="metodo-logo">🅿️</div>
-            </div>
-
-            <div class="metodo-btn" onclick="selezionaMetodo(this,'sepa')">
-              <div class="metodo-radio"></div>
-              <div class="metodo-info">
-                <div class="metodo-nome">Addebito diretto SEPA</div>
-                <div class="metodo-sub">Pagamento bancario tramite IBAN</div>
-              </div>
-              <div class="metodo-logo">🏦</div>
-            </div>
-
-          </div>
-
-          <!-- Form carta – Stripe Elements -->
-          <div class="form-carta visibile" id="formCarta" style="margin-top:14px">
-            <div class="form-group">
-              <label>Dati carta</label>
-              <div class="stripe-element-box" id="stripe-card-element"></div>
-              <div id="stripe-error"></div>
-            </div>
-          </div>
-
-          <!-- Form SEPA – IBAN Stripe Elements -->
-          <div id="formSepa" style="display:none;margin-top:14px">
-            <div class="form-group">
-              <label>IBAN</label>
-              <div class="stripe-element-box" id="stripe-iban-element"></div>
-              <div id="sepa-error" style="color:#dc2626;font-size:13px;margin-top:4px"></div>
-            </div>
-            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;font-size:12px;color:#374151;margin-top:8px;line-height:1.6">
-              Autorizzando il pagamento accetti il mandato SEPA. L'addebito sarà completato entro 3–5 giorni lavorativi.
-              In caso di addebito non autorizzato hai diritto al rimborso entro 8 settimane dalla data di addebito.
-            </div>
-          </div>
-
-          <!-- PayPal button -->
-          <div id="paypalContainer" style="display:none"></div>
-
         </div>
 
         <button class="btn-paga" id="btnPaga" onclick="completaOrdine()">
-          🔒 Paga ora
+          📩 Invia richiesta d'acquisto
         </button>
-        <p class="secure-note">🔒 Pagamento sicuro con crittografia SSL a 256 bit</p>
       </div>
     </div>
   </div>
@@ -700,109 +650,12 @@
   <div class="toast" id="toast"></div>
 
   <script>
+
     /* ══ STATO ══ */
     let prodotti  = [];
     const taglieSel = {};   // { productId: taglia }
     let carrello  = [];
-    let metodoSel = 'carta';
 
-    /* ══ STRIPE ══ */
-    let stripe         = null;
-    let stripeElements = null;
-    let cardElement    = null;
-    let ibanElement    = null;
-    let stripeReady    = false;
-    let sepaReady      = false;
-
-    async function initStripeBase() {
-      if (stripe) return;
-      const { stripePublishableKey } = await fetch('/api/config').then(r => r.json());
-      if (!stripePublishableKey) return;
-      stripe = Stripe(stripePublishableKey);
-      stripeElements = stripe.elements();
-    }
-
-    async function initStripe() {
-      if (stripeReady) return;
-      await initStripeBase();
-      if (!stripe) {
-        document.getElementById('stripe-error').textContent = '⚠️ Stripe non configurato. Aggiungi STRIPE_PUBLISHABLE_KEY nel file .env';
-        return;
-      }
-      cardElement = stripeElements.create('card', {
-        hidePostalCode: true,
-        style: {
-          base:    { fontSize: '15px', color: '#111', '::placeholder': { color: '#9ca3af' } },
-          invalid: { color: '#dc2626' },
-        },
-      });
-      cardElement.mount('#stripe-card-element');
-      cardElement.on('change', e => {
-        document.getElementById('stripe-error').textContent = e.error ? e.error.message : '';
-      });
-      stripeReady = true;
-    }
-
-    async function initSepa() {
-      if (sepaReady) return;
-      await initStripeBase();
-      if (!stripe) {
-        document.getElementById('sepa-error').textContent = '⚠️ Stripe non configurato';
-        return;
-      }
-      ibanElement = stripeElements.create('iban', {
-        supportedCountries: ['SEPA'],
-        placeholderCountry: 'IT',
-        style: {
-          base:    { fontSize: '15px', color: '#111', '::placeholder': { color: '#9ca3af' } },
-          invalid: { color: '#dc2626' },
-        },
-      });
-      ibanElement.mount('#stripe-iban-element');
-      ibanElement.on('change', e => {
-        document.getElementById('sepa-error').textContent = e.error ? e.error.message : '';
-      });
-      sepaReady = true;
-    }
-
-    /* ══ PAYPAL ══ */
-    let paypalReady = false;
-
-    async function initPayPal(totaleConSpedizione) {
-      const { paypalClientId } = await fetch('/api/config').then(r => r.json());
-      const container = document.getElementById('paypalContainer');
-
-      if (!paypalClientId) {
-        container.innerHTML = '<p style="color:#dc2626;font-size:13px">⚠️ PayPal non configurato. Aggiungi PAYPAL_CLIENT_ID nel file .env</p>';
-        return;
-      }
-
-      if (!paypalReady) {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement('script');
-          s.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR`;
-          s.onload = resolve; s.onerror = reject;
-          document.head.appendChild(s);
-        });
-        paypalReady = true;
-      }
-
-      container.innerHTML = '<div id="paypal-btn"></div>';
-      paypal.Buttons({
-        createOrder: (_data, actions) => {
-          if (!validaCampi()) return Promise.reject(new Error('Compila tutti i campi'));
-          return actions.order.create({
-            purchase_units: [{ amount: { value: totaleConSpedizione.toFixed(2), currency_code: 'EUR' } }],
-          });
-        },
-        onApprove: async (_data, actions) => {
-          const order = await actions.order.capture();
-          await inviaEmail(order.id);
-          mostraConferma(order.id);
-        },
-        onError: err => mostraToast('⚠️ Errore PayPal: ' + err),
-      }).render('#paypal-btn');
-    }
 
     /* ══ CATALOGO ══ */
     async function caricaProdotti() {
@@ -932,44 +785,33 @@
     }
 
     function apriCheckout() {
-      if (!carrello.length) { mostraToast('Il carrello è vuoto'); return; }
-      chiudiCarrello();
-      const { sub, totale } = calcolaTotali();
-      const righe = carrello.map(i =>
-        `<div class="checkout-riga"><span>${i.nome} – taglia ${i.taglia} ×${i.qty}</span><span>€ ${(i.prezzo * i.qty).toFixed(2).replace('.', ',')}</span></div>`
-      ).join('');
-      document.getElementById('checkoutRiepilogo').innerHTML = `
-        ${righe}
-        <div class="checkout-riga"><span>Consegna</span><span>Ritiro in sede</span></div>
-        <div class="checkout-riga totale"><span>Totale ordine</span><span>€ ${totale.toFixed(2).replace('.', ',')}</span></div>`;
-      document.getElementById('modalOverlay').classList.add('aperto');
-      // inizializza Stripe subito (così l'elemento è pronto)
-      initStripe();
-    }
-
-    function chiudiModal() { document.getElementById('modalOverlay').classList.remove('aperto'); }
-
-    function selezionaMetodo(btn, metodo) {
-      document.querySelectorAll('.metodo-btn').forEach(b => b.classList.remove('selezionato'));
-      btn.classList.add('selezionato');
-      metodoSel = metodo;
-      document.getElementById('formCarta').classList.toggle('visibile', metodo === 'carta');
-      document.getElementById('formSepa').style.display = metodo === 'sepa' ? 'block' : 'none';
-      document.getElementById('paypalContainer').style.display = metodo === 'paypal' ? 'block' : 'none';
-      document.getElementById('btnPaga').style.display = metodo === 'paypal' ? 'none' : 'block';
-      if (metodo === 'paypal') {
+      try {
+        if (!carrello.length) { mostraToast('⚠️ Aggiungi almeno un prodotto al carrello'); return; }
+        chiudiCarrello();
         const { totale } = calcolaTotali();
-        initPayPal(totale);
+        const righe = carrello.map(i =>
+          `<div class="checkout-riga"><span>${i.nome} – taglia ${i.taglia} ×${i.qty}</span><span>€ ${(i.prezzo * i.qty).toFixed(2).replace('.', ',')}</span></div>`
+        ).join('');
+        document.getElementById('checkoutRiepilogo').innerHTML = `
+          ${righe}
+          <div class="checkout-riga"><span>Consegna</span><span>Ritiro in sede</span></div>
+          <div class="checkout-riga totale"><span>Totale ordine</span><span>€ ${totale.toFixed(2).replace('.', ',')}</span></div>`;
+        document.getElementById('modalOverlay').classList.add('aperto');
+      } catch(err) {
+        mostraToast('⚠️ Errore: ' + err.message);
+        console.error('[apriCheckout]', err);
       }
-      if (metodo === 'sepa') initSepa();
     }
+
+    function chiudiCheckout() { document.getElementById('modalOverlay').classList.remove('aperto'); }
 
     /* ══ VALIDAZIONE ══ */
     function validaCampi() {
       const nome    = document.getElementById('chkNome').value.trim();
       const cognome = document.getElementById('chkCognome').value.trim();
       const email   = document.getElementById('chkEmail').value.trim();
-      if (!nome || !cognome || !email) {
+      const tel     = document.getElementById('chkTel').value.trim();
+      if (!nome || !cognome || !email || !tel) {
         mostraToast('⚠️ Compila tutti i campi obbligatori'); return false;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -978,92 +820,44 @@
       return true;
     }
 
-    /* ══ EMAIL ══ */
-    async function inviaEmail(orderId) {
-      const { totale } = calcolaTotali();
-      await fetch('/api/send-order-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome:    document.getElementById('chkNome').value.trim(),
-          cognome: document.getElementById('chkCognome').value.trim(),
-          email:   document.getElementById('chkEmail').value.trim(),
-          items:   carrello,
-          totale, spedizione: 0, metodo: metodoSel, orderId,
-        }),
-      });
-    }
-
-    /* ══ CONFERMA ══ */
-    function mostraConferma(orderId) {
-      let url = '/ordine-confermato' + (orderId ? '?id=' + encodeURIComponent(orderId) : '');
-      if (metodoSel === 'sepa') url += (orderId ? '&' : '?') + 'metodo=sepa';
-      window.location.href = url;
-    }
-
-    /* ══ PAGA ORA ══ */
+    /* ══ INVIA RICHIESTA ══ */
     async function completaOrdine() {
       if (!validaCampi()) return;
-      const nome    = document.getElementById('chkNome').value.trim();
-      const cognome = document.getElementById('chkCognome').value.trim();
-      const email   = document.getElementById('chkEmail').value.trim();
-      const btn     = document.getElementById('btnPaga');
-
+      const btn = document.getElementById('btnPaga');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Elaborazione...';
+      btn.innerHTML = '<span class="spinner"></span> Invio in corso...';
 
       try {
-        if (metodoSel === 'carta' || metodoSel === 'sepa') {
-          /* 1. Crea PaymentIntent sul server – prezzi validati server-side */
-          const intentRes = await fetch('/api/create-payment-intent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              items:  carrello.map(i => ({ id: i.id, qty: i.qty })),
-              metodo: metodoSel,
-            }),
-          });
-          const { clientSecret, orderId, error: intentErr } = await intentRes.json();
-          if (intentErr) throw new Error(intentErr);
-
-          if (metodoSel === 'carta') {
-            /* Carta: pagamento sincrono */
-            const { error } = await stripe.confirmCardPayment(clientSecret, {
-              payment_method: {
-                card: cardElement,
-                billing_details: { name: `${nome} ${cognome}`, email },
-              },
-            });
-            if (error) throw new Error(error.message);
-          } else {
-            /* SEPA: pagamento asincrono (3-5 gg lavorativi) */
-            const { error } = await stripe.confirmSepaDebitPayment(clientSecret, {
-              payment_method: {
-                sepa_debit: ibanElement,
-                billing_details: { name: `${nome} ${cognome}`, email },
-              },
-            });
-            if (error) throw new Error(error.message);
-          }
-
-          await inviaEmail(orderId);
-          mostraConferma(orderId);
-
-        }
+        const { totale } = calcolaTotali();
+        const res = await fetch('/api/richiesta-ordine', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nome:    document.getElementById('chkNome').value.trim(),
+            cognome: document.getElementById('chkCognome').value.trim(),
+            email:   document.getElementById('chkEmail').value.trim(),
+            telefono:document.getElementById('chkTel').value.trim(),
+            note:    document.getElementById('chkNote').value.trim(),
+            items:   carrello,
+            totale,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Errore durante l\'invio');
+        window.location.href = '/ordine-confermato' + (data.ordineId ? '?id=' + encodeURIComponent(data.ordineId) : '');
       } catch (err) {
         mostraToast('⚠️ ' + err.message);
         btn.disabled = false;
-        btn.innerHTML = '🔒 Paga ora';
+        btn.innerHTML = '📩 Invia richiesta d\'acquisto';
       }
     }
 
     /* ══ RESET ══ */
     function resetShop() {
-      carrello = []; stripeReady = false; sepaReady = false;
-      cardElement = null; ibanElement = null;
+      carrello = [];
       aggiornaCarrello();
-      chiudiModal();
-      ['chkNome','chkCognome','chkEmail']
+      chiudiCheckout();
+      ['chkNome','chkCognome','chkEmail','chkTel','chkNote']
         .forEach(id => { document.getElementById(id).value = ''; });
     }
 
@@ -1087,15 +881,15 @@
     }
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { chiudiModal(); chiudiCarrello(); chiudiZoom(); }
+      if (e.key === 'Escape') { chiudiCheckout(); chiudiCarrello(); chiudiZoom(); }
     });
 
     caricaProdotti();
   </script>
   <script src="common.js"></script>
 
-  
-  <footer class="footer-std">
+<!-- FOOTER -->
+   <footer class="footer-std">
   <div class="footer-inner">
     <img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy" onerror="this.style.display='none'">
     <div class="footer-links">
@@ -1116,12 +910,11 @@
     <div class="footer-auth" id="footerAuthArea">
       <div class="footer-auth-title">Account</div>
       <div class="footer-auth-login">
-        <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
+        <a href="/login" aria-label="Accedi al tuo account">Accedi</a>
       </div>
       <div class="footer-auth-logged">
-        <span class="footer-auth-nome" id="footerNome"></span>
-        <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-        <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
+        <a href="/admin" class="footer-btn" id="footerAdminLink" style="display:none" aria-label="Vai alla sezione amministratore">Sezione amministratore</a>
+        <button class="footer-btn footer-btn-outline" onclick="logout()" aria-label="Esci dall'account">Esci</button>
       </div>
     </div>
   </div>
@@ -1129,40 +922,5 @@
     <p>© 2024 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a> · Sito realizzato da Alessandro Pascarella</p>
   </div>
 </footer>
-
-  <!--
-  <footer class="footer-std">
-    <div class="footer-inner">
-      <img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy" onerror="this.style.display='none'">
-      <div class="footer-links">
-        <a href="/">Home</a>
-        <a href="/chi-siamo">Chi siamo</a>
-        <a href="/notizie">Notizie</a>
-        <a href="/risultati">Risultati</a>
-        <a href="/live">Live</a>
-      </div>
-      <div class="footer-soc">
-        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
-        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
-        <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
-        <a href="/live" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
-      </div>
-      <div class="footer-auth" id="footerAuthArea">
-        <div class="footer-auth-title">Account</div>
-        <div class="footer-auth-login">
-          <a href="#" class="footer-btn" onclick="apriModal();return false;">Accedi</a>
-        </div>
-        <div class="footer-auth-logged">
-          <span class="footer-auth-nome" id="footerNome"></span>
-          <a href="admin.html" class="footer-btn" id="footerAdminLink" style="display:none">Gestione</a>
-          <button class="footer-btn footer-btn-outline" onclick="logout()">Esci</button>
-        </div>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>© 2024 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a></p>
-    </div>
-  </footer> -->
-
 </body>
 </html>
