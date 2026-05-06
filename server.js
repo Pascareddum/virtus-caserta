@@ -850,11 +850,26 @@ app.put('/api/admin/squadre-links', adminAuth, async (req, res) => {
 });
 
 /* ─── Categorie Squadre ─── */
+const SESSO_ESCLUDI = new Set(['Maschile', 'Femminile', 'Staff', '']);
+
 app.get('/api/squadre-categorie', async (_req, res) => {
   try {
-    const r = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_categorie'`);
-    const raw = r.rows[0]?.valore || '[]';
-    res.json(JSON.parse(raw));
+    // Legge valori sesso distinti dal DB (supporta comma-separated)
+    const { rows } = await db.query(`SELECT DISTINCT sesso FROM squadra WHERE attiva=true AND sesso IS NOT NULL AND sesso!=''`);
+    const valoriUnici = new Set();
+    rows.forEach(r => {
+      r.sesso.split(',').map(s => s.trim()).filter(s => s && !SESSO_ESCLUDI.has(s)).forEach(s => valoriUnici.add(s));
+    });
+
+    // Legge mapping salvato { "Serie D Femminile": "Seniores", ... }
+    const mRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_mappa'`);
+    const mapping = JSON.parse(mRaw.rows[0]?.valore || '{}');
+
+    const result = [...valoriUnici].sort().map(nome => ({
+      nome,
+      categoria: mapping[nome] || '',
+    }));
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -863,19 +878,21 @@ app.get('/api/squadre-categorie', async (_req, res) => {
 
 app.put('/api/admin/squadre-categorie', adminAuth, async (req, res) => {
   try {
-    if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Array richiesto' });
-    const safe = req.body.map(s => ({
-      id:        String(s.id || Date.now()).slice(0, 40),
-      nome:      String(s.nome || '').slice(0, 100),
-      categoria: ['Seniores','Giovanili','Juniores'].includes(s.categoria) ? s.categoria : 'Seniores',
-      ordine:    parseInt(s.ordine) || 0,
-    }));
+    if (typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({ error: 'Oggetto {nome:categoria} richiesto' });
+    }
+    const VALIDE = new Set(['Seniores','Giovanili','Juniores','']);
+    const safe = {};
+    for (const [nome, cat] of Object.entries(req.body)) {
+      if (String(nome).length > 100) continue;
+      safe[nome] = VALIDE.has(cat) ? cat : '';
+    }
     await db.query(
-      `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_categorie',$1,NOW())
+      `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_cat_mappa',$1,NOW())
        ON CONFLICT (chiave) DO UPDATE SET valore=$1, updated_at=NOW()`,
       [JSON.stringify(safe)]
     );
-    await logActivity('Categorie squadre aggiornate', safe.length + ' squadre');
+    await logActivity('Categorie squadre aggiornate', Object.keys(safe).length + ' mappings');
     res.json({ success: true });
   } catch (err) {
     console.error(err);

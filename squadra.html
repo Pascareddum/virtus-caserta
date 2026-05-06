@@ -112,38 +112,24 @@
   <p>Prima squadra e settore giovanile di Virtus Caserta.</p>
 </div>
 
-<!-- FILTRO -->
+<!-- FILTRO MACRO -->
 <div class="filtro-bar" id="filtroBar">
   <button class="filtro-pill attivo" onclick="filtraCategoria('tutte',this)">Tutte</button>
-  <button class="filtro-pill" onclick="filtraCategoria('seniores',this)">Seniores</button>
-  <button class="filtro-pill giovanili" onclick="filtraCategoria('giovanili',this)">Giovanili</button>
+  <button class="filtro-pill" onclick="filtraCategoria('Seniores',this)">Seniores</button>
+  <button class="filtro-pill giovanili" onclick="filtraCategoria('Giovanili',this)">Giovanili</button>
 </div>
+<!-- FILTRO SUB (dinamico) -->
+<div class="filtro-bar" id="filtroSub" style="display:none;padding-top:8px;gap:8px;"></div>
 
 <section>
   <div class="container">
-
     <!-- SENIORES -->
     <div class="cat-section" id="catSeniores">
       <div class="cat-section-header">
         <div class="etichetta">Seniores</div>
         <h2>Prima Squadra</h2>
       </div>
-
-      <div class="team-block" id="blockSenF">
-        <div class="team-header">
-          <span class="team-badge femminile">Femminile</span>
-          <h2 class="team-titolo">Prima Squadra Femminile</h2>
-        </div>
-        <div class="squadra-grid" id="gridSenF"><div class="vuota">Caricamento…</div></div>
-      </div>
-
-      <div class="team-block" id="blockSenM">
-        <div class="team-header">
-          <span class="team-badge maschile">Maschile</span>
-          <h2 class="team-titolo">Prima Squadra Maschile</h2>
-        </div>
-        <div class="squadra-grid" id="gridSenM"><div class="vuota">Caricamento…</div></div>
-      </div>
+      <div id="senioresContent"><div class="vuota">Caricamento…</div></div>
     </div>
 
     <!-- GIOVANILE -->
@@ -152,7 +138,7 @@
         <div class="etichetta" style="background:var(--blu-m)">Giovanile</div>
         <h2>Settore Giovanile</h2>
       </div>
-      <div id="giovContainer"><div class="vuota">Caricamento…</div></div>
+      <div id="giovaniliContent"><div class="vuota">Caricamento…</div></div>
     </div>
 
   </div>
@@ -268,56 +254,126 @@
     grid.innerHTML = lista.map(cardHtml).join('');
   }
 
-  function isGiov(sesso) {
-    return /u\d+|under|volleys\d|mini/i.test(sesso || '');
+  function sessoList(sesso) {
+    return (sesso || '').split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  // Mapping globale caricato dall'API
+  let _mappa = {}; // { "Serie D Femminile": "Seniores", ... }
+  let _filtroAttivo = 'tutte';
+  let _subFiltroAttivo = '';
+
+  function macroCategoria(nomeSquadra) {
+    return _mappa[nomeSquadra] || '';
+  }
+
+  function teamBlockHtml(nomeSquadra, lista, coloreBadge) {
+    return `
+      <div class="team-block" data-squadra="${nomeSquadra.replace(/"/g,'&quot;')}">
+        <div class="team-header">
+          <span class="team-badge" style="background:${coloreBadge}">${nomeSquadra}</span>
+          <h2 class="team-titolo">${nomeSquadra}</h2>
+        </div>
+        <div class="squadra-grid">${lista.map(cardHtml).join('')}</div>
+      </div>`;
   }
 
   async function carica() {
     try {
-      const tutti = await fetch('/api/squadra').then(r => r.json());
+      const [tutti, catList] = await Promise.all([
+        fetch('/api/squadra').then(r => r.json()),
+        fetch('/api/squadre-categorie').then(r => r.json()).catch(() => []),
+      ]);
 
-      // Seniores: not Staff, not giovanile
-      const senF = tutti.filter(g => g.sesso !== 'Staff' && g.sesso !== 'Maschile' && !isGiov(g.sesso));
-      const senM = tutti.filter(g => g.sesso === 'Maschile');
-      renderGriglia(senF, 'gridSenF', 'blockSenF');
-      renderGriglia(senM, 'gridSenM', 'blockSenM');
+      // Costruisci mapping
+      catList.forEach(c => { if (c.nome && c.categoria) _mappa[c.nome] = c.categoria; });
 
-      // Giovanile: group by sesso value
-      const giov = tutti.filter(g => isGiov(g.sesso));
-      const cont = document.getElementById('giovContainer');
-      if (!giov.length) {
-        cont.innerHTML = '<div class="vuota">Nessun giocatore nel settore giovanile registrato.</div>';
-      } else {
-        const gruppi = {};
-        giov.forEach(g => {
-          const k = g.sesso || 'Under';
-          if (!gruppi[k]) gruppi[k] = [];
-          gruppi[k].push(g);
+      const ESCLUDI = new Set(['Maschile','Femminile','Staff','']);
+
+      // Raggruppa ogni atleta per ogni sua squadra (sesso comma-separated)
+      const gruppi = {}; // { nomeSquadra: [atleti] }
+      tutti.forEach(g => {
+        sessoList(g.sesso).filter(s => !ESCLUDI.has(s)).forEach(sq => {
+          if (!gruppi[sq]) gruppi[sq] = [];
+          if (!gruppi[sq].find(x => x.id === g.id)) gruppi[sq].push(g);
         });
-        cont.innerHTML = Object.entries(gruppi).map(([cat, lista]) => {
-          const gid = 'giov-' + cat.replace(/\s+/g, '-').replace(/[^\w-]/g, '').toLowerCase();
-          return `
-            <div class="team-block">
-              <div class="team-header">
-                <span class="team-badge" style="background:var(--blu-m)">${cat}</span>
-                <h2 class="team-titolo">${cat}</h2>
-              </div>
-              <div class="squadra-grid" id="${gid}">${lista.map(cardHtml).join('')}</div>
-            </div>`;
-        }).join('');
+      });
+
+      // Separa per macro-categoria
+      const senioresGruppi = Object.entries(gruppi).filter(([n]) => macroCategoria(n) === 'Seniores');
+      const giovaniliGruppi = Object.entries(gruppi).filter(([n]) => macroCategoria(n) === 'Giovanili' || macroCategoria(n) === 'Juniores');
+      const altriGruppi    = Object.entries(gruppi).filter(([n]) => !macroCategoria(n));
+
+      // Render Seniores
+      const senEl = document.getElementById('senioresContent');
+      if (!senioresGruppi.length) {
+        senEl.innerHTML = '<div class="vuota">Nessuna squadra Seniores configurata.</div>';
+      } else {
+        senEl.innerHTML = senioresGruppi.map(([nome, lista]) => teamBlockHtml(nome, lista, 'var(--arancio)')).join('');
       }
-    } catch {
-      document.getElementById('giovContainer').innerHTML = '<div class="vuota">Errore caricamento dati.</div>';
+
+      // Render Giovanili + Altri
+      const giovEl = document.getElementById('giovaniliContent');
+      const tuttiGiov = [...giovaniliGruppi, ...altriGruppi];
+      if (!tuttiGiov.length) {
+        giovEl.innerHTML = '<div class="vuota">Nessuna squadra giovanile registrata.</div>';
+      } else {
+        giovEl.innerHTML = tuttiGiov.map(([nome, lista]) => teamBlockHtml(nome, lista, 'var(--blu-m)')).join('');
+      }
+
+      // Sub-filtri dinamici
+      _renderSubFiltri(senioresGruppi.map(([n]) => n), giovaniliGruppi.map(([n]) => n));
+
+    } catch (e) {
+      console.error(e);
+      document.getElementById('senioresContent').innerHTML = '<div class="vuota">Errore caricamento dati.</div>';
     }
   }
 
+  function _renderSubFiltri(senioresNomi, giovaniliNomi) {
+    window._subFiltriSeniores = senioresNomi;
+    window._subFiltriGiovanili = giovaniliNomi;
+  }
+
   function filtraCategoria(tipo, btn) {
-    document.querySelectorAll('.filtro-pill').forEach(b => b.classList.remove('attivo'));
+    document.querySelectorAll('#filtroBar .filtro-pill').forEach(b => b.classList.remove('attivo'));
     btn.classList.add('attivo');
+    _filtroAttivo = tipo;
+    _subFiltroAttivo = '';
+
     const s = document.getElementById('catSeniores');
     const g = document.getElementById('catGiovanili');
-    s.style.display = tipo === 'giovanili' ? 'none' : '';
-    g.style.display = tipo === 'seniores'  ? 'none' : '';
+    s.style.display = tipo === 'Giovanili' ? 'none' : '';
+    g.style.display = tipo === 'Seniores'  ? 'none' : '';
+
+    // Mostra sub-filtri appropriati
+    const subBar = document.getElementById('filtroSub');
+    const nomi = tipo === 'Seniores' ? (window._subFiltriSeniores || [])
+                : tipo === 'Giovanili' ? (window._subFiltriGiovanili || [])
+                : [];
+
+    if (nomi.length > 1 && tipo !== 'tutte') {
+      subBar.style.display = '';
+      subBar.innerHTML =
+        `<button class="filtro-pill attivo" onclick="filtraSubCategoria('',this)">Tutte</button>` +
+        nomi.map(n =>
+          `<button class="filtro-pill" style="font-size:12px" onclick="filtraSubCategoria('${n.replace(/'/g,"\\'")}',this)">${n}</button>`
+        ).join('');
+    } else {
+      subBar.style.display = 'none';
+      subBar.innerHTML = '';
+      // Mostra tutti i blocchi
+      document.querySelectorAll('.team-block').forEach(b => b.style.display = '');
+    }
+  }
+
+  function filtraSubCategoria(nome, btn) {
+    document.querySelectorAll('#filtroSub .filtro-pill').forEach(b => b.classList.remove('attivo'));
+    btn.classList.add('attivo');
+    _subFiltroAttivo = nome;
+    document.querySelectorAll('.team-block').forEach(b => {
+      b.style.display = (!nome || b.dataset.squadra === nome) ? '' : 'none';
+    });
   }
 
   carica();

@@ -1250,9 +1250,12 @@
 <div class="pannello" id="pan-cat-squadre">
   <div class="toolbar">
     <h2>Categorie Squadre</h2>
-    <button class="btn-aggiungi" onclick="apriModalCatSquadra(null)">+ Aggiungi squadra</button>
+    <button class="btn-aggiungi" onclick="salvaCatSquadreMapping()">💾 Salva mapping</button>
   </div>
-  <p style="font-size:13px;color:#6b7280;margin-bottom:20px">Gestisci l'elenco delle squadre e la loro classificazione (Seniores / Giovanili / Juniores). Usato per filtrare la pagina Squadre.</p>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:20px">
+    Le squadre vengono rilevate automaticamente dai valori assegnati agli atleti. Assegna ogni squadra alla sua macro-categoria.
+    <br><span style="color:#9ca3af;font-size:12px">ℹ️ "Maschile" e "Femminile" sono esclusi — usa nomi specifici (es. Serie D Femminile).</span>
+  </p>
 
   <style>
     .cat-sq-table{width:100%;border-collapse:collapse;font-size:14px;}
@@ -1262,42 +1265,12 @@
     .cat-sq-badge.Seniores{background:#dbeafe;color:#1d4ed8;}
     .cat-sq-badge.Giovanili{background:#dcfce7;color:#15803d;}
     .cat-sq-badge.Juniores{background:#fef3c7;color:#b45309;}
+    .cat-sq-sel{padding:6px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:13px;background:#fff;cursor:pointer;}
+    .cat-sq-sel:focus{outline:none;border-color:#0d2055;}
   </style>
 
   <div id="catSquadreList"><p style="color:#9ca3af;text-align:center;padding:40px">Caricamento…</p></div>
-</div>
-
-<!-- MODAL CATEGORIA SQUADRA -->
-<div class="modal-overlay" id="modalCatSquadra">
-  <div class="modal-box" style="max-width:420px;">
-    <div class="modal-hdr">
-      <h3 id="catSquadraTitolo">Aggiungi squadra</h3>
-      <button class="modal-close" onclick="chiudiModal('modalCatSquadra')">✕</button>
-    </div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
-      <input type="hidden" id="catSquadraId">
-      <div>
-        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px">Nome squadra *</label>
-        <input id="catSquadraNome" type="text" placeholder="es. Prima Squadra Femminile" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;">
-      </div>
-      <div>
-        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px">Categoria *</label>
-        <select id="catSquadraCategoria" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;background:#fff;">
-          <option value="Seniores">Seniores</option>
-          <option value="Giovanili">Giovanili</option>
-          <option value="Juniores">Juniores</option>
-        </select>
-      </div>
-      <div>
-        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px">Ordine (numero intero, opzionale)</label>
-        <input id="catSquadraOrdine" type="number" placeholder="0" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;">
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;padding:16px 20px;border-top:1px solid #f1f5f9;justify-content:flex-end;">
-      <button onclick="chiudiModal('modalCatSquadra')" style="padding:9px 18px;border:1.5px solid #d1d5db;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">Annulla</button>
-      <button onclick="salvaCatSquadra()" style="padding:9px 18px;border:none;border-radius:8px;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Salva</button>
-    </div>
-  </div>
+  <div id="catSquadreLog" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-top:12px;"></div>
 </div>
 
 <!-- MODAL SPONSOR -->
@@ -1579,15 +1552,10 @@
         </div>
       </div>
       <div class="mf">
-        <label>Squadra / Categoria</label>
-        <input type="text" id="gSesso" list="squadre-list" placeholder="Es. Femminile, Serie D...">
-        <datalist id="squadre-list">
-          <option>Femminile</option><option>Maschile</option>
-          <option>Serie D Femminile</option><option>Prima Divisione Maschile</option>
-          <option>Prima Divisione Femminile</option><option>U19 Femminile</option>
-          <option>U16 Femminile</option><option>U13 Femminile</option>
-          <option>VolleyS3</option><option>Minivolley</option>
-        </datalist>
+        <label>Squadre / Categorie <span style="font-weight:400;color:#9ca3af;text-transform:none;letter-spacing:0">(seleziona una o più)</span></label>
+        <div id="gSessoCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:9px;max-height:160px;overflow-y:auto;background:#fafafa;">
+          <span style="color:#9ca3af;font-size:12px;grid-column:1/-1">Caricamento squadre…</span>
+        </div>
       </div>
       <div class="mf"><label>Foto (URL o upload)</label>
         <input type="file" id="gFotoFile" accept="image/*" onchange="anteprima('gFotoFile','gFotoPreview')">
@@ -2459,13 +2427,43 @@
     } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
   }
 
+  const SQUADRE_FISSE = [
+    'Femminile','Maschile',
+    'Serie D Femminile','Prima Divisione Maschile','Prima Divisione Femminile',
+    'Under 19 Femminile','Under 18 Femminile','Under 16 Femminile',
+    'Under 14 Femminile','Under 13 Femminile',
+    'Under 15 Maschile','Under 13 Maschile',
+    'VolleyS3','Minivolley',
+  ];
+
+  async function renderGSessoCheckboxes(valoreCorrente) {
+    const selezionate = (valoreCorrente || '').split(',').map(s => s.trim()).filter(Boolean);
+    const catList = await fetchSquadreCat();
+    const opzioni = catList.length
+      ? catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s => s.nome)
+      : SQUADRE_FISSE;
+    // Include valori salvati che non sono nelle opzioni standard
+    selezionate.forEach(v => { if (!opzioni.includes(v)) opzioni.push(v); });
+    document.getElementById('gSessoCheckboxes').innerHTML = opzioni.map(opt =>
+      `<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;color:#374151">
+        <input type="checkbox" value="${opt}" ${selezionate.includes(opt) ? 'checked' : ''} style="accent-color:var(--blu);width:14px;height:14px">
+        ${opt}
+      </label>`
+    ).join('');
+  }
+
+  function getGSessoValue() {
+    return Array.from(document.querySelectorAll('#gSessoCheckboxes input[type=checkbox]'))
+      .filter(c => c.checked).map(c => c.value).join(',');
+  }
+
   async function apriModalGiocatrice(id) {
     giocatriceInEditing = id;
     document.getElementById('modalGiocatriceTitolo').textContent = id ? 'Modifica giocatrice' : 'Nuova giocatrice';
     ['gNome','gCognome','gNumero','gBio','gFoto'].forEach(i => document.getElementById(i).value = '');
     document.getElementById('gAttiva').checked = true;
-    document.getElementById('gSesso').value = 'Femminile';
     document.getElementById('gFotoPreview').style.display = 'none';
+    let sessoIniziale = 'Femminile';
     if (id) {
       const list = await fetch('/api/squadra').then(r => r.json());
       const g = list.find(x => x.id === id);
@@ -2476,11 +2474,12 @@
         document.getElementById('gRuolo').value   = g.ruolo || '';
         document.getElementById('gBio').value     = g.bio || '';
         document.getElementById('gFoto').value    = g.foto || '';
-        document.getElementById('gSesso').value   = g.sesso || 'Femminile';
+        sessoIniziale = g.sesso || 'Femminile';
         document.getElementById('gAttiva').checked = g.attiva;
         if (g.foto) { document.getElementById('gFotoPreview').src = g.foto; document.getElementById('gFotoPreview').style.display = 'block'; }
       }
     }
+    renderGSessoCheckboxes(sessoIniziale);
     document.getElementById('modalGiocatrice').classList.add('aperto');
   }
 
@@ -2494,7 +2493,8 @@
       let foto = document.getElementById('gFoto').value;
       const uploadUrl = await uploadImmagine('gFotoFile');
       if (uploadUrl) foto = uploadUrl;
-      const body = { nome, cognome, numero: document.getElementById('gNumero').value || null, ruolo: document.getElementById('gRuolo').value, bio: document.getElementById('gBio').value, foto, attiva: document.getElementById('gAttiva').checked, sesso: document.getElementById('gSesso').value };
+      const sesso = getGSessoValue() || 'Femminile';
+      const body = { nome, cognome, numero: document.getElementById('gNumero').value || null, ruolo: document.getElementById('gRuolo').value, bio: document.getElementById('gBio').value, foto, attiva: document.getElementById('gAttiva').checked, sesso };
       const url    = giocatriceInEditing ? `/api/admin/squadra/${giocatriceInEditing}` : '/api/admin/squadra';
       const method = giocatriceInEditing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
@@ -2785,13 +2785,20 @@
     'sq_miste_1_ris','sq_miste_1_cla','sq_miste_1_cat',
   ];
 
-  const CAT_OPTS = `<option value="">— non classificata —</option><option value="Seniores">Seniores</option><option value="Giovanili">Giovanili</option><option value="Juniores">Juniores</option>`;
+  async function fetchSquadreCat() {
+    try {
+      const r = await fetch('/api/squadre-categorie');
+      if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) return [];
+      return await r.json();
+    } catch { return []; }
+  }
 
   async function caricaLinkSquadre() {
     try {
-      const [saved, tutte] = await Promise.all([
+      const [saved, tutte, catList] = await Promise.all([
         fetch('/api/squadre-links', { headers: headers() }).then(r => r.json()),
         fetch('/api/partite/tutte').then(r => r.json()),
+        fetchSquadreCat(),
       ]);
 
       const gruppi = tutte.gruppi || {};
@@ -2812,12 +2819,18 @@
           `<option value="${classificaUrl}">${cat}</option>`
         ).join('');
 
+      const catOpts = `<option value="">— nessuna —</option>` +
+        (catList.length
+          ? catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s =>
+              `<option value="${s.nome}">${s.nome}</option>`).join('')
+          : `<option value="Seniores">Seniores</option><option value="Giovanili">Giovanili</option><option value="Juniores">Juniores</option>`);
+
       for (const k of SQ_LINK_KEYS) {
         const el = document.getElementById(k);
         if (!el) continue;
         if (k.endsWith('_ris')) el.innerHTML = risOpts;
         else if (k.endsWith('_cla')) el.innerHTML = claOpts;
-        else if (k.endsWith('_cat')) el.innerHTML = CAT_OPTS;
+        else if (k.endsWith('_cat')) el.innerHTML = catOpts;
         el.value = saved[k] || '';
       }
     } catch (e) { sqLinkLog('Errore caricamento: ' + e.message, false); }
@@ -2850,85 +2863,69 @@
   }
 
   /* ══ CATEGORIE SQUADRE ══ */
-  let _catSquadreList = [];
-
   async function caricaCatSquadre() {
     try {
-      const data = await fetch('/api/squadre-categorie', { headers: headers() }).then(r => r.json());
-      _catSquadreList = Array.isArray(data) ? data : [];
-      renderCatSquadre();
+      const r = await fetch('/api/squadre-categorie', { headers: headers() });
+      if (!r.ok || !r.headers.get('content-type')?.includes('application/json')) {
+        throw new Error('Route non attiva — riavvia il server.');
+      }
+      const data = await r.json();
+      renderCatSquadre(Array.isArray(data) ? data : []);
     } catch (e) {
-      document.getElementById('catSquadreList').innerHTML = `<p style="color:#dc2626;text-align:center;padding:40px">Errore: ${e.message}</p>`;
+      document.getElementById('catSquadreList').innerHTML = `<p style="color:#dc2626;text-align:center;padding:40px">⚠️ ${e.message}</p>`;
     }
   }
 
-  function renderCatSquadre() {
+  function renderCatSquadre(list) {
     const el = document.getElementById('catSquadreList');
-    if (!_catSquadreList.length) {
-      el.innerHTML = `<p style="color:#9ca3af;text-align:center;padding:40px">Nessuna squadra. Clicca "+ Aggiungi squadra".</p>`;
+    if (!list.length) {
+      el.innerHTML = `<p style="color:#9ca3af;text-align:center;padding:40px">Nessun atleta con categoria assegnata nel DB.<br><small>Aggiungi atleti con un valore "Squadra" specifico (es. Serie D Femminile).</small></p>`;
       return;
     }
-    const sorted = [..._catSquadreList].sort((a, b) => (a.ordine || 0) - (b.ordine || 0) || a.nome.localeCompare(b.nome));
     el.innerHTML = `<table class="cat-sq-table">
-      <thead><tr><th>Nome squadra</th><th>Categoria</th><th>Ordine</th><th></th></tr></thead>
+      <thead><tr><th>Squadra (valore sesso nel DB)</th><th>Macro-categoria</th></tr></thead>
       <tbody>
-        ${sorted.map(sq => `
+        ${list.map(sq => `
           <tr>
             <td style="font-weight:600">${sq.nome}</td>
-            <td><span class="cat-sq-badge ${sq.categoria}">${sq.categoria}</span></td>
-            <td style="color:#9ca3af">${sq.ordine ?? '—'}</td>
-            <td style="text-align:right;white-space:nowrap">
-              <button onclick="apriModalCatSquadra('${sq.id}')" style="padding:5px 12px;border:1.5px solid #d1d5db;border-radius:7px;background:#fff;font-size:12px;cursor:pointer;margin-right:6px">✏️ Modifica</button>
-              <button onclick="eliminaCatSquadra('${sq.id}')" style="padding:5px 12px;border:none;border-radius:7px;background:#fee2e2;color:#dc2626;font-size:12px;cursor:pointer">✕ Elimina</button>
+            <td>
+              <select class="cat-sq-sel" data-nome="${sq.nome.replace(/"/g,'&quot;')}">
+                <option value="">— non assegnata —</option>
+                <option value="Seniores" ${sq.categoria==='Seniores'?'selected':''}>Seniores</option>
+                <option value="Giovanili" ${sq.categoria==='Giovanili'?'selected':''}>Giovanili</option>
+                <option value="Juniores" ${sq.categoria==='Juniores'?'selected':''}>Juniores</option>
+              </select>
             </td>
           </tr>`).join('')}
       </tbody>
     </table>`;
   }
 
-  function apriModalCatSquadra(id) {
-    const sq = id ? _catSquadreList.find(s => s.id === id) : null;
-    document.getElementById('catSquadraTitolo').textContent = sq ? 'Modifica squadra' : 'Aggiungi squadra';
-    document.getElementById('catSquadraId').value       = sq?.id || '';
-    document.getElementById('catSquadraNome').value     = sq?.nome || '';
-    document.getElementById('catSquadraCategoria').value = sq?.categoria || 'Seniores';
-    document.getElementById('catSquadraOrdine').value   = sq?.ordine ?? '';
-    document.getElementById('modalCatSquadra').classList.add('aperto');
-  }
-
-  async function salvaCatSquadra() {
-    const id       = document.getElementById('catSquadraId').value;
-    const nome     = document.getElementById('catSquadraNome').value.trim();
-    const categoria = document.getElementById('catSquadraCategoria').value;
-    const ordine   = parseInt(document.getElementById('catSquadraOrdine').value) || 0;
-    if (!nome) { alert('Nome obbligatorio'); return; }
-    if (id) {
-      const idx = _catSquadreList.findIndex(s => s.id === id);
-      if (idx >= 0) _catSquadreList[idx] = { id, nome, categoria, ordine };
-    } else {
-      _catSquadreList.push({ id: Date.now().toString(), nome, categoria, ordine });
-    }
-    await _salvaCatSquadreRemote();
-    chiudiModal('modalCatSquadra');
-    renderCatSquadre();
-  }
-
-  async function eliminaCatSquadra(id) {
-    if (!confirm('Eliminare questa squadra?')) return;
-    _catSquadreList = _catSquadreList.filter(s => s.id !== id);
-    await _salvaCatSquadreRemote();
-    renderCatSquadre();
-  }
-
-  async function _salvaCatSquadreRemote() {
+  async function salvaCatSquadreMapping() {
+    const body = {};
+    document.querySelectorAll('.cat-sq-sel[data-nome]').forEach(sel => {
+      body[sel.dataset.nome] = sel.value;
+    });
     try {
       const res = await fetch('/api/admin/squadre-categorie', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
-        body: JSON.stringify(_catSquadreList),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error((await res.json()).error || res.status);
-    } catch (e) { alert('Errore salvataggio: ' + e.message); }
+      const data = await res.json();
+      const log = document.getElementById('catSquadreLog');
+      log.style.display = '';
+      if (!res.ok) {
+        log.textContent = '❌ Errore: ' + (data.error || res.status);
+        log.style.background = '#fee2e2'; log.style.color = '#dc2626';
+      } else {
+        log.textContent = '✅ Mapping salvato correttamente.';
+        log.style.background = '#dcfce7'; log.style.color = '#15803d';
+        setTimeout(() => { log.style.display = 'none'; }, 3000);
+      }
+    } catch (e) {
+      alert('Errore di rete: ' + e.message);
+    }
   }
 
   /* ══ EXPORT CSV ORDINI ══ */
