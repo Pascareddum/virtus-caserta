@@ -125,8 +125,8 @@
 
     <!-- REGISTRAZIONE -->
     <div class="panel" id="panelRegistrati" role="region" aria-label="Registrazione nuovo account">
-      <div class="panel-title">Crea account</div>
-      <div class="panel-sub">Unisciti alla Virtus Caserta</div>
+      <div class="panel-title">Richiedi registrazione</div>
+      <div class="panel-sub">Compila il modulo — ti contatteremo via email per l'approvazione</div>
       <form onsubmit="doRegistra(event)" aria-label="Form di registrazione">
         <div class="row2">
           <div class="field">
@@ -144,21 +144,13 @@
         </div>
         <div class="field">
           <label for="regEmailConferma">Conferma Email</label>
-          <input type="email" id="regEmailConferma" placeholder="tua@email.com" required aria-required="true" aria-describedby="regError" />
+          <input type="email" id="regEmailConferma" placeholder="tua@email.com" required aria-required="true" />
         </div>
         <div class="field">
-          <label for="regPass">Password</label>
-          <input type="password" id="regPass" placeholder="••••••" required aria-required="true" />
+          <label for="regTelefono">Numero di telefono</label>
+          <input type="tel" id="regTelefono" placeholder="+39 333 1234567" required aria-required="true" />
         </div>
-        <div class="field">
-          <label for="regPassConferma">Conferma Password</label>
-          <input type="password" id="regPassConferma" placeholder="••••••" required aria-required="true" aria-describedby="regError" />
-        </div>
-        <div class="field">
-          <label for="regNascita">Data di nascita</label>
-          <input type="date" id="regNascita" required aria-required="true" />
-        </div>
-        <button type="submit" class="submit-btn" aria-label="Crea il tuo account">Registrati</button>
+        <button type="submit" class="submit-btn" aria-label="Invia richiesta di registrazione">Registrati</button>
       </form>
       <div class="error" id="regError" role="alert" aria-live="polite"></div>
       <div class="success" id="regSuccess" role="status" aria-live="polite"></div>
@@ -223,28 +215,24 @@
       errEl.textContent = '';
       okEl.textContent  = '';
 
-      const nome    = document.getElementById('regNome').value.trim();
-      const cognome = document.getElementById('regCognome').value.trim();
-      const email   = document.getElementById('regEmail').value.trim();
-      const emailC  = document.getElementById('regEmailConferma').value.trim();
-      const pass    = document.getElementById('regPass').value;
-      const passC   = document.getElementById('regPassConferma').value;
-      const nascita = document.getElementById('regNascita').value;
+      const nome     = document.getElementById('regNome').value.trim();
+      const cognome  = document.getElementById('regCognome').value.trim();
+      const email    = document.getElementById('regEmail').value.trim();
+      const emailC   = document.getElementById('regEmailConferma').value.trim();
+      const telefono = document.getElementById('regTelefono').value.trim();
 
       if (email !== emailC) { errEl.textContent = 'Le email non coincidono.'; return; }
-      if (pass  !== passC)  { errEl.textContent = 'Le password non coincidono.'; return; }
-      if (pass.length < 6)  { errEl.textContent = 'Password minimo 6 caratteri.'; return; }
+      if (!telefono)        { errEl.textContent = 'Inserisci il numero di telefono.'; return; }
 
       try {
         const res  = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome, cognome, email, password: pass, dataNascita: nascita }),
+          body: JSON.stringify({ nome, cognome, email, telefono }),
         });
         const data = await res.json();
         if (!res.ok) { errEl.textContent = data.error || 'Errore registrazione.'; return; }
-        okEl.textContent = 'Registrazione completata! Ora puoi accedere.';
-        setTimeout(() => showPanel('utente'), 1500);
+        okEl.textContent = '✅ Richiesta inviata! Riceverai una email quando il tuo account sarà approvato.';
       } catch {
         errEl.textContent = 'Errore di rete. Riprova.';
       }

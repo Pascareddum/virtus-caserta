@@ -897,6 +897,7 @@
     <button class="tab-btn"        data-tab="staff"        onclick="switchTab('staff')">👥 Staff</button>
     <button class="tab-btn"        data-tab="live"         onclick="switchTab('live')">📡 Live</button>
     <button class="tab-btn"        data-tab="sponsor"      onclick="switchTab('sponsor')">🤝 Sponsor</button>
+    <button class="tab-btn"        data-tab="utenti"       onclick="switchTab('utenti')">👤 Utenti</button>
     <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
     <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
     <div class="drawer-home">
@@ -916,6 +917,7 @@
   <button class="tab-btn"        data-tab="staff"        onclick="switchTab('staff')">👥 Staff</button>
   <button class="tab-btn"        data-tab="live"         onclick="switchTab('live')">📡 Live</button>
   <button class="tab-btn"        data-tab="sponsor"      onclick="switchTab('sponsor')">🤝 Sponsor</button>
+  <button class="tab-btn"        data-tab="utenti"       onclick="switchTab('utenti')">👤 Utenti</button>
   <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
   <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
   <div class="sidebar-home">
@@ -1130,6 +1132,32 @@
     <table>
       <thead><tr><th>Logo</th><th>Nome</th><th>URL</th><th>Livello</th><th>Attivo</th><th></th></tr></thead>
       <tbody id="sponsorBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ UTENTI ══ -->
+<div class="pannello" id="pan-utenti">
+  <div class="toolbar"><h2>Utenti registrati</h2></div>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:20px;">Gestisci le richieste di registrazione. Approva un utente per inviargli il link di impostazione password.</p>
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+    <button class="filtro-btn on" onclick="filtraUtenti('')" id="uFiltroTutti">Tutti</button>
+    <button class="filtro-btn" onclick="filtraUtenti('in_attesa')" id="uFiltroAttesa">⏳ In attesa</button>
+    <button class="filtro-btn" onclick="filtraUtenti('approvato')" id="uFiltroApprovato">📧 Approvati (pw da impostare)</button>
+    <button class="filtro-btn" onclick="filtraUtenti('attivo')" id="uFiltroAttivo">✅ Attivi</button>
+    <button class="filtro-btn" onclick="filtraUtenti('rifiutato')" id="uFiltroRifiutato">❌ Rifiutati</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Telefono</th>
+        <th>Stato</th>
+        <th>Data</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="utentiBody"></tbody>
     </table>
   </div>
 </div>
@@ -1764,6 +1792,7 @@
     if (nome === 'staff')        caricaStaff();
     if (nome === 'live')         caricaLiveLinks();
     if (nome === 'sponsor')      caricaSponsor();
+    if (nome === 'utenti')       caricaUtenti();
     if (nome === 'link-squadre') caricaLinkSquadre();
     if (nome === 'cat-squadre')  caricaCatSquadre();
   }
@@ -2726,6 +2755,90 @@
     if (!confirm(`Eliminare sponsor "${nome}"?`)) return;
     const res = await fetch(`/api/admin/sponsor/${id}`, { method:'DELETE', headers: headers() });
     if (res.ok) caricaSponsor(); else alert('Errore eliminazione.');
+  }
+
+  /* ══ UTENTI ══ */
+  let _filtroUtenti = '';
+  function filtraUtenti(stato) {
+    _filtroUtenti = stato;
+    document.querySelectorAll('[id^="uFiltro"]').forEach(b => b.classList.remove('on'));
+    const map = {'':'uFiltroTutti','in_attesa':'uFiltroAttesa','approvato':'uFiltroApprovato','attivo':'uFiltroAttivo','rifiutato':'uFiltroRifiutato'};
+    document.getElementById(map[stato])?.classList.add('on');
+    caricaUtenti();
+  }
+
+  async function caricaUtenti() {
+    const tbody = document.getElementById('utentiBody');
+    try {
+      let list = await fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json());
+      if (_filtroUtenti) list = list.filter(u => u.stato === _filtroUtenti);
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Nessun utente trovato.</td></tr>';
+        return;
+      }
+      const statoBadge = s => ({
+        in_attesa:  '<span class="badge badge-arancio">⏳ In attesa</span>',
+        approvato:  '<span class="badge badge-blu">📧 Email inviata</span>',
+        attivo:     '<span class="badge badge-verde">✅ Attivo</span>',
+        rifiutato:  '<span class="badge" style="background:#fef2f2;color:#b91c1c;">❌ Rifiutato</span>',
+      }[s] || `<span class="badge">${s}</span>`);
+      tbody.innerHTML = list.map(u => `
+        <tr>
+          <td data-label="Nome"><strong>${u.nome} ${u.cognome}</strong></td>
+          <td data-label="Email"><div class="prod-desc">${u.email}</div></td>
+          <td data-label="Telefono" style="font-size:13px;">${u.telefono || '—'}</td>
+          <td data-label="Stato">${statoBadge(u.stato)}</td>
+          <td data-label="Data" style="font-size:12px;color:#6b7280;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : '—'}</td>
+          <td data-label="Azioni">
+            <div class="azioni" style="gap:6px;flex-wrap:wrap;">
+              ${u.stato === 'in_attesa' ? `
+                <button onclick="approvaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
+                  style="padding:6px 12px;border-radius:8px;border:1.5px solid #86efac;background:#fff;color:#16a34a;font-size:12px;font-weight:700;cursor:pointer;">
+                  ✅ Approva
+                </button>
+                <button onclick="rifiutaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
+                  style="padding:6px 12px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;">
+                  ❌ Rifiuta
+                </button>` : ''}
+              ${u.stato === 'approvato' ? `
+                <button onclick="approvaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
+                  style="padding:6px 12px;border-radius:8px;border:1.5px solid #93c5fd;background:#fff;color:#1d4ed8;font-size:12px;font-weight:700;cursor:pointer;">
+                  📧 Reinvia link
+                </button>` : ''}
+              <button onclick="eliminaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
+                style="padding:6px 12px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:12px;cursor:pointer;">
+                🗑
+              </button>
+            </div>
+          </td>
+        </tr>`).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="6">Errore caricamento utenti.</td></tr>'; }
+  }
+
+  async function approvaUtente(id, nome) {
+    if (!confirm(`Approvare "${nome}" e inviare il link per impostare la password?`)) return;
+    const res = await fetch(`/api/admin/utenti/${id}/approva`, { method:'POST', headers: headers() });
+    const d = await res.json();
+    if (!res.ok) { alert('Errore: ' + (d.error || 'sconosciuto')); return; }
+    caricaUtenti();
+    if (d.setupLink) {
+      const copia = confirm(`✅ ${nome} approvato.\n\nLink impostazione password (invialo manualmente se la mail non arriva):\n\n${d.setupLink}\n\nClicca OK per copiare il link.`);
+      if (copia) navigator.clipboard?.writeText(d.setupLink).catch(() => {});
+    } else {
+      alert(`✅ Email inviata a ${nome}.`);
+    }
+  }
+
+  async function rifiutaUtente(id, nome) {
+    if (!confirm(`Rifiutare la registrazione di "${nome}"?`)) return;
+    const res = await fetch(`/api/admin/utenti/${id}/rifiuta`, { method:'POST', headers: headers() });
+    if (res.ok) caricaUtenti(); else alert('Errore rifiuto.');
+  }
+
+  async function eliminaUtente(id, nome) {
+    if (!confirm(`Eliminare definitivamente l'utente "${nome}"?`)) return;
+    const res = await fetch(`/api/admin/utenti/${id}`, { method:'DELETE', headers: headers() });
+    if (res.ok) caricaUtenti(); else alert('Errore eliminazione.');
   }
 
   /* ══ GALLERIA ══ */

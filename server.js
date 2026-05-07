@@ -310,6 +310,7 @@ app.get('/galleria',          (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione',        (_req, res) => res.redirect(301, '/'));
 app.get('/sponsor',           sendPage('sponsor.html'));
 app.get('/reset-password',    (_req, res) => res.redirect(301, '/login'));
+app.get('/imposta-password',  sendPage('imposta-password.html'));
 
 const BLOCKED_FILES = /^\/?(server\.js|db\.js|package(?:-lock)?\.json|railway\.json|\.env[^/]*)$/i;
 app.use((req, res, next) => {
@@ -418,6 +419,175 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
 app.post('/api/admin/logout', (_req, res) => {
   res.clearCookie('vc_admin_session');
   res.json({ success: true });
+});
+
+/* ─── Utenti: registrazione (pubblico) ─── */
+const registraLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Troppi tentativi. Riprova tra un\'ora.' } });
+app.post('/api/register', registraLimiter, async (req, res) => {
+  try {
+    let { nome, cognome, email, telefono } = req.body;
+    nome     = String(nome     || '').trim().slice(0, 100);
+    cognome  = String(cognome  || '').trim().slice(0, 100);
+    email    = String(email    || '').trim().toLowerCase().slice(0, 254);
+    telefono = String(telefono || '').trim().slice(0, 30);
+    if (!nome || !cognome || !email || !telefono) return res.status(400).json({ error: 'Tutti i campi sono obbligatori.' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Email non valida.' });
+    const existing = await db.query('SELECT id FROM utenti WHERE email=$1', [email]);
+    if (existing.rows.length) return res.status(409).json({ error: 'Email già registrata.' });
+    const id = crypto.randomUUID();
+    await db.query(
+      `INSERT INTO utenti (id, email, nome, cognome, telefono, stato) VALUES ($1,$2,$3,$4,$5,'in_attesa')`,
+      [id, email, nome, cognome, telefono]
+    );
+    await logActivity('Nuova registrazione utente', `${nome} ${cognome} <${email}>`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Register]', err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Utenti: login (pubblico) ─── */
+app.post('/api/login', loginLimiter, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori.' });
+    const r = await db.query('SELECT * FROM utenti WHERE email=$1', [email.trim().toLowerCase()]);
+    if (!r.rows.length) return res.status(401).json({ error: 'Credenziali non valide.' });
+    const u = r.rows[0];
+    if (u.stato !== 'attivo') return res.status(403).json({ error: 'Account non ancora attivo. Attendi approvazione.' });
+    if (!u.password_hash) return res.status(403).json({ error: 'Password non impostata. Controlla la tua email.' });
+    const ok = await bcrypt.compare(password, u.password_hash);
+    if (!ok) return res.status(401).json({ error: 'Credenziali non valide.' });
+    const token = jwt.sign({ id: u.id, email: u.email, nome: u.nome, role: 'utente' }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ token, user: { id: u.id, nome: u.nome, cognome: u.cognome, email: u.email } });
+  } catch (err) {
+    console.error('[Login]', err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Utenti: lista admin ─── */
+app.get('/api/admin/utenti', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('SELECT id,email,nome,cognome,telefono,stato,created_at FROM utenti ORDER BY created_at DESC');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+/* ─── Utenti: approva → invia email setup password ─── */
+app.post('/api/admin/utenti/:id/approva', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM utenti WHERE id=$1', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Utente non trovato.' });
+    const u = r.rows[0];
+    const token = crypto.randomBytes(32).toString('hex');
+    const exp   = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    await db.query(
+      `UPDATE utenti SET stato='approvato', setup_token=$1, setup_token_exp=$2 WHERE id=$3`,
+      [token, exp, u.id]
+    );
+    await logActivity('Utente approvato', `${u.nome} ${u.cognome} <${u.email}>`);
+    const base = process.env.BASE_URL || 'https://www.virtuscaserta.com';
+    const setupLink = `${base}/imposta-password?token=${token}`;
+    const emailHtml = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+        <div style="background:#0d2055;padding:24px;text-align:center">
+          <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+          <p style="color:#ff9800;margin:6px 0 0;font-size:13px">REGISTRAZIONE APPROVATA</p>
+        </div>
+        <div style="padding:28px 24px">
+          <p>Ciao <strong>${esc(u.nome)}</strong>,</p>
+          <p>La tua registrazione a Virtus Caserta ASD è stata <strong>approvata</strong>!</p>
+          <p>Clicca il pulsante qui sotto per impostare la tua password e completare l'accesso:</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="${setupLink}" style="display:inline-block;background:#f57c00;color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;">Imposta la tua password</a>
+          </div>
+          <p style="font-size:13px;color:#6b7280;">Il link è valido per <strong>48 ore</strong>. Se non hai richiesto tu la registrazione, ignora questa email.</p>
+          <p style="font-size:13px;color:#6b7280;">Oppure copia il link: <a href="${setupLink}" style="color:#f57c00;word-break:break-all;">${setupLink}</a></p>
+        </div>
+        <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
+          © 2026 Virtus Caserta – Società Sportiva Pallavolo
+        </div>
+      </div>`;
+    if (brevoApiConfigurato()) {
+      sendBrevoEmail({
+        to: u.email,
+        subject: 'Registrazione approvata – Imposta la tua password | Virtus Caserta',
+        html: emailHtml,
+      }).then(() => console.log(`[Setup email] Inviata via API a ${u.email}`))
+        .catch(e => console.error('[Setup email] Errore API:', e.message));
+    } else if (brevoConfigurato()) {
+      creaTransporterShop().sendMail({
+        from: shopFrom(), to: u.email,
+        subject: 'Registrazione approvata – Imposta la tua password | Virtus Caserta',
+        html: emailHtml,
+      }).catch(e => console.error('[Setup email] Errore SMTP:', e.message));
+    } else {
+      console.warn(`[Setup email] Nessun provider email configurato. Link manuale: ${setupLink}`);
+    }
+    res.json({ success: true, setupLink });
+  } catch (err) {
+    console.error('[Approva utente]', err);
+    res.status(500).json({ error: 'Errore interno.' });
+  }
+});
+
+/* ─── Utenti: rifiuta ─── */
+app.post('/api/admin/utenti/:id/rifiuta', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query(`UPDATE utenti SET stato='rifiutato' WHERE id=$1 RETURNING nome,cognome,email`, [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Utente non trovato.' });
+    await logActivity('Utente rifiutato', `${r.rows[0].nome} ${r.rows[0].cognome} <${r.rows[0].email}>`);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+/* ─── Utenti: elimina ─── */
+app.delete('/api/admin/utenti/:id', adminAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM utenti WHERE id=$1', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+/* ─── Imposta password: verifica token ─── */
+app.get('/api/imposta-password/verifica', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: 'Token mancante.' });
+    const r = await db.query(
+      `SELECT id,nome,email FROM utenti WHERE setup_token=$1 AND setup_token_exp > NOW() AND stato='approvato'`,
+      [token]
+    );
+    if (!r.rows.length) return res.status(400).json({ error: 'Link non valido o scaduto.' });
+    res.json({ nome: r.rows[0].nome, email: r.rows[0].email });
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+/* ─── Imposta password: set ─── */
+app.post('/api/imposta-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Dati mancanti.' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password minimo 6 caratteri.' });
+    const r = await db.query(
+      `SELECT id,nome,email FROM utenti WHERE setup_token=$1 AND setup_token_exp > NOW() AND stato='approvato'`,
+      [token]
+    );
+    if (!r.rows.length) return res.status(400).json({ error: 'Link non valido o scaduto.' });
+    const u = r.rows[0];
+    const hash = await bcrypt.hash(password, 12);
+    await db.query(
+      `UPDATE utenti SET password_hash=$1, stato='attivo', setup_token=NULL, setup_token_exp=NULL WHERE id=$2`,
+      [hash, u.id]
+    );
+    await logActivity('Utente attivato', `${u.nome} <${u.email}>`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Imposta password]', err);
+    res.status(500).json({ error: 'Errore interno.' });
+  }
 });
 
 /* ─── Calendario: pubblico ─── */

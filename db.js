@@ -241,6 +241,21 @@ async function createTables() {
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS sconto INTEGER DEFAULT 0`);
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS quantita INTEGER DEFAULT -1`);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS utenti (
+      id              VARCHAR PRIMARY KEY,
+      email           VARCHAR UNIQUE NOT NULL,
+      nome            VARCHAR NOT NULL,
+      cognome         VARCHAR NOT NULL,
+      telefono        VARCHAR DEFAULT '',
+      password_hash   VARCHAR,
+      stato           VARCHAR DEFAULT 'in_attesa',
+      setup_token     VARCHAR,
+      setup_token_exp TIMESTAMPTZ,
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   // Valori default impostazioni
   await query(`
     INSERT INTO impostazioni (chiave, valore) VALUES
