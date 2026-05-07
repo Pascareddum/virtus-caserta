@@ -67,7 +67,68 @@ function creaTransporter() {
 }
 
 function emailConfigurata() {
-  return brevoConfigurato() || !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+  return brevoApiConfigurato() || brevoConfigurato() || !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+}
+
+/* ─── Brevo HTTP API (contatti) ─── */
+function brevoApiConfigurato() {
+  return !!(process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL);
+}
+
+async function sendBrevoEmail({ fromName = 'Virtus Caserta', fromEmail, to, subject, html, replyTo, headers = {} }) {
+  const apiKey  = process.env.BREVO_API_KEY;
+  const fromAddr = (fromEmail || process.env.BREVO_FROM_EMAIL || '').trim();
+  if (!apiKey)    throw new Error('BREVO_API_KEY non configurata');
+  if (!fromAddr)  throw new Error('BREVO_FROM_EMAIL non configurata');
+
+  const normalizeRecipients = r =>
+    Array.isArray(r) ? r : [typeof r === 'string' ? { email: r.trim() } : r];
+
+  const payload = {
+    sender:      { name: fromName, email: fromAddr },
+    to:          normalizeRecipients(to),
+    subject,
+    htmlContent: html,
+    headers: {
+      'X-Mailer':        'VirtusCaserta/1.0',
+      'X-Entity-Ref-ID': crypto.randomUUID(),
+      ...headers,
+    },
+  };
+  if (replyTo) payload.replyTo = { email: typeof replyTo === 'string' ? replyTo.trim() : replyTo };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method:  'POST',
+      headers: {
+        'api-key':      apiKey,
+        'Content-Type': 'application/json',
+        'Accept':       'application/json',
+      },
+      body:   JSON.stringify(payload),
+      signal: controller.signal,
+    });
+
+    let data = {};
+    try { data = await res.json(); } catch (_) {}
+
+    if (!res.ok) {
+      const msg = data.message || data.error || `HTTP ${res.status}`;
+      const err = new Error(`Brevo API: ${msg}`);
+      err.status = res.status;
+      err.brevoData = data;
+      throw err;
+    }
+    return data;
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('Brevo API: timeout dopo 15s');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /* ─── Brevo SMTP: transporter per email shop/ordini ─── */
@@ -2541,20 +2602,10 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
       Caserta, Campania – Italia
     </div>`;
 
-  try {
-    const t = brevoConfigurato() ? creaTransporterBrevo() : creaTransporter();
-    const fromAddr = brevoConfigurato()
-      ? (process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim()
-      : (process.env.EMAIL_USER || '').trim();
-    const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
+  const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || '').trim();
+  if (!adminTo) return res.status(503).json({ error: 'Destinatario admin non configurato.' });
 
-    /* ── Email all'admin ── */
-    await t.sendMail({
-      from:    `"Virtus Caserta" <${fromAddr}>`,
-      to:      adminTo,
-      replyTo: email.trim(),
-      subject: `[Contatto Sito] ${esc(oggetto || 'Nuovo messaggio')} – ${esc(nome)}`,
-      html: `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  const htmlAdmin = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
     <tr><td align="center">
@@ -2587,15 +2638,9 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
       </table>
     </td></tr>
   </table>
-</body></html>`,
-    });
+</body></html>`;
 
-    /* ── Email di conferma all'utente ── */
-    await t.sendMail({
-      from:    `"Virtus Caserta" <${fromAddr}>`,
-      to:      email.trim(),
-      subject: 'Abbiamo ricevuto il tuo messaggio – Virtus Caserta',
-      html: `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+  const htmlUtente = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
     <tr><td align="center">
@@ -2630,37 +2675,60 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
       </table>
     </td></tr>
   </table>
-</body></html>`,
-    });
+</body></html>`;
+
+  try {
+    const results = await Promise.allSettled([
+      sendBrevoEmail({
+        to:      adminTo,
+        subject: `[Contatto Sito] ${esc(oggetto || 'Nuovo messaggio')} – ${esc(nome)}`,
+        replyTo: email.trim(),
+        html:    htmlAdmin,
+      }),
+      sendBrevoEmail({
+        to:      email.trim(),
+        subject: 'Abbiamo ricevuto il tuo messaggio – Virtus Caserta',
+        html:    htmlUtente,
+      }),
+    ]);
+
+    const failures = results.filter(r => r.status === 'rejected');
+    if (failures.length === 2) {
+      const msg = failures[0].reason?.message || 'Errore sconosciuto';
+      console.error('[Contact] Entrambe le email fallite:', msg);
+      return res.status(500).json({ error: 'Invio fallito. Riprova più tardi.' });
+    }
+    if (failures.length === 1) {
+      console.warn('[Contact] Email parzialmente fallita:', failures[0].reason?.message);
+    }
 
     res.json({ success: true });
   } catch (err) {
-    console.error('[Contact] Errore:', err);
+    console.error('[Contact] Errore inatteso:', err.message);
     res.status(500).json({ error: 'Invio fallito. Riprova più tardi.' });
   }
 });
 
 /* ─── Admin: test email ─── */
 app.post('/api/admin/test-email', adminAuth, async (_req, res) => {
-  if (!emailConfigurata()) return res.status(503).json({ error: 'Nessun provider email configurato.' });
+  if (!brevoApiConfigurato()) return res.status(503).json({ error: 'BREVO_API_KEY o BREVO_FROM_EMAIL non configurati.' });
+  const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || '').trim();
+  if (!adminTo) return res.status(503).json({ error: 'EMAIL_ADMIN non configurato.' });
   try {
-    const t = brevoConfigurato() ? creaTransporterBrevo() : creaTransporter();
-    const fromAddr = brevoConfigurato()
-      ? (process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || '').trim()
-      : (process.env.EMAIL_USER || '').trim();
-    const adminTo = (process.env.EMAIL_ADMIN || process.env.BREVO_FROM_EMAIL || process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
-    await t.verify();
-    await t.sendMail({
-      from: `"Virtus Caserta" <${fromAddr}>`,
-      to: adminTo,
+    await sendBrevoEmail({
+      to:      adminTo,
       subject: 'Test email – Virtus Caserta',
-      text: `Email di test inviata da ${process.env.NODE_ENV || 'development'} alle ${new Date().toISOString()}`,
+      html:    `<p style="font-family:Arial,sans-serif;font-size:14px;">
+                  Email di test inviata via Brevo HTTP API<br>
+                  Ambiente: <strong>${process.env.NODE_ENV || 'development'}</strong><br>
+                  Timestamp: <strong>${new Date().toISOString()}</strong>
+                </p>`,
     });
-    await logActivity('Test email inviato', fromAddr);
+    await logActivity('Test email inviato', adminTo);
     res.json({ success: true });
   } catch (err) {
-    console.error('[Test email] Errore:', err);
-    res.status(500).json({ error: 'Errore interno del server.' });
+    console.error('[Test email] Errore:', err.message, err.brevoData || '');
+    res.status(500).json({ error: err.message || 'Errore interno del server.' });
   }
 });
 
