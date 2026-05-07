@@ -238,8 +238,9 @@
     }
     .cart-item-img {
       width: 60px; height: 60px; border-radius: 10px; flex-shrink: 0;
-      background: linear-gradient(135deg, var(--blu-scuro), var(--blu-medio));
+      background: #f0f4f8;
       display: flex; align-items: center; justify-content: center; font-size: 26px;
+      overflow: hidden;
     }
     .cart-item-info { flex: 1; }
     .cart-item-nome { font-size: 14px; font-weight: 700; color: var(--blu-scuro); }
@@ -376,8 +377,6 @@
     .metodo-sub  { font-size: 12px; color: #9ca3af; }
     .metodo-logo { font-size: 22px; }
 
-    .form-carta { display: none; }
-    .form-carta.visibile { display: flex; flex-direction: column; gap: 12px; }
 
     .btn-paga {
       padding: 16px; border-radius: 50px; border: none; cursor: pointer;
@@ -392,18 +391,6 @@
       text-align: center; font-size: 12px; color: #9ca3af;
       display: flex; align-items: center; justify-content: center; gap: 6px;
     }
-
-    /* Stripe Element */
-    .stripe-element-box {
-      border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 16px;
-      background: var(--bianco); transition: border-color .2s;
-    }
-    .stripe-element-box.StripeElement--focus { border-color: var(--blu-chiaro); }
-    .stripe-element-box.StripeElement--invalid { border-color: #dc2626; }
-    #stripe-error { color: #dc2626; font-size: 13px; margin-top: 6px; min-height: 18px; }
-
-    /* PayPal container */
-    #paypalContainer { margin-top: 14px; }
 
     /* Spinner */
     .spinner {
@@ -627,8 +614,8 @@
             <div>
               <strong>1.</strong> Invia la richiesta — riceverai una email di conferma.<br>
               <strong>2.</strong> Ti contatteremo per confermare la disponibilità e concordare il ritiro.<br>
-              <strong>3.</strong> Ritira il tuo ordine in sede e paga al momento del ritiro.<br>
-              <span style="color:#6b7280;font-size:12px">📍 Virtus Caserta ASD – Caserta</span>
+              <strong>3.</strong> Ritira il tuo ordine in sede. Il pagamento avviene tramite <strong>Golee</strong> oppure in <strong>contanti in anticipo</strong>.<br>
+              <span style="color:#6b7280;font-size:12px">📍 Virtus Caserta ASD – Caserta · Per info: <a href="mailto:virtuscaserta@gmail.com" style="color:#6b7280">virtuscaserta@gmail.com</a></span>
             </div>
           </div>
         </div>
@@ -814,7 +801,7 @@
       const prezzo  = prezzoScontato(p);
       const esistente = carrello.find(i => i.id === pid && i.taglia === taglia);
       if (esistente) esistente.qty = Math.min(10, esistente.qty + 1);
-      else carrello.push({ id: pid, nome: p.nome, prezzo, emoji: p.emoji || '🏐', taglia, qty: 1 });
+      else carrello.push({ id: pid, nome: p.nome, prezzo, emoji: p.emoji || '🏐', immagine: p.immagine || '', taglia, qty: 1 });
       aggiornaCarrello();
       mostraToast(`✅ ${p.nome} (${taglia}) aggiunta al carrello`);
     }
@@ -849,17 +836,34 @@
       }
       el.innerHTML = carrello.map((item, i) => `
         <div class="cart-item">
-          <div class="cart-item-img">${item.emoji}</div>
+          <div class="cart-item-img">
+            ${item.immagine
+              ? `<img src="${item.immagine}" alt="${item.nome}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;">`
+              : item.emoji}
+          </div>
           <div class="cart-item-info">
             <div class="cart-item-nome">${item.nome}</div>
-            <div class="cart-item-sub">Taglia ${item.taglia} · Qtà ${item.qty}</div>
+            <div class="cart-item-sub">Taglia ${item.taglia}</div>
             <div class="cart-item-prezzo">€ ${(item.prezzo * item.qty).toFixed(2).replace('.', ',')}</div>
           </div>
-          <button class="cart-item-remove" onclick="rimuoviItem(${i})">✕</button>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
+            <button class="cart-item-remove" onclick="incrementaItem(${i})" title="Aggiungi uno" style="font-size:18px;line-height:1;color:#16a34a;">+</button>
+            <span style="font-size:13px;font-weight:700;color:#374151;min-width:20px;text-align:center;">${item.qty}</span>
+            <button class="cart-item-remove" onclick="decrementaItem(${i})" title="Rimuovi uno" style="font-size:18px;line-height:1;">−</button>
+          </div>
+          <button class="cart-item-remove" onclick="rimuoviItem(${i})" title="Rimuovi tutto" style="font-size:13px;opacity:.5;align-self:center;margin-left:4px;">✕</button>
         </div>`).join('');
     }
 
     function rimuoviItem(i) { carrello.splice(i, 1); aggiornaCarrello(); }
+    function decrementaItem(i) {
+      if (carrello[i].qty > 1) { carrello[i].qty--; } else { carrello.splice(i, 1); }
+      aggiornaCarrello();
+    }
+    function incrementaItem(i) {
+      carrello[i].qty = Math.min(10, carrello[i].qty + 1);
+      aggiornaCarrello();
+    }
     function apriCarrello()  { document.getElementById('cartOverlay').classList.add('aperto'); document.getElementById('cartDrawer').classList.add('aperto'); }
     function chiudiCarrello(){ document.getElementById('cartOverlay').classList.remove('aperto'); document.getElementById('cartDrawer').classList.remove('aperto'); }
 

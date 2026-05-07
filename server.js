@@ -244,7 +244,7 @@ app.get('/utente.html',             (_req, res) => res.redirect(301, '/utente'))
 // Vecchi URL rimossi → redirect home
 app.get('/galleria.html',           (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione.html',         (_req, res) => res.redirect(301, '/'));
-app.get('/sponsor.html',            (_req, res) => res.redirect(301, '/'));
+app.get('/sponsor.html',            (_req, res) => res.redirect(301, '/sponsor'));
 app.get('/reset-password.html',     (_req, res) => res.redirect(301, '/'));
 
 // Per-article OG tags for social sharing
@@ -308,7 +308,7 @@ app.get('/utente',            sendPage('utente.html'));
 // Vecchi URL rimossi → redirect home
 app.get('/galleria',          (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione',        (_req, res) => res.redirect(301, '/'));
-app.get('/sponsor',           (_req, res) => res.redirect(301, '/'));
+app.get('/sponsor',           sendPage('sponsor.html'));
 app.get('/reset-password',    (_req, res) => res.redirect(301, '/login'));
 
 const BLOCKED_FILES = /^\/?(server\.js|db\.js|package(?:-lock)?\.json|railway\.json|\.env[^/]*)$/i;
@@ -335,6 +335,14 @@ const paymentLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Troppe richieste di pagamento. Riprova tra un minuto.' },
+});
+
+const ordineEmailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Hai inviato troppi ordini. Riprova tra un\'ora.' },
 });
 
 /* ─── Utility: escape HTML per email ─── */
@@ -1151,7 +1159,7 @@ app.post('/api/send-order-email', paymentLimiter, async (req, res) => {
 });
 
 /* ─── Richiesta acquisto senza pagamento online ─── */
-app.post('/api/richiesta-ordine', paymentLimiter, async (req, res) => {
+app.post('/api/richiesta-ordine', ordineEmailLimiter, async (req, res) => {
   let { nome, cognome, email, telefono, note, items, totale } = req.body;
   nome     = String(nome     || '').slice(0, 100).trim();
   cognome  = String(cognome  || '').slice(0, 100).trim();
@@ -2632,7 +2640,7 @@ function scheduleReminderMailOrdini() {
           </div>`;
         transporter.sendMail({
           from: shopFrom(),
-          to: 'virtuscaserta@gmail.com',
+          to: 'alessandro.pascarella@gmail.com',
           subject: `[Virtus Shop] ${r.rows.length} ordini in sospeso senza risposta`,
           html,
         }).catch(e => console.error('[Reminder ordini]', e.message));

@@ -45,28 +45,24 @@
   </div>
   <h1>Ordine confermato!</h1>
   <p class="ordine-id">Numero ordine: <strong id="orderId">—</strong></p>
-  <p>Grazie per il tuo acquisto! Abbiamo inviato una <strong>email di conferma</strong> con il riepilogo dell'ordine.</p>
+  <p>Grazie! Abbiamo inviato una <strong>email di conferma</strong> con il riepilogo dell'ordine.</p>
 
   <div class="passi">
     <div class="passo">
       <div class="passo-num">1</div>
-      <div class="passo-testo"><strong>Conferma ricevuta</strong><br>Email inviata con il riepilogo</div>
+      <div class="passo-testo"><strong>Conferma ricevuta</strong><br>Email inviata con il riepilogo dell'ordine</div>
     </div>
     <div class="passo">
       <div class="passo-num">2</div>
-      <div class="passo-testo"><strong>Preparazione</strong><br>Prepariamo il tuo ordine entro 3–5 giorni lavorativi</div>
+      <div class="passo-testo"><strong>Ti contatteremo</strong><br>Verifichiamo la disponibilità e concordiamo il ritiro</div>
     </div>
     <div class="passo">
       <div class="passo-num">3</div>
-      <div class="passo-testo"><strong>Spedizione</strong><br>Riceverai un'email quando il pacco è in viaggio</div>
-    </div>
-    <div class="passo">
-      <div class="passo-num">4</div>
-      <div class="passo-testo"><strong>Consegna</strong><br>Stima 2–4 giorni dalla spedizione</div>
+      <div class="passo-testo"><strong>Ritiro in sede</strong><br>📍 Virtus Caserta ASD – Caserta<br>Pagamento tramite <strong>Golee</strong> o <strong>contanti in anticipo</strong></div>
     </div>
   </div>
 
-  <p class="assistenza">Per assistenza scrivi a <a href="mailto:info@virtuscaserta.it">info@virtuscaserta.it</a></p>
+  <p class="assistenza">Per assistenza scrivi a <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a></p>
 
   <div class="btns">
     <a href="/" class="btn">← Torna alla Home</a>
@@ -75,15 +71,8 @@
 </div>
 <script>
   const params = new URLSearchParams(location.search);
-  const id     = params.get('id');
-  const metodo = params.get('metodo');
+  const id = params.get('id');
   if (id) document.getElementById('orderId').textContent = '#' + id;
-  if (metodo === 'sepa') {
-    document.querySelector('.check').textContent = '⏳';
-    document.querySelector('h1').textContent = 'Pagamento in elaborazione';
-    document.querySelector('p:not(.ordine-id)').innerHTML =
-      'Il tuo ordine è stato registrato. Il pagamento SEPA sarà <strong>addebitato entro 3–5 giorni lavorativi</strong>. Riceverai una conferma via email.';
-  }
 </script>
 <script src="common.js"></script>
 </body>
