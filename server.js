@@ -470,7 +470,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 /* ─── Utenti: lista admin ─── */
 app.get('/api/admin/utenti', adminAuth, async (_req, res) => {
   try {
-    const r = await db.query('SELECT id,email,nome,cognome,telefono,stato,created_at FROM utenti ORDER BY created_at DESC');
+    const r = await db.query('SELECT id,email,nome,cognome,telefono,stato,created_at,is_atleta,is_allenatore,squadre_atleta,squadre_allenatore FROM utenti ORDER BY created_at DESC');
     res.json(r.rows);
   } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
 });
@@ -529,6 +529,28 @@ app.post('/api/admin/utenti/:id/approva', adminAuth, async (req, res) => {
     res.json({ success: true, setupLink });
   } catch (err) {
     console.error('[Approva utente]', err);
+    res.status(500).json({ error: 'Errore interno.' });
+  }
+});
+
+/* ─── Utenti: aggiorna tipo (atleta/allenatore/squadre) ─── */
+app.put('/api/admin/utenti/:id/tipo', adminAuth, async (req, res) => {
+  try {
+    const { is_atleta, is_allenatore, squadre_atleta, squadre_allenatore } = req.body;
+    const r = await db.query(
+      `UPDATE utenti SET is_atleta=$1, is_allenatore=$2, squadre_atleta=$3, squadre_allenatore=$4 WHERE id=$5 RETURNING nome,cognome`,
+      [
+        !!is_atleta, !!is_allenatore,
+        JSON.stringify(Array.isArray(squadre_atleta) ? squadre_atleta : []),
+        JSON.stringify(Array.isArray(squadre_allenatore) ? squadre_allenatore : []),
+        req.params.id,
+      ]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Utente non trovato.' });
+    await logActivity('Tipo utente aggiornato', `${r.rows[0].nome} ${r.rows[0].cognome}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Tipo utente]', err);
     res.status(500).json({ error: 'Errore interno.' });
   }
 });
@@ -962,22 +984,70 @@ const SESSO_ESCLUDI = new Set(['Maschile', 'Femminile', 'Staff', '']);
 
 app.get('/api/squadre-categorie', async (_req, res) => {
   try {
-    // Legge valori sesso distinti dal DB (supporta comma-separated)
     const { rows } = await db.query(`SELECT DISTINCT sesso FROM squadra WHERE attiva=true AND sesso IS NOT NULL AND sesso!=''`);
     const valoriUnici = new Set();
     rows.forEach(r => {
       r.sesso.split(',').map(s => s.trim()).filter(s => s && !SESSO_ESCLUDI.has(s)).forEach(s => valoriUnici.add(s));
     });
 
-    // Legge mapping salvato { "Serie D Femminile": "Seniores", ... }
+    // Merge squadre extra (aggiunte manualmente)
+    const extraRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_extra'`);
+    const extraTeams = JSON.parse(extraRaw.rows[0]?.valore || '[]');
+    extraTeams.forEach(nome => { if (nome && !SESSO_ESCLUDI.has(nome)) valoriUnici.add(nome); });
+
     const mRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_mappa'`);
     const mapping = JSON.parse(mRaw.rows[0]?.valore || '{}');
 
-    const result = [...valoriUnici].sort().map(nome => ({
-      nome,
-      categoria: mapping[nome] || '',
-    }));
+    const esclRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_escluse'`);
+    const escluse = new Set(JSON.parse(esclRaw.rows[0]?.valore || '[]'));
+
+    const extraSet = new Set(extraTeams);
+    const result = [...valoriUnici]
+      .filter(nome => !escluse.has(nome))
+      .sort()
+      .map(nome => ({
+        nome,
+        categoria: mapping[nome] || '',
+        custom: extraSet.has(nome),
+      }));
     res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.put('/api/admin/squadre-extra', adminAuth, async (req, res) => {
+  try {
+    const extra = Array.isArray(req.body) ? req.body.filter(s => typeof s === 'string' && s.trim().length > 0 && s.length <= 100) : [];
+    await db.query(
+      `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_extra',$1,NOW())
+       ON CONFLICT (chiave) DO UPDATE SET valore=$1, updated_at=NOW()`,
+      [JSON.stringify(extra)]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.get('/api/admin/squadre-escluse', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_escluse'`);
+    res.json(JSON.parse(r.rows[0]?.valore || '[]'));
+  } catch (err) { res.status(500).json({ error: 'Errore interno del server.' }); }
+});
+
+app.put('/api/admin/squadre-escluse', adminAuth, async (req, res) => {
+  try {
+    const escluse = Array.isArray(req.body) ? req.body.filter(s => typeof s === 'string' && s.trim().length > 0) : [];
+    await db.query(
+      `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_escluse',$1,NOW())
+       ON CONFLICT (chiave) DO UPDATE SET valore=$1, updated_at=NOW()`,
+      [JSON.stringify(escluse)]
+    );
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });

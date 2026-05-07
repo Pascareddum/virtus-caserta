@@ -1153,6 +1153,7 @@
         <th>Nome</th>
         <th>Email</th>
         <th>Telefono</th>
+        <th>Tipo</th>
         <th>Stato</th>
         <th>Data</th>
         <th>Azioni</th>
@@ -1281,10 +1282,20 @@
     <h2>Categorie Squadre</h2>
     <button class="btn-aggiungi" onclick="salvaCatSquadreMapping()">💾 Salva mapping</button>
   </div>
-  <p style="font-size:13px;color:#6b7280;margin-bottom:20px">
-    Le squadre vengono rilevate automaticamente dai valori assegnati agli atleti. Assegna ogni squadra alla sua macro-categoria.
-    <br><span style="color:#9ca3af;font-size:12px">ℹ️ "Maschile" e "Femminile" sono esclusi — usa nomi specifici (es. Serie D Femminile).</span>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:16px">
+    Le squadre vengono rilevate automaticamente dagli atleti. Puoi aggiungerne di nuove manualmente.
+    <br><span style="color:#9ca3af;font-size:12px">ℹ️ "Maschile", "Femminile" e "Staff" sono esclusi — usa nomi specifici (es. Serie D Femminile).</span>
   </p>
+
+  <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center;">
+    <input type="text" id="nuovaSquadraInput" placeholder="Es. Serie B Maschile"
+      style="flex:1;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;"
+      onkeydown="if(event.key==='Enter') aggiungiSquadraCustom()">
+    <button onclick="aggiungiSquadraCustom()"
+      style="padding:9px 16px;border-radius:8px;border:none;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+      + Aggiungi squadra
+    </button>
+  </div>
 
   <style>
     .cat-sq-table{width:100%;border-collapse:collapse;font-size:14px;}
@@ -1524,14 +1535,7 @@
       </div>
       <div class="mf">
         <label>Categoria</label>
-        <select id="sCategoria">
-          <option value="">— Seleziona —</option>
-          <option value="Under 19">Under 19</option>
-          <option value="Under 16">Under 16</option>
-          <option value="Under 13">Under 13</option>
-          <option value="Prima Squadra">Prima Squadra</option>
-          <option value="Altro">Altro</option>
-        </select>
+        <div id="sCategoriaCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 0;"></div>
       </div>
       <div class="mf">
         <label>Note</label>
@@ -1710,6 +1714,46 @@
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalFoto')">Annulla</button>
       <button class="btn-salva" id="btnSalvaFoto" onclick="salvaFoto()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalTipoUtente">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr">
+      <h3 id="tipoUtenteTitle">Tipo utente</h3>
+      <button class="modal-close" onclick="chiudiModal('modalTipoUtente')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:20px;">
+      <p style="font-size:13px;color:#6b7280;margin:0;">Attiva uno o entrambi i ruoli. Ogni ruolo ha squadre indipendenti.</p>
+      <div style="display:flex;gap:10px;">
+        <button id="btnTabAtleta" onclick="toggleTipoTab('atleta')"
+          style="flex:1;padding:14px 10px;border-radius:10px;border:2px solid #d1d5db;background:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;">
+          🏐 Atleta
+        </button>
+        <button id="btnTabAllenatore" onclick="toggleTipoTab('allenatore')"
+          style="flex:1;padding:14px 10px;border-radius:10px;border:2px solid #d1d5db;background:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;">
+          📋 Allenatore
+        </button>
+      </div>
+      <div id="squadreAtletaSection" style="display:none;">
+        <label style="font-size:13px;font-weight:700;color:#16a34a;display:block;margin-bottom:6px;">🏐 Squadre come Atleta</label>
+        <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">Ctrl/Cmd per più selezioni.</p>
+        <select id="squadreAtletaSelect" multiple
+          style="width:100%;min-height:100px;border:1.5px solid #86efac;border-radius:8px;padding:6px;font-size:13px;outline:none;">
+        </select>
+      </div>
+      <div id="squadreAllenatoreSection" style="display:none;">
+        <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin-bottom:6px;">📋 Squadre come Allenatore</label>
+        <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">Ctrl/Cmd per più selezioni.</p>
+        <select id="squadreAllenatoreSelect" multiple
+          style="width:100%;min-height:100px;border:1.5px solid #93c5fd;border-radius:8px;padding:6px;font-size:13px;outline:none;">
+        </select>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalTipoUtente')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaTipo" onclick="salvaTipoUtente()">Salva</button>
     </div>
   </div>
 </div>
@@ -2129,13 +2173,13 @@
     document.getElementById('sOraInizio').value = '18:00';
     document.getElementById('sOraFine').value   = '20:00';
     document.getElementById('sLuogo').value     = '';
-    document.getElementById('sCategoria').value = '';
     document.getElementById('sNote').value      = '';
     document.getElementById('sRipetizione').checked = false;
     document.getElementById('sDataFine').value  = '';
     document.getElementById('dataFineWrap').style.display = 'none';
     document.getElementById('ripetizioneWrap').style.display = id ? 'none' : 'block';
 
+    let categoriaCorrente = '';
     if (id) {
       const sessions = await fetch('/api/calendario').then(r => r.json());
       const s = sessions.find(x => x.id === id);
@@ -2145,10 +2189,11 @@
         document.getElementById('sOraInizio').value = parseOraInizio(s.ora);
         document.getElementById('sOraFine').value   = parseOraFine(s.ora);
         document.getElementById('sLuogo').value     = s.luogo || '';
-        document.getElementById('sCategoria').value = s.categoria || '';
+        categoriaCorrente = s.categoria || '';
         document.getElementById('sNote').value      = s.note || '';
       }
     }
+    renderSCategoriaCheckboxes(categoriaCorrente);
     document.getElementById('modalSessione').classList.add('aperto');
   }
 
@@ -2168,7 +2213,7 @@
       const body = {
         titolo, data, ora,
         luogo:     document.getElementById('sLuogo').value.trim(),
-        categoria: document.getElementById('sCategoria').value,
+        categoria: getSCategoriaValue(),
         note:      document.getElementById('sNote').value.trim(),
         ripetizione_settimanale: ripetizione,
         data_fine_ripetizione:   ripetizione ? dataFine : undefined,
@@ -2449,7 +2494,8 @@
   async function caricaSquadra() {
     const tbody = document.getElementById('squadraBody');
     try {
-      const list = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+      const raw = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+      const list = raw.filter(g => g.sesso !== 'Staff' && !RUOLI_STAFF_ADMIN.includes(g.ruolo));
       if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🏐</div>Nessuna giocatrice.</div></td></tr>`; return; }
       tbody.innerHTML = list.map(g => `
         <tr>
@@ -2493,6 +2539,26 @@
 
   function getGSessoValue() {
     return Array.from(document.querySelectorAll('#gSessoCheckboxes input[type=checkbox]'))
+      .filter(c => c.checked).map(c => c.value).join(',');
+  }
+
+  async function renderSCategoriaCheckboxes(valoreCorrente) {
+    const selezionate = (valoreCorrente || '').split(',').map(s => s.trim()).filter(Boolean);
+    const catList = await fetchSquadreCat();
+    const opzioni = catList.length
+      ? catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s => s.nome)
+      : SQUADRE_FISSE;
+    selezionate.forEach(v => { if (!opzioni.includes(v)) opzioni.push(v); });
+    document.getElementById('sCategoriaCheckboxes').innerHTML = opzioni.map(opt =>
+      `<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;color:#374151">
+        <input type="checkbox" value="${opt}" ${selezionate.includes(opt) ? 'checked' : ''} style="accent-color:var(--blu);width:14px;height:14px">
+        ${opt}
+      </label>`
+    ).join('');
+  }
+
+  function getSCategoriaValue() {
+    return Array.from(document.querySelectorAll('#sCategoriaCheckboxes input[type=checkbox]'))
       .filter(c => c.checked).map(c => c.value).join(',');
   }
 
@@ -2782,15 +2848,33 @@
         attivo:     '<span class="badge badge-verde">✅ Attivo</span>',
         rifiutato:  '<span class="badge" style="background:#fef2f2;color:#b91c1c;">❌ Rifiutato</span>',
       }[s] || `<span class="badge">${s}</span>`);
+      const tipoBadge = u => {
+        const tags = [];
+        if (u.is_atleta) {
+          const sq = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
+          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">🏐 Atleta</span>${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+        }
+        if (u.is_allenatore) {
+          const sq = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
+          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">📋 Allenatore</span>${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+        }
+        return tags.length ? tags.join('') : '<span style="color:#9ca3af;font-size:12px;">—</span>';
+      };
+      window._utentiMap = Object.fromEntries(list.map(u => [u.id, u]));
       tbody.innerHTML = list.map(u => `
         <tr>
           <td data-label="Nome"><strong>${u.nome} ${u.cognome}</strong></td>
           <td data-label="Email"><div class="prod-desc">${u.email}</div></td>
           <td data-label="Telefono" style="font-size:13px;">${u.telefono || '—'}</td>
+          <td data-label="Tipo">${tipoBadge(u)}</td>
           <td data-label="Stato">${statoBadge(u.stato)}</td>
           <td data-label="Data" style="font-size:12px;color:#6b7280;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : '—'}</td>
           <td data-label="Azioni">
             <div class="azioni" style="gap:6px;flex-wrap:wrap;">
+              <button onclick="apriModalTipoUtente('${u.id}')"
+                style="padding:6px 12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#374151;font-size:12px;font-weight:700;cursor:pointer;">
+                👤 Tipo
+              </button>
               ${u.stato === 'in_attesa' ? `
                 <button onclick="approvaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
                   style="padding:6px 12px;border-radius:8px;border:1.5px solid #86efac;background:#fff;color:#16a34a;font-size:12px;font-weight:700;cursor:pointer;">
@@ -2839,6 +2923,75 @@
     if (!confirm(`Eliminare definitivamente l'utente "${nome}"?`)) return;
     const res = await fetch(`/api/admin/utenti/${id}`, { method:'DELETE', headers: headers() });
     if (res.ok) caricaUtenti(); else alert('Errore eliminazione.');
+  }
+
+  /* ══ TIPO UTENTE ══ */
+  let _tipoUtenteId = null;
+  const _tipoStato = { atleta: false, allenatore: false };
+
+  async function apriModalTipoUtente(id) {
+    const u = (window._utentiMap || {})[id];
+    if (!u) return;
+    _tipoUtenteId = id;
+    _tipoStato.atleta = !!u.is_atleta;
+    _tipoStato.allenatore = !!u.is_allenatore;
+    const sqAtleta = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
+    const sqAllenatore = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
+    document.getElementById('tipoUtenteTitle').textContent = `Tipo utente – ${u.nome} ${u.cognome}`;
+    _aggiornaTabTipo();
+    _mostraSezioniSquadre();
+
+    const [selA, selAl] = ['squadreAtletaSelect','squadreAllenatoreSelect'].map(id => document.getElementById(id));
+    selA.innerHTML = selAl.innerHTML = '<option disabled>Caricamento…</option>';
+    document.getElementById('modalTipoUtente').classList.add('aperto');
+
+    try {
+      const cats = await fetch('/api/squadre-categorie', { headers: headers() }).then(r => r.json());
+      const optsA  = cats.map(c => `<option value="${c.nome}" ${sqAtleta.includes(c.nome) ? 'selected' : ''}>${c.nome}</option>`).join('');
+      const optsAl = cats.map(c => `<option value="${c.nome}" ${sqAllenatore.includes(c.nome) ? 'selected' : ''}>${c.nome}</option>`).join('');
+      selA.innerHTML  = optsA  || '<option disabled>Nessuna squadra configurata</option>';
+      selAl.innerHTML = optsAl || '<option disabled>Nessuna squadra configurata</option>';
+    } catch {
+      selA.innerHTML = selAl.innerHTML = '<option disabled>Errore caricamento squadre</option>';
+    }
+  }
+
+  function _mostraSezioniSquadre() {
+    document.getElementById('squadreAtletaSection').style.display    = _tipoStato.atleta    ? 'block' : 'none';
+    document.getElementById('squadreAllenatoreSection').style.display = _tipoStato.allenatore ? 'block' : 'none';
+  }
+
+  function toggleTipoTab(tipo) {
+    _tipoStato[tipo] = !_tipoStato[tipo];
+    _aggiornaTabTipo();
+    _mostraSezioniSquadre();
+  }
+
+  function _aggiornaTabTipo() {
+    const styleOn  = 'flex:1;padding:14px 10px;border-radius:10px;border:2px solid #0d2055;background:#0d2055;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;';
+    const styleOff = 'flex:1;padding:14px 10px;border-radius:10px;border:2px solid #d1d5db;background:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;';
+    document.getElementById('btnTabAtleta').style.cssText    = _tipoStato.atleta    ? styleOn : styleOff;
+    document.getElementById('btnTabAllenatore').style.cssText = _tipoStato.allenatore ? styleOn : styleOff;
+  }
+
+  async function salvaTipoUtente() {
+    if (!_tipoUtenteId) return;
+    const btn = document.getElementById('btnSalvaTipo');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    try {
+      const getSelected = selId => Array.from(document.getElementById(selId).selectedOptions).map(o => o.value);
+      const squadre_atleta    = _tipoStato.atleta    ? getSelected('squadreAtletaSelect')    : [];
+      const squadre_allenatore = _tipoStato.allenatore ? getSelected('squadreAllenatoreSelect') : [];
+      const res = await fetch(`/api/admin/utenti/${_tipoUtenteId}/tipo`, {
+        method: 'PUT',
+        headers: { ...headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_atleta: _tipoStato.atleta, is_allenatore: _tipoStato.allenatore, squadre_atleta, squadre_allenatore })
+      });
+      if (!res.ok) { const d = await res.json(); alert('Errore: ' + (d.error || 'sconosciuto')); return; }
+      chiudiModal('modalTipoUtente');
+      caricaUtenti();
+    } catch { alert('Errore di rete.'); }
+    finally { btn.disabled = false; btn.textContent = 'Salva'; }
   }
 
   /* ══ GALLERIA ══ */
@@ -3003,15 +3156,18 @@
   function renderCatSquadre(list) {
     const el = document.getElementById('catSquadreList');
     if (!list.length) {
-      el.innerHTML = `<p style="color:#9ca3af;text-align:center;padding:40px">Nessun atleta con categoria assegnata nel DB.<br><small>Aggiungi atleti con un valore "Squadra" specifico (es. Serie D Femminile).</small></p>`;
+      el.innerHTML = `<p style="color:#9ca3af;text-align:center;padding:32px">Nessuna squadra. Aggiungine una con il campo sopra o aggiungi atleti con squadra assegnata.</p>`;
       return;
     }
     el.innerHTML = `<table class="cat-sq-table">
-      <thead><tr><th>Squadra (valore sesso nel DB)</th><th>Macro-categoria</th></tr></thead>
+      <thead><tr><th>Squadra</th><th>Macro-categoria</th><th style="width:120px"></th></tr></thead>
       <tbody>
         ${list.map(sq => `
-          <tr>
-            <td style="font-weight:600">${sq.nome}</td>
+          <tr id="csq-row-${sq.nome.replace(/[^a-z0-9]/gi,'_')}">
+            <td style="font-weight:600">
+              <span class="csq-nome">${sq.nome}</span>
+              ${sq.custom ? '<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px;">(custom)</span>' : '<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px;">(da atleti)</span>'}
+            </td>
             <td>
               <select class="cat-sq-sel" data-nome="${sq.nome.replace(/"/g,'&quot;')}">
                 <option value="">— non assegnata —</option>
@@ -3019,9 +3175,82 @@
                 <option value="Giovanili" ${sq.categoria==='Giovanili'?'selected':''}>Giovanili</option>
               </select>
             </td>
+            <td>
+              <div style="display:flex;gap:4px;">
+                ${sq.custom ? `<button onclick="avviaRinominaSquadra('${sq.nome.replace(/'/g,"\\'")}',this)" title="Rinomina" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;font-size:12px;cursor:pointer;">✏️</button>` : ''}
+                <button onclick="${sq.custom ? `rimuoviSquadraCustom('${sq.nome.replace(/'/g,"\\'")}')` : `esludiSquadraAuto('${sq.nome.replace(/'/g,"\\'")}')` }" title="Elimina" style="padding:4px 8px;border-radius:6px;border:1px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;cursor:pointer;">✕</button>
+              </div>
+            </td>
           </tr>`).join('')}
       </tbody>
     </table>`;
+  }
+
+  async function avviaRinominaSquadra(nomeVecchio, btn) {
+    const row = btn.closest('tr');
+    const nomeSpan = row.querySelector('.csq-nome');
+    const nomeCorrente = nomeSpan.textContent;
+    const input = document.createElement('input');
+    input.type = 'text'; input.value = nomeCorrente;
+    input.style.cssText = 'padding:4px 8px;border:1.5px solid #0d2055;border-radius:6px;font-size:13px;width:160px;';
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = '✓'; saveBtn.title = 'Salva';
+    saveBtn.style.cssText = 'padding:4px 8px;border-radius:6px;border:none;background:#0d2055;color:#fff;font-size:12px;cursor:pointer;margin-left:4px;';
+    saveBtn.onclick = async () => {
+      const nuovoNome = input.value.trim();
+      if (!nuovoNome || nuovoNome === nomeVecchio) { caricaCatSquadre(); return; }
+      const catList = await fetchSquadreCat();
+      const extra = catList.filter(s => s.custom).map(s => s.nome === nomeVecchio ? nuovoNome : s.nome);
+      await fetch('/api/admin/squadre-extra', {
+        method: 'PUT', headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+        body: JSON.stringify(extra),
+      });
+      caricaCatSquadre();
+    };
+    nomeSpan.replaceWith(input);
+    btn.replaceWith(saveBtn);
+  }
+
+  async function aggiungiSquadraCustom() {
+    const input = document.getElementById('nuovaSquadraInput');
+    const nome = input.value.trim();
+    if (!nome) return;
+    const catList = await fetchSquadreCat();
+    if (catList.find(s => s.nome.toLowerCase() === nome.toLowerCase())) {
+      alert(`"${nome}" esiste già.`); return;
+    }
+    const extra = catList.filter(s => s.custom).map(s => s.nome);
+    extra.push(nome);
+    await fetch('/api/admin/squadre-extra', {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+      body: JSON.stringify(extra),
+    });
+    input.value = '';
+    caricaCatSquadre();
+  }
+
+  async function rimuoviSquadraCustom(nome) {
+    const catList = await fetchSquadreCat();
+    const extra = catList.filter(s => s.custom && s.nome !== nome).map(s => s.nome);
+    await fetch('/api/admin/squadre-extra', {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+      body: JSON.stringify(extra),
+    });
+    caricaCatSquadre();
+  }
+
+  async function esludiSquadraAuto(nome) {
+    if (!confirm(`Nascondere "${nome}" dalla lista?\n(Riapparirà se ci sono atleti con questa squadra assegnata — per rimozione definitiva, aggiorna gli atleti.)`)) return;
+    const correnti = await fetch('/api/admin/squadre-escluse', { headers: headers() }).then(r => r.json()).catch(() => []);
+    if (!correnti.includes(nome)) correnti.push(nome);
+    await fetch('/api/admin/squadre-escluse', {
+      method: 'PUT',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN },
+      body: JSON.stringify(correnti),
+    });
+    caricaCatSquadre();
   }
 
   async function salvaCatSquadreMapping() {

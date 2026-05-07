@@ -240,6 +240,11 @@ async function createTables() {
   await query(`ALTER TABLE squadra ADD COLUMN IF NOT EXISTS sesso VARCHAR DEFAULT 'Femminile'`);
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS sconto INTEGER DEFAULT 0`);
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS quantita INTEGER DEFAULT -1`);
+  await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS is_atleta BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS is_allenatore BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS squadre JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS squadre_atleta JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS squadre_allenatore JSONB DEFAULT '[]'`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS utenti (
