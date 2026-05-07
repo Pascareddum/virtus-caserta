@@ -70,6 +70,59 @@
     .filtro-pill:hover{border-color:var(--blu);color:var(--blu);}
     .filtro-pill.attivo{background:var(--blu);border-color:var(--blu);color:#fff;}
     .filtro-pill.attivo.giovanili{background:var(--blu-m);border-color:var(--blu-m);}
+
+    /* ── CARD CLICK ── */
+    .giocatrice-card{cursor:pointer;}
+
+    /* ── PROFILO MODAL ── */
+    .profilo-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:4000;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+      opacity:0;pointer-events:none;transition:opacity .25s;}
+    .profilo-overlay.aperto{opacity:1;pointer-events:all;}
+    .profilo-modal{background:#fff;border-radius:20px;overflow:hidden;max-width:460px;width:100%;
+      max-height:90vh;overflow-y:auto;position:relative;
+      transform:scale(.95);transition:transform .25s;}
+    .profilo-overlay.aperto .profilo-modal{transform:scale(1);}
+    .profilo-modal-foto{width:100%;height:290px;background:linear-gradient(135deg,var(--blu),var(--blu-m));
+      display:flex;align-items:center;justify-content:center;font-size:96px;
+      color:rgba(255,255,255,.3);overflow:hidden;cursor:zoom-in;}
+    .profilo-modal-foto img{width:100%;height:100%;object-fit:contain;background:#f0f4f8;cursor:zoom-in;}
+    .profilo-modal-body{padding:22px 26px 28px;}
+    .profilo-modal-numero{font-size:11px;font-weight:700;color:var(--arancio);text-transform:uppercase;letter-spacing:3px;margin-bottom:4px;}
+    .profilo-modal-nome{font-size:23px;font-weight:900;color:var(--blu);margin-bottom:5px;line-height:1.2;}
+    .profilo-modal-ruolo{font-size:13px;color:#9ca3af;font-weight:400;margin-top:8px;margin-bottom:14px;letter-spacing:.3px;}
+    .profilo-modal-bio{font-size:14px;color:#374151;line-height:1.7;}
+    .profilo-close{position:absolute;top:12px;right:12px;width:34px;height:34px;
+      background:rgba(0,0,0,.4);border:none;border-radius:50%;color:#fff;
+      font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      z-index:1;transition:background .2s;}
+    .profilo-close:hover{background:rgba(0,0,0,.6);}
+    .profilo-share{margin-top:18px;}
+    .share-ig-storia{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;
+      border-radius:50px;border:none;cursor:pointer;font-size:13px;font-weight:700;
+      background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+      color:#fff;transition:opacity .2s;}
+    .share-ig-storia:hover{opacity:.83;}
+
+    /* ── ZOOM LIGHTBOX ── */
+    .zoom-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:5000;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;pointer-events:none;transition:opacity .25s;cursor:zoom-out;}
+    .zoom-overlay.aperto{opacity:1;pointer-events:all;display:flex;}
+    .zoom-overlay img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;
+      transform:scale(.92);transition:transform .25s;cursor:default;}
+    .zoom-overlay.aperto img{transform:scale(1);}
+    .zoom-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.15);
+      border:none;color:#fff;font-size:22px;cursor:pointer;width:42px;height:42px;
+      border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+    .zoom-close:hover{background:rgba(255,255,255,.28);}
+
+    /* ── TOAST ── */
+    .vc-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+      background:#1a1a2e;color:#fff;padding:12px 24px;border-radius:50px;
+      font-size:14px;font-weight:600;z-index:6000;opacity:0;pointer-events:none;
+      transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center;}
+    .vc-toast.visibile{opacity:1;}
   </style>
 </head>
 <body>
@@ -179,6 +232,35 @@
   </div>
 </footer>
 
+<!-- PROFILO MODAL -->
+<div class="profilo-overlay" id="profiloOverlay" onclick="if(event.target===this)chiudiProfilo()">
+  <div class="profilo-modal">
+    <button class="profilo-close" onclick="chiudiProfilo()">✕</button>
+    <div class="profilo-modal-foto" id="profiloFoto" onclick="zoomProfiloFoto()"></div>
+    <div class="profilo-modal-body">
+      <div class="profilo-modal-numero" id="profiloNumero"></div>
+      <div class="profilo-modal-nome" id="profiloNome"></div>
+      <div class="profilo-modal-ruolo" id="profiloRuolo"></div>
+      <div class="profilo-modal-bio" id="profiloBio"></div>
+      <div class="profilo-share">
+        <button class="share-ig-storia" onclick="condividiStoriaIGMembro()">
+          <svg style="width:15px;height:15px;fill:currentColor;flex-shrink:0" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+          Storia Instagram
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ZOOM LIGHTBOX -->
+<div class="zoom-overlay" id="zoomOverlay" onclick="if(event.target!==document.getElementById('zoomImg'))chiudiZoom()">
+  <button class="zoom-close" onclick="chiudiZoom()">✕</button>
+  <img id="zoomImg" src="" alt="">
+</div>
+
+<!-- TOAST -->
+<div class="vc-toast" id="vcToast"></div>
+
 <script>
 
    /* ─── AUTH ─── */
@@ -231,9 +313,12 @@
 
     aggiornaNavbar();
 
+  const _membri = {};
+
   function cardHtml(g) {
+    _membri[g.id] = g;
     return `
-      <div class="giocatrice-card">
+      <div class="giocatrice-card" onclick="apriProfilo('${g.id}')">
         <div class="card-foto">
           ${g.foto ? `<img src="${g.foto}" alt="${g.nome} ${g.cognome}" loading="lazy">` : '🏐'}
         </div>
@@ -276,6 +361,203 @@
         </div>
         <div class="squadra-grid">${lista.map(cardHtml).join('')}</div>
       </div>`;
+  }
+
+  /* ── PROFILO ── */
+  let _profiloAttivo = null;
+  let _vcToastTimer;
+
+  function vcToast(msg) {
+    const t = document.getElementById('vcToast');
+    t.textContent = msg;
+    t.classList.add('visibile');
+    clearTimeout(_vcToastTimer);
+    _vcToastTimer = setTimeout(() => t.classList.remove('visibile'), 3200);
+  }
+
+  function apriProfilo(id) {
+    const g = _membri[id];
+    if (!g) return;
+    _profiloAttivo = g;
+    const fotoEl = document.getElementById('profiloFoto');
+    if (g.foto) {
+      fotoEl.innerHTML = `<img src="${g.foto.replace(/"/g,'&quot;')}" alt="${(g.nome+' '+g.cognome).replace(/"/g,'&quot;')}" title="Clicca per ingrandire">`;
+    } else {
+      fotoEl.innerHTML = '🏐';
+    }
+    document.getElementById('profiloNumero').textContent = g.numero ? `#${g.numero}` : '';
+    document.getElementById('profiloNome').textContent   = `${g.nome} ${g.cognome}`;
+    document.getElementById('profiloRuolo').textContent  = g.ruolo || '';
+    document.getElementById('profiloBio').textContent    = g.bio   || '';
+    document.getElementById('profiloOverlay').classList.add('aperto');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function chiudiProfilo() {
+    document.getElementById('profiloOverlay').classList.remove('aperto');
+    document.body.style.overflow = '';
+    _profiloAttivo = null;
+  }
+
+  function zoomProfiloFoto() {
+    if (!_profiloAttivo?.foto) return;
+    apriZoom(_profiloAttivo.foto, `${_profiloAttivo.nome} ${_profiloAttivo.cognome}`);
+  }
+
+  function apriZoom(src, alt) {
+    const i = document.getElementById('zoomImg');
+    i.src = src; i.alt = alt || '';
+    document.getElementById('zoomOverlay').classList.add('aperto');
+  }
+
+  function chiudiZoom() {
+    document.getElementById('zoomOverlay').classList.remove('aperto');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { chiudiZoom(); chiudiProfilo(); }
+  });
+
+  /* ── IG STORY ── */
+  function _loadImg(src) {
+    return new Promise(resolve => {
+      if (!src) { resolve(null); return; }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  function _buildStoriaMembro(W, H, photo, nome, ruolo, numero, logo) {
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#0d2055';
+    ctx.fillRect(0, 0, W, H);
+
+    // Photo: contain with horizontal padding + rounded corners
+    const PHOTO_PAD = 60;
+    const PHOTO_TOP = 168;
+    const PHOTO_MAX_H = Math.round(H * 0.50);
+    const maxPhotoW = W - PHOTO_PAD * 2;
+    let photoBottom = PHOTO_TOP;
+    if (photo) {
+      const scale = Math.min(maxPhotoW / photo.naturalWidth, PHOTO_MAX_H / photo.naturalHeight);
+      const dw = photo.naturalWidth * scale, dh = photo.naturalHeight * scale;
+      const dx = (W - dw) / 2, dy = PHOTO_TOP;
+      const r = 28;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(dx + r, dy);
+      ctx.lineTo(dx + dw - r, dy); ctx.quadraticCurveTo(dx + dw, dy, dx + dw, dy + r);
+      ctx.lineTo(dx + dw, dy + dh - r); ctx.quadraticCurveTo(dx + dw, dy + dh, dx + dw - r, dy + dh);
+      ctx.lineTo(dx + r, dy + dh); ctx.quadraticCurveTo(dx, dy + dh, dx, dy + dh - r);
+      ctx.lineTo(dx, dy + r); ctx.quadraticCurveTo(dx, dy, dx + r, dy);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(photo, dx, dy, dw, dh);
+      ctx.restore();
+      photoBottom = dy + dh;
+    }
+
+    // Gradient only in text area below photo
+    const gradY = photoBottom + 10;
+    const grad = ctx.createLinearGradient(0, gradY, 0, H);
+    grad.addColorStop(0, 'rgba(13,32,85,0)');
+    grad.addColorStop(0.25, 'rgba(13,32,85,0.92)');
+    grad.addColorStop(1, 'rgba(13,32,85,1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, gradY, W, H - gradY);
+
+    ctx.fillStyle = '#f57c00';
+    ctx.fillRect(0, 0, W, 18);
+
+    if (logo) {
+      const logoH = 80;
+      const logoW = (logo.naturalWidth / logo.naturalHeight) * logoH;
+      ctx.globalAlpha = 0.88;
+      ctx.drawImage(logo, W / 2 - logoW / 2, 36, logoW, logoH);
+      ctx.globalAlpha = 1;
+    }
+
+    const PAD = 80;
+    ctx.textAlign = 'center';
+
+    // Text flows top-down from photoBottom
+    let curY = photoBottom + 70;
+
+    // Nome — immediately after photo
+    ctx.fillStyle = '#ffffff';
+    const nomeParts = nome.split(' ');
+    const mid = Math.ceil(nomeParts.length / 2);
+    const line1 = nomeParts.slice(0, mid).join(' ').toUpperCase();
+    const line2 = nomeParts.slice(mid).join(' ').toUpperCase();
+    let fs = 96;
+    while (fs > 44) {
+      ctx.font = `bold ${fs}px Arial,sans-serif`;
+      if (ctx.measureText(line1).width < W - PAD * 2 && ctx.measureText(line2).width < W - PAD * 2) break;
+      fs -= 6;
+    }
+    const lineH = Math.round(fs * 1.2);
+    const hasLine2 = line2.trim().length > 0;
+    curY += fs;
+    ctx.font = `bold ${fs}px Arial,sans-serif`;
+    ctx.fillText(line1, W / 2, curY);
+    if (hasLine2) { curY += lineH; ctx.fillText(line2, W / 2, curY); }
+
+    // Numero after name
+    curY += Math.round(fs * 0.65);
+    if (numero) {
+      ctx.fillStyle = 'rgba(245,124,0,0.9)';
+      ctx.font = 'bold 50px Arial,sans-serif';
+      ctx.fillText(`#${numero}`, W / 2, curY);
+      curY += 58;
+    } else { curY += 18; }
+
+    // Ruolo after numero
+    if (ruolo) {
+      ctx.fillStyle = 'rgba(255,255,255,0.60)';
+      ctx.font = 'bold 40px Arial,sans-serif';
+      ctx.fillText(ruolo.toUpperCase(), W / 2, curY);
+    }
+
+    ctx.fillStyle = '#f57c00';
+    ctx.fillRect(0, H - 14, W, 14);
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = 'normal 28px Arial,sans-serif';
+    ctx.fillText('www.virtuscaserta.com', W / 2, H - 24);
+
+    return canvas;
+  }
+
+  async function condividiStoriaIGMembro() {
+    if (!_profiloAttivo) return;
+    const g = _profiloAttivo;
+    const nome = `${g.nome} ${g.cognome}`;
+    vcToast('Generazione storia…');
+
+    const [photo, logo] = await Promise.all([_loadImg(g.foto), _loadImg('images/negativo@4x.png')]);
+    const canvas = _buildStoriaMembro(1080, 1920, photo, nome, g.ruolo, g.numero, logo);
+
+    const file = await new Promise(res =>
+      canvas.toBlob(b => res(new File([b], 'virtus-storia.png', { type: 'image/png' })), 'image/png')
+    );
+
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: nome });
+        return;
+      }
+    } catch (e) { if (e.name === 'AbortError') return; }
+
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.download = 'virtus-storia.png'; a.href = url; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    vcToast('Immagine scaricata — pubblicala su Instagram!');
   }
 
   async function carica() {
