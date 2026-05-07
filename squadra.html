@@ -476,12 +476,36 @@
       return fs;
     }
 
+    function photoGrad(img, gx, gy, gh) {
+      try {
+        const SZ = 8;
+        const tmp = document.createElement('canvas');
+        tmp.width = SZ; tmp.height = SZ;
+        const tc = tmp.getContext('2d', { willReadFrequently: true });
+        tc.drawImage(img, 0, 0, SZ, SZ);
+        const d = tc.getImageData(0, 0, SZ, SZ).data;
+        const f = 0.42;
+        function rowColor(row) {
+          let r=0,g=0,b=0;
+          for (let x=0;x<SZ;x++){const i=(row*SZ+x)*4;r+=d[i];g+=d[i+1];b+=d[i+2];}
+          return `rgb(${~~(r/SZ*f)},${~~(g/SZ*f)},${~~(b/SZ*f)})`;
+        }
+        const gr = ctx.createLinearGradient(gx, gy, gx, gy+gh);
+        gr.addColorStop(0,    rowColor(0));
+        gr.addColorStop(0.33, rowColor(2));
+        gr.addColorStop(0.66, rowColor(5));
+        gr.addColorStop(1,    rowColor(7));
+        return gr;
+      } catch { return null; }
+    }
+
     // Background
     ctx.fillStyle = NAVY;
     ctx.fillRect(0, 0, W, H);
 
     // Photo — contain within max bounds, centered horizontally
-    const PAX = 54, PAY = 80, PAW = W - PAX * 2, MAX_PH = 1050, BR = 16, BORDER = 8;
+    const PAX = 54, PAW = W - PAX * 2, MAX_PH = 980, BR = 16, BORDER = 8;
+    const IBH = 320, GAP = 12;
     let photoW = PAW, photoH = Math.round(PAW * 0.75);
     if (photo) {
       const s = Math.min(PAW / photo.naturalWidth, MAX_PH / photo.naturalHeight);
@@ -489,7 +513,9 @@
       photoH = Math.round(photo.naturalHeight * s);
     }
     const photoX = PAX + Math.round((PAW - photoW) / 2);
-    const photoY = PAY;
+    // Vertically center entire block (frame + gap + info box)
+    const blockH = photoH + BORDER * 2 + GAP + IBH;
+    const photoY = Math.round((H - blockH) / 2) + BORDER;
 
     // Gold frame: filled rect slightly larger than photo acts as border
     rrPath(photoX - BORDER, photoY - BORDER, photoW + BORDER * 2, photoH + BORDER * 2, BR + BORDER);
@@ -505,68 +531,60 @@
       ctx.restore();
     }
 
-    // Logo overlay — top-left of photo
-    if (logo) {
-      const LH = 76, LPAD = 14;
-      const LW = Math.round((logo.naturalWidth / logo.naturalHeight) * LH);
-      ctx.fillStyle = 'rgba(0,0,0,0.38)';
-      rrPath(photoX + LPAD - 8, photoY + LPAD - 8, LW + 16, LH + 16, 10);
-      ctx.fill();
-      ctx.globalAlpha = 0.92;
-      ctx.drawImage(logo, photoX + LPAD, photoY + LPAD, LW, LH);
-      ctx.globalAlpha = 1;
-    }
-
     // Info box — aligned to photo frame outer edge
     const IBX = photoX - BORDER;
-    const IBY = photoY + photoH + BORDER + 12;
+    const IBY = photoY + photoH + BORDER + GAP;
     const IBW = photoW + BORDER * 2;
-    const IBH = 270;
     const textMaxW = IBW - 50;
     const MX = IBX + IBW / 2;
 
+    const boxFill = photo ? photoGrad(photo, IBX, IBY, IBH) : null;
     rrPath(IBX, IBY, IBW, IBH, BR);
-    ctx.fillStyle = goldGradV(IBX, IBY, IBH);
+    ctx.fillStyle = boxFill || goldGradV(IBX, IBY, IBH);
     ctx.fill();
     rrPath(IBX, IBY, IBW, IBH, BR);
-    ctx.strokeStyle = '#ffe878';
+    ctx.strokeStyle = '#D4AF37';
     ctx.lineWidth = 3;
     ctx.stroke();
     rrPath(IBX + 10, IBY + 10, IBW - 20, IBH - 20, BR - 5);
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Text in info box — name, role, numero; all auto-shrink to fit
+    // Text in info box
+    const TC  = boxFill ? '#ffffff' : NAVY;
+    const TC2 = boxFill ? 'rgba(255,255,255,0.82)' : 'rgba(0,0,0,0.72)';
     ctx.textAlign = 'center';
     let curY = IBY + 36;
 
     const nameText = nome.toUpperCase();
     const nameFs = shrinkFont(nameText, textMaxW, 62, 22, 'bold');
-    ctx.fillStyle = NAVY;
+    ctx.fillStyle = TC;
     ctx.fillText(nameText, MX, curY + nameFs);
-    curY += nameFs + 14;
+    curY += nameFs + 18;
 
+    // Role + numero on same line
     const roleText = (ruolo || '').toUpperCase();
-    const roleFs = shrinkFont(roleText, textMaxW, 40, 18, '400');
-    ctx.fillStyle = 'rgba(0,0,0,0.72)';
-    ctx.fillText(roleText, MX, curY + roleFs);
-    curY += roleFs + 12;
+    const numPart  = numero ? `  ·  #${numero}` : '';
+    const lineText = roleText + numPart;
+    const lineFs   = shrinkFont(lineText, textMaxW, 40, 18, '600');
+    ctx.fillStyle = TC2;
+    ctx.fillText(lineText, MX, curY + lineFs);
 
-    if (numero) {
-      const numText = `#${numero}`;
-      const numFs = shrinkFont(numText, textMaxW, 46, 20, 'bold');
-      ctx.fillStyle = NAVY;
-      ctx.fillText(numText, MX, curY + numFs);
+    // Logo + website — bottom center of info box
+    const WEB_FS = 22, WEB_PAD = 14, LOGO_H = 52, LOGO_WEB_GAP = 8;
+    const webBaseY = IBY + IBH - WEB_PAD;
+    const logoY    = webBaseY - WEB_FS - LOGO_WEB_GAP - LOGO_H;
+    if (logo) {
+      const LW = Math.round((logo.naturalWidth / logo.naturalHeight) * LOGO_H);
+      ctx.globalAlpha = 0.88;
+      ctx.drawImage(logo, MX - LW / 2, logoY, LW, LOGO_H);
+      ctx.globalAlpha = 1;
     }
-
-    // Website bar
-    ctx.fillStyle = '#f57c00';
-    ctx.fillRect(0, H - 14, W, 14);
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = 'normal 28px Arial,sans-serif';
+    ctx.font = `normal ${WEB_FS}px Arial,sans-serif`;
+    ctx.fillStyle = TC2;
     ctx.textAlign = 'center';
-    ctx.fillText('www.virtuscaserta.com', W / 2, H - 24);
+    ctx.fillText('www.virtuscaserta.com', MX, webBaseY);
 
     return canvas;
   }

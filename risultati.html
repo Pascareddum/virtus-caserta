@@ -411,7 +411,7 @@
       : '';
 
     const classificaCardUrl = m.fonte === 'opes'
-      ? `https://www.opespallavolo.it/it/t-teamtable/${m.tid}/`
+      ? opesClUrl(m.tid)
       : (m.classificaUrl || '');
     const classificaCardBtn = (showCl && classificaCardUrl)
       ? `<div class="card-cl-row"><a href="${classificaCardUrl}" target="_blank" rel="noopener" class="btn-cl-card">Classifica</a></div>`
@@ -488,6 +488,12 @@
   let _vistaAttiva    = 'tutte';
   let _allEntries     = null;
   let _fipavCatAttiva = '';
+  const OPES_CLASSIFICA = {
+    7:  'https://www.opespallavolo.it/it/t-teamtable/7/winter-cup/',
+    28: 'https://www.opespallavolo.it/it/t-teamtable/28/open-femminile/',
+  };
+  function opesClUrl(tid) { return OPES_CLASSIFICA[tid] || `https://www.opespallavolo.it/it/t-teamtable/${tid}/`; }
+
   let _opesTeamAttiva = '';
 
   function buildFlatView(vista) {
@@ -614,7 +620,7 @@
         const extra    = partite.length - visibili.size;
 
         const classificaHref = fonte === 'opes'
-          ? `https://www.opespallavolo.it/it/t-teamtable/${gruppo.tid}/`
+          ? opesClUrl(gruppo.tid)
           : (gruppo.classificaUrl || `https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA`);
 
         const classificaBanner = classificaHref

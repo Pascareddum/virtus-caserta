@@ -188,10 +188,23 @@
   </div>
 
   <script>
-    // Redirect se già loggato
+    // Redirect se già loggato (solo con token non scaduto)
     (function() {
-      if (localStorage.getItem('vc_admin_token')) { location.replace('/admin'); return; }
-      if (localStorage.getItem('vc_token'))        { location.replace('/utente'); return; }
+      function jwtExp(t) {
+        try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp || 0; }
+        catch { return 0; }
+      }
+      const now = Date.now() / 1000;
+      const at = localStorage.getItem('vc_admin_token');
+      if (at) {
+        if (jwtExp(at) > now) { location.replace('/admin'); return; }
+        localStorage.removeItem('vc_admin_token');
+      }
+      const ut = localStorage.getItem('vc_token');
+      if (ut) {
+        if (jwtExp(ut) > now) { location.replace('/utente'); return; }
+        ['vc_token','vc_role','vc_nome','vc_user'].forEach(k => localStorage.removeItem(k));
+      }
     })();
 
     const panels = ['utente', 'registrati', 'admin'];

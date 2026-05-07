@@ -2816,7 +2816,11 @@
         `<option value="">— predefinito —</option>` +
         fipavCats.filter(f => f.classificaUrl).map(({ cat, classificaUrl }) =>
           `<option value="${classificaUrl}">${cat}</option>`
-        ).join('');
+        ).join('') +
+        `<optgroup label="OPES">` +
+        `<option value="https://www.opespallavolo.it/it/t-teamtable/28/open-femminile/">OPES – Open Femminile</option>` +
+        `<option value="https://www.opespallavolo.it/it/t-teamtable/7/winter-cup/">OPES – Open Mix (Winter Cup)</option>` +
+        `</optgroup>`;
 
       const catOpts = `<option value="">— nessuna —</option>` +
         catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');

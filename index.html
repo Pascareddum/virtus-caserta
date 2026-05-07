@@ -798,7 +798,7 @@
     }
     .sq-link-btn:hover { background: var(--grigio-chiaro); border-color: var(--blu-scuro); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(13,32,85,.12); }
     .sq-link-btn.disabilitato { pointer-events:none; cursor:not-allowed; opacity:.45; background:#f1f5f9; color:#9ca3af; border-color:#e2e8f0; box-shadow:none; transform:none; }
-    .sq-link-icon { font-size: 22px; }
+    .sq-link-icon { font-size: 12px; }
 
     .sq-subteams-grid {
       display: grid;
@@ -889,13 +889,13 @@
     .sq-subteam-links-row .sq-subteam-link { flex:1; }
     .sq-subteam-link-full { width:100%; }
     .sq-subteam-link {
-      display:flex; flex-direction:column; align-items:center;
-      gap:4px; background:#fff;
-      border:1.5px solid rgba(13,32,85,0.18);
-      border-radius:10px; padding:7px 5px;
+      /*display:flex; flex-direction:column; align-items:center;*/
+      gap:3px; background:#fff;
+      border:0.5px solid rgba(13,32,85,0.18);
+      border-radius:8px; padding:5px 4px;
       text-decoration:none; color:var(--blu-scuro);
-      font-size:9.5px; font-weight:700;
-      letter-spacing:0.5px; text-transform:uppercase;
+      font-size:10px; font-weight:300;
+      letter-spacing:0.4px; text-transform:uppercase;
       text-align:center; transition:all .2s;
       box-shadow:0 1px 4px rgba(13,32,85,.06);
     }
@@ -1838,7 +1838,7 @@
         <p>Dalla Serie D al VolleyS3</p>
       </div>
       <div class="squadre-grid">
-        <div class="squadra-card" onclick="apriSquadra('serie-d-f')" style="background-image:url('images/Serie D.jpeg'), linear-gradient(135deg,#0d1f5c,#1a3a8f); --card-accent:#f57c00;">
+        <div class="squadra-card" data-sq-key="serie-d-f" onclick="apriSquadra('serie-d-f')" style="background-image:url('images/Serie D.jpeg'), linear-gradient(135deg,#0d1f5c,#1a3a8f); --card-accent:#f57c00;">
           <span class="squadra-badge">Serie D</span>
           <div class="squadra-overlay">
             <h3>Serie D Femminile</h3>
@@ -1846,7 +1846,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" onclick="apriSquadra('prima-div-m')" style="background-image:url('images/Prima divisione maschile.jpeg'), linear-gradient(135deg,#0d3355,#0a5a9e); --card-accent:#f57c00;">
+        <div class="squadra-card" data-sq-key="prima-div-m" onclick="apriSquadra('prima-div-m')" style="background-image:url('images/Prima divisione maschile.jpeg'), linear-gradient(135deg,#0d3355,#0a5a9e); --card-accent:#f57c00;">
           <span class="squadra-badge">Prima Divisione</span>
           <div class="squadra-overlay">
             <h3>Prima Divisione Maschile</h3>
@@ -1854,7 +1854,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" onclick="apriSquadra('prima-div-f')" style="background-image:url('images/Prima divisione femminile.jpeg'), linear-gradient(135deg,#3d0d55,#7b2fa8); --card-accent:#f57c00;">
+        <div class="squadra-card" data-sq-key="prima-div-f" onclick="apriSquadra('prima-div-f')" style="background-image:url('images/Prima divisione femminile.jpeg'), linear-gradient(135deg,#3d0d55,#7b2fa8); --card-accent:#f57c00;">
           <span class="squadra-badge">Prima Divisione</span>
           <div class="squadra-overlay">
             <h3>Prima Divisione Femminile</h3>
@@ -1862,7 +1862,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" onclick="apriSquadra('giovanile-f')" style="background-image:url('images/Giovanili.jpeg'), linear-gradient(135deg,#4a1a00,#b04a10); --card-accent:#f57c00;">
+        <div class="squadra-card" data-sq-key="giovanile-f" onclick="apriSquadra('giovanile-f')" style="background-image:url('images/Giovanili.jpeg'), linear-gradient(135deg,#4a1a00,#b04a10); --card-accent:#f57c00;">
           <span class="squadra-badge">Settore Giovanile</span>
           <div class="squadra-overlay">
             <h3>Giovanile Femminile</h3>
@@ -1870,7 +1870,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" onclick="apriSquadra('under1315-m')" style="background-image:url('images/Under 13-15 maschile.jpeg'), linear-gradient(135deg,#0d3320,#1a7a45); --card-accent:#f57c00;">
+        <div class="squadra-card" data-sq-key="under1315-m" onclick="apriSquadra('under1315-m')" style="background-image:url('images/Under 13-15 maschile.jpeg'), linear-gradient(135deg,#0d3320,#1a7a45); --card-accent:#f57c00;">
           <span class="squadra-badge">Settore Giovanile</span>
           <div class="squadra-overlay">
             <h3>Under 13/15 Maschile</h3>
@@ -1878,7 +1878,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" onclick="apriSquadra('miste')" style="background-image:url('images/Mista.jpeg'), linear-gradient(135deg,#1a0d55,#4a2fa8); --card-accent:#f57c00;">
+        <div class="squadra-card" data-sq-key="miste" onclick="apriSquadra('miste')" style="background-image:url('images/Mista.jpeg'), linear-gradient(135deg,#1a0d55,#4a2fa8); --card-accent:#f57c00;">
           <span class="squadra-badge">Attività Miste</span>
           <div class="squadra-overlay">
             <h3>Squadre Miste</h3>
@@ -1886,7 +1886,7 @@
           </div>
           <div class="squadra-arrow">→</div>
         </div>
-        <div class="squadra-card" onclick="apriSquadra('volleys3')" style="background-image:url('images/Volley S3.jpeg'), linear-gradient(135deg,#553d0d,#c49a10); --card-accent:#f57c00;">
+        <div class="squadra-card" data-sq-key="volleys3" onclick="apriSquadra('volleys3')" style="background-image:url('images/Volley S3.jpeg'), linear-gradient(135deg,#553d0d,#c49a10); --card-accent:#f57c00;">
           <span class="squadra-badge">Mini Volley</span>
           <div class="squadra-overlay">
             <h3>VolleyS3</h3>
@@ -2910,6 +2910,19 @@
           sq[field] = val;
         }
       }
+      // If _cat explicitly set to "" (nessuna) → clear linkSquadra so button hides
+      for (const [k, v] of Object.entries(links)) {
+        const m = k.match(/^sq_([a-z0-9-]+?)_(?:(\d+)_)?cat$/);
+        if (!m || v) continue; // skip if not _cat or has value
+        const sq = SQUADRE_DATA[m[1]];
+        if (!sq) continue;
+        if (m[2] !== undefined) {
+          const st = sq.subteams && sq.subteams[parseInt(m[2])];
+          if (st) st.linkSquadra = '';
+        } else {
+          sq.linkSquadra = '';
+        }
+      }
     }).catch(() => {});
 
     function apriSquadra(key) {
@@ -2947,7 +2960,7 @@
             return `<a href="${href}"${ext} class="${cls}"><span class="sq-link-icon">${icon}</span>${label}</a>`;
           };
           const btnR = mkBtn('linkRisultati', '📋','Risultati');
-          const btnS = mkBtn('linkSquadra',   '👥','Squadra');
+          const btnS = mkBtn('linkSquadra','👥','Squadra');
           const btnC = mkBtn('linkClassifica','🏆','Classifica','sq-subteam-link-full');
           const row1 = (btnR || btnS) ? `<div class="sq-subteam-links-row">${btnR}${btnS}</div>` : '';
           const row2 = btnC ? `<div class="sq-subteam-links-row">${btnC}</div>` : '';
@@ -2956,8 +2969,8 @@
           <div class="sq-subteam">
             <div class="sq-subteam-title">${st.nome}</div>
             <div class="sq-subteam-meta">
-              <span>👤 ${st.allenatore}</span>
-              <span>📍 ${st.luogo}</span>
+              <span>Allenatore: ${st.allenatore}</span>
+              <span>Palestra: ${st.luogo}</span>
             </div>
             <table class="sq-subteam-table">
               <thead><tr><th>Giorno</th><th>Orario</th></tr></thead>

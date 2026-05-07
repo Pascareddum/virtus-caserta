@@ -1560,8 +1560,9 @@ function dbMatchToObj(row) {
   const ts = row.data_ora ? new Date(row.data_ora).getTime() : null;
   let dataOra = '';
   if (ts) {
-    const d = new Date(ts);
-    dataOra = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const fmt = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+    const p = Object.fromEntries(fmt.formatToParts(new Date(ts)).map(({ type, value }) => [type, value]));
+    dataOra = `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
   }
   return {
     id: row.id, fonte: row.fonte, categoria: row.categoria,
