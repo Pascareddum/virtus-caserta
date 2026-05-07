@@ -300,10 +300,8 @@ footer.footer-std .footer-acc-title{font-size:11px;font-weight:700;letter-spacin
       } catch { errEl.textContent = 'Errore di rete. Riprova.'; }
     };
     window.logout = function () {
-      localStorage.removeItem('vc_token');
-      localStorage.removeItem('vc_role');
-      localStorage.removeItem('vc_nome');
-      _vcUpdateAuthUI();
+      ['vc_token','vc_role','vc_nome','vc_user','vc_admin_token'].forEach(k => localStorage.removeItem(k));
+      location.reload();
     };
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') window.chiudiModal && window.chiudiModal();
@@ -314,18 +312,47 @@ footer.footer-std .footer-acc-title{font-size:11px;font-weight:700;letter-spacin
     });
   }
 
+  function _jwtExp(token) {
+    try {
+      return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp || 0;
+    } catch { return 0; }
+  }
+
+  function _vcClearExpired() {
+    const now = Date.now() / 1000;
+    const t = localStorage.getItem('vc_token');
+    if (t && _jwtExp(t) < now) ['vc_token','vc_role','vc_nome','vc_user'].forEach(k => localStorage.removeItem(k));
+    const a = localStorage.getItem('vc_admin_token');
+    if (a && _jwtExp(a) < now) localStorage.removeItem('vc_admin_token');
+  }
+
   function _vcUpdateAuthUI() {
-    const token = localStorage.getItem('vc_token');
-    const nome  = localStorage.getItem('vc_nome');
-    const role  = localStorage.getItem('vc_role');
-    const area  = document.getElementById('footerAuthArea');
+    _vcClearExpired();
+    const token      = localStorage.getItem('vc_token');
+    const adminToken = localStorage.getItem('vc_admin_token');
+    const nome       = localStorage.getItem('vc_nome');
+    const role       = localStorage.getItem('vc_role');
+    const area       = document.getElementById('footerAuthArea');
     if (!area) return;
-    area.classList.toggle('logged', !!token);
+    const isLogged = !!(token || adminToken);
+    const isAdmin  = !!(adminToken || role === 'admin' || role === 'dirigente');
+    area.classList.toggle('logged', isLogged);
     const nomeEl = document.getElementById('footerNome');
     if (nomeEl) nomeEl.textContent = nome || '';
     const adminLink = document.getElementById('footerAdminLink');
-    if (adminLink) adminLink.style.display = (role === 'admin' || role === 'dirigente') ? '' : 'none';
+    if (adminLink) adminLink.style.display = isAdmin ? '' : 'none';
   }
   window._vcUpdateAuthUI = _vcUpdateAuthUI;
   _vcUpdateAuthUI();
+
+  // Periodic expiry check — reload if token expired while page open
+  setInterval(function () {
+    const now = Date.now() / 1000;
+    const t = localStorage.getItem('vc_token');
+    const a = localStorage.getItem('vc_admin_token');
+    if ((t && _jwtExp(t) < now) || (a && _jwtExp(a) < now)) {
+      ['vc_token','vc_role','vc_nome','vc_user','vc_admin_token'].forEach(k => localStorage.removeItem(k));
+      location.reload();
+    }
+  }, 30_000);
 })();

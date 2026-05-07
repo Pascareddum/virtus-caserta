@@ -884,25 +884,22 @@
     }
     .sq-subteam-table td:last-child { color: #666; font-size: 11px; font-weight: 400; }
     .sq-subteam-table tr:last-child td { border-bottom: none; }
-    .sq-subteam-links { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
-    .sq-subteam-links-row { display:flex; gap:6px; }
-    .sq-subteam-links-row .sq-subteam-link { flex:1; justify-content:center; }
-    .sq-subteam-link-full { width:100%; justify-content:center; }
+    .sq-subteam-links { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+    .sq-subteam-links-row { display:flex; gap:8px; }
+    .sq-subteam-links-row .sq-subteam-link { flex:1; }
+    .sq-subteam-link-full { width:100%; }
     .sq-subteam-link {
-      display:inline-flex; align-items:center; gap:5px;
-      font-size:10px; font-weight:800; letter-spacing:.4px; text-transform:uppercase;
-      color:#fff; text-decoration:none;
-      padding:6px 14px; border-radius:20px;
-      background:var(--blu-scuro);
-      transition:opacity .15s, transform .15s;
-      white-space:nowrap;
+      display:flex; flex-direction:column; align-items:center;
+      gap:4px; background:#fff;
+      border:1.5px solid rgba(13,32,85,0.18);
+      border-radius:10px; padding:7px 5px;
+      text-decoration:none; color:var(--blu-scuro);
+      font-size:9.5px; font-weight:700;
+      letter-spacing:0.5px; text-transform:uppercase;
+      text-align:center; transition:all .2s;
+      box-shadow:0 1px 4px rgba(13,32,85,.06);
     }
-    .sq-subteam-link:hover { opacity:.82; transform:translateY(-1px); }
-    .sq-subteam-link.disabilitato {
-      background:#d1d5db; color:#6b7280;
-      pointer-events:none; cursor:not-allowed;
-      transform:none !important;
-    }
+    .sq-subteam-link:hover { background:var(--grigio-chiaro); border-color:var(--blu-scuro); transform:translateY(-2px); box-shadow:0 4px 12px rgba(13,32,85,.12); }
 
     @media (max-width: 540px) {
       .sq-panel { border-radius: 20px; max-height: 95vh; }
@@ -2539,79 +2536,10 @@
       document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
     }
 
-  /*  async function submitLogin() {
-      document.getElementById('loginError').textContent = '';
-      const email    = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      if (!email || !password) { document.getElementById('loginError').textContent = 'Inserisci email e password.'; return; }
-      try {
-        const res  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
-        const data = await res.json();
-        if (!res.ok) { document.getElementById('loginError').textContent = data.error; return; }
-        localStorage.setItem('vc_token', data.token);
-        localStorage.setItem('vc_role',  data.role);
-        localStorage.setItem('vc_nome',  data.nome);
-        chiudiModal();
-        aggiornaNavbar();
-      } catch {
-        document.getElementById('loginError').textContent = 'Errore di rete. Riprova.';
-      }
-    }
-
-    async function submitRegistrazione() {
-      const errEl = document.getElementById('regError');
-      const okEl  = document.getElementById('regSuccess');
-      errEl.textContent = '';
-      okEl.textContent  = '';
-
-      const nome             = document.getElementById('regNome').value.trim();
-      const cognome          = document.getElementById('regCognome').value.trim();
-      const email            = document.getElementById('regEmail').value.trim();
-      const emailConferma    = document.getElementById('regEmailConferma').value.trim();
-      const password         = document.getElementById('regPassword').value;
-      const passwordConferma = document.getElementById('regPasswordConferma').value;
-
-      if (!nome || !cognome || !email || !emailConferma || !password || !passwordConferma) {
-        errEl.textContent = 'Compila tutti i campi.'; return;
-      }
-      if (email !== emailConferma) {
-        errEl.textContent = 'Le email non coincidono.'; return;
-      }
-      if (password !== passwordConferma) {
-        errEl.textContent = 'Le password non coincidono.'; return;
-      }
-      try {
-        const res  = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nome, cognome, email, password }) });
-        const data = await res.json();
-        if (!res.ok) { errEl.textContent = data.error; return; }
-
-        // Caso: email di verifica inviata
-        if (data.message) {
-          okEl.textContent = data.message;
-          ['regNome','regCognome','regEmail','regEmailConferma','regPassword','regPasswordConferma'].forEach(id => {
-            document.getElementById(id).value = '';
-          });
-          return;
-        }
-
-        // Caso: registrazione diretta (email non configurata)
-        localStorage.setItem('vc_token', data.token);
-        localStorage.setItem('vc_role',  data.role);
-        localStorage.setItem('vc_nome',  data.nome);
-        chiudiModal();
-        aggiornaNavbar();
-      } catch {
-        errEl.textContent = 'Errore di rete. Riprova.';
-      }
-    }*/
 
     function logout() {
-      localStorage.removeItem('vc_token');
-      localStorage.removeItem('vc_admin_token');
-      localStorage.removeItem('vc_role');
-      localStorage.removeItem('vc_nome');
-      localStorage.removeItem('vc_user');
-      aggiornaNavbar();
+      ['vc_token','vc_role','vc_nome','vc_user','vc_admin_token'].forEach(k => localStorage.removeItem(k));
+      location.reload();
     }
 
     // Invio con Enter nei campi login
@@ -2766,7 +2694,7 @@
         immagine: 'images/Serie D.jpeg',
         linkRisultati: '/risultati?fonte=fipav&cat=SERIE+D',
         linkClassifica: 'https://www.fipavcampania.it/classifica.aspx?CId=88831',
-        linkSquadra: '/squadra',
+        linkSquadra: '/squadra?cat=Seniores',
       },
       'prima-div-m': {
         nome: 'Prima Divisione Maschile',
@@ -2930,7 +2858,7 @@
               { giorno: 'Lunedì', ora: '21:00 – 23:00' },
               { giorno: 'Mercoledì', ora: '21:00 – 23:00' },
             ],
-            linkRisultati: '/risultati?fonte=opes',
+            linkRisultati: '/risultati?fonte=opes&cat=Virtus+Caserta+White',
             linkClassifica: '',
             linkSquadra: '/squadra',
           },
@@ -2969,16 +2897,17 @@
     fetch('/api/squadre-links').then(r => r.json()).then(links => {
       for (const [k, v] of Object.entries(links)) {
         if (!v) continue;
-        const m = k.match(/^sq_([a-z0-9-]+?)_(?:(\d+)_)?(ris|cla)$/);
+        const m = k.match(/^sq_([a-z0-9-]+?)_(?:(\d+)_)?(ris|cla|cat)$/);
         if (!m) continue;
         const sq = SQUADRE_DATA[m[1]];
         if (!sq) continue;
-        const field = m[3] === 'ris' ? 'linkRisultati' : 'linkClassifica';
+        const field = m[3] === 'ris' ? 'linkRisultati' : m[3] === 'cla' ? 'linkClassifica' : 'linkSquadra';
+        const val   = m[3] === 'cat' ? `/squadra?cat=${encodeURIComponent(v)}` : v;
         if (m[2] !== undefined) {
           const st = sq.subteams && sq.subteams[parseInt(m[2])];
-          if (st) st[field] = v;
+          if (st) st[field] = val;
         } else {
-          sq[field] = v;
+          sq[field] = val;
         }
       }
     }).catch(() => {});
@@ -2998,7 +2927,8 @@
       ].forEach(([id, link]) => {
         const el = document.getElementById(id);
         el.href = link || '#';
-        el.classList.toggle('disabilitato', !link);
+        el.style.display = (link && !d.subteams) ? '' : 'none';
+        el.classList.remove('disabilitato');
       });
 
       if (d.subteams) {
@@ -3011,10 +2941,10 @@
           const mkBtn = (key, icon, label, extraClass) => {
             if (!(key in st)) return '';
             const href = st[key];
-            const cls = 'sq-subteam-link' + (extraClass ? ' ' + extraClass : '') + (!href ? ' disabilitato' : '');
-            if (!href) return `<span class="${cls}">${icon} ${label}</span>`;
+            if (!href) return '';
+            const cls = 'sq-subteam-link' + (extraClass ? ' ' + extraClass : '');
             const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
-            return `<a href="${href}"${ext} class="${cls}">${icon} ${label}</a>`;
+            return `<a href="${href}"${ext} class="${cls}"><span class="sq-link-icon">${icon}</span>${label}</a>`;
           };
           const btnR = mkBtn('linkRisultati', '📋','Risultati');
           const btnS = mkBtn('linkSquadra',   '👥','Squadra');

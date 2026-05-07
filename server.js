@@ -942,7 +942,7 @@ app.put('/api/admin/squadre-categorie', adminAuth, async (req, res) => {
     if (typeof req.body !== 'object' || Array.isArray(req.body)) {
       return res.status(400).json({ error: 'Oggetto {nome:categoria} richiesto' });
     }
-    const VALIDE = new Set(['Seniores','Giovanili','Juniores','']);
+    const VALIDE = new Set(['Seniores','Giovanili','']);
     const safe = {};
     for (const [nome, cat] of Object.entries(req.body)) {
       if (String(nome).length > 100) continue;

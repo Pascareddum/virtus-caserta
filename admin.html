@@ -1264,7 +1264,6 @@
     .cat-sq-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
     .cat-sq-badge.Seniores{background:#dbeafe;color:#1d4ed8;}
     .cat-sq-badge.Giovanili{background:#dcfce7;color:#15803d;}
-    .cat-sq-badge.Juniores{background:#fef3c7;color:#b45309;}
     .cat-sq-sel{padding:6px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:13px;background:#fff;cursor:pointer;}
     .cat-sq-sel:focus{outline:none;border-color:#0d2055;}
   </style>
@@ -2820,10 +2819,7 @@
         ).join('');
 
       const catOpts = `<option value="">— nessuna —</option>` +
-        (catList.length
-          ? catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s =>
-              `<option value="${s.nome}">${s.nome}</option>`).join('')
-          : `<option value="Seniores">Seniores</option><option value="Giovanili">Giovanili</option><option value="Juniores">Juniores</option>`);
+        catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
 
       for (const k of SQ_LINK_KEYS) {
         const el = document.getElementById(k);
@@ -2893,7 +2889,6 @@
                 <option value="">— non assegnata —</option>
                 <option value="Seniores" ${sq.categoria==='Seniores'?'selected':''}>Seniores</option>
                 <option value="Giovanili" ${sq.categoria==='Giovanili'?'selected':''}>Giovanili</option>
-                <option value="Juniores" ${sq.categoria==='Juniores'?'selected':''}>Juniores</option>
               </select>
             </td>
           </tr>`).join('')}
