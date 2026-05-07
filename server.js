@@ -4,7 +4,6 @@ dns.setDefaultResultOrder('ipv4first'); // Railway non supporta IPv6 in uscita
 const express    = require('express');
 const path       = require('path');
 const fs         = require('fs');
-const Stripe     = require('stripe');
 const nodemailer = require('nodemailer');
 const jwt        = require('jsonwebtoken');
 const bcrypt     = require('bcryptjs');
@@ -30,10 +29,6 @@ if (process.env.NODE_ENV === 'production') {
 const JWT_SECRET             = process.env.JWT_SECRET || 'virtus_secret_2026_dev';
 const INSTAGRAM_USERNAME     = 'virtuscaserta';
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || '';
-
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? Stripe(process.env.STRIPE_SECRET_KEY)
-  : null;
 
 /* ─── Supabase Storage ─── */
 let supabaseStorage = null;
@@ -183,17 +178,16 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:    ["'self'"],
-      scriptSrc:     ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://www.paypal.com", "https://www.sandbox.paypal.com"],
+      scriptSrc:     ["'self'", "'unsafe-inline'", "https://www.paypal.com", "https://www.sandbox.paypal.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       frameSrc:      [
         "'self'",
-        "https://js.stripe.com", "https://hooks.stripe.com",
         "https://www.paypal.com", "https://www.sandbox.paypal.com",
         "https://maps.google.com", "https://www.google.com",
         "https://player.twitch.tv",
         "https://www.youtube.com",
       ],
-      connectSrc:    ["'self'", "https://api.stripe.com", "https://www.paypal.com", "https://api.paypal.com"],
+      connectSrc:    ["'self'", "https://www.paypal.com", "https://api.paypal.com"],
       imgSrc:        ["'self'", "data:", "https:"],
       styleSrc:      ["'self'", "'unsafe-inline'"],
       fontSrc:       ["'self'", "data:"],
@@ -209,70 +203,6 @@ app.use(cookieParser());
 
 /* ─── Health check (Railway) ─── */
 app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
-
-/* ─── Stripe Webhook (raw body – DEVE stare prima di express.json) ─── */
-app.post('/api/stripe-webhook',
-  express.raw({ type: 'application/json' }),
-  async (req, res) => {
-    if (!stripe) return res.status(503).send('Stripe non configurato');
-    const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (!webhookSecret) {
-      console.log('[Webhook] STRIPE_WEBHOOK_SECRET non configurato');
-      return res.status(500).send('Webhook secret mancante');
-    }
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err) {
-      console.error('[Webhook] Firma non valida:', err);
-      return res.status(400).send('Webhook Error: firma non valida');
-    }
-
-    if (event.type === 'payment_intent.succeeded') {
-      const pi = event.data.object;
-      const orderId = pi.metadata?.orderId;
-      console.log(`[Webhook] Pagamento confermato – PI: ${pi.id}${orderId ? ', Ordine: ' + orderId : ' (nessun orderId nei metadata)'}`);
-      try {
-        if (orderId) {
-          await db.query(`UPDATE ordini SET stato='in lavorazione', stripe_pi_id=$2 WHERE id=$1`, [orderId, pi.id]);
-          await logActivity('Pagamento confermato via webhook', `Ordine #${orderId} – PI: ${pi.id}`);
-        }
-      } catch (dbErr) {
-        console.log('[Webhook] Errore aggiornamento DB:', dbErr.message);
-      }
-    }
-
-    if (event.type === 'payment_intent.processing') {
-      const pi = event.data.object;
-      const orderId = pi.metadata?.orderId;
-      console.log(`[Webhook] SEPA in elaborazione – PI: ${pi.id}${orderId ? ', Ordine: ' + orderId : ''}`);
-      try {
-        if (orderId) {
-          await db.query(`UPDATE ordini SET stato='ricevuto', stripe_pi_id=$2 WHERE id=$1`, [orderId, pi.id]);
-        }
-      } catch (dbErr) {
-        console.log('[Webhook] Errore aggiornamento DB:', dbErr.message);
-      }
-    }
-
-    if (event.type === 'payment_intent.payment_failed') {
-      const pi = event.data.object;
-      const orderId = pi.metadata?.orderId;
-      console.log(`[Webhook] Pagamento fallito – PI: ${pi.id}`);
-      try {
-        if (orderId) {
-          await db.query(`UPDATE ordini SET stato='annullato' WHERE id=$1`, [orderId]);
-        }
-      } catch (dbErr) {
-        console.log('[Webhook] Errore aggiornamento DB:', dbErr.message);
-      }
-      await logActivity('Pagamento fallito', `PI: ${pi.id}${orderId ? ', Ordine: ' + orderId : ''}`);
-    }
-
-    res.json({ received: true });
-  }
-);
 
 app.use(express.json());
 
@@ -757,69 +687,8 @@ app.delete('/api/admin/notizie/:id', adminAuth, async (req, res) => {
 /* ─── Config pubblica ─── */
 app.get('/api/config', (_req, res) => {
   res.json({
-    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
-    paypalClientId:       process.env.PAYPAL_CLIENT_ID || '',
+    paypalClientId: process.env.PAYPAL_CLIENT_ID || '',
   });
-});
-
-/* ─── Stripe PaymentIntent ─── */
-app.post('/api/create-payment-intent', paymentLimiter, async (req, res) => {
-  if (!stripe) return res.status(503).json({ error: 'Stripe non configurato. Aggiungi STRIPE_SECRET_KEY nel file .env' });
-  try {
-    const { items, metodo } = req.body;
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'Carrello vuoto' });
-    }
-
-    // Calcola il totale lato server dai prezzi reali nel DB (con sconto)
-    const ids = [...new Set(items.map(i => String(i.id)))];
-    const placeholders = ids.map((_, idx) => `$${idx + 1}`).join(',');
-    const { rows: prodRows } = await db.query(
-      `SELECT id, prezzo, sconto, quantita FROM products WHERE id IN (${placeholders}) AND disponibile = true`,
-      ids
-    );
-    const prodMap = {};
-    for (const r of prodRows) prodMap[r.id] = {
-      prezzo:   parseFloat(r.prezzo),
-      sconto:   parseInt(r.sconto) || 0,
-      quantita: parseInt(r.quantita) || -1,
-    };
-
-    let totaleCents = 0;
-    for (const item of items) {
-      const prod = prodMap[String(item.id)];
-      if (!prod) return res.status(400).json({ error: `Prodotto non disponibile: ${item.id}` });
-      if (prod.quantita === 0) return res.status(400).json({ error: `Prodotto esaurito: ${item.id}` });
-      const qty = Math.min(10, Math.max(1, parseInt(item.qty) || 1));
-      const prezzoFinale = prod.sconto > 0
-        ? prod.prezzo * (1 - prod.sconto / 100)
-        : prod.prezzo;
-      totaleCents += Math.round(prezzoFinale * qty * 100);
-    }
-
-    if (totaleCents < 50) return res.status(400).json({ error: 'Importo non valido' });
-
-    const orderId = crypto.randomUUID();
-    const isSepa  = metodo === 'sepa';
-
-    const piOptions = {
-      amount:   totaleCents,
-      currency: 'eur',
-      metadata: { orderId },
-    };
-    if (isSepa) {
-      piOptions.payment_method_types = ['sepa_debit'];
-    } else {
-      piOptions.automatic_payment_methods = { enabled: true };
-    }
-
-    const pi = await stripe.paymentIntents.create(piOptions);
-    res.json({ clientSecret: pi.client_secret, orderId, amount: totaleCents });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Errore interno del server.' });
-  }
 });
 
 /* ─── Log attività ─── */
@@ -1070,46 +939,16 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
   }
 });
 
-/* ─── Ordini: rimborso + cancellazione (admin) ─── */
+/* ─── Ordini: cancellazione (admin) ─── */
 app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
   try {
-    // Cerca per id primario O per stripe_pi_id (admin potrebbe passare l'uno o l'altro)
-    const param = req.params.id;
-    const r = await db.query(
-      `SELECT * FROM ordini WHERE id=$1 OR stripe_pi_id=$1 LIMIT 1`,
-      [param]
-    );
+    const r = await db.query(`SELECT * FROM ordini WHERE id=$1 LIMIT 1`, [req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Ordine non trovato' });
     const ordine = r.rows[0];
 
-    // Trova il PaymentIntent ID
-    // Se l'admin ha passato il PI ID direttamente, usalo subito
-    let piId = param.startsWith('pi_') ? param : ordine.stripe_pi_id;
-    if (!piId && stripe) {
-      try {
-        const pis = await stripe.paymentIntents.search({ query: `metadata['orderId']:'${ordine.id}'`, limit: 1 });
-        if (pis.data.length) piId = pis.data[0].id;
-      } catch(_) {}
-    }
-
-    // Esegui rimborso Stripe (se configurato)
-    let rimborsoEffettuato = false;
-    let rimborsoErrore = null;
-    if (piId && stripe) {
-      try {
-        await stripe.refunds.create({ payment_intent: piId });
-        rimborsoEffettuato = true;
-      } catch(e) {
-        rimborsoErrore = e.message;
-        console.error('[Rimborso] Errore Stripe:', e.message);
-      }
-    }
-
-    // Rimuovi dal DB
     await db.query(`DELETE FROM ordini WHERE id=$1`, [ordine.id]);
-    await logActivity('Ordine eliminato' + (rimborsoEffettuato ? ' + rimborso' : ''), `Ordine #${ordine.id}`);
+    await logActivity('Ordine eliminato', `Ordine #${ordine.id}`);
 
-    // Email al cliente
     if (emailShopConfigurata() && ordine.email) {
       const transporter = creaTransporterShop();
       const html = `
@@ -1121,16 +960,11 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
           <div style="padding:28px 24px">
             <p>Ciao <strong>${ordine.nome}</strong>,</p>
             <p>Il tuo ordine <strong>#${ordine.id}</strong> è stato cancellato dal nostro staff.</p>
-            ${rimborsoEffettuato ? `
-            <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:16px;border-radius:4px;margin:16px 0;">
-              <strong>✅ Rimborso in corso</strong><br>
-              <span style="font-size:13px;color:#374151;">Il rimborso di <strong>€ ${Number(ordine.totale).toFixed(2)}</strong> è stato avviato e apparirà sul tuo metodo di pagamento entro 5-10 giorni lavorativi.</span>
-            </div>` : `
             <div style="background:#fef9c3;border-left:4px solid #ca8a04;padding:16px;border-radius:4px;margin:16px 0;">
-              <strong>ℹ️ Rimborso</strong><br>
-              <span style="font-size:13px;">Per informazioni sul rimborso contatta <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a></span>
-            </div>`}
-            <p style="font-size:13px;color:#6b7280;">Per qualsiasi domanda siamo disponibili a <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a>. Forza Virtus!</p>
+              <strong>ℹ️ Informazioni</strong><br>
+              <span style="font-size:13px;">Per qualsiasi chiarimento contattaci a <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a></span>
+            </div>
+            <p style="font-size:13px;color:#6b7280;">Forza Virtus!</p>
           </div>
           <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
             © 2026 Virtus Caserta – Società Sportiva Pallavolo
@@ -1141,10 +975,23 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
         to: ordine.email,
         subject: `Ordine #${ordine.id} cancellato – Virtus Caserta`,
         html,
-      }).catch(e => console.error('[Email rimborso]', e.message));
+      }).catch(e => console.error('[Email cancellazione]', e.message));
     }
 
-    res.json({ success: true, rimborso: rimborsoEffettuato, erroreStripe: rimborsoErrore });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Ordini: toggle mail_letta (admin) ─── */
+app.put('/api/admin/ordini/:id/mail-letta', adminAuth, async (req, res) => {
+  const { mail_letta } = req.body;
+  if (typeof mail_letta !== 'boolean') return res.status(400).json({ error: 'mail_letta deve essere booleano' });
+  try {
+    await db.query(`UPDATE ordini SET mail_letta=$1 WHERE id=$2`, [mail_letta, req.params.id]);
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -2733,18 +2580,86 @@ app.post('/api/admin/test-email', adminAuth, async (_req, res) => {
   }
 });
 
+/* ─── Reminder giornaliero ordini non letti (ogni giorno alle 9:00 ora Italia) ─── */
+function scheduleReminderMailOrdini() {
+  const now  = new Date();
+  const rome = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
+  const next = new Date(rome);
+  next.setHours(9, 0, 0, 0);
+  if (rome >= next) next.setDate(next.getDate() + 1);
+  const delay = next - rome;
+  setTimeout(async () => {
+    try {
+      const r = await db.query(
+        `SELECT * FROM ordini WHERE mail_letta = false AND stato NOT IN ('annullato','ritirato') ORDER BY created_at ASC`
+      );
+      if (r.rows.length && emailShopConfigurata()) {
+        const transporter = creaTransporterShop();
+        const righe = r.rows.map(o =>
+          `<tr>
+            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">#${String(o.id).slice(-6)}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${o.nome} ${o.cognome}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${o.email}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">€ ${Number(o.totale).toFixed(2)}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${o.stato}</td>
+          </tr>`
+        ).join('');
+        const html = `
+          <div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#222">
+            <div style="background:#0d2055;padding:20px 24px;text-align:center">
+              <h1 style="color:#fff;font-size:18px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+              <p style="color:#ff9800;margin:6px 0 0;font-size:12px">REMINDER ORDINI IN SOSPESO</p>
+            </div>
+            <div style="padding:24px">
+              <p>Ci sono <strong>${r.rows.length}</strong> ordini con mail non ancora letta:</p>
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="background:#f1f5f9">
+                    <th style="padding:8px 12px;text-align:left">Ordine</th>
+                    <th style="padding:8px 12px;text-align:left">Cliente</th>
+                    <th style="padding:8px 12px;text-align:left">Email</th>
+                    <th style="padding:8px 12px;text-align:left">Totale</th>
+                    <th style="padding:8px 12px;text-align:left">Stato</th>
+                  </tr>
+                </thead>
+                <tbody>${righe}</tbody>
+              </table>
+              <p style="margin-top:20px;font-size:13px;color:#6b7280;">Accedi al pannello admin per gestire gli ordini.</p>
+            </div>
+            <div style="background:#f8fafc;padding:12px;text-align:center;font-size:11px;color:#9ca3af">
+              © 2026 Virtus Caserta – reminder automatico
+            </div>
+          </div>`;
+        transporter.sendMail({
+          from: shopFrom(),
+          to: 'virtuscaserta@gmail.com',
+          subject: `[Virtus Shop] ${r.rows.length} ordini in sospeso senza risposta`,
+          html,
+        }).catch(e => console.error('[Reminder ordini]', e.message));
+        console.log(`[Reminder ordini] Inviato – ${r.rows.length} ordini in sospeso`);
+      } else {
+        console.log('[Reminder ordini] Nessun ordine in sospeso');
+      }
+    } catch (e) {
+      console.error('[Reminder ordini] Errore:', e.message);
+    }
+    scheduleReminderMailOrdini();
+  }, delay);
+  const nextStr = new Date(now.getTime() + delay).toLocaleString('it-IT', { timeZone: 'Europe/Rome' });
+  console.log(`[Reminder ordini] Prossimo check: ${nextStr}`);
+}
+
 /* ─── Startup ─── */
 db.init().then(async () => {
-  // Migrazione: aggiunge stripe_pi_id se non esiste
-  try { await db.query(`ALTER TABLE ordini ADD COLUMN IF NOT EXISTS stripe_pi_id TEXT`); } catch(_){}
+  try { await db.query(`ALTER TABLE ordini ADD COLUMN IF NOT EXISTS mail_letta BOOLEAN DEFAULT FALSE`); } catch(_){}
   app.listen(PORT, () => {
     console.log(`[OK] Server avviato su porta ${PORT} (${process.env.NODE_ENV || 'development'})`);
     console.log(`[OK] Email configurata: ${emailConfigurata() ? process.env.EMAIL_USER : 'NO – imposta EMAIL_USER e EMAIL_PASS'}`);
-    console.log(`[OK] Stripe configurato: ${stripe ? 'SI' : 'NO'}`);
     if (!INSTAGRAM_ACCESS_TOKEN) console.log('[--] Instagram: nessun access token.');
   });
   // Avvia scheduler FIPAV: carica partite da DB, registra timer, refresh giornaliero
   initFipavScheduler().catch(err => console.log('[FIPAV Scheduler] Boot fallito:', err.message));
+  scheduleReminderMailOrdini();
 }).catch(err => {
   console.error('[DB] Errore inizializzazione:', err.message);
   app.listen(PORT, () => {

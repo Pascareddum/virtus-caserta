@@ -1045,6 +1045,7 @@
         <th>Totale</th>
         <th>Data</th>
         <th>Stato</th>
+        <th>Mail letta</th>
         <th>Azioni</th>
       </tr></thead>
       <tbody id="ordiniBody"></tbody>
@@ -1316,7 +1317,7 @@
         <span style="font-size:22px;flex-shrink:0;">⚠️</span>
         <div>
           <div style="font-weight:800;color:#b91c1c;margin-bottom:4px;">Sei sicuro?</div>
-          <div style="font-size:13px;color:#374151;line-height:1.5;">L'ordine sarà <strong>eliminato definitivamente dal database</strong>. Se Stripe è configurato verrà anche avviato il rimborso e l'utente notificato via email. Operazione non reversibile.</div>
+          <div style="font-size:13px;color:#374151;line-height:1.5;">L'ordine sarà <strong>eliminato definitivamente dal database</strong>. Il cliente verrà notificato via email. Operazione non reversibile.</div>
         </div>
       </div>
       <div style="font-size:13px;color:#6b7280;">Ordine: <strong id="rimborsoOrdineInfo"></strong></div>
@@ -1324,7 +1325,7 @@
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalRimborso')">Annulla</button>
       <button id="btnConfermaRimborso" style="padding:10px 24px;border-radius:10px;border:none;background:#dc2626;color:#fff;font-size:14px;font-weight:700;cursor:pointer;" onclick="confermaCancellazione()">
-        Sì, cancella e rimborsa
+        Sì, cancella
       </button>
     </div>
   </div>
@@ -2241,7 +2242,7 @@
       const url = filtroStatoCorrente ? `/api/admin/ordini?stato=${encodeURIComponent(filtroStatoCorrente)}` : '/api/admin/ordini';
       const ordini = await fetch(url, { headers: headers() }).then(r => r.json());
       if (!ordini.length) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div>Nessun ordine trovato.</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📦</div>Nessun ordine trovato.</div></td></tr>`;
         return;
       }
       tbody.innerHTML = ordini.map(o => `
@@ -2257,6 +2258,13 @@
           <td data-label="Totale"><strong>€ ${Number(o.totale).toFixed(2)}</strong></td>
           <td data-label="Data" style="color:var(--sub);font-size:13px;">${o.created_at ? new Date(o.created_at).toLocaleDateString('it-IT') : '—'}</td>
           <td data-label="Stato"><span class="badge ${statoBadge(o.stato)}">${o.stato}</span></td>
+          <td data-label="Mail letta" style="text-align:center;">
+            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
+              <input type="checkbox" ${o.mail_letta ? 'checked' : ''} onchange="toggleMailLetta('${o.id}', this.checked)"
+                style="width:16px;height:16px;accent-color:#16a34a;cursor:pointer;">
+              <span style="color:${o.mail_letta ? '#16a34a' : '#dc2626'};font-weight:600;">${o.mail_letta ? 'Sì' : 'No'}</span>
+            </label>
+          </td>
           <td data-label="Azioni">
             <div class="azioni" style="gap:6px;flex-wrap:wrap;">
               <select class="stato-select" onchange="aggiornaStatoOrdine('${o.id}', this.value)">
@@ -2276,8 +2284,14 @@
           </td>
         </tr>`).join('');
     } catch {
-      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">Errore caricamento ordini.</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">Errore caricamento ordini.</div></td></tr>`;
     }
+  }
+
+  async function toggleMailLetta(id, letta) {
+    await fetch(`/api/admin/ordini/${id}/mail-letta`, {
+      method: 'PUT', headers: headers(), body: JSON.stringify({ mail_letta: letta }),
+    });
   }
 
   function filtraOrdini(stato) {
@@ -2313,10 +2327,7 @@
       if (!res.ok) {
         alert(`Errore: ${data.error}`);
       } else {
-        const msg = data.rimborso
-          ? '✅ Ordine cancellato e rimborso avviato. Il cliente è stato notificato.'
-          : '✅ Ordine cancellato. Il rimborso non è stato eseguito automaticamente (nessun PI trovato) — verifica manualmente su Stripe.';
-        alert(msg);
+        alert('✅ Ordine cancellato. Il cliente è stato notificato via email.');
         caricaOrdini();
         caricaDashboard();
       }
@@ -2324,7 +2335,7 @@
       alert('Errore di rete. Riprova.');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Sì, cancella e rimborsa';
+      btn.textContent = 'Sì, cancella';
       _rimborsoId = null;
     }
   }
