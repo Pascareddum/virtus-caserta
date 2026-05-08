@@ -4,15 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestione – Virtus Caserta</title>
-  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="/vendor/quill.snow.css" rel="stylesheet">
+  <script src="/vendor/quill.min.js"></script>
   <style>
     /* ═══════════════════════════════════════════════════════════
        VIRTUS CASERTA · GESTIONE — Design dashboard professionale
        Ispirazione: Notion / Stripe / Linear
        ═══════════════════════════════════════════════════════════ */
-
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {
       /* Brand */
@@ -277,7 +276,10 @@
       vertical-align:middle;
     }
     .prod-nome { font-weight:600; color:var(--testo); font-size:14px; }
-    .prod-desc { font-size:12.5px; color:var(--sub); margin-top:2px; line-height:1.4; }
+    .prod-desc {
+      font-size:12.5px; color:var(--sub); margin-top:2px; line-height:1.4;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:260px;
+    }
     .prod-img-thumb { width:48px; height:48px; object-fit:cover; border-radius:8px; display:block; }
     .prod-img-placeholder { width:48px; height:48px; border-radius:8px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:20px; }
 
@@ -401,19 +403,23 @@
     .mf-row  { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .mf-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 
-    .taglie-editor { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+    .taglie-editor {
+      display:grid; grid-template-columns:repeat(auto-fit, minmax(44px, 1fr));
+      gap:6px; margin-top:4px;
+    }
     .taglia-toggle {
-      padding:5px 12px; border-radius:var(--radius);
-      border:1px solid var(--bordo);
+      padding:8px 4px; border-radius:var(--radius);
+      border:1.5px solid var(--bordo);
       background:var(--surface);
       font-family:inherit;
-      font-size:13px; font-weight:600; cursor:pointer;
-      transition:all .12s; color:var(--testo-2);
+      font-size:12px; font-weight:700; cursor:pointer;
+      transition:all .15s; color:var(--testo-2);
+      text-align:center; line-height:1;
     }
-    .taglia-toggle:hover { border-color:var(--sub-2); }
+    .taglia-toggle:hover { border-color:var(--sub-2); background:var(--surface-3); }
     .taglia-toggle.on {
       background:var(--blu); border-color:var(--blu); color:#fff;
-      box-shadow:var(--shadow-sm);
+      box-shadow:0 2px 6px rgba(21,53,168,.3);
     }
 
     .img-preview {
@@ -869,6 +875,17 @@
       /* Log */
       .log-riga { flex-direction:column; gap:4px; }
       .log-time { min-width:unset; }
+
+      /* Modal mobile */
+      .modal-overlay { padding:10px; }
+      .modal-box { max-width:100%; }
+      .modal-hdr { padding:14px 16px 0; margin-bottom:10px; }
+      .modal-body { padding:0 16px 16px; gap:10px; overflow-y:auto; }
+      .modal-ftr { padding:10px 16px; }
+      #quillEditor { touch-action:pan-y; }
+      #quillEditor .ql-editor { min-height:80px; font-size:16px; }
+      .ql-toolbar.ql-snow .ql-formats { margin-right:4px; }
+      .ql-toolbar.ql-snow button { width:24px; height:24px; padding:2px; }
     }
   </style>
 </head>
@@ -1214,11 +1231,22 @@
 <!-- ══ UTENTI ══ -->
 <div class="pannello" id="pan-utenti">
   <div class="toolbar"><h2>Utenti registrati</h2></div>
-  <p style="font-size:13px;color:#6b7280;margin-bottom:20px;">Gestisci le richieste di registrazione. Approva un utente per inviargli il link di impostazione password.</p>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">Gestisci le richieste di registrazione. Approva un utente per inviargli il link di impostazione password.</p>
+  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+    <input id="uSearchInput" type="text" placeholder="Cerca per nome o email…"
+      oninput="filtraUtenti()"
+      style="flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--testo);box-shadow:var(--shadow-xs);">
+    <select id="uTipoSelect" onchange="filtraUtenti()"
+      style="padding:8px 12px;border:1px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--testo);box-shadow:var(--shadow-xs);cursor:pointer;">
+      <option value="">Tutti i tipi</option>
+      <option value="atleta">Atleta</option>
+      <option value="allenatore">Allenatore</option>
+    </select>
+  </div>
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
     <button class="filtro-btn on" onclick="filtraUtenti('')" id="uFiltroTutti">Tutti</button>
     <button class="filtro-btn" onclick="filtraUtenti('in_attesa')" id="uFiltroAttesa">In attesa</button>
-    <button class="filtro-btn" onclick="filtraUtenti('approvato')" id="uFiltroApprovato">Approvati (pw da impostare)</button>
+    <button class="filtro-btn" onclick="filtraUtenti('approvato')" id="uFiltroApprovato">Approvati</button>
     <button class="filtro-btn" onclick="filtraUtenti('attivo')" id="uFiltroAttivo">Attivi</button>
     <button class="filtro-btn" onclick="filtraUtenti('rifiutato')" id="uFiltroRifiutato">Rifiutati</button>
   </div>
@@ -2225,30 +2253,33 @@
 
     document.getElementById('modalNotizia').classList.add('aperto');
 
-    let notiziaData = null;
+    let testoEsistente = '';
     if (id) {
-      const notizie = await fetch('/api/notizie').then(r => r.json());
-      notiziaData = notizie.find(x => x.id === id) || null;
-      if (notiziaData) {
-        document.getElementById('nTitolo').value  = notiziaData.titolo;
-        document.getElementById('nTesto').value   = notiziaData.testo;
-        document.getElementById('nColore').value  = notiziaData.colore || 'blu';
-        document.getElementById('nData').value    = notiziaData.data ? isoDate(notiziaData.data) : '';
-        document.getElementById('nImmagine').value = notiziaData.immagine || '';
-        if (notiziaData.immagine) {
-          document.getElementById('nImgPreview').src = notiziaData.immagine;
+      const notizie = await fetch('/api/notizie', { headers: headers() }).then(r => r.json());
+      const n = notizie.find(x => x.id === id) || null;
+      if (n) {
+        document.getElementById('nTitolo').value   = n.titolo;
+        document.getElementById('nTesto').value    = n.testo || '';
+        document.getElementById('nColore').value   = n.colore || 'blu';
+        document.getElementById('nData').value     = n.data ? isoDate(n.data) : '';
+        document.getElementById('nImmagine').value = n.immagine || '';
+        testoEsistente = n.testo || '';
+        if (n.immagine) {
+          document.getElementById('nImgPreview').src = n.immagine;
           document.getElementById('nImgPreview').style.display = 'block';
         }
       }
     }
 
-    // requestAnimationFrame ensures browser has painted the modal (display:flex)
-    // before Quill measures container dimensions — avoids 0-height editor bug
-    requestAnimationFrame(() => {
+    // setTimeout 100ms: ensures browser finishes painting + CSS animation on mobile
+    setTimeout(() => {
       initQuill();
-      quill.root.innerHTML = notiziaData ? (notiziaData.testo || '') : '';
+      // Direct innerHTML assignment replaces all content (dangerouslyPasteHTML inserts at pos 0,
+      // leaving old content on second open)
+      quill.root.innerHTML = testoEsistente || '<p><br></p>';
+      document.getElementById('nTesto').value = testoEsistente;
       quill.focus();
-    });
+    }, 100);
   }
 
   function isoDate(d) {
@@ -3030,10 +3061,12 @@
   /* ══ UTENTI ══ */
   let _filtroUtenti = '';
   function filtraUtenti(stato) {
-    _filtroUtenti = stato;
-    document.querySelectorAll('[id^="uFiltro"]').forEach(b => b.classList.remove('on'));
-    const map = {'':'uFiltroTutti','in_attesa':'uFiltroAttesa','approvato':'uFiltroApprovato','attivo':'uFiltroAttivo','rifiutato':'uFiltroRifiutato'};
-    document.getElementById(map[stato])?.classList.add('on');
+    if (stato !== undefined) {
+      _filtroUtenti = stato;
+      document.querySelectorAll('[id^="uFiltro"]').forEach(b => b.classList.remove('on'));
+      const map = {'':'uFiltroTutti','in_attesa':'uFiltroAttesa','approvato':'uFiltroApprovato','attivo':'uFiltroAttivo','rifiutato':'uFiltroRifiutato'};
+      document.getElementById(map[stato])?.classList.add('on');
+    }
     caricaUtenti();
   }
 
@@ -3042,6 +3075,11 @@
     try {
       let list = await fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json());
       if (_filtroUtenti) list = list.filter(u => u.stato === _filtroUtenti);
+      const q = (document.getElementById('uSearchInput')?.value || '').toLowerCase().trim();
+      if (q) list = list.filter(u => `${u.nome} ${u.cognome} ${u.email}`.toLowerCase().includes(q));
+      const tipo = document.getElementById('uTipoSelect')?.value || '';
+      if (tipo === 'atleta') list = list.filter(u => u.is_atleta);
+      if (tipo === 'allenatore') list = list.filter(u => u.is_allenatore);
       if (!list.length) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Nessun utente trovato.</td></tr>';
         return;

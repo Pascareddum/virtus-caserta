@@ -189,8 +189,8 @@ app.use(helmet({
       ],
       connectSrc:    ["'self'", "https://www.paypal.com", "https://api.paypal.com"],
       imgSrc:        ["'self'", "data:", "https:"],
-      styleSrc:      ["'self'", "'unsafe-inline'"],
-      fontSrc:       ["'self'", "data:"],
+      styleSrc:      ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:       ["'self'", "data:", "https://fonts.gstatic.com"],
       objectSrc:     ["'none'"],
       baseUri:       ["'self'"],
       formAction:    ["'self'"],
@@ -744,21 +744,21 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
           <div style="background:#e11d48;padding:24px;text-align:center">
             <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
-            <p style="color:#fecdd3;margin:6px 0 0;font-size:13px">🎉 NUOVO EVENTO</p>
+            <p style="color:#fecdd3;margin:6px 0 0;font-size:13px">NUOVO EVENTO</p>
           </div>
           <div style="padding:28px 24px">
             <h2 style="color:#e11d48;font-size:22px;margin:0 0 16px;">${esc(titolo)}</h2>
-            <p style="font-size:15px;color:#374151;"><strong>📅 Data:</strong> ${dataFormattata}</p>
-            ${ora ? `<p style="font-size:15px;color:#374151;"><strong>🕐 Orario:</strong> ${esc(ora)}</p>` : ''}
-            ${luogo ? `<p style="font-size:15px;color:#374151;"><strong>📍 Luogo:</strong> ${esc(luogo)}</p>` : ''}
-            ${categoriaVal ? `<p style="font-size:15px;color:#374151;"><strong>📋 Categoria:</strong> ${esc(categoriaVal)}</p>` : ''}
+            <p style="font-size:15px;color:#374151;"><strong>Data:</strong> ${dataFormattata}</p>
+            ${ora ? `<p style="font-size:15px;color:#374151;"><strong>Orario:</strong> ${esc(ora)}</p>` : ''}
+            ${luogo ? `<p style="font-size:15px;color:#374151;"><strong>Luogo:</strong> ${esc(luogo)}</p>` : ''}
+            ${categoriaVal ? `<p style="font-size:15px;color:#374151;"><strong>Categoria:</strong> ${esc(categoriaVal)}</p>` : ''}
             ${note ? `<p style="font-size:14px;color:#6b7280;margin-top:12px;">${esc(note)}</p>` : ''}
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px 24px;margin:24px 0;text-align:center">
               <p style="margin:0 0 16px;font-size:15px;font-weight:700;color:#991b1b;">Conferma la tua partecipazione</p>
               <p style="margin:0 0 20px;font-size:13px;color:#6b7280;">Facci sapere se sarai presente all'evento accedendo al tuo account.</p>
               <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-                <a href="${calLink}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">✅ Confermo la partecipazione</a>
-                <a href="${calLink}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">❌ Non parteciperò</a>
+                <a href="${calLink}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">Confermo la partecipazione</a>
+                <a href="${calLink}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">Non parteciperò</a>
               </div>
               <p style="margin:14px 0 0;font-size:11px;color:#9ca3af;">Accedi al sito per registrare la tua risposta</p>
             </div>
@@ -769,10 +769,10 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
         </div>`;
       for (const u of utenti.rows) {
         if (brevoApiConfigurato()) {
-          sendBrevoEmail({ to: u.email, subject: `🎉 Nuovo evento: ${titolo} | Virtus Caserta`, html: emailHtml })
+          sendBrevoEmail({ to: u.email, subject: `Nuovo evento: ${titolo} | Virtus Caserta`, html: emailHtml })
             .catch(e => console.error('[Evento email]', u.email, e.message));
         } else if (brevoConfigurato()) {
-          creaTransporterShop().sendMail({ from: shopFrom(), to: u.email, subject: `🎉 Nuovo evento: ${titolo} | Virtus Caserta`, html: emailHtml })
+          creaTransporterShop().sendMail({ from: shopFrom(), to: u.email, subject: `Nuovo evento: ${titolo} | Virtus Caserta`, html: emailHtml })
             .catch(e => console.error('[Evento email SMTP]', u.email, e.message));
         }
       }
@@ -1346,11 +1346,11 @@ app.put('/api/admin/ordini/:id/stato', adminAuth, async (req, res) => {
     // Email notifica cliente
     if (emailShopConfigurata() && ordine.email) {
       const statiLabel = {
-        'ricevuto':       '📦 Ordine ricevuto',
-        'in lavorazione': '🔧 In lavorazione',
-        'pronto':         '📦 Pronto per il ritiro',
-        'ritirato':       '✅ Ritirato',
-        'annullato':      '❌ Annullato',
+        'ricevuto':       'Ordine ricevuto',
+        'in lavorazione': 'In lavorazione',
+        'pronto':         'Pronto per il ritiro',
+        'ritirato':       'Ritirato',
+        'annullato':      'Annullato',
       };
       const transporter = creaTransporterShop();
       const html = `
@@ -1414,7 +1414,7 @@ app.post('/api/admin/ordini/:id/rimborso', adminAuth, async (req, res) => {
             <p>Ciao <strong>${ordine.nome}</strong>,</p>
             <p>Il tuo ordine <strong>#${ordine.id}</strong> è stato cancellato dal nostro staff.</p>
             <div style="background:#fef9c3;border-left:4px solid #ca8a04;padding:16px;border-radius:4px;margin:16px 0;">
-              <strong>ℹ️ Informazioni</strong><br>
+              <strong>ℹInformazioni</strong><br>
               <span style="font-size:13px;">Per qualsiasi chiarimento contattaci a <a href="mailto:virtuscaserta@gmail.com">virtuscaserta@gmail.com</a></span>
             </div>
             <p style="font-size:13px;color:#6b7280;">Forza Virtus!</p>
@@ -1730,15 +1730,15 @@ app.post('/api/richiesta-ordine', ordineEmailLimiter, async (req, res) => {
   const htmlAdmin = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
       <div style="background:#0d2055;padding:20px 24px;text-align:center">
-        <h1 style="color:#fff;font-size:20px;margin:0">🛒 NUOVA RICHIESTA ORDINE</h1>
+        <h1 style="color:#fff;font-size:20px;margin:0">NUOVA RICHIESTA ORDINE</h1>
         <p style="color:#ff9800;margin:4px 0 0;font-size:13px">#${esc(ordineId.slice(0,8).toUpperCase())}</p>
       </div>
       <div style="padding:24px">
         <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:16px 20px;margin-bottom:20px">
-          <p style="margin:0;font-size:15px;font-weight:700;color:#15803d">👤 CLIENTE DA CONTATTARE</p>
+          <p style="margin:0;font-size:15px;font-weight:700;color:#15803d">CLIENTE DA CONTATTARE</p>
           <p style="margin:8px 0 0;font-size:16px;font-weight:900;color:#111">${esc(nome)} ${esc(cognome)}</p>
-          <p style="margin:4px 0 0;font-size:15px">📞 <a href="tel:${esc(telefono)}" style="color:#0d2055;font-weight:700">${esc(telefono)}</a></p>
-          <p style="margin:4px 0 0;font-size:14px">✉️ <a href="mailto:${esc(email)}" style="color:#1535a8">${esc(email)}</a></p>
+          <p style="margin:4px 0 0;font-size:15px">Telefono: <a href="tel:${esc(telefono)}" style="color:#0d2055;font-weight:700">${esc(telefono)}</a></p>
+          <p style="margin:4px 0 0;font-size:14px">Mail:<a href="mailto:${esc(email)}" style="color:#1535a8">${esc(email)}</a></p>
         </div>
         <h3 style="color:#0d2055;border-bottom:2px solid #f57c00;padding-bottom:8px">Prodotti richiesti</h3>
         ${tabellaHtml}
@@ -1758,7 +1758,7 @@ app.post('/api/richiesta-ordine', ordineEmailLimiter, async (req, res) => {
       from: shopFrom(),
       to: 'virtuscaserta@gmail.com',
       replyTo: email,
-      subject: `🛒 Nuova richiesta ordine da ${esc(nome)} ${esc(cognome)} (#${ordineId.slice(0,8).toUpperCase()})`,
+      subject: `Nuova richiesta ordine da ${esc(nome)} ${esc(cognome)} (#${ordineId.slice(0,8).toUpperCase()})`,
       html: htmlAdmin,
     });
     console.log(`[Richiesta ordine] Email inviate – cliente: ${email}, admin: virtuscaserta@gmail.com`);
@@ -1770,77 +1770,6 @@ app.post('/api/richiesta-ordine', ordineEmailLimiter, async (req, res) => {
   res.json({ success: true, ordineId });
 });
 
-/* ─── Instagram Basic Display API ─── */
-const IG_CACHE_TTL = 2 * 60 * 60 * 1000;
-let igCache = null;
-
-app.get('/api/instagram', async (_req, res) => {
-  if (!INSTAGRAM_ACCESS_TOKEN) {
-    return res.json({
-      source: 'static',
-      username: INSTAGRAM_USERNAME,
-      profileUrl: `https://www.instagram.com/${INSTAGRAM_USERNAME}/`,
-      message: 'Configura INSTAGRAM_ACCESS_TOKEN nel file .env per mostrare i post reali.',
-      recentPosts: [],
-    });
-  }
-
-  if (igCache && (Date.now() - igCache.ts) < IG_CACHE_TTL) {
-    return res.json(igCache.data);
-  }
-
-  try {
-    const BASE = 'https://graph.instagram.com';
-    const profileRes = await fetch(`${BASE}/me?fields=id,username,account_type,media_count&access_token=${INSTAGRAM_ACCESS_TOKEN}`);
-    if (!profileRes.ok) throw new Error(`HTTP ${profileRes.status} (profilo)`);
-    const profile = await profileRes.json();
-    if (profile.error) throw new Error(profile.error.message);
-
-    const mediaRes = await fetch(`${BASE}/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=3&access_token=${INSTAGRAM_ACCESS_TOKEN}`);
-    if (!mediaRes.ok) throw new Error(`HTTP ${mediaRes.status} (media)`);
-    const mediaJson = await mediaRes.json();
-    if (mediaJson.error) throw new Error(mediaJson.error.message);
-
-    const posts = (mediaJson.data || []).map(item => ({
-      id:        item.id,
-      url:       item.permalink,
-      thumbnail: item.media_type === 'VIDEO' ? (item.thumbnail_url || '') : (item.media_url || ''),
-      caption:   item.caption || '',
-      timestamp: Math.floor(new Date(item.timestamp).getTime() / 1000),
-      isVideo:   item.media_type === 'VIDEO',
-    }));
-
-    const result = {
-      source: 'instagram_api', username: profile.username,
-      posts: profile.media_count || 0,
-      profileUrl: `https://www.instagram.com/${profile.username}/`,
-      recentPosts: posts,
-    };
-    igCache = { data: result, ts: Date.now() };
-    return res.json(result);
-  } catch (err) {
-    console.error('[Instagram] Errore:', err);
-    if (igCache) return res.json({ ...igCache.data, cached: true });
-    return res.json({
-      source: 'static', username: INSTAGRAM_USERNAME,
-      profileUrl: `https://www.instagram.com/${INSTAGRAM_USERNAME}/`,
-      message: 'Errore Instagram', recentPosts: [],
-    });
-  }
-});
-
-app.post('/api/instagram/refresh-token', async (_req, res) => {
-  if (!INSTAGRAM_ACCESS_TOKEN) return res.status(400).json({ error: 'Token non configurato' });
-  try {
-    const r = await fetch(`https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${INSTAGRAM_ACCESS_TOKEN}`);
-    const json = await r.json();
-    if (json.error) throw new Error(json.error.message);
-    res.json({ access_token: json.access_token, expires_in: json.expires_in });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Errore interno del server.' });
-  }
-});
 
 /* ─── FIPAV Partite ─── */
 const FIPAV_CASERTA_BASE   = 'https://caserta.portalefipav.net';

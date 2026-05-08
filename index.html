@@ -2426,7 +2426,7 @@
       }
     }
 
-    async function loadInstagram() {
+    /*async function loadInstagram() {
       const container = document.getElementById('igContent');
       try {
         const res  = await fetch('/api/instagram');
@@ -2503,7 +2503,7 @@
             </a>
           </div>`;
       }
-    }
+    }*/
 
     /* ─── AUTH ─── */
     function aggiornaNavbar() {
@@ -2589,12 +2589,12 @@
 
     loadNotizie();
     loadPartite();
-    loadInstagram();
+    //loadInstagram();
 
     aggiornaNavbar();
 
     /* ── NOTIFICHE PARTITE IN CASA ── */
-    async function inizializzaNotifiche() {
+    /*async function inizializzaNotifiche() {
       if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
 
       // Registra service worker
@@ -2644,7 +2644,7 @@
       localStorage.setItem('vc_notificate', JSON.stringify(notificate));
     }
 
-    inizializzaNotifiche();
+    inizializzaNotifiche();*/
 
     /* ── SPONSOR TICKER ── */
     (async function caricaSponsor() {
