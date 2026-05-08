@@ -12,7 +12,10 @@
       "Bash(git -C /Users/alessandrro/Documents/GitHub/virtus-caserta status)",
       "Bash(git -C /Users/alessandrro/Documents/GitHub/virtus-caserta log --oneline -5)",
       "Bash(git *)",
-      "Bash(grep -E \"\\\\.js$|\\\\.html$\")"
+      "Bash(grep -E \"\\\\.js$|\\\\.html$\")",
+      "Bash(awk -F: '$1>=1340 && $1<=1420')",
+      "Bash(awk 'NR>=1280 && NR<=1350 {print NR\": \"$0}' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(grep -E \"^[0-9]+: </div>$|^[0-9]+: <!-- \")"
     ]
   }
 }

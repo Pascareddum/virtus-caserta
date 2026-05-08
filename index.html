@@ -1810,8 +1810,14 @@
         <a href="#contatti" class="btn-outline">Unisciti a noi</a>
         <a href="calendario.html" class="btn-outline" id="btnCalendario" style="display:none">Calendario allenamenti</a>
       </div>
+      <!-- EVENTI BANNER (iniettato da JS) -->
+      <div id="heroEventiBanner" style="display:none;margin-top:24px;"></div>
     </div>
   </section>
+
+  <!-- EVENTI STRIP (sotto hero, sopra sponsor) -->
+  <div id="eventiStrip" style="display:none;background:#e11d48;color:#fff;padding:12px 24px;text-align:center;font-size:14px;font-weight:700;letter-spacing:.3px;cursor:pointer;" onclick="location.href='/calendario'">
+  </div>
 
     <!-- SPONSOR TICKER -->
   <section id="sponsor" style="padding:48px 0 44px;background:#f8fafc;border-top:1px solid #e8edf5;">
@@ -2123,6 +2129,7 @@
         <a href="/login" aria-label="Accedi al tuo account">Accedi</a>
       </div>
       <div class="footer-auth-logged">
+        <a href="/utente" class="footer-btn" id="footerUtenteLink" style="display:none" aria-label="Vai alla tua area utente">Area Utente</a>
         <a href="/admin" class="footer-btn" id="footerAdminLink" style="display:none" aria-label="Vai alla sezione amministratore">Sezione amministratore</a>
         <button class="footer-btn footer-btn-outline" onclick="logout()" aria-label="Esci dall'account">Esci</button>
       </div>
@@ -2513,6 +2520,8 @@
       if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
       if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
       if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
+      const utenteLink = document.getElementById('footerUtenteLink');
+      if (utenteLink) utenteLink.style.display = (isLoggedIn && !isAdmin) ? 'inline-flex' : 'none';
     }
 
     function apriModal() {
@@ -3026,6 +3035,54 @@
         }
       });
     }
+  </script>
+  <script>
+  /* ── Prossimi eventi ── */
+  (async function caricaEventi() {
+    try {
+      const _vcTok = localStorage.getItem('vc_token');
+      const eventi = await fetch('/api/prossimi-eventi', _vcTok ? { headers: { Authorization: 'Bearer ' + _vcTok } } : {}).then(r => r.json());
+      if (!eventi.length) return;
+      const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+      const fmt = s => { const d = new Date(s+'T00:00:00'); return `${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}`; };
+
+      // Strip sotto hero
+      const strip = document.getElementById('eventiStrip');
+      if (strip) {
+        const prossimo = eventi[0];
+        const dataStrip = prossimo.data_str || prossimo.data;
+        strip.textContent = `🎉 ${prossimo.titolo} — ${fmt(dataStrip)}${prossimo.luogo?' · '+prossimo.luogo:''} → Scopri di più`;
+        strip.style.display = 'block';
+        strip.onclick = () => location.href = `/calendario#${dataStrip}`;
+        strip.style.cursor = 'pointer';
+      }
+
+      // Banner in hero
+      const banner = document.getElementById('heroEventiBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        banner.innerHTML = eventi.map(e => {
+          const d = e.data_str || e.data;
+          return `<a href="/calendario#${d}" style="display:inline-flex;align-items:center;gap:8px;background:rgba(225,29,72,.85);color:#fff;text-decoration:none;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:700;margin:4px;backdrop-filter:blur(4px);">🎉 ${e.titolo} · ${fmt(d)}</a>`;
+        }).join('');
+      }
+
+      // Navbar indicator: aggiunge dot rosso al link calendario
+      const calLink = document.querySelector('a[href="/calendario"], a[href="calendario.html"]');
+      if (calLink && !calLink.querySelector('.ev-dot')) {
+        const dot = document.createElement('span');
+        dot.className = 'ev-dot';
+        dot.style.cssText = 'display:inline-block;width:8px;height:8px;border-radius:50%;background:#e11d48;margin-left:5px;vertical-align:middle;animation:ev-pulse 1.5s ease-in-out infinite;';
+        calLink.appendChild(dot);
+        if (!document.querySelector('#ev-pulse-style')) {
+          const st = document.createElement('style');
+          st.id = 'ev-pulse-style';
+          st.textContent = '@keyframes ev-pulse{0%,100%{opacity:1}50%{opacity:.35}}';
+          document.head.appendChild(st);
+        }
+      }
+    } catch(e) { /* silent */ }
+  })();
   </script>
   <script src="common.js"></script>
 </body>

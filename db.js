@@ -169,6 +169,17 @@ async function createTables() {
   `);
 
   await query(`
+    CREATE TABLE IF NOT EXISTS partecipazioni (
+      id          SERIAL PRIMARY KEY,
+      sessione_id VARCHAR NOT NULL,
+      utente_id   VARCHAR NOT NULL,
+      risposta    VARCHAR NOT NULL DEFAULT 'si',
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(sessione_id, utente_id)
+    );
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id         SERIAL PRIMARY KEY,
       endpoint   TEXT UNIQUE NOT NULL,
@@ -237,6 +248,8 @@ async function createTables() {
 
   // Aggiornamenti schema per DB già esistenti
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS ripetizione_settimanale BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS tipo VARCHAR DEFAULT 'allenamento'`);
+  await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS foto VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE squadra ADD COLUMN IF NOT EXISTS sesso VARCHAR DEFAULT 'Femminile'`);
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS sconto INTEGER DEFAULT 0`);
   await query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS quantita INTEGER DEFAULT -1`);
@@ -245,6 +258,8 @@ async function createTables() {
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS squadre JSONB DEFAULT '[]'`);
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS squadre_atleta JSONB DEFAULT '[]'`);
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS squadre_allenatore JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS ruolo_atleta VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS ruolo_allenatore VARCHAR DEFAULT ''`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS utenti (

@@ -900,6 +900,7 @@
     <button class="tab-btn"        data-tab="utenti"       onclick="switchTab('utenti')">👤 Utenti</button>
     <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
     <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
+    <button class="tab-btn"        data-tab="sessioni"          onclick="switchTab('sessioni')">👥 Sessioni</button>
     <div class="drawer-home">
       <a href="/">🏠 Torna alla home</a>
     </div>
@@ -920,6 +921,7 @@
   <button class="tab-btn"        data-tab="utenti"       onclick="switchTab('utenti')">👤 Utenti</button>
   <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
   <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
+  <button class="tab-btn"        data-tab="sessioni"          onclick="switchTab('sessioni')">👥 Sessioni</button>
   <div class="sidebar-home">
     <a href="/">🏠 Torna alla home</a>
   </div>
@@ -1312,6 +1314,41 @@
   <div id="catSquadreLog" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-top:12px;"></div>
 </div>
 
+<!-- PANNELLO SESSIONI -->
+<div class="pannello" id="pan-sessioni">
+  <div class="toolbar">
+    <h2>Sessioni calendario</h2>
+    <div style="display:flex;gap:8px;">
+      <button class="filtro-btn on" id="sfTutti"       onclick="filtraSessioni('')">Tutti</button>
+      <button class="filtro-btn"    id="sfAllenamento" onclick="filtraSessioni('allenamento')">🏋️ Allenamento</button>
+      <button class="filtro-btn"    id="sfEvento"      onclick="filtraSessioni('evento')">🎉 Evento</button>
+    </div>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th>Data</th>
+        <th>Orario</th>
+        <th>Titolo</th>
+        <th>Tipo</th>
+        <th>Categoria</th>
+        <th style="text-align:center">✅ Partecipano</th>
+        <th style="text-align:center">❌ Non partecipano</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="sessioniBody"></tbody>
+    </table>
+  </div>
+  <!-- Dettaglio partecipanti -->
+  <div id="sessioniDetail" style="display:none;margin-top:20px;padding:20px;background:#f8fafc;border-radius:12px;border:1px solid #e5e7eb;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h3 id="sessioniDetailTitolo" style="margin:0;font-size:16px;color:#0d2055;"></h3>
+      <button onclick="chiudiSessioniDetail()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9ca3af;">✕</button>
+    </div>
+    <div id="sessioniPartecipantiList"></div>
+  </div>
+</div>
+
 <!-- MODAL SPONSOR -->
 <div class="modal-overlay" id="modalSponsor">
   <div class="modal-box" style="max-width:480px;">
@@ -1511,6 +1548,21 @@
       <button class="modal-close" onclick="chiudiModal('modalSessione')">✕</button>
     </div>
     <div class="modal-body">
+      <!-- Tipo toggle -->
+      <div class="mf" style="gap:8px;">
+        <label>Tipo</label>
+        <div style="display:flex;gap:8px;">
+          <button id="sTipoAllenamento" onclick="setSessioneTipo('allenamento')"
+            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #0d2055;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+            🏋️ Allenamento
+          </button>
+          <button id="sTipoEvento" onclick="setSessioneTipo('evento')"
+            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+            🎉 Evento
+          </button>
+        </div>
+        <input type="hidden" id="sTipo" value="allenamento">
+      </div>
       <div class="mf">
         <label>Titolo *</label>
         <input type="text" id="sTitolo" placeholder="Es. Allenamento Under 19">
@@ -1536,6 +1588,12 @@
       <div class="mf">
         <label>Categoria</label>
         <div id="sCategoriaCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 0;"></div>
+      </div>
+      <div class="mf">
+        <label>Foto (opzionale)</label>
+        <input type="file" id="sFotoFile" accept="image/*" onchange="anteprima('sFotoFile','sFotoPreview')">
+        <img id="sFotoPreview" class="img-preview">
+        <input type="hidden" id="sFotoUrl">
       </div>
       <div class="mf">
         <label>Note</label>
@@ -1742,12 +1800,30 @@
         <select id="squadreAtletaSelect" multiple
           style="width:100%;min-height:100px;border:1.5px solid #86efac;border-radius:8px;padding:6px;font-size:13px;outline:none;">
         </select>
+        <label style="font-size:13px;font-weight:700;color:#16a34a;display:block;margin:12px 0 6px;">Ruolo in campo</label>
+        <select id="ruoloAtletaSelect"
+          style="width:100%;padding:9px 10px;border:1.5px solid #86efac;border-radius:8px;font-size:13px;outline:none;">
+          <option value="">— Seleziona ruolo —</option>
+          <option>Libero</option>
+          <option>Schiacciatore</option>
+          <option>Opposto</option>
+          <option>Centrale</option>
+          <option>Universale</option>
+          <option>Sparring</option>
+        </select>
       </div>
       <div id="squadreAllenatoreSection" style="display:none;">
         <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin-bottom:6px;">📋 Squadre come Allenatore</label>
         <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">Ctrl/Cmd per più selezioni.</p>
         <select id="squadreAllenatoreSelect" multiple
           style="width:100%;min-height:100px;border:1.5px solid #93c5fd;border-radius:8px;padding:6px;font-size:13px;outline:none;">
+        </select>
+        <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin:12px 0 6px;">Ruolo allenatore</label>
+        <select id="ruoloAllenatoreSelect"
+          style="width:100%;padding:9px 10px;border:1.5px solid #93c5fd;border-radius:8px;font-size:13px;outline:none;">
+          <option value="">— Seleziona ruolo —</option>
+          <option>Primo allenatore</option>
+          <option>Secondo allenatore</option>
         </select>
       </div>
     </div>
@@ -1839,6 +1915,7 @@
     if (nome === 'utenti')       caricaUtenti();
     if (nome === 'link-squadre') caricaLinkSquadre();
     if (nome === 'cat-squadre')  caricaCatSquadre();
+    if (nome === 'sessioni')     caricaSessioni();
   }
 
   function toggleDrawer() {
@@ -2161,6 +2238,20 @@
     }
   }
 
+  function setSessioneTipo(tipo) {
+    document.getElementById('sTipo').value = tipo;
+    const styleOn  = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;';
+    const btnA = document.getElementById('sTipoAllenamento');
+    const btnE = document.getElementById('sTipoEvento');
+    if (tipo === 'evento') {
+      btnE.style.cssText = styleOn + 'border-color:#e11d48;background:#e11d48;color:#fff;';
+      btnA.style.cssText = styleOn + 'border-color:#d1d5db;background:#fff;color:#374151;';
+    } else {
+      btnA.style.cssText = styleOn + 'border-color:#0d2055;background:#0d2055;color:#fff;';
+      btnE.style.cssText = styleOn + 'border-color:#d1d5db;background:#fff;color:#374151;';
+    }
+  }
+
   function toggleRipetizione(cb) {
     document.getElementById('dataFineWrap').style.display = cb.checked ? 'block' : 'none';
   }
@@ -2178,6 +2269,10 @@
     document.getElementById('sDataFine').value  = '';
     document.getElementById('dataFineWrap').style.display = 'none';
     document.getElementById('ripetizioneWrap').style.display = id ? 'none' : 'block';
+    document.getElementById('sFotoFile').value  = '';
+    document.getElementById('sFotoUrl').value   = '';
+    document.getElementById('sFotoPreview').style.display = 'none';
+    setSessioneTipo('allenamento');
 
     let categoriaCorrente = '';
     if (id) {
@@ -2191,6 +2286,8 @@
         document.getElementById('sLuogo').value     = s.luogo || '';
         categoriaCorrente = s.categoria || '';
         document.getElementById('sNote').value      = s.note || '';
+        setSessioneTipo(s.tipo || 'allenamento');
+        if (s.foto) { document.getElementById('sFotoUrl').value = s.foto; document.getElementById('sFotoPreview').src = s.foto; document.getElementById('sFotoPreview').style.display = 'block'; }
       }
     }
     renderSCategoriaCheckboxes(categoriaCorrente);
@@ -2210,11 +2307,15 @@
     const btn = document.getElementById('btnSalvaSessione');
     btn.disabled = true; btn.textContent = 'Salvataggio...';
     try {
+      const fotoUpload = await uploadImmagine('sFotoFile').catch(() => null);
+      const foto = fotoUpload || document.getElementById('sFotoUrl').value.trim() || '';
       const body = {
         titolo, data, ora,
         luogo:     document.getElementById('sLuogo').value.trim(),
         categoria: getSCategoriaValue(),
         note:      document.getElementById('sNote').value.trim(),
+        tipo:      document.getElementById('sTipo').value,
+        foto,
         ripetizione_settimanale: ripetizione,
         data_fine_ripetizione:   ripetizione ? dataFine : undefined,
       };
@@ -2852,11 +2953,13 @@
         const tags = [];
         if (u.is_atleta) {
           const sq = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
-          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">🏐 Atleta</span>${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+          const ruolo = u.ruolo_atleta ? `<span style="font-size:11px;color:#16a34a;font-weight:700;margin-left:4px;">(${u.ruolo_atleta})</span>` : '';
+          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">🏐 Atleta</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
         }
         if (u.is_allenatore) {
           const sq = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
-          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">📋 Allenatore</span>${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+          const ruolo = u.ruolo_allenatore ? `<span style="font-size:11px;color:#1d4ed8;font-weight:700;margin-left:4px;">(${u.ruolo_allenatore})</span>` : '';
+          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">📋 Allenatore</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
         }
         return tags.length ? tags.join('') : '<span style="color:#9ca3af;font-size:12px;">—</span>';
       };
@@ -2938,6 +3041,8 @@
     const sqAtleta = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
     const sqAllenatore = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
     document.getElementById('tipoUtenteTitle').textContent = `Tipo utente – ${u.nome} ${u.cognome}`;
+    document.getElementById('ruoloAtletaSelect').value = u.ruolo_atleta || '';
+    document.getElementById('ruoloAllenatoreSelect').value = u.ruolo_allenatore || '';
     _aggiornaTabTipo();
     _mostraSezioniSquadre();
 
@@ -2980,12 +3085,14 @@
     btn.disabled = true; btn.textContent = 'Salvataggio…';
     try {
       const getSelected = selId => Array.from(document.getElementById(selId).selectedOptions).map(o => o.value);
-      const squadre_atleta    = _tipoStato.atleta    ? getSelected('squadreAtletaSelect')    : [];
-      const squadre_allenatore = _tipoStato.allenatore ? getSelected('squadreAllenatoreSelect') : [];
+      const squadre_atleta     = _tipoStato.atleta     ? getSelected('squadreAtletaSelect')    : [];
+      const squadre_allenatore  = _tipoStato.allenatore ? getSelected('squadreAllenatoreSelect') : [];
+      const ruolo_atleta        = _tipoStato.atleta     ? (document.getElementById('ruoloAtletaSelect').value || '')     : '';
+      const ruolo_allenatore    = _tipoStato.allenatore ? (document.getElementById('ruoloAllenatoreSelect').value || '') : '';
       const res = await fetch(`/api/admin/utenti/${_tipoUtenteId}/tipo`, {
         method: 'PUT',
         headers: { ...headers(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_atleta: _tipoStato.atleta, is_allenatore: _tipoStato.allenatore, squadre_atleta, squadre_allenatore })
+        body: JSON.stringify({ is_atleta: _tipoStato.atleta, is_allenatore: _tipoStato.allenatore, squadre_atleta, squadre_allenatore, ruolo_atleta, ruolo_allenatore })
       });
       if (!res.ok) { const d = await res.json(); alert('Errore: ' + (d.error || 'sconosciuto')); return; }
       chiudiModal('modalTipoUtente');
@@ -3278,6 +3385,95 @@
     } catch (e) {
       alert('Errore di rete: ' + e.message);
     }
+  }
+
+  /* ══ SESSIONI ══ */
+  let _sessioniAll = [];
+  let _sessioniFiltro = '';
+
+  async function caricaSessioni() {
+    document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9ca3af">Caricamento…</td></tr>';
+    chiudiSessioniDetail();
+    try {
+      const r = await fetch('/api/admin/calendario/sessioni', { headers: headers() });
+      _sessioniAll = await r.json();
+      renderSessioni();
+    } catch {
+      document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="8" style="color:#dc2626;text-align:center;padding:24px">Errore di caricamento.</td></tr>';
+    }
+  }
+
+  function filtraSessioni(tipo) {
+    _sessioniFiltro = tipo;
+    document.querySelectorAll('#pan-sessioni .filtro-btn').forEach(b => b.classList.remove('on'));
+    const ids = {'':"sfTutti",'allenamento':"sfAllenamento",'evento':"sfEvento"};
+    if (ids[tipo]) document.getElementById(ids[tipo]).classList.add('on');
+    renderSessioni();
+    chiudiSessioniDetail();
+  }
+
+  function renderSessioni() {
+    const list = _sessioniFiltro ? _sessioniAll.filter(s => s.tipo === _sessioniFiltro) : _sessioniAll;
+    const tbody = document.getElementById('sessioniBody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af">Nessuna sessione.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(s => {
+      const tipoBadge = s.tipo === 'evento'
+        ? '<span style="background:#fce7f3;color:#be185d;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">🎉 Evento</span>'
+        : '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">🏋️ Allenamento</span>';
+      const d = new Date(s.data + 'T00:00:00').toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short' });
+      return `<tr>
+        <td style="white-space:nowrap">${d}</td>
+        <td>${s.ora || '—'}</td>
+        <td style="font-weight:600">${s.titolo}</td>
+        <td>${tipoBadge}</td>
+        <td style="color:#6b7280;font-size:13px">${s.categoria || '—'}</td>
+        <td style="text-align:center;font-weight:700;color:#16a34a">${s.partecipanti_si}</td>
+        <td style="text-align:center;font-weight:700;color:#dc2626">${s.partecipanti_no}</td>
+        <td><button onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')" style="padding:5px 12px;border-radius:7px;border:1px solid #0d2055;background:#fff;color:#0d2055;font-size:12px;font-weight:700;cursor:pointer;">👥 Vedi</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function apriPartecipanti(sessioneId, titolo, data) {
+    const detail = document.getElementById('sessioniDetail');
+    const tit    = document.getElementById('sessioniDetailTitolo');
+    const list   = document.getElementById('sessioniPartecipantiList');
+    const d = new Date(data + 'T00:00:00').toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+    tit.textContent = `${titolo} — ${d}`;
+    list.innerHTML  = '<p style="color:#9ca3af;text-align:center;padding:16px">Caricamento…</p>';
+    detail.style.display = 'block';
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    try {
+      const r = await fetch(`/api/admin/calendario/${sessioneId}/partecipanti`, { headers: headers() });
+      const rows = await r.json();
+      if (!rows.length) {
+        list.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:16px">Nessun utente idoneo trovato.</p>';
+        return;
+      }
+      const si      = rows.filter(x => x.risposta === 'si');
+      const no      = rows.filter(x => x.risposta === 'no');
+      const attesa  = rows.filter(x => !x.risposta);
+      const renderGruppo = (arr, label, color, bg) => arr.length ? `
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${color};margin-bottom:8px;">${label} (${arr.length})</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${arr.map(u => `<span style="padding:5px 12px;border-radius:20px;background:${bg};color:${color};font-size:13px;font-weight:600">${u.nome} ${u.cognome}</span>`).join('')}
+          </div>
+        </div>` : '';
+      list.innerHTML =
+        renderGruppo(si,     '✅ Partecipano',          '#16a34a', '#dcfce7') +
+        renderGruppo(no,     '❌ Non partecipano',       '#dc2626', '#fee2e2') +
+        renderGruppo(attesa, '⏳ In attesa di risposta', '#92400e', '#fef3c7');
+    } catch {
+      list.innerHTML = '<p style="color:#dc2626;text-align:center">Errore di caricamento.</p>';
+    }
+  }
+
+  function chiudiSessioniDetail() {
+    document.getElementById('sessioniDetail').style.display = 'none';
   }
 
   /* ══ EXPORT CSV ORDINI ══ */

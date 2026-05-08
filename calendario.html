@@ -22,6 +22,7 @@
       --cs:     #059669;   /* fipav senior */
       --cu:     #7c3aed;   /* fipav under  */
       --co:     #ea580c;   /* opes         */
+      --ce:     #e11d48;   /* evento       */
     }
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
     html{scroll-behavior:smooth;}
@@ -90,6 +91,7 @@
     .fpill[data-c="fipav-senior"].on{background:var(--cs);}
     .fpill[data-c="fipav-under"].on {background:var(--cu);}
     .fpill[data-c="opes"].on       {background:var(--co);}
+    .fpill[data-c="evento"].on     {background:var(--ce);}
 
     /* ── SCROLL WRAP (solo griglia, header sincronizzato via JS) ── */
     .cal-scroll-wrap{flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -159,6 +161,8 @@
     .ev.ev-fipav-senior{border-left-color:var(--cs);background:rgba(5,150,105,.04);}
     .ev.ev-fipav-under {border-left-color:var(--cu);background:rgba(124,58,237,.04);}
     .ev.ev-opes        {border-left-color:var(--co);background:rgba(234,88,12,.04);}
+    .ev.ev-evento      {border-left-color:var(--ce);background:rgba(225,29,72,.06);border-left-width:4px;}
+    .badge-e{background:rgba(225,29,72,.12);color:var(--ce);}
     .ev-time{font-size:10px;font-weight:700;color:var(--sub);margin-bottom:2px;letter-spacing:.3px;}
     .ev-title{font-size:11px;font-weight:700;color:var(--testo);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .ev-sub{font-size:10px;color:var(--sub);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -418,6 +422,9 @@
     <button class="fpill" data-c="opes"             onclick="setFiltro('opes',this)">
       <span class="dot" style="background:var(--co)"></span>OPES
     </button>
+    <button class="fpill" data-c="evento"           onclick="setFiltro('evento',this)">
+      <span class="dot" style="background:var(--ce)"></span>🎉 Evento
+    </button>
   </div>
 
   <!-- DESKTOP: intestazione giorni (sticky, fuori dallo scroll wrap) -->
@@ -439,6 +446,7 @@
     <span class="legenda-item"><span class="legenda-dot" style="background:var(--cs)"></span>FIPAV Senior</span>
     <span class="legenda-item"><span class="legenda-dot" style="background:var(--cu)"></span>FIPAV Under</span>
     <span class="legenda-item"><span class="legenda-dot" style="background:var(--co)"></span>OPES</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--ce)"></span>🎉 Evento</span>
   </div>
 
   <!-- MOBILE -->
@@ -468,12 +476,26 @@
   </div>
 </div>
 
-<!-- MODAL AGGIUNGI ALLENAMENTO -->
+<!-- MODAL AGGIUNGI ALLENAMENTO/EVENTO -->
 <div class="add-modal-bg" id="addModal" onclick="chiudiAddModal(event)">
   <div class="add-modal-box">
     <div class="am-hdr">
-      <h3>Nuovo allenamento</h3>
+      <h3 id="addModalTitolo">Nuovo allenamento</h3>
       <button class="modal-close" onclick="chiudiAddModal()">✕</button>
+    </div>
+    <div class="mf" style="gap:6px;">
+      <label>Tipo</label>
+      <div style="display:flex;gap:8px;">
+        <button id="mTipoAllenamento" onclick="setMTipo('allenamento')"
+          style="flex:1;padding:9px 6px;border-radius:8px;border:2px solid #0d2055;background:#0d2055;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+          🏋️ Allenamento
+        </button>
+        <button id="mTipoEvento" onclick="setMTipo('evento')"
+          style="flex:1;padding:9px 6px;border-radius:8px;border:2px solid #d1d5db;background:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+          🎉 Evento
+        </button>
+      </div>
+      <input type="hidden" id="mTipo" value="allenamento">
     </div>
     <div class="mf"><label>Titolo *</label><input type="text" id="mTitolo" placeholder="Es. Allenamento Under 19"></div>
     <div class="mf"><label>Data *</label><input type="date" id="mData"></div>
@@ -490,6 +512,7 @@
         <option>Under 13</option><option>Prima Squadra</option><option>Altro</option>
       </select>
     </div>
+    <div class="mf"><label>Foto URL (opzionale)</label><input type="url" id="mFoto" placeholder="https://…"></div>
     <div class="mf"><label>Note</label><textarea id="mNote" placeholder="Informazioni aggiuntive…"></textarea></div>
     <div class="am-ftr">
       <button class="btn-cancel" onclick="chiudiAddModal()">Annulla</button>
@@ -513,6 +536,7 @@
     'fipav-senior':{ label:'FIPAV Senior', color:'#059669', cls:'ev-fipav-senior', badge:'badge-s', mcls:'badge-s' },
     'fipav-under': { label:'FIPAV Under',  color:'#7c3aed', cls:'ev-fipav-under',  badge:'badge-u', mcls:'badge-u' },
     opes:          { label:'OPES',         color:'#ea580c', cls:'ev-opes',         badge:'badge-o', mcls:'badge-o' },
+    evento:        { label:'🎉 Evento',    color:'#e11d48', cls:'ev-evento',        badge:'badge-e', mcls:'badge-e' },
   };
 
   /* ── STATE ── */
@@ -651,10 +675,10 @@
         shown.forEach(e => {
           const ci = CAT[e.cat]||CAT.allenamento;
           let timeStr, titleStr, subStr = '';
-          if (e.tipo==='allenamento') {
+          if (e.tipo==='allenamento' || e.tipo==='evento') {
             const {inizio,fine} = parseOra(e.ora);
             timeStr  = inizio + (fine?'–'+fine:'');
-            titleStr = e.categoria || e.titolo || 'Allenamento';
+            titleStr = e.titolo || e.categoria || (e.tipo==='evento'?'Evento':'Allenamento');
             subStr   = e.luogo||'';
           } else {
             timeStr  = e.timestamp ? oraDaTs(e.timestamp) : '—';
@@ -735,10 +759,10 @@
       + evList.map(e=>{
           const ci = CAT[e.cat]||CAT.allenamento;
           let timeStr, titleStr, subStr='';
-          if (e.tipo==='allenamento'){
+          if (e.tipo==='allenamento' || e.tipo==='evento'){
             const {inizio,fine}=parseOra(e.ora);
             timeStr=inizio+(fine?' – '+fine:'');
-            titleStr=e.categoria||e.titolo||'Allenamento';
+            titleStr=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
             subStr=(e.luogo?'📍 '+e.luogo:'')+(e.note?' · '+e.note:'');
           } else {
             timeStr=e.timestamp?oraDaTs(e.timestamp):'—';
@@ -771,8 +795,10 @@
     tag.style.background = ci.color;
 
     let rows = '';
-    if (e.tipo==='allenamento') {
-      title.textContent = e.categoria || e.titolo || 'Allenamento';
+    if (e.tipo==='allenamento' || e.tipo==='evento') {
+      title.textContent = e.titolo || e.categoria || (e.tipo==='evento' ? 'Evento' : 'Allenamento');
+      if (e.foto) rows += `<div class="modal-row" style="padding:0 0 12px;border:none;"><img src="${e.foto}" style="width:100%;border-radius:12px;object-fit:cover;max-height:180px;" loading="lazy"></div>`;
+      if (e.categoria) rows += `<div class="modal-row"><span class="modal-icon">📋</span><div class="modal-val">${e.categoria}</div></div>`;
       const {inizio,fine}=parseOra(e.ora);
       const orario=fine?`${inizio} – ${fine}`:inizio;
       rows += `<div class="modal-row"><span class="modal-icon">🕐</span><div class="modal-val">${orario}</div></div>`;
@@ -795,14 +821,70 @@
       }
     }
     body.innerHTML = rows;
+
+    // RSVP section for logged-in users (allenamento / evento)
+    if ((e.tipo === 'allenamento' || e.tipo === 'evento') && e.id) {
+      const token = localStorage.getItem('vc_token');
+      if (token) {
+        const rsvpDiv = document.createElement('div');
+        rsvpDiv.id = 'rsvpSection';
+        rsvpDiv.style.cssText = 'margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb;';
+        rsvpDiv.innerHTML = '<div style="font-size:12px;color:#9ca3af;text-align:center">Caricamento...</div>';
+        body.appendChild(rsvpDiv);
+        fetch(`/api/calendario/${e.id}/mia-risposta`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(d => { if (document.getElementById('rsvpSection')) _renderRsvp(rsvpDiv, e.id, d.risposta); })
+          .catch(() => { if (document.getElementById('rsvpSection')) rsvpDiv.innerHTML = ''; });
+      }
+    }
+
     document.getElementById('detailModal').classList.add('open');
   }
+
+  function _renderRsvp(container, sessioneId, risposta) {
+    const btnSi = `<button onclick="submitRsvp('${sessioneId}','si')" style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid ${risposta==='si'?'#16a34a':'#d1d5db'};background:${risposta==='si'?'#16a34a':'#fff'};color:${risposta==='si'?'#fff':'#374151'};font-size:13px;font-weight:700;cursor:pointer;">✅ Partecipo</button>`;
+    const btnNo = `<button onclick="submitRsvp('${sessioneId}','no')" style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid ${risposta==='no'?'#dc2626':'#d1d5db'};background:${risposta==='no'?'#dc2626':'#fff'};color:${risposta==='no'?'#fff':'#374151'};font-size:13px;font-weight:700;cursor:pointer;">❌ Non partecipo</button>`;
+    container.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:10px;">La tua risposta</div><div style="display:flex;gap:8px;">${btnSi}${btnNo}</div>`;
+  }
+
+  window.submitRsvp = async function(sessioneId, risposta) {
+    const token = localStorage.getItem('vc_token');
+    if (!token) return;
+    try {
+      const r = await fetch(`/api/calendario/${sessioneId}/partecipa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ risposta })
+      });
+      const data = await r.json();
+      if (r.ok) {
+        const c = document.getElementById('rsvpSection');
+        if (c) _renderRsvp(c, sessioneId, data.risposta);
+      }
+    } catch {}
+  };
+
   function chiudiDetail(e) {
     if (!e || e.target===document.getElementById('detailModal'))
       document.getElementById('detailModal').classList.remove('open');
   }
 
   /* ── MODAL ADD (admin) ── */
+  function setMTipo(tipo) {
+    document.getElementById('mTipo').value = tipo;
+    document.getElementById('addModalTitolo').textContent = tipo === 'evento' ? 'Nuovo evento' : 'Nuovo allenamento';
+    const on  = 'flex:1;padding:9px 6px;border-radius:8px;border:2px solid;font-size:12px;font-weight:700;cursor:pointer;';
+    const btnA = document.getElementById('mTipoAllenamento');
+    const btnE = document.getElementById('mTipoEvento');
+    if (tipo === 'evento') {
+      btnE.style.cssText = on + 'border-color:#e11d48;background:#e11d48;color:#fff;';
+      btnA.style.cssText = on + 'border-color:#d1d5db;background:#fff;color:#374151;';
+    } else {
+      btnA.style.cssText = on + 'border-color:#0d2055;background:#0d2055;color:#fff;';
+      btnE.style.cssText = on + 'border-color:#d1d5db;background:#fff;color:#374151;';
+    }
+  }
+
   function apriAddModal() {
     const d = new Date().toISOString().slice(0,10);
     document.getElementById('mTitolo').value='';
@@ -811,7 +893,9 @@
     document.getElementById('mFine').value='20:00';
     document.getElementById('mLuogo').value='';
     document.getElementById('mCategoria').value='';
+    document.getElementById('mFoto').value='';
     document.getElementById('mNote').value='';
+    setMTipo('allenamento');
     document.getElementById('addModal').classList.add('open');
   }
   function chiudiAddModal(e) {
@@ -830,16 +914,19 @@
     btn.disabled=true;btn.textContent='Salvataggio…';
     try {
       const token=localStorage.getItem('vc_admin_token')||localStorage.getItem('vc_token');
+      const tipo=document.getElementById('mTipo').value;
+      const foto=document.getElementById('mFoto').value.trim();
       const res=await fetch('/api/calendario',{method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body:JSON.stringify({titolo,data,ora,
+        body:JSON.stringify({titolo,data,ora,tipo,foto,
           luogo:document.getElementById('mLuogo').value.trim(),
           categoria:document.getElementById('mCategoria').value,
           note:document.getElementById('mNote').value.trim()})});
       if (!res.ok) throw new Error('Errore server');
       const n=await res.json();
       if (!mappa[n.data]) mappa[n.data]=[];
-      mappa[n.data].push({tipo:'allenamento',cat:'allenamento',...n});
+      const cat = n.tipo==='evento' ? 'evento' : 'allenamento';
+      mappa[n.data].push({tipo:n.tipo||'allenamento',cat,...n});
       chiudiAddModal();
       selMobile=new Date(n.data+'T00:00:00');
       weekStart=lunedi(selMobile);
@@ -864,7 +951,8 @@
       sessioni.forEach(s=>{
         if (!s.data) return;
         if (!mappa[s.data]) mappa[s.data]=[];
-        mappa[s.data].push({tipo:'allenamento',cat:'allenamento',...s});
+        const cat = s.tipo === 'evento' ? 'evento' : 'allenamento';
+        mappa[s.data].push({tipo: s.tipo||'allenamento', cat, ...s});
       });
     } catch(e){console.warn('[Calendario]',e.message);}
 
@@ -884,6 +972,18 @@
 
     render();
   }
+
+  // Jump to date from URL hash (e.g. /calendario#2026-05-15)
+  (function () {
+    const hash = location.hash.slice(1);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(hash)) {
+      const target = new Date(hash + 'T00:00:00');
+      if (!isNaN(target)) {
+        weekStart = lunedi(target);
+        selMobile = new Date(target);
+      }
+    }
+  })();
 
   carica();
 

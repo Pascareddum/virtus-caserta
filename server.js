@@ -382,6 +382,13 @@ function adminAuth(req, res, next) {
   next();
 }
 
+function userAuth(req, res, next) {
+  const payload = verifyToken(req);
+  if (!payload || !payload.id) return res.status(401).json({ error: 'Non autenticato' });
+  req.user = payload;
+  next();
+}
+
 /* ─── Login admin ─── */
 app.post('/api/admin/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
@@ -470,7 +477,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 /* ─── Utenti: lista admin ─── */
 app.get('/api/admin/utenti', adminAuth, async (_req, res) => {
   try {
-    const r = await db.query('SELECT id,email,nome,cognome,telefono,stato,created_at,is_atleta,is_allenatore,squadre_atleta,squadre_allenatore FROM utenti ORDER BY created_at DESC');
+    const r = await db.query('SELECT id,email,nome,cognome,telefono,stato,created_at,is_atleta,is_allenatore,squadre_atleta,squadre_allenatore,ruolo_atleta,ruolo_allenatore FROM utenti ORDER BY created_at DESC');
     res.json(r.rows);
   } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
 });
@@ -536,13 +543,15 @@ app.post('/api/admin/utenti/:id/approva', adminAuth, async (req, res) => {
 /* ─── Utenti: aggiorna tipo (atleta/allenatore/squadre) ─── */
 app.put('/api/admin/utenti/:id/tipo', adminAuth, async (req, res) => {
   try {
-    const { is_atleta, is_allenatore, squadre_atleta, squadre_allenatore } = req.body;
+    const { is_atleta, is_allenatore, squadre_atleta, squadre_allenatore, ruolo_atleta, ruolo_allenatore } = req.body;
     const r = await db.query(
-      `UPDATE utenti SET is_atleta=$1, is_allenatore=$2, squadre_atleta=$3, squadre_allenatore=$4 WHERE id=$5 RETURNING nome,cognome`,
+      `UPDATE utenti SET is_atleta=$1, is_allenatore=$2, squadre_atleta=$3, squadre_allenatore=$4, ruolo_atleta=$5, ruolo_allenatore=$6 WHERE id=$7 RETURNING nome,cognome`,
       [
         !!is_atleta, !!is_allenatore,
         JSON.stringify(Array.isArray(squadre_atleta) ? squadre_atleta : []),
         JSON.stringify(Array.isArray(squadre_allenatore) ? squadre_allenatore : []),
+        ruolo_atleta || '',
+        ruolo_allenatore || '',
         req.params.id,
       ]
     );
@@ -624,6 +633,8 @@ app.get('/api/calendario', async (_req, res) => {
       luogo:     r.luogo,
       categoria: r.categoria,
       note:      r.note,
+      tipo:      r.tipo || 'allenamento',
+      foto:      r.foto || '',
     }));
     res.json(rows);
   } catch (err) {
@@ -632,10 +643,38 @@ app.get('/api/calendario', async (_req, res) => {
   }
 });
 
+/* ─── Prossimi eventi pubblici ─── */
+app.get('/api/prossimi-eventi', async (req, res) => {
+  try {
+    const oggi = new Date().toISOString().slice(0, 10);
+    const r = await db.query(
+      `SELECT id,titolo,data_str,ora,luogo,foto,categoria FROM calendario WHERE tipo='evento' AND data_str >= $1 ORDER BY data_str LIMIT 10`,
+      [oggi]
+    );
+    let eventi = r.rows.map(x => ({ ...x, data: x.data_str }));
+
+    const payload = verifyToken(req);
+    if (payload && payload.id) {
+      const u = await db.query('SELECT squadre_atleta, squadre_allenatore FROM utenti WHERE id=$1', [payload.id]);
+      if (u.rows.length) {
+        const sq = [...(u.rows[0].squadre_atleta || []), ...(u.rows[0].squadre_allenatore || [])];
+        eventi = eventi.filter(e => !e.categoria || sq.includes(e.categoria));
+      } else {
+        eventi = eventi.filter(e => !e.categoria);
+      }
+    } else {
+      eventi = eventi.filter(e => !e.categoria);
+    }
+
+    res.json(eventi.slice(0, 3));
+  } catch (err) { res.status(500).json({ error: 'Errore interno del server.' }); }
+});
+
 /* ─── Calendario: crea sessione ─── */
 app.post('/api/calendario', adminAuth, async (req, res) => {
-  const { titolo, data, ora, luogo, categoria, note, ripetizione_settimanale, data_fine_ripetizione } = req.body;
+  const { titolo, data, ora, luogo, categoria, note, ripetizione_settimanale, data_fine_ripetizione, tipo, foto } = req.body;
   if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
+  const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
   try {
     if (ripetizione_settimanale && data_fine_ripetizione && data_fine_ripetizione >= data) {
       const sessioni = [];
@@ -646,11 +685,11 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
         const id      = Date.now().toString() + '_' + i;
         const dataStr = currentDate.toISOString().slice(0, 10);
         await db.query(
-          `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note)
-           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-          [id, titolo, dataStr, ora, luogo || '', categoria || '', note || '']
+          `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [id, titolo, dataStr, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '']
         );
-        sessioni.push({ id, titolo, data: dataStr, ora });
+        sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal });
         currentDate.setDate(currentDate.getDate() + 7);
         i++;
       }
@@ -658,11 +697,64 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
     }
     const id = Date.now().toString();
     await db.query(
-      `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [id, titolo, data, ora, luogo || '', categoria || '', note || '']
+      `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [id, titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '']
     );
-    res.status(201).json({ id, titolo, data, ora, luogo: luogo || '', categoria: categoria || '', note: note || '' });
+
+    // Notifica email agli utenti attivi se è un evento (filtrata per categoria)
+    if (tipoVal === 'evento') {
+      const categoriaVal = categoria || '';
+      const utenti = categoriaVal
+        ? await db.query(
+            `SELECT nome, email FROM utenti WHERE stato='attivo' AND email IS NOT NULL
+             AND (squadre_atleta @> $1::jsonb OR squadre_allenatore @> $1::jsonb)`,
+            [JSON.stringify([categoriaVal])]
+          )
+        : await db.query(`SELECT nome, email FROM utenti WHERE stato='attivo' AND email IS NOT NULL`);
+
+      const base = process.env.BASE_URL || 'https://www.virtuscaserta.com';
+      const calLink = `${base}/calendario#${data}`;
+      const dataFormattata = new Date(data + 'T00:00:00').toLocaleDateString('it-IT', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      const emailHtml = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+          <div style="background:#e11d48;padding:24px;text-align:center">
+            <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+            <p style="color:#fecdd3;margin:6px 0 0;font-size:13px">🎉 NUOVO EVENTO</p>
+          </div>
+          <div style="padding:28px 24px">
+            <h2 style="color:#e11d48;font-size:22px;margin:0 0 16px;">${esc(titolo)}</h2>
+            <p style="font-size:15px;color:#374151;"><strong>📅 Data:</strong> ${dataFormattata}</p>
+            ${ora ? `<p style="font-size:15px;color:#374151;"><strong>🕐 Orario:</strong> ${esc(ora)}</p>` : ''}
+            ${luogo ? `<p style="font-size:15px;color:#374151;"><strong>📍 Luogo:</strong> ${esc(luogo)}</p>` : ''}
+            ${categoriaVal ? `<p style="font-size:15px;color:#374151;"><strong>📋 Categoria:</strong> ${esc(categoriaVal)}</p>` : ''}
+            ${note ? `<p style="font-size:14px;color:#6b7280;margin-top:12px;">${esc(note)}</p>` : ''}
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px 24px;margin:24px 0;text-align:center">
+              <p style="margin:0 0 16px;font-size:15px;font-weight:700;color:#991b1b;">Conferma la tua partecipazione</p>
+              <p style="margin:0 0 20px;font-size:13px;color:#6b7280;">Facci sapere se sarai presente all'evento accedendo al tuo account.</p>
+              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                <a href="${calLink}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">✅ Confermo la partecipazione</a>
+                <a href="${calLink}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">❌ Non parteciperò</a>
+              </div>
+              <p style="margin:14px 0 0;font-size:11px;color:#9ca3af;">Accedi al sito per registrare la tua risposta</p>
+            </div>
+          </div>
+          <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">
+            © 2026 Virtus Caserta – Società Sportiva Pallavolo
+          </div>
+        </div>`;
+      for (const u of utenti.rows) {
+        if (brevoApiConfigurato()) {
+          sendBrevoEmail({ to: u.email, subject: `🎉 Nuovo evento: ${titolo} | Virtus Caserta`, html: emailHtml })
+            .catch(e => console.error('[Evento email]', u.email, e.message));
+        } else if (brevoConfigurato()) {
+          creaTransporterShop().sendMail({ from: shopFrom(), to: u.email, subject: `🎉 Nuovo evento: ${titolo} | Virtus Caserta`, html: emailHtml })
+            .catch(e => console.error('[Evento email SMTP]', u.email, e.message));
+        }
+      }
+    }
+
+    res.status(201).json({ id, titolo, data, ora, luogo: luogo || '', categoria: categoria || '', note: note || '', tipo: tipoVal, foto: foto || '' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -671,18 +763,19 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
 
 /* ─── Calendario: aggiorna sessione ─── */
 app.put('/api/calendario/:id', adminAuth, async (req, res) => {
-  const { titolo, data, ora, luogo, categoria, note } = req.body;
+  const { titolo, data, ora, luogo, categoria, note, tipo, foto } = req.body;
+  const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
   try {
     const result = await db.query(
       `UPDATE calendario
-       SET titolo=$1, data_str=$2, ora=$3, luogo=$4, categoria=$5, note=$6
-       WHERE id=$7
+       SET titolo=$1, data_str=$2, ora=$3, luogo=$4, categoria=$5, note=$6, tipo=$7, foto=$8
+       WHERE id=$9
        RETURNING *`,
-      [titolo, data, ora, luogo || '', categoria || '', note || '', req.params.id]
+      [titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     const r = result.rows[0];
-    res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, luogo: r.luogo, categoria: r.categoria, note: r.note });
+    res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, luogo: r.luogo, categoria: r.categoria, note: r.note, tipo: r.tipo, foto: r.foto });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -695,6 +788,94 @@ app.delete('/api/calendario/:id', adminAuth, async (req, res) => {
     const result = await db.query('DELETE FROM calendario WHERE id=$1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Partecipazioni: RSVP utente ─── */
+app.post('/api/calendario/:id/partecipa', userAuth, async (req, res) => {
+  const { risposta } = req.body;
+  if (!['si', 'no'].includes(risposta)) return res.status(400).json({ error: 'Risposta non valida' });
+  try {
+    await db.query(
+      `INSERT INTO partecipazioni (sessione_id, utente_id, risposta)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (sessione_id, utente_id) DO UPDATE SET risposta=$3, created_at=NOW()`,
+      [req.params.id, req.user.id, risposta]
+    );
+    res.json({ ok: true, risposta });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.get('/api/calendario/:id/mia-risposta', userAuth, async (req, res) => {
+  try {
+    const r = await db.query(
+      'SELECT risposta FROM partecipazioni WHERE sessione_id=$1 AND utente_id=$2',
+      [req.params.id, req.user.id]
+    );
+    res.json({ risposta: r.rows.length ? r.rows[0].risposta : null });
+  } catch (err) {
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Admin: lista sessioni con conteggio partecipanti ─── */
+app.get('/api/admin/calendario/sessioni', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query(`
+      SELECT c.*,
+        COUNT(p.id) FILTER (WHERE p.risposta='si') AS partecipanti_si,
+        COUNT(p.id) FILTER (WHERE p.risposta='no') AS partecipanti_no
+      FROM calendario c
+      LEFT JOIN partecipazioni p ON p.sessione_id = c.id
+      GROUP BY c.id
+      ORDER BY c.data_str DESC, c.ora DESC
+    `);
+    res.json(r.rows.map(x => ({
+      id:             x.id,
+      titolo:         x.titolo,
+      data:           x.data_str,
+      ora:            x.ora,
+      tipo:           x.tipo || 'allenamento',
+      categoria:      x.categoria || '',
+      luogo:          x.luogo || '',
+      partecipanti_si: parseInt(x.partecipanti_si) || 0,
+      partecipanti_no: parseInt(x.partecipanti_no) || 0,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Admin: partecipanti singola sessione (include non risposto) ─── */
+app.get('/api/admin/calendario/:id/partecipanti', adminAuth, async (req, res) => {
+  try {
+    const sessId = req.params.id;
+    const sess = await db.query('SELECT categoria FROM calendario WHERE id=$1', [sessId]);
+    const categoria = sess.rows.length ? (sess.rows[0].categoria || '') : '';
+    const catJson = JSON.stringify([categoria]);
+
+    const r = await db.query(`
+      SELECT u.nome, u.cognome, u.email, p.risposta, p.created_at
+      FROM utenti u
+      LEFT JOIN partecipazioni p ON p.utente_id = u.id AND p.sessione_id = $1
+      WHERE u.stato = 'attivo'
+        AND (
+          $2 = ''
+          OR u.squadre_atleta @> $3::jsonb
+          OR u.squadre_allenatore @> $3::jsonb
+        )
+      ORDER BY
+        CASE p.risposta WHEN 'si' THEN 1 WHEN 'no' THEN 2 ELSE 3 END,
+        u.cognome, u.nome
+    `, [sessId, categoria, catJson]);
+    res.json(r.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });

@@ -37,6 +37,23 @@
     drawer.appendChild(link);
   });
 
+  // Prossimi eventi (caricati async)
+  const eventiSec = document.createElement('div');
+  eventiSec.className = 'drawer-eventi-sec';
+  eventiSec.style.display = 'none';
+  drawer.appendChild(eventiSec);
+  const _tok = localStorage.getItem('vc_token');
+  fetch('/api/prossimi-eventi', _tok ? { headers: { Authorization: 'Bearer ' + _tok } } : {}).then(r => r.json()).then(eventi => {
+    if (!eventi || !eventi.length) return;
+    eventiSec.style.display = '';
+    eventiSec.innerHTML = '<div class="drawer-eventi-label">🎉 Prossimi eventi</div>' +
+      eventi.map(ev => {
+        const d = new Date(ev.data + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+        return `<a href="/calendario#${ev.data}" class="drawer-link drawer-evento-link"><span class="drawer-ev-nome">${ev.titolo}</span><span class="drawer-ev-data">${d}</span></a>`;
+      }).join('');
+    eventiSec.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+  }).catch(() => {});
+
   // Hashtag
   const ht = document.createElement('div');
   ht.className = 'drawer-hashtag';
@@ -200,6 +217,11 @@ if ('serviceWorker' in navigator) {
 footer.footer-std .footer-acc{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 footer.footer-std .footer-acc-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.35)}
 @media(max-width:600px){footer.footer-std .footer-acc{align-items:center}}
+.drawer-eventi-sec{border-top:1px solid rgba(255,255,255,.15);margin:8px 0;padding-top:8px;}
+.drawer-eventi-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);padding:0 28px 8px;}
+.drawer-evento-link{border-left:4px solid #e11d48 !important;background:rgba(225,29,72,.1) !important;display:flex !important;flex-direction:column !important;gap:2px !important;padding-top:10px !important;padding-bottom:10px !important;}
+.drawer-ev-nome{font-weight:700;font-size:14px;color:#fff;}
+.drawer-ev-data{font-size:11px;color:#fca5a5;align-self:flex-end;font-weight:600;}
     `;
     document.head.appendChild(s);
   }
