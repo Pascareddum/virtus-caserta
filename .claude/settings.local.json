@@ -24,7 +24,11 @@
       "Bash(sed -i '' '2582s/colspan=\"8\"/colspan=\"5\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
       "Bash(sed -i '' '2628s/colspan=\"8\"/colspan=\"5\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
       "Bash(sed -i '' '3120s/colspan=\"6\"/colspan=\"3\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
-      "Bash(sed -i '' '3189s/colspan=\"6\"/colspan=\"3\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)"
+      "Bash(sed -i '' '3189s/colspan=\"6\"/colspan=\"3\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '2812s/colspan=\"6\"/colspan=\"4\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '2829s/colspan=\"6\"/colspan=\"4\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '2944s/colspan=\"6\"/colspan=\"4\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '2961s/colspan=\"6\"/colspan=\"4\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)"
     ]
   }
 }

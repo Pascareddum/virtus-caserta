@@ -800,13 +800,15 @@
       }
       .card-table thead th:last-child { background:var(--surface-2); }
 
-      /* Card layout per prodotti, ordini, notizie, calendario, sessioni, utenti */
+      /* Card layout per prodotti, ordini, notizie, calendario, sessioni, utenti, squadra, staff */
       #pan-prodotti .card-table,
       #pan-ordini   .card-table,
       #pan-notizie  .card-table,
       #pan-calendario .card-table,
       #pan-sessioni .card-table,
-      #pan-utenti   .card-table {
+      #pan-utenti   .card-table,
+      #pan-squadra  .card-table,
+      #pan-staff    .card-table {
         background:transparent; box-shadow:none; border:none; border-radius:0; overflow:visible;
       }
       #pan-prodotti table,   #pan-prodotti tbody,
@@ -814,18 +816,23 @@
       #pan-notizie  table,   #pan-notizie  tbody,
       #pan-calendario table, #pan-calendario tbody,
       #pan-sessioni table,   #pan-sessioni tbody,
-      #pan-utenti   table,   #pan-utenti   tbody { display:block; width:100%; }
+      #pan-utenti   table,   #pan-utenti   tbody,
+      #pan-squadra  table,   #pan-squadra  tbody,
+      #pan-staff    table,   #pan-staff    tbody { display:block; width:100%; }
 
       #pan-prodotti thead, #pan-ordini thead,
       #pan-notizie thead,  #pan-calendario thead,
-      #pan-sessioni thead, #pan-utenti thead { display:none; }
+      #pan-sessioni thead, #pan-utenti thead,
+      #pan-squadra thead,  #pan-staff thead { display:none; }
 
       #pan-prodotti tbody tr,
       #pan-ordini   tbody tr,
       #pan-notizie  tbody tr,
       #pan-calendario tbody tr,
       #pan-sessioni tbody tr,
-      #pan-utenti   tbody tr {
+      #pan-utenti   tbody tr,
+      #pan-squadra  tbody tr,
+      #pan-staff    tbody tr {
         display:block; background:var(--surface);
         border:1px solid var(--bordo) !important;
         border-radius:var(--radius-lg);
@@ -833,13 +840,15 @@
       }
       #pan-prodotti td, #pan-ordini td,
       #pan-notizie td,  #pan-calendario td,
-      #pan-sessioni td, #pan-utenti td {
+      #pan-sessioni td, #pan-utenti td,
+      #pan-squadra td,  #pan-staff td {
         display:flex; align-items:flex-start;
         gap:10px; padding:6px 0; font-size:13.5px; border:none !important;
       }
       #pan-prodotti td::before, #pan-ordini td::before,
       #pan-notizie td::before, #pan-calendario td::before,
-      #pan-sessioni td::before, #pan-utenti td::before {
+      #pan-sessioni td::before, #pan-utenti td::before,
+      #pan-squadra td::before,  #pan-staff td::before {
         content:attr(data-label);
         font-size:11.5px; font-weight:600; color:var(--sub);
         min-width:72px; flex-shrink:0; padding-top:2px;
@@ -849,21 +858,27 @@
       #pan-notizie  td[data-label=""],
       #pan-calendario td[data-label=""],
       #pan-sessioni td[data-label=""],
-      #pan-utenti   td[data-label=""] { display:none; }
+      #pan-utenti   td[data-label=""],
+      #pan-squadra  td[data-label=""],
+      #pan-staff    td[data-label=""] { display:none; }
 
       #pan-prodotti td[data-label="Azioni"]::before,
       #pan-ordini   td[data-label="Azioni"]::before,
       #pan-notizie  td[data-label="Azioni"]::before,
       #pan-calendario td[data-label="Azioni"]::before,
       #pan-sessioni td[data-label="Azioni"]::before,
-      #pan-utenti   td[data-label="Azioni"]::before { display:none; }
+      #pan-utenti   td[data-label="Azioni"]::before,
+      #pan-squadra  td[data-label="Azioni"]::before,
+      #pan-staff    td[data-label="Azioni"]::before { display:none; }
 
       #pan-prodotti td[data-label="Azioni"],
       #pan-ordini   td[data-label="Azioni"],
       #pan-notizie  td[data-label="Azioni"],
       #pan-calendario td[data-label="Azioni"],
       #pan-sessioni td[data-label="Azioni"],
-      #pan-utenti   td[data-label="Azioni"] {
+      #pan-utenti   td[data-label="Azioni"],
+      #pan-squadra  td[data-label="Azioni"],
+      #pan-staff    td[data-label="Azioni"] {
         padding-top:10px; border-top:1px solid var(--bordo-2) !important; margin-top:6px;
       }
       #pan-prodotti .empty-state td,
@@ -871,13 +886,17 @@
       #pan-notizie  .empty-state td,
       #pan-calendario .empty-state td,
       #pan-sessioni .empty-state td,
-      #pan-utenti   .empty-state td { display:block; }
+      #pan-utenti   .empty-state td,
+      #pan-squadra  .empty-state td,
+      #pan-staff    .empty-state td { display:block; }
       #pan-prodotti .empty-state td::before,
       #pan-ordini   .empty-state td::before,
       #pan-notizie  .empty-state td::before,
       #pan-calendario .empty-state td::before,
       #pan-sessioni .empty-state td::before,
-      #pan-utenti   .empty-state td::before { display:none; }
+      #pan-utenti   .empty-state td::before,
+      #pan-squadra  .empty-state td::before,
+      #pan-staff    .empty-state td::before { display:none; }
 
       .azioni { flex-wrap:wrap; gap:6px; }
 
@@ -1192,12 +1211,16 @@
     <h2>Squadra</h2>
     <button class="btn-aggiungi" onclick="apriModalGiocatrice(null)">+ Aggiungi giocatrice</button>
   </div>
+  <div style="margin-bottom:14px;">
+    <select id="squadraFiltroSelect" onchange="caricaSquadra()"
+      style="padding:8px 12px;border:1px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--testo);box-shadow:var(--shadow-xs);cursor:pointer;min-width:200px;">
+      <option value="">Tutte le squadre</option>
+    </select>
+  </div>
   <div class="card-table">
     <table>
       <thead><tr>
-        <th style="width:54px"></th>
         <th>Nome</th>
-        <th>Numero</th>
         <th>Ruolo</th>
         <th>Stato</th>
         <th>Azioni</th>
@@ -1217,9 +1240,7 @@
   <div class="card-table">
     <table>
       <thead><tr>
-        <th style="width:54px"></th>
-        <th>Nome</th>
-        <th>Ruolo</th>
+        <th>Nome / Ruolo</th>
         <th>Bio</th>
         <th>Stato</th>
         <th>Azioni</th>
@@ -1928,36 +1949,50 @@
         </button>
       </div>
       <div id="squadreAtletaSection" style="display:none;">
-        <label style="font-size:13px;font-weight:700;color:#16a34a;display:block;margin-bottom:6px;">Squadre come Atleta</label>
-        <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">Ctrl/Cmd per più selezioni.</p>
-        <select id="squadreAtletaSelect" multiple
-          style="width:100%;min-height:100px;border:1.5px solid #86efac;border-radius:8px;padding:6px;font-size:13px;outline:none;">
-        </select>
-        <label style="font-size:13px;font-weight:700;color:#16a34a;display:block;margin:12px 0 6px;">Ruolo in campo</label>
-        <select id="ruoloAtletaSelect"
-          style="width:100%;padding:9px 10px;border:1.5px solid #86efac;border-radius:8px;font-size:13px;outline:none;">
-          <option value="">— Seleziona ruolo —</option>
-          <option>Libero</option>
-          <option>Schiacciatore</option>
-          <option>Opposto</option>
-          <option>Centrale</option>
-          <option>Universale</option>
-          <option>Sparring</option>
-        </select>
+        <label style="font-size:13px;font-weight:700;color:#16a34a;display:block;margin-bottom:8px;">Incarichi come Atleta</label>
+        <div id="atletaList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px;background:#f0fff4;border-radius:10px;border:1.5px dashed #86efac;">
+          <select id="atletaNuovaSquadra"
+            style="flex:1;min-width:130px;padding:8px 10px;border:1.5px solid #86efac;border-radius:8px;font-size:13px;outline:none;background:#fff;">
+            <option value="">— Squadra —</option>
+          </select>
+          <select id="atletaNuovoRuolo"
+            style="flex:1;min-width:130px;padding:8px 10px;border:1.5px solid #86efac;border-radius:8px;font-size:13px;outline:none;background:#fff;">
+            <option value="">— Ruolo —</option>
+            <option>Libero</option>
+            <option>Schiacciatore</option>
+            <option>Opposto</option>
+            <option>Centrale</option>
+            <option>Universale</option>
+            <option>Sparring</option>
+          </select>
+          <button onclick="aggiungiIncaricoAtleta()"
+            style="padding:8px 14px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            + Aggiungi
+          </button>
+        </div>
       </div>
       <div id="squadreAllenatoreSection" style="display:none;">
-        <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin-bottom:6px;">Squadre come Allenatore</label>
-        <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">Ctrl/Cmd per più selezioni.</p>
-        <select id="squadreAllenatoreSelect" multiple
-          style="width:100%;min-height:100px;border:1.5px solid #93c5fd;border-radius:8px;padding:6px;font-size:13px;outline:none;">
-        </select>
-        <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin:12px 0 6px;">Ruolo allenatore</label>
-        <select id="ruoloAllenatoreSelect"
-          style="width:100%;padding:9px 10px;border:1.5px solid #93c5fd;border-radius:8px;font-size:13px;outline:none;">
-          <option value="">— Seleziona ruolo —</option>
-          <option>Primo allenatore</option>
-          <option>Secondo allenatore</option>
-        </select>
+        <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin-bottom:8px;">Incarichi come Allenatore</label>
+        <div id="allenatoreList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px;background:#f0f4ff;border-radius:10px;border:1.5px dashed #93c5fd;">
+          <select id="allenatoreNuovaSquadra"
+            style="flex:1;min-width:130px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:8px;font-size:13px;outline:none;background:#fff;">
+            <option value="">— Squadra —</option>
+          </select>
+          <select id="allenatoreNuovoRuolo"
+            style="flex:1;min-width:130px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:8px;font-size:13px;outline:none;background:#fff;">
+            <option value="">— Ruolo —</option>
+            <option>Primo allenatore</option>
+            <option>Secondo allenatore</option>
+            <option>Assistente</option>
+            <option>Preparatore fisico</option>
+          </select>
+          <button onclick="aggiungiIncarico()"
+            style="padding:8px 14px;border-radius:8px;border:none;background:#1d4ed8;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            + Aggiungi
+          </button>
+        </div>
       </div>
     </div>
     <div class="modal-ftr">
@@ -2766,13 +2801,69 @@
     const tbody = document.getElementById('squadraBody');
     try {
       const raw = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
-      const list = raw.filter(g => g.sesso !== 'Staff' && !RUOLI_STAFF_ADMIN.includes(g.ruolo));
-      if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🏐</div>Nessuna giocatrice.</div></td></tr>`; return; }
+      let list = raw.filter(g => g.sesso !== 'Staff' && !RUOLI_STAFF_ADMIN.includes(g.ruolo));
+
+      // Build dynamic macro map from DB categoria field + fallback hardcoded
+      const sel = document.getElementById('squadraFiltroSelect');
+      const catList = await fetchSquadreCat();
+      const opzioni = catList.length ? catList.map(s => s.nome) : SQUADRE_FISSE;
+
+      // Dynamic macro map: {categoria: [team1, team2, ...]} from DB
+      const dynamicMacro = {};
+      catList.forEach(c => {
+        if (c.categoria) {
+          if (!dynamicMacro[c.categoria]) dynamicMacro[c.categoria] = [];
+          dynamicMacro[c.categoria].push(c.nome);
+        }
+      });
+      // Merge with hardcoded fallback (for teams without categoria in DB)
+      const macroMap = Object.keys(dynamicMacro).length ? dynamicMacro : MACRO_CAT_FILTRO;
+
+      // Populate dropdown on first load
+      if (sel && sel.options.length <= 1) {
+        const macroNames = Object.keys(macroMap);
+        if (macroNames.length) {
+          const macroOpt = document.createElement('optgroup');
+          macroOpt.label = 'Macro-categorie';
+          macroNames.forEach(nome => {
+            const opt = document.createElement('option'); opt.value = nome; opt.textContent = nome;
+            macroOpt.appendChild(opt);
+          });
+          sel.appendChild(macroOpt);
+        }
+        const teamOpt = document.createElement('optgroup');
+        teamOpt.label = 'Squadre';
+        opzioni.forEach(nome => {
+          const opt = document.createElement('option'); opt.value = nome; opt.textContent = nome;
+          teamOpt.appendChild(opt);
+        });
+        sel.appendChild(teamOpt);
+      }
+
+      // Filter by selected squadra (or macro-category)
+      const filtroSq = sel ? sel.value : '';
+      if (filtroSq) {
+        const macroTeams = macroMap[filtroSq];
+        if (macroTeams) {
+          list = list.filter(g => {
+            const playerTeams = (g.sesso || '').split(',').map(s => s.trim());
+            return playerTeams.some(t => macroTeams.includes(t));
+          });
+        } else {
+          list = list.filter(g => (g.sesso || '').split(',').map(s => s.trim()).includes(filtroSq));
+        }
+      }
+
+      if (!list.length) { tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="icon">🏐</div>Nessuna giocatrice${filtroSq ? ' in questa squadra' : ''}.</div></td></tr>`; return; }
       tbody.innerHTML = list.map(g => `
         <tr>
-          <td data-label="">${g.foto ? `<img src="${g.foto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" loading="lazy">` : '🏐'}</td>
-          <td data-label="Nome"><div class="prod-nome">${g.nome} ${g.cognome}</div></td>
-          <td data-label="Numero">${g.numero ? '#'+g.numero : '—'}</td>
+          <td data-label="Nome" style="align-items:center;gap:10px;">
+            ${g.foto ? `<img src="${g.foto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" loading="lazy">` : ''}
+            <div>
+              <div class="prod-nome">${g.nome} ${g.cognome}</div>
+              ${g.numero ? `<div style="font-size:12px;color:var(--sub);">#${g.numero}</div>` : ''}
+            </div>
+          </td>
           <td data-label="Ruolo" style="color:var(--sub);font-size:13px;">${g.ruolo || '—'}</td>
           <td data-label="Stato"><span class="badge ${g.attiva ? 'badge-verde':'badge-rosso'}">${g.attiva?'Attiva':'Inattiva'}</span></td>
           <td data-label="Azioni"><div class="azioni">
@@ -2780,7 +2871,7 @@
             <button class="btn-azione btn-delete" onclick="eliminaGiocatrice('${g.id}','${(g.nome+' '+g.cognome).replace(/'/g,"\\'")}')">Elimina</button>
           </div></td>
         </tr>`).join('');
-    } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
+    } catch { tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">Errore.</div></td></tr>`; }
   }
 
   const SQUADRE_FISSE = [
@@ -2791,6 +2882,12 @@
     'Under 15 Maschile','Under 13 Maschile',
     'VolleyS3','Minivolley',
   ];
+
+  const MACRO_CAT_FILTRO = {
+    'Seniores':  ['Femminile','Maschile','Serie D Femminile','Prima Divisione Maschile','Prima Divisione Femminile'],
+    'Giovanili': ['Under 19 Femminile','Under 18 Femminile','Under 16 Femminile',
+                  'Under 14 Femminile','Under 13 Femminile','Under 15 Maschile','Under 13 Maschile','VolleyS3','Minivolley'],
+  };
 
   async function renderGSessoCheckboxes(valoreCorrente) {
     const selezionate = (valoreCorrente || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -2895,20 +2992,24 @@
     try {
       const list = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
       const staff = list.filter(g => g.sesso === 'Staff' || RUOLI_STAFF_ADMIN.includes(g.ruolo));
-      if (!staff.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">👥</div>Nessun membro staff. Aggiungine uno!</div></td></tr>`; return; }
+      if (!staff.length) { tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="icon">👥</div>Nessun membro staff. Aggiungine uno!</div></td></tr>`; return; }
       tbody.innerHTML = staff.map(g => `
         <tr>
-          <td data-label="">${g.foto ? `<img src="${g.foto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;background:#f0f4f8;" loading="lazy">` : '👤'}</td>
-          <td data-label="Nome"><div class="prod-nome">${g.nome} ${g.cognome}</div></td>
-          <td data-label="Ruolo"><span class="badge badge-blu">${g.ruolo || 'Staff'}</span></td>
-          <td data-label="Bio" style="color:var(--sub);font-size:13px;max-width:200px;">${(g.bio||'').slice(0,60)}${(g.bio||'').length>60?'…':''}</td>
+          <td data-label="Nome" style="align-items:center;gap:10px;">
+            ${g.foto ? `<img src="${g.foto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#f0f4f8;" loading="lazy">` : ''}
+            <div>
+              <div class="prod-nome">${g.nome} ${g.cognome}</div>
+              <span class="badge badge-blu" style="font-size:11px;margin-top:3px;">${g.ruolo || 'Staff'}</span>
+            </div>
+          </td>
+          <td data-label="Bio" style="color:var(--sub);font-size:13px;">${(g.bio||'').slice(0,60)}${(g.bio||'').length>60?'…':''}</td>
           <td data-label="Stato"><span class="badge ${g.attiva ? 'badge-verde':'badge-rosso'}">${g.attiva?'Attivo':'Inattivo'}</span></td>
           <td data-label="Azioni"><div class="azioni">
             <button class="btn-azione btn-edit" onclick="apriModalStaff('${g.id}')">Modifica</button>
             <button class="btn-azione btn-delete" onclick="eliminaStaff('${g.id}','${(g.nome+' '+g.cognome).replace(/'/g,"\\'")}')">Elimina</button>
           </div></td>
         </tr>`).join('');
-    } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore caricamento staff.</div></td></tr>`; }
+    } catch { tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">Errore caricamento staff.</div></td></tr>`; }
   }
 
   async function apriModalStaff(id) {
@@ -3130,13 +3231,17 @@
         const tags = [];
         if (u.is_atleta) {
           const sq = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
-          const ruolo = u.ruolo_atleta ? `<span style="font-size:11px;color:#16a34a;font-weight:700;margin-left:4px;">(${u.ruolo_atleta})</span>` : '';
-          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">Atleta</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+          let ruoloMapA = {};
+          try { ruoloMapA = JSON.parse(u.ruolo_atleta || '{}'); } catch { ruoloMapA = {}; }
+          const incarichiStrA = sq.map(s => ruoloMapA[s] ? `${s} (${ruoloMapA[s]})` : s).join(', ');
+          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">Atleta</span>${incarichiStrA ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${incarichiStrA}</span>` : ''}</div>`);
         }
         if (u.is_allenatore) {
           const sq = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
-          const ruolo = u.ruolo_allenatore ? `<span style="font-size:11px;color:#1d4ed8;font-weight:700;margin-left:4px;">(${u.ruolo_allenatore})</span>` : '';
-          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">Allenatore</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+          let ruoloMap = {};
+          try { ruoloMap = JSON.parse(u.ruolo_allenatore || '{}'); } catch { ruoloMap = {}; }
+          const incarichiStr = sq.map(s => ruoloMap[s] ? `${s} (${ruoloMap[s]})` : s).join(', ');
+          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">Allenatore</span>${incarichiStr ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${incarichiStr}</span>` : ''}</div>`);
         }
         return tags.length ? tags.join('') : '<span style="color:#9ca3af;font-size:12px;">—</span>';
       };
@@ -3218,6 +3323,104 @@
   /* ══ TIPO UTENTE ══ */
   let _tipoUtenteId = null;
   const _tipoStato = { atleta: false, allenatore: false };
+  let _allenatoreIncarichi = []; // [{squadra, ruolo}]
+  let _atletaIncarichi = [];     // [{squadra, ruolo}]
+  let _catListCache = null;
+
+  async function _loadCats() {
+    if (_catListCache) return _catListCache;
+    _catListCache = await fetch('/api/squadre-categorie', { headers: headers() }).then(r => r.json());
+    return _catListCache;
+  }
+
+  function renderAllenatoreList() {
+    const container = document.getElementById('allenatoreList');
+    if (!container) return;
+    if (!_allenatoreIncarichi.length) {
+      container.innerHTML = '<p style="font-size:12px;color:#9ca3af;margin:0;">Nessun incarico aggiunto.</p>';
+    } else {
+      container.innerHTML = _allenatoreIncarichi.map((inc, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fff;border:1.5px solid #93c5fd;border-radius:8px;gap:8px;">
+          <div style="font-size:13px;">
+            <strong>${inc.squadra}</strong>
+            ${inc.ruolo ? `<span style="color:#1d4ed8;font-size:12px;margin-left:6px;">— ${inc.ruolo}</span>` : ''}
+          </div>
+          <button onclick="rimuoviIncarico(${i})"
+            style="flex-shrink:0;padding:2px 8px;border-radius:6px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;">
+            ✕
+          </button>
+        </div>`).join('');
+    }
+    // Refresh squadra dropdown: exclude already-used teams
+    const usedSq = new Set(_allenatoreIncarichi.map(i => i.squadra));
+    const sel = document.getElementById('allenatoreNuovaSquadra');
+    if (sel && _catListCache) {
+      const prev = sel.value;
+      sel.innerHTML = '<option value="">— Squadra —</option>' +
+        _catListCache.map(c => `<option value="${c.nome}" ${prev === c.nome ? 'selected' : ''} ${usedSq.has(c.nome) ? 'disabled style="color:#9ca3af"' : ''}>${c.nome}</option>`).join('');
+    }
+  }
+
+  function aggiungiIncarico() {
+    const sq   = document.getElementById('allenatoreNuovaSquadra').value;
+    const ruolo = document.getElementById('allenatoreNuovoRuolo').value;
+    if (!sq) { alert('Seleziona una squadra.'); return; }
+    if (_allenatoreIncarichi.some(i => i.squadra === sq)) { alert('Squadra già aggiunta.'); return; }
+    _allenatoreIncarichi.push({ squadra: sq, ruolo });
+    document.getElementById('allenatoreNuovaSquadra').value = '';
+    document.getElementById('allenatoreNuovoRuolo').value = '';
+    renderAllenatoreList();
+  }
+
+  function rimuoviIncarico(idx) {
+    _allenatoreIncarichi.splice(idx, 1);
+    renderAllenatoreList();
+  }
+
+  function renderAtletaList() {
+    const container = document.getElementById('atletaList');
+    if (!container) return;
+    if (!_atletaIncarichi.length) {
+      container.innerHTML = '<p style="font-size:12px;color:#9ca3af;margin:0;">Nessun incarico aggiunto.</p>';
+    } else {
+      container.innerHTML = _atletaIncarichi.map((inc, i) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fff;border:1.5px solid #86efac;border-radius:8px;gap:8px;">
+          <div style="font-size:13px;">
+            <strong>${inc.squadra}</strong>
+            ${inc.ruolo ? `<span style="color:#16a34a;font-size:12px;margin-left:6px;">— ${inc.ruolo}</span>` : ''}
+          </div>
+          <button onclick="rimuoviIncaricoAtleta(${i})"
+            style="flex-shrink:0;padding:2px 8px;border-radius:6px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;">
+            ✕
+          </button>
+        </div>`).join('');
+    }
+    const usedSq = new Set(_atletaIncarichi.map(i => i.squadra));
+    const sel = document.getElementById('atletaNuovaSquadra');
+    if (sel && _catListCache) {
+      const prev = sel.value;
+      const apiNames = _catListCache.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s => s.nome);
+      const opzioni = [...new Set([...apiNames, ...SQUADRE_FISSE])];
+      sel.innerHTML = '<option value="">— Squadra —</option>' +
+        opzioni.map(n => `<option value="${n}" ${prev === n ? 'selected' : ''} ${usedSq.has(n) ? 'disabled style="color:#9ca3af"' : ''}>${n}</option>`).join('');
+    }
+  }
+
+  function aggiungiIncaricoAtleta() {
+    const sq   = document.getElementById('atletaNuovaSquadra').value;
+    const ruolo = document.getElementById('atletaNuovoRuolo').value;
+    if (!sq) { alert('Seleziona una squadra.'); return; }
+    if (_atletaIncarichi.some(i => i.squadra === sq)) { alert('Squadra già aggiunta.'); return; }
+    _atletaIncarichi.push({ squadra: sq, ruolo });
+    document.getElementById('atletaNuovaSquadra').value = '';
+    document.getElementById('atletaNuovoRuolo').value = '';
+    renderAtletaList();
+  }
+
+  function rimuoviIncaricoAtleta(idx) {
+    _atletaIncarichi.splice(idx, 1);
+    renderAtletaList();
+  }
 
   async function apriModalTipoUtente(id) {
     const u = (window._utentiMap || {})[id];
@@ -3227,24 +3430,31 @@
     _tipoStato.allenatore = !!u.is_allenatore;
     const sqAtleta = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
     const sqAllenatore = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
+
+    // Parse per-team roles: ruolo_allenatore/ruolo_atleta are JSON maps {squadra: ruolo}
+    let ruoloMapAllen = {};
+    try { ruoloMapAllen = JSON.parse(u.ruolo_allenatore || '{}'); } catch { ruoloMapAllen = {}; }
+    _allenatoreIncarichi = sqAllenatore.map(sq => ({ squadra: sq, ruolo: ruoloMapAllen[sq] || '' }));
+
+    let ruoloMapAtleta = {};
+    try { ruoloMapAtleta = JSON.parse(u.ruolo_atleta || '{}'); } catch { ruoloMapAtleta = {}; }
+    _atletaIncarichi = sqAtleta.map(sq => ({ squadra: sq, ruolo: ruoloMapAtleta[sq] || '' }));
+
     document.getElementById('tipoUtenteTitle').textContent = `Tipo utente – ${u.nome} ${u.cognome}`;
-    document.getElementById('ruoloAtletaSelect').value = u.ruolo_atleta || '';
-    document.getElementById('ruoloAllenatoreSelect').value = u.ruolo_allenatore || '';
     _aggiornaTabTipo();
     _mostraSezioniSquadre();
 
-    const [selA, selAl] = ['squadreAtletaSelect','squadreAllenatoreSelect'].map(id => document.getElementById(id));
-    selA.innerHTML = selAl.innerHTML = '<option disabled>Caricamento…</option>';
+    document.getElementById('atletaList').innerHTML = '<p style="font-size:12px;color:#9ca3af;margin:0;">Caricamento…</p>';
+    document.getElementById('allenatoreList').innerHTML = '<p style="font-size:12px;color:#9ca3af;margin:0;">Caricamento…</p>';
     document.getElementById('modalTipoUtente').classList.add('aperto');
 
     try {
-      const cats = await fetch('/api/squadre-categorie', { headers: headers() }).then(r => r.json());
-      const optsA  = cats.map(c => `<option value="${c.nome}" ${sqAtleta.includes(c.nome) ? 'selected' : ''}>${c.nome}</option>`).join('');
-      const optsAl = cats.map(c => `<option value="${c.nome}" ${sqAllenatore.includes(c.nome) ? 'selected' : ''}>${c.nome}</option>`).join('');
-      selA.innerHTML  = optsA  || '<option disabled>Nessuna squadra configurata</option>';
-      selAl.innerHTML = optsAl || '<option disabled>Nessuna squadra configurata</option>';
+      await _loadCats();
+      renderAtletaList();
+      renderAllenatoreList();
     } catch {
-      selA.innerHTML = selAl.innerHTML = '<option disabled>Errore caricamento squadre</option>';
+      document.getElementById('atletaList').innerHTML = '<p style="font-size:12px;color:#dc2626;margin:0;">Errore caricamento.</p>';
+      document.getElementById('allenatoreList').innerHTML = '<p style="font-size:12px;color:#dc2626;margin:0;">Errore caricamento.</p>';
     }
   }
 
@@ -3271,11 +3481,14 @@
     const btn = document.getElementById('btnSalvaTipo');
     btn.disabled = true; btn.textContent = 'Salvataggio…';
     try {
-      const getSelected = selId => Array.from(document.getElementById(selId).selectedOptions).map(o => o.value);
-      const squadre_atleta     = _tipoStato.atleta     ? getSelected('squadreAtletaSelect')    : [];
-      const squadre_allenatore  = _tipoStato.allenatore ? getSelected('squadreAllenatoreSelect') : [];
-      const ruolo_atleta        = _tipoStato.atleta     ? (document.getElementById('ruoloAtletaSelect').value || '')     : '';
-      const ruolo_allenatore    = _tipoStato.allenatore ? (document.getElementById('ruoloAllenatoreSelect').value || '') : '';
+      const squadre_atleta     = _tipoStato.atleta     ? _atletaIncarichi.map(i => i.squadra) : [];
+      const squadre_allenatore  = _tipoStato.allenatore ? _allenatoreIncarichi.map(i => i.squadra) : [];
+      const ruolo_atleta        = _tipoStato.atleta
+        ? JSON.stringify(Object.fromEntries(_atletaIncarichi.map(i => [i.squadra, i.ruolo])))
+        : '';
+      const ruolo_allenatore    = _tipoStato.allenatore
+        ? JSON.stringify(Object.fromEntries(_allenatoreIncarichi.map(i => [i.squadra, i.ruolo])))
+        : '';
       const res = await fetch(`/api/admin/utenti/${_tipoUtenteId}/tipo`, {
         method: 'PUT',
         headers: { ...headers(), 'Content-Type': 'application/json' },
