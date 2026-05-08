@@ -280,6 +280,9 @@
       font-size:12.5px; color:var(--sub); margin-top:2px; line-height:1.4;
       overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:260px;
     }
+    @media (max-width:900px) {
+      .prod-desc { white-space:normal; max-width:100%; text-overflow:clip; }
+    }
     .prod-img-thumb { width:48px; height:48px; object-fit:cover; border-radius:8px; display:block; }
     .prod-img-placeholder { width:48px; height:48px; border-radius:8px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:20px; }
 
@@ -827,12 +830,14 @@
 
       /* Tronca descrizioni lunghe */
       .prod-desc {
+        white-space:normal;
         display:-webkit-box;
         -webkit-line-clamp:2;
         -webkit-box-orient:vertical;
         line-clamp:2;
         overflow:hidden;
         max-width:100%;
+        text-overflow:clip;
       }
 
       /* Toolbar compatta */
