@@ -789,56 +789,62 @@
       .impost-grid { grid-template-columns:1fr; }
       .impost-grid .mf[style*="grid-column"] { grid-column:auto; }
 
-      /* Tabelle → card layout */
-      .card-table { background:transparent; box-shadow:none; border:none; border-radius:0; overflow:visible; }
-      table, tbody { display:block; width:100%; }
-      thead { display:none; }
-      tbody tr {
-        display:block;
-        background:var(--surface);
+      /* Tabelle scorrevoli (tutti i pannelli tranne prodotti/ordini/notizie) */
+      .card-table { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+      /* Card layout solo per prodotti, ordini, notizie */
+      #pan-prodotti .card-table,
+      #pan-ordini   .card-table,
+      #pan-notizie  .card-table {
+        background:transparent; box-shadow:none; border:none; border-radius:0; overflow:visible;
+      }
+      #pan-prodotti table, #pan-prodotti tbody,
+      #pan-ordini   table, #pan-ordini   tbody,
+      #pan-notizie  table, #pan-notizie  tbody { display:block; width:100%; }
+
+      #pan-prodotti thead, #pan-ordini thead, #pan-notizie thead { display:none; }
+
+      #pan-prodotti tbody tr,
+      #pan-ordini   tbody tr,
+      #pan-notizie  tbody tr {
+        display:block; background:var(--surface);
         border:1px solid var(--bordo) !important;
         border-radius:var(--radius-lg);
-        margin-bottom:10px;
-        padding:14px;
-        box-shadow:var(--shadow-xs);
+        margin-bottom:10px; padding:14px; box-shadow:var(--shadow-xs);
       }
-      td {
-        display:flex;
-        align-items:flex-start;
-        gap:10px;
-        padding:6px 0;
-        font-size:13.5px;
-        border:none !important;
+      #pan-prodotti td, #pan-ordini td, #pan-notizie td {
+        display:flex; align-items:flex-start;
+        gap:10px; padding:6px 0; font-size:13.5px; border:none !important;
       }
-      td::before {
+      #pan-prodotti td::before, #pan-ordini td::before, #pan-notizie td::before {
         content:attr(data-label);
-        font-size:11.5px;
-        font-weight:600;
-        color:var(--sub);
-        text-transform:none;
-        letter-spacing:0;
-        min-width:80px;
-        flex-shrink:0;
-        padding-top:2px;
+        font-size:11.5px; font-weight:600; color:var(--sub);
+        min-width:72px; flex-shrink:0; padding-top:2px;
       }
-      td[data-label=""] { display:none; }
-      td[data-label="Azioni"]::before { display:none; }
-      td[data-label="Azioni"] { padding-top:10px; border-top:1px solid var(--bordo-2) !important; margin-top:6px; }
-      .azioni { flex-wrap:wrap; gap:6px; }
-      .empty-state td { display:block; }
-      .empty-state td::before { display:none; }
+      #pan-prodotti td[data-label=""],
+      #pan-ordini   td[data-label=""],
+      #pan-notizie  td[data-label=""] { display:none; }
 
-      /* Tronca descrizioni lunghe */
-      .prod-desc {
-        white-space:normal;
-        display:-webkit-box;
-        -webkit-line-clamp:2;
-        -webkit-box-orient:vertical;
-        line-clamp:2;
-        overflow:hidden;
-        max-width:100%;
-        text-overflow:clip;
+      #pan-prodotti td[data-label="Azioni"]::before,
+      #pan-ordini   td[data-label="Azioni"]::before,
+      #pan-notizie  td[data-label="Azioni"]::before { display:none; }
+
+      #pan-prodotti td[data-label="Azioni"],
+      #pan-ordini   td[data-label="Azioni"],
+      #pan-notizie  td[data-label="Azioni"] {
+        padding-top:10px; border-top:1px solid var(--bordo-2) !important; margin-top:6px;
       }
+      #pan-prodotti .empty-state td,
+      #pan-ordini   .empty-state td,
+      #pan-notizie  .empty-state td { display:block; }
+      #pan-prodotti .empty-state td::before,
+      #pan-ordini   .empty-state td::before,
+      #pan-notizie  .empty-state td::before { display:none; }
+
+      .azioni { flex-wrap:wrap; gap:6px; }
+
+      /* Prod-desc: nessun troncamento su mobile */
+      .prod-desc { white-space:normal; max-width:100%; overflow:visible; text-overflow:clip; }
 
       /* Toolbar compatta */
       .toolbar { padding-bottom:14px; margin-bottom:16px; }
@@ -859,14 +865,8 @@
       /* Taglia chips: wrap ok ma font più piccolo */
       .taglia-chip { font-size:10px; padding:1px 6px; }
 
-      /* Ordine items */
-      .ordine-items {
-        display:-webkit-box;
-        -webkit-line-clamp:2;
-        -webkit-box-orient:vertical;
-        line-clamp:2;
-        overflow:hidden;
-      }
+      /* Ordine items: nessun troncamento */
+      .ordine-items { white-space:normal; }
 
       /* stat-grid: 2 colonne strette */
       .stat-card .s-label { font-size:11px; }
@@ -874,8 +874,6 @@
       /* Badge più compatti */
       .badge { font-size:11px; padding:2px 7px; }
 
-      /* Allinea label e valore su flex */
-      td::before { min-width:72px; }
 
       /* Log */
       .log-riga { flex-direction:column; gap:4px; }
