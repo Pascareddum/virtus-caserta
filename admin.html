@@ -800,29 +800,32 @@
       }
       .card-table thead th:last-child { background:var(--surface-2); }
 
-      /* Card layout per prodotti, ordini, notizie, calendario, sessioni */
+      /* Card layout per prodotti, ordini, notizie, calendario, sessioni, utenti */
       #pan-prodotti .card-table,
       #pan-ordini   .card-table,
       #pan-notizie  .card-table,
       #pan-calendario .card-table,
-      #pan-sessioni .card-table {
+      #pan-sessioni .card-table,
+      #pan-utenti   .card-table {
         background:transparent; box-shadow:none; border:none; border-radius:0; overflow:visible;
       }
       #pan-prodotti table,   #pan-prodotti tbody,
       #pan-ordini   table,   #pan-ordini   tbody,
       #pan-notizie  table,   #pan-notizie  tbody,
       #pan-calendario table, #pan-calendario tbody,
-      #pan-sessioni table,   #pan-sessioni tbody { display:block; width:100%; }
+      #pan-sessioni table,   #pan-sessioni tbody,
+      #pan-utenti   table,   #pan-utenti   tbody { display:block; width:100%; }
 
       #pan-prodotti thead, #pan-ordini thead,
       #pan-notizie thead,  #pan-calendario thead,
-      #pan-sessioni thead { display:none; }
+      #pan-sessioni thead, #pan-utenti thead { display:none; }
 
       #pan-prodotti tbody tr,
       #pan-ordini   tbody tr,
       #pan-notizie  tbody tr,
       #pan-calendario tbody tr,
-      #pan-sessioni tbody tr {
+      #pan-sessioni tbody tr,
+      #pan-utenti   tbody tr {
         display:block; background:var(--surface);
         border:1px solid var(--bordo) !important;
         border-radius:var(--radius-lg);
@@ -830,13 +833,13 @@
       }
       #pan-prodotti td, #pan-ordini td,
       #pan-notizie td,  #pan-calendario td,
-      #pan-sessioni td {
+      #pan-sessioni td, #pan-utenti td {
         display:flex; align-items:flex-start;
         gap:10px; padding:6px 0; font-size:13.5px; border:none !important;
       }
       #pan-prodotti td::before, #pan-ordini td::before,
       #pan-notizie td::before, #pan-calendario td::before,
-      #pan-sessioni td::before {
+      #pan-sessioni td::before, #pan-utenti td::before {
         content:attr(data-label);
         font-size:11.5px; font-weight:600; color:var(--sub);
         min-width:72px; flex-shrink:0; padding-top:2px;
@@ -845,31 +848,36 @@
       #pan-ordini   td[data-label=""],
       #pan-notizie  td[data-label=""],
       #pan-calendario td[data-label=""],
-      #pan-sessioni td[data-label=""] { display:none; }
+      #pan-sessioni td[data-label=""],
+      #pan-utenti   td[data-label=""] { display:none; }
 
       #pan-prodotti td[data-label="Azioni"]::before,
       #pan-ordini   td[data-label="Azioni"]::before,
       #pan-notizie  td[data-label="Azioni"]::before,
       #pan-calendario td[data-label="Azioni"]::before,
-      #pan-sessioni td[data-label="Azioni"]::before { display:none; }
+      #pan-sessioni td[data-label="Azioni"]::before,
+      #pan-utenti   td[data-label="Azioni"]::before { display:none; }
 
       #pan-prodotti td[data-label="Azioni"],
       #pan-ordini   td[data-label="Azioni"],
       #pan-notizie  td[data-label="Azioni"],
       #pan-calendario td[data-label="Azioni"],
-      #pan-sessioni td[data-label="Azioni"] {
+      #pan-sessioni td[data-label="Azioni"],
+      #pan-utenti   td[data-label="Azioni"] {
         padding-top:10px; border-top:1px solid var(--bordo-2) !important; margin-top:6px;
       }
       #pan-prodotti .empty-state td,
       #pan-ordini   .empty-state td,
       #pan-notizie  .empty-state td,
       #pan-calendario .empty-state td,
-      #pan-sessioni .empty-state td { display:block; }
+      #pan-sessioni .empty-state td,
+      #pan-utenti   .empty-state td { display:block; }
       #pan-prodotti .empty-state td::before,
       #pan-ordini   .empty-state td::before,
       #pan-notizie  .empty-state td::before,
       #pan-calendario .empty-state td::before,
-      #pan-sessioni .empty-state td::before { display:none; }
+      #pan-sessioni .empty-state td::before,
+      #pan-utenti   .empty-state td::before { display:none; }
 
       .azioni { flex-wrap:wrap; gap:6px; }
 
@@ -1167,13 +1175,10 @@
   <div class="card-table">
     <table>
       <thead><tr>
-        <th>Ordine</th>
+        <th>Ordine / Data</th>
         <th>Cliente</th>
         <th>Articoli</th>
-        <th>Totale</th>
-        <th>Data</th>
-        <th>Stato</th>
-        <th>Mail letta</th>
+        <th>Totale / Stato</th>
         <th>Azioni</th>
       </tr></thead>
       <tbody id="ordiniBody"></tbody>
@@ -1283,15 +1288,11 @@
     <button class="filtro-btn" onclick="filtraUtenti('attivo')" id="uFiltroAttivo">Attivi</button>
     <button class="filtro-btn" onclick="filtraUtenti('rifiutato')" id="uFiltroRifiutato">Rifiutati</button>
   </div>
-  <div class="table-wrap">
+  <div class="card-table">
     <table>
       <thead><tr>
-        <th>Nome</th>
-        <th>Email</th>
-        <th>Telefono</th>
-        <th>Tipo</th>
-        <th>Stato</th>
-        <th>Data</th>
+        <th>Utente</th>
+        <th>Tipo / Stato</th>
         <th>Azioni</th>
       </tr></thead>
       <tbody id="utentiBody"></tbody>
@@ -2582,12 +2583,15 @@
       const url = filtroStatoCorrente ? `/api/admin/ordini?stato=${encodeURIComponent(filtroStatoCorrente)}` : '/api/admin/ordini';
       const ordini = await fetch(url, { headers: headers() }).then(r => r.json());
       if (!ordini.length) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📦</div>Nessun ordine trovato.</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">📦</div>Nessun ordine trovato.</div></td></tr>`;
         return;
       }
       tbody.innerHTML = ordini.map(o => `
         <tr>
-          <td data-label="Ordine"><strong>#${o.id.slice(-6)}</strong></td>
+          <td data-label="Ordine / Data">
+            <strong>#${o.id.slice(-6)}</strong>
+            <div style="color:var(--sub);font-size:12px;margin-top:2px;">${o.created_at ? new Date(o.created_at).toLocaleDateString('it-IT') : '—'}</div>
+          </td>
           <td data-label="Cliente">
             <div class="prod-nome">${o.nome} ${o.cognome}</div>
             <div class="prod-desc">${o.email}</div>
@@ -2595,15 +2599,16 @@
           <td data-label="Articoli">
             <div class="ordine-items">${(o.items||[]).map(i => `${i.nome} (${i.taglia}, ×${i.qty})`).join('<br>')}</div>
           </td>
-          <td data-label="Totale"><strong>€ ${Number(o.totale).toFixed(2)}</strong></td>
-          <td data-label="Data" style="color:var(--sub);font-size:13px;">${o.created_at ? new Date(o.created_at).toLocaleDateString('it-IT') : '—'}</td>
-          <td data-label="Stato"><span class="badge ${statoBadge(o.stato)}">${o.stato}</span></td>
-          <td data-label="Mail letta" style="text-align:center;">
-            <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;">
-              <input type="checkbox" ${o.mail_letta ? 'checked' : ''} onchange="toggleMailLetta('${o.id}', this.checked)"
-                style="width:16px;height:16px;accent-color:#16a34a;cursor:pointer;">
-              <span style="color:${o.mail_letta ? '#16a34a' : '#dc2626'};font-weight:600;">${o.mail_letta ? 'Sì' : 'No'}</span>
-            </label>
+          <td data-label="Totale / Stato">
+            <strong>€ ${Number(o.totale).toFixed(2)}</strong>
+            <div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="badge ${statoBadge(o.stato)}">${o.stato}</span>
+              <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+                <input type="checkbox" ${o.mail_letta ? 'checked' : ''} onchange="toggleMailLetta('${o.id}', this.checked)"
+                  style="width:14px;height:14px;accent-color:#16a34a;cursor:pointer;">
+                <span style="color:${o.mail_letta ? '#16a34a' : '#dc2626'};font-weight:600;">Mail</span>
+              </label>
+            </div>
           </td>
           <td data-label="Azioni">
             <div class="azioni" style="gap:6px;flex-wrap:wrap;">
@@ -2624,7 +2629,7 @@
           </td>
         </tr>`).join('');
     } catch {
-      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">Errore caricamento ordini.</div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Errore caricamento ordini.</div></td></tr>`;
     }
   }
 
@@ -3112,7 +3117,7 @@
       if (tipo === 'atleta') list = list.filter(u => u.is_atleta);
       if (tipo === 'allenatore') list = list.filter(u => u.is_allenatore);
       if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Nessun utente trovato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:#999;">Nessun utente trovato.</td></tr>';
         return;
       }
       const statoBadge = s => ({
@@ -3138,12 +3143,22 @@
       window._utentiMap = Object.fromEntries(list.map(u => [u.id, u]));
       tbody.innerHTML = list.map(u => `
         <tr>
-          <td data-label="Nome"><strong>${u.nome} ${u.cognome}</strong></td>
-          <td data-label="Email"><div class="prod-desc">${u.email}</div></td>
-          <td data-label="Telefono" style="font-size:13px;">${u.telefono || '—'}</td>
-          <td data-label="Tipo">${tipoBadge(u)}</td>
-          <td data-label="Stato">${statoBadge(u.stato)}</td>
-          <td data-label="Data" style="font-size:12px;color:#6b7280;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : '—'}</td>
+          <td data-label="Utente">
+            <div>
+              <strong>${u.nome} ${u.cognome}</strong>
+              <div style="font-size:12px;color:var(--sub);margin-top:2px;">${u.email}</div>
+              ${u.telefono ? `<div style="font-size:12px;color:var(--sub);">${u.telefono}</div>` : ''}
+            </div>
+          </td>
+          <td data-label="Tipo / Stato">
+            <div>
+              ${tipoBadge(u)}
+              <div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                ${statoBadge(u.stato)}
+                <span style="font-size:11px;color:#9ca3af;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : ''}</span>
+              </div>
+            </div>
+          </td>
           <td data-label="Azioni">
             <div class="azioni" style="gap:6px;flex-wrap:wrap;">
               <button onclick="apriModalTipoUtente('${u.id}')"
@@ -3171,7 +3186,7 @@
             </div>
           </td>
         </tr>`).join('');
-    } catch(e) { tbody.innerHTML = '<tr><td colspan="6">Errore caricamento utenti.</td></tr>'; }
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="3">Errore caricamento utenti.</td></tr>'; }
   }
 
   async function approvaUtente(id, nome) {

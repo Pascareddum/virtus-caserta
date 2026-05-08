@@ -20,7 +20,11 @@
       "Bash(curl -sL \"https://cdn.quilljs.com/1.3.7/quill.snow.css\" -o /Users/alessandrro/Documents/GitHub/virtus-caserta/vendor/quill.snow.css)",
       "Bash(curl -sL \"https://cdn.quilljs.com/1.3.7/quill.min.js\" -o /Users/alessandrro/Documents/GitHub/virtus-caserta/vendor/quill.min.js)",
       "Bash(sed -i '' '3567s/colspan=\"8\"/colspan=\"6\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
-      "Bash(sed -i '' '3574s/colspan=\"8\"/colspan=\"6\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)"
+      "Bash(sed -i '' '3574s/colspan=\"8\"/colspan=\"6\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '2582s/colspan=\"8\"/colspan=\"5\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '2628s/colspan=\"8\"/colspan=\"5\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '3120s/colspan=\"6\"/colspan=\"3\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
+      "Bash(sed -i '' '3189s/colspan=\"6\"/colspan=\"3\"/' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)"
     ]
   }
 }
