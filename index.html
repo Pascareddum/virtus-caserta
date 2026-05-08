@@ -1612,7 +1612,6 @@
       align-items: center;
       gap: 72px;
       width: max-content;
-      animation: sponsorScroll 30s linear infinite;
     }
     .sponsor-track:hover { animation-play-state: paused; }
     @keyframes sponsorScroll {
@@ -1625,7 +1624,6 @@
       width: auto;
       max-width: 200px;
       object-fit: contain;
-      filter: grayscale(1) opacity(0.6);
       transition: filter .3s;
     }
     .sponsor-logo:hover { filter: grayscale(0) opacity(1); }
@@ -2677,12 +2675,19 @@
         ));
         // Measure one full set width after images loaded
         await new Promise(r => requestAnimationFrame(r));
+        const GAP = 72;
         const setW = track.scrollWidth;
-        // Add duplicate set for seamless loop
-        list.forEach(s => track.appendChild(makeItem(s)));
-        // Pixel-exact animation: move exactly one set width to the left
-        track.style.setProperty('--ticker-w', `-${setW}px`);
-        track.style.animationDuration = Math.max(12, setW / 90) + 's';
+        // loopW = one set + one gap → exact period for seamless loop
+        const loopW = setW + GAP;
+        // Add enough copies to fill 2+ viewports so no blank visible
+        const copies = Math.max(2, Math.ceil(window.innerWidth * 2 / loopW));
+        for (let i = 0; i < copies; i++) {
+          list.forEach(s => track.appendChild(makeItem(s)));
+        }
+        // Start animation only after measuring, with correct distance
+        const dur = Math.max(12, loopW / 60);
+        track.style.setProperty('--ticker-w', `-${loopW}px`);
+        track.style.animation = `sponsorScroll ${dur}s linear infinite`;
       } catch(e) { console.warn('Sponsor load failed', e); }
     })();
 
