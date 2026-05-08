@@ -622,10 +622,10 @@ app.post('/api/imposta-password', async (req, res) => {
 });
 
 /* ─── Calendario: pubblico ─── */
-app.get('/api/calendario', async (_req, res) => {
+app.get('/api/calendario', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM calendario ORDER BY data_str, ora');
-    const rows = result.rows.map(r => ({
+    let rows = result.rows.map(r => ({
       id:        r.id,
       titolo:    r.titolo,
       data:      r.data_str,
@@ -636,6 +636,30 @@ app.get('/api/calendario', async (_req, res) => {
       tipo:      r.tipo || 'allenamento',
       foto:      r.foto || '',
     }));
+
+    const payload = verifyToken(req);
+
+    if (payload && payload.role === 'admin') {
+      return res.json(rows);
+    }
+
+    const matchesCat = (r, sq) => {
+      if (!r.categoria) return true;
+      return r.categoria.split(',').map(c => c.trim()).filter(Boolean).some(c => sq.has(c));
+    };
+
+    if (payload && payload.id) {
+      const u = await db.query('SELECT squadre_atleta, squadre_allenatore FROM utenti WHERE id=$1', [payload.id]);
+      if (u.rows.length) {
+        const sq = new Set([...(u.rows[0].squadre_atleta || []), ...(u.rows[0].squadre_allenatore || [])]);
+        rows = rows.filter(r => matchesCat(r, sq));
+      } else {
+        rows = rows.filter(r => !r.categoria);
+      }
+    } else {
+      rows = rows.filter(r => !r.categoria);
+    }
+
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -1828,7 +1852,6 @@ const FIPAV_CAMPANIA_URL   = 'https://www.fipavcampania.it/risultati-classifiche
 const RESULT_FETCH_INITIAL_DELAY = 1.5 * 60 * 60 * 1000;  // 1h30
 const RESULT_RETRY_INTERVAL      = 30  * 60 * 1000;        // 30min
 const RESULT_MAX_WINDOW          = 3   * 60 * 60 * 1000;   // 3h dal kick-off
-const SCHEDULE_REFRESH_INTERVAL  = 24  * 60 * 60 * 1000;   // 1 giorno
 const pendingTimers = new Map();  // match_id → Timeout
 
 // Converte riga DB in oggetto match usato dal frontend
@@ -2064,6 +2087,20 @@ function scheduleOpesWeekly() {
   console.log(`[OPES Scheduler] Prossimo check lunedì: ${next.toLocaleString('it')}`);
 }
 
+function scheduleDailyRefresh() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(14, 0, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  const delay = next.getTime() - Date.now();
+  setTimeout(async () => {
+    console.log('[FIPAV Scheduler] Check giornaliero spostamenti partite (14:00)');
+    await refreshFutureMatches();
+    scheduleDailyRefresh();
+  }, delay);
+  console.log(`[FIPAV Scheduler] Prossimo check spostamenti: ${next.toLocaleString('it')}`);
+}
+
 // Boot: carica match FIPAV da DB, registra timer, avvia refresh giornaliero FIPAV + settimanale OPES
 async function initFipavScheduler() {
   try {
@@ -2080,14 +2117,14 @@ async function initFipavScheduler() {
     }
     console.log(`[FIPAV Scheduler] Boot: ${scheduled} partite FIPAV caricate da DB`);
     await refreshFutureMatches();
-    setInterval(refreshFutureMatches, SCHEDULE_REFRESH_INTERVAL);
+    scheduleDailyRefresh();
     // OPES: refresh immediato al boot + settimanale lunedì alle 9
     await refreshOpesMatches();
     scheduleOpesWeekly();
   } catch (err) {
     console.log('[FIPAV Scheduler] Errore boot:', err.message);
     setTimeout(refreshFutureMatches, 60_000);
-    setInterval(refreshFutureMatches, SCHEDULE_REFRESH_INTERVAL);
+    scheduleDailyRefresh();
   }
 }
 

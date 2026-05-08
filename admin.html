@@ -393,6 +393,11 @@
       box-shadow:0 0 0 3px rgba(21,53,168,.12);
     }
     .mf textarea { resize:vertical; min-height:88px; line-height:1.5; }
+    #quillEditor { border:1px solid var(--bordo); border-radius:var(--radius); background:var(--surface); }
+    #quillEditor .ql-toolbar { border:none; border-bottom:1px solid var(--bordo); border-radius:var(--radius) var(--radius) 0 0; }
+    #quillEditor .ql-container { border:none; border-radius:0 0 var(--radius) var(--radius); font-family:inherit; font-size:14px; }
+    #quillEditor .ql-editor { min-height:120px; color:var(--testo); }
+    #quillEditor .ql-editor.ql-blank::before { color:var(--sub-2); font-style:normal; }
     .mf-row  { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .mf-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
 
@@ -643,6 +648,32 @@
     }
     .sidebar-home a:hover { background:var(--surface-3); color:var(--testo); }
 
+    /* ── SIDEBAR NAV GROUPS ────────────────────────── */
+    .nav-group { display:flex; flex-direction:column; }
+    .nav-grp-hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:6px 12px; margin-top:6px;
+      background:transparent; border:none; cursor:pointer;
+      font-family:inherit; font-size:10.5px; font-weight:700;
+      color:var(--sub-2); text-transform:uppercase; letter-spacing:.09em;
+      border-radius:var(--radius); transition:color .12s, background .12s;
+      width:100%;
+    }
+    .nav-grp-hdr:hover { color:var(--sub); background:var(--surface-3); }
+    .nav-grp-chevron {
+      display:inline-block; flex-shrink:0;
+      width:6px; height:6px;
+      border-right:1.5px solid currentColor;
+      border-bottom:1.5px solid currentColor;
+      transform:rotate(-45deg); transition:transform .2s;
+      margin-top:1px;
+    }
+    .nav-group.open .nav-grp-chevron { transform:rotate(45deg); margin-top:-2px; }
+    .nav-grp-items { display:none; flex-direction:column; gap:1px; padding-left:8px; margin-top:1px; }
+    .nav-group.open .nav-grp-items { display:flex; }
+    .nav-sub { font-size:13px !important; padding:7px 12px !important; }
+    .nav-divider { height:1px; background:var(--bordo-2); margin:6px 0; }
+
     /* ── HAMBURGER ──────────────────────────────────── */
     .btn-hamburger {
       display:none;
@@ -888,42 +919,88 @@
       <span class="drawer-brand">Virtus Caserta</span>
       <button class="drawer-close" onclick="toggleDrawer()" aria-label="Chiudi menu">✕</button>
     </div>
-    <button class="tab-btn attivo" data-tab="dashboard"    onclick="switchTab('dashboard')">📊 Dashboard</button>
-    <button class="tab-btn"        data-tab="prodotti"     onclick="switchTab('prodotti')">🛒 Prodotti</button>
-    <button class="tab-btn"        data-tab="notizie"      onclick="switchTab('notizie')">📰 Notizie</button>
-    <button class="tab-btn"        data-tab="calendario"   onclick="switchTab('calendario')">📅 Calendario</button>
-    <button class="tab-btn"        data-tab="ordini"       onclick="switchTab('ordini')">📦 Ordini</button>
-    <button class="tab-btn"        data-tab="squadra"      onclick="switchTab('squadra')">🏐 Squadra</button>
-    <button class="tab-btn"        data-tab="staff"        onclick="switchTab('staff')">👥 Staff</button>
-    <button class="tab-btn"        data-tab="live"         onclick="switchTab('live')">📡 Live</button>
-    <button class="tab-btn"        data-tab="sponsor"      onclick="switchTab('sponsor')">🤝 Sponsor</button>
-    <button class="tab-btn"        data-tab="utenti"       onclick="switchTab('utenti')">👤 Utenti</button>
-    <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
-    <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
-    <button class="tab-btn"        data-tab="sessioni"          onclick="switchTab('sessioni')">👥 Sessioni</button>
+    <button class="tab-btn attivo" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <div class="nav-divider"></div>
+    <div class="nav-group" id="dgrp-shop">
+      <button class="nav-grp-hdr" onclick="toggleGrp('dgrp-shop')">
+        <span>Shop</span><span class="nav-grp-chevron"></span>
+      </button>
+      <div class="nav-grp-items">
+        <button class="tab-btn nav-sub" data-tab="prodotti" onclick="switchTab('prodotti')">Prodotti</button>
+        <button class="tab-btn nav-sub" data-tab="ordini"   onclick="switchTab('ordini')">Ordini</button>
+      </div>
+    </div>
+    <div class="nav-group" id="dgrp-pianifica">
+      <button class="nav-grp-hdr" onclick="toggleGrp('dgrp-pianifica')">
+        <span>Pianifica</span><span class="nav-grp-chevron"></span>
+      </button>
+      <div class="nav-grp-items">
+        <button class="tab-btn nav-sub" data-tab="calendario" onclick="switchTab('calendario')">Calendario</button>
+        <button class="tab-btn nav-sub" data-tab="sessioni"   onclick="switchTab('sessioni')">Sessioni</button>
+      </div>
+    </div>
+    <div class="nav-group" id="dgrp-aggiungi">
+      <button class="nav-grp-hdr" onclick="toggleGrp('dgrp-aggiungi')">
+        <span>Aggiungi</span><span class="nav-grp-chevron"></span>
+      </button>
+      <div class="nav-grp-items">
+        <button class="tab-btn nav-sub" data-tab="notizie"      onclick="switchTab('notizie')">Notizie</button>
+        <button class="tab-btn nav-sub" data-tab="staff"        onclick="switchTab('staff')">Staff</button>
+        <button class="tab-btn nav-sub" data-tab="squadra"      onclick="switchTab('squadra')">Squadra</button>
+        <button class="tab-btn nav-sub" data-tab="sponsor"      onclick="switchTab('sponsor')">Sponsor</button>
+        <button class="tab-btn nav-sub" data-tab="link-squadre" onclick="switchTab('link-squadre')">Link Squadre</button>
+        <button class="tab-btn nav-sub" data-tab="cat-squadre"  onclick="switchTab('cat-squadre')">Categorie Squadre</button>
+      </div>
+    </div>
+    <div class="nav-divider"></div>
+    <button class="tab-btn" data-tab="live"   onclick="switchTab('live')">Live</button>
+    <button class="tab-btn" data-tab="utenti" onclick="switchTab('utenti')">Utenti</button>
     <div class="drawer-home">
-      <a href="/">🏠 Torna alla home</a>
+      <a href="/">Torna alla home</a>
     </div>
   </nav>
 </div>
 
 <!-- TABS SIDEBAR (desktop) -->
 <div class="tabs-bar">
-  <button class="tab-btn attivo" data-tab="dashboard"    onclick="switchTab('dashboard')">📊 Dashboard</button>
-  <button class="tab-btn"        data-tab="prodotti"     onclick="switchTab('prodotti')">🛒 Prodotti</button>
-  <button class="tab-btn"        data-tab="notizie"      onclick="switchTab('notizie')">📰 Notizie</button>
-  <button class="tab-btn"        data-tab="calendario"   onclick="switchTab('calendario')">📅 Calendario</button>
-  <button class="tab-btn"        data-tab="ordini"       onclick="switchTab('ordini')">📦 Ordini</button>
-  <button class="tab-btn"        data-tab="squadra"      onclick="switchTab('squadra')">🏐 Squadra</button>
-  <button class="tab-btn"        data-tab="staff"        onclick="switchTab('staff')">👥 Staff</button>
-  <button class="tab-btn"        data-tab="live"         onclick="switchTab('live')">📡 Live</button>
-  <button class="tab-btn"        data-tab="sponsor"      onclick="switchTab('sponsor')">🤝 Sponsor</button>
-  <button class="tab-btn"        data-tab="utenti"       onclick="switchTab('utenti')">👤 Utenti</button>
-  <button class="tab-btn"        data-tab="link-squadre"      onclick="switchTab('link-squadre')">🔗 Link Squadre</button>
-  <button class="tab-btn"        data-tab="cat-squadre"       onclick="switchTab('cat-squadre')">📋 Categorie Squadre</button>
-  <button class="tab-btn"        data-tab="sessioni"          onclick="switchTab('sessioni')">👥 Sessioni</button>
+  <button class="tab-btn attivo" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+  <div class="nav-divider"></div>
+  <div class="nav-group" id="sgrp-shop">
+    <button class="nav-grp-hdr" onclick="toggleGrp('sgrp-shop')">
+      <span>Shop</span><span class="nav-grp-chevron"></span>
+    </button>
+    <div class="nav-grp-items">
+      <button class="tab-btn nav-sub" data-tab="prodotti" onclick="switchTab('prodotti')">Prodotti</button>
+      <button class="tab-btn nav-sub" data-tab="ordini"   onclick="switchTab('ordini')">Ordini</button>
+    </div>
+  </div>
+  <div class="nav-group" id="sgrp-pianifica">
+    <button class="nav-grp-hdr" onclick="toggleGrp('sgrp-pianifica')">
+      <span>Pianifica</span><span class="nav-grp-chevron"></span>
+    </button>
+    <div class="nav-grp-items">
+      <button class="tab-btn nav-sub" data-tab="calendario" onclick="switchTab('calendario')">Calendario</button>
+      <button class="tab-btn nav-sub" data-tab="sessioni"   onclick="switchTab('sessioni')">Sessioni</button>
+    </div>
+  </div>
+  <div class="nav-group" id="sgrp-aggiungi">
+    <button class="nav-grp-hdr" onclick="toggleGrp('sgrp-aggiungi')">
+      <span>Aggiungi</span><span class="nav-grp-chevron"></span>
+    </button>
+    <div class="nav-grp-items">
+      <button class="tab-btn nav-sub" data-tab="notizie"      onclick="switchTab('notizie')">Notizie</button>
+      <button class="tab-btn nav-sub" data-tab="staff"        onclick="switchTab('staff')">Staff</button>
+      <button class="tab-btn nav-sub" data-tab="squadra"      onclick="switchTab('squadra')">Squadra</button>
+      <button class="tab-btn nav-sub" data-tab="sponsor"      onclick="switchTab('sponsor')">Sponsor</button>
+      <button class="tab-btn nav-sub" data-tab="link-squadre" onclick="switchTab('link-squadre')">Link Squadre</button>
+      <button class="tab-btn nav-sub" data-tab="cat-squadre"  onclick="switchTab('cat-squadre')">Categorie Squadre</button>
+    </div>
+  </div>
+  <div class="nav-divider"></div>
+  <button class="tab-btn" data-tab="live"   onclick="switchTab('live')">Live</button>
+  <button class="tab-btn" data-tab="utenti" onclick="switchTab('utenti')">Utenti</button>
   <div class="sidebar-home">
-    <a href="/">🏠 Torna alla home</a>
+    <a href="/">Torna alla home</a>
   </div>
 </div>
 
@@ -932,27 +1009,24 @@
   <div class="toolbar"><h2>Dashboard</h2></div>
   <div class="stat-grid">
     <div class="stat-card">
-      <div class="s-icon">🛒</div>
       <div class="s-label">Prodotti</div>
       <div class="s-val" id="statProdotti">—</div>
       <div class="s-sub" id="statProdottiSub"></div>
     </div>
     <div class="stat-card">
-      <div class="s-icon">📰</div>
-      <div class="s-label">Notizie</div>
-      <div class="s-val" id="statNotizie">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="s-icon">📅</div>
-      <div class="s-label">Sessioni</div>
-      <div class="s-val" id="statEventi">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="s-icon">📦</div>
       <div class="s-label">Ordini ricevuti</div>
       <div class="s-val" id="statOrdini">—</div>
       <div class="s-sub" id="statOrdiniSub"></div>
     </div>
+    <div class="stat-card">
+      <div class="s-label">Notizie</div>
+      <div class="s-val" id="statNotizie">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Sessioni</div>
+      <div class="s-val" id="statEventi">—</div>
+    </div>
+
   </div>
   <div class="ordini-mini">
     <div class="ordini-mini-hdr">Ultimi ordini</div>
@@ -1028,17 +1102,17 @@
   <div class="toolbar">
     <h2>Ordini</h2>
     <div style="display:flex;gap:8px;">
-      <button class="btn-aggiungi" style="background:#16a34a;" onclick="esportaOrdiniCSV()">📥 Esporta CSV</button>
-      <button class="btn-aggiungi" style="background:#dc2626;" onclick="svuotaOrdini()">🗑 Svuota DB</button>
+      <button class="btn-aggiungi" style="background:#16a34a;" onclick="esportaOrdiniCSV()">Esporta CSV</button>
+      <button class="btn-aggiungi" style="background:#dc2626;" onclick="svuotaOrdini()">Svuota DB</button>
     </div>
   </div>
   <div class="filtro-bar" id="filtriBarra">
     <button class="filtro-btn on" onclick="filtraOrdini('')">Tutti</button>
-    <button class="filtro-btn" onclick="filtraOrdini('ricevuto')">📦 Ricevuto</button>
-    <button class="filtro-btn" onclick="filtraOrdini('in lavorazione')">🔧 In lavorazione</button>
-    <button class="filtro-btn" onclick="filtraOrdini('pronto')">📦 Pronto</button>
-    <button class="filtro-btn" onclick="filtraOrdini('ritirato')">✅ Ritirato</button>
-    <button class="filtro-btn" onclick="filtraOrdini('annullato')">❌ Annullato</button>
+    <button class="filtro-btn" onclick="filtraOrdini('ricevuto')">Ricevuto</button>
+    <button class="filtro-btn" onclick="filtraOrdini('in lavorazione')">In lavorazione</button>
+    <button class="filtro-btn" onclick="filtraOrdini('pronto')">Pronto</button>
+    <button class="filtro-btn" onclick="filtraOrdini('ritirato')">Ritirato</button>
+    <button class="filtro-btn" onclick="filtraOrdini('annullato')">Annullato</button>
   </div>
   <div class="card-table">
     <table>
@@ -1108,15 +1182,14 @@
     <!-- Spike Live -->
     <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:24px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-        <span style="font-size:20px;">▶️</span>
         <h3 style="font-size:15px;font-weight:800;color:#0d2055;">Partita live su Spike</h3>
         <span id="spikeLiveStatus" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f1f5f9;color:#6b7280;">—</span>
       </div>
       <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">Incolla il link YouTube della diretta Spike. La live apparirà direttamente sul sito. Lascia vuoto e salva per spegnere.</p>
       <input type="text" id="spikeLiveUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:14px;margin-bottom:12px;">
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-        <button onclick="salvaLiveLink()" style="padding:9px 22px;border-radius:10px;border:none;background:#e8372a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 Salva e attiva</button>
-        <button onclick="cancellaLiveLink()" style="padding:9px 22px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">🗑 Disattiva</button>
+        <button onclick="salvaLiveLink()" style="padding:9px 22px;border-radius:10px;border:none;background:#e8372a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Salva e attiva</button>
+        <button onclick="cancellaLiveLink()" style="padding:9px 22px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">Disattiva</button>
       </div>
       <div id="spikeLog" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
     </div>
@@ -1144,10 +1217,10 @@
   <p style="font-size:13px;color:#6b7280;margin-bottom:20px;">Gestisci le richieste di registrazione. Approva un utente per inviargli il link di impostazione password.</p>
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
     <button class="filtro-btn on" onclick="filtraUtenti('')" id="uFiltroTutti">Tutti</button>
-    <button class="filtro-btn" onclick="filtraUtenti('in_attesa')" id="uFiltroAttesa">⏳ In attesa</button>
-    <button class="filtro-btn" onclick="filtraUtenti('approvato')" id="uFiltroApprovato">📧 Approvati (pw da impostare)</button>
-    <button class="filtro-btn" onclick="filtraUtenti('attivo')" id="uFiltroAttivo">✅ Attivi</button>
-    <button class="filtro-btn" onclick="filtraUtenti('rifiutato')" id="uFiltroRifiutato">❌ Rifiutati</button>
+    <button class="filtro-btn" onclick="filtraUtenti('in_attesa')" id="uFiltroAttesa">In attesa</button>
+    <button class="filtro-btn" onclick="filtraUtenti('approvato')" id="uFiltroApprovato">Approvati (pw da impostare)</button>
+    <button class="filtro-btn" onclick="filtraUtenti('attivo')" id="uFiltroAttivo">Attivi</button>
+    <button class="filtro-btn" onclick="filtraUtenti('rifiutato')" id="uFiltroRifiutato">Rifiutati</button>
   </div>
   <div class="table-wrap">
     <table>
@@ -1167,7 +1240,7 @@
 
 <!-- ══ LINK SQUADRE ══ -->
 <div class="pannello" id="pan-link-squadre">
-  <div class="toolbar"><h2>Link Squadre</h2><button class="btn-aggiungi" onclick="salvaLinkSquadre()">💾 Salva tutto</button></div>
+  <div class="toolbar"><h2>Link Squadre</h2><button class="btn-aggiungi" onclick="salvaLinkSquadre()">Salva tutto</button></div>
   <p style="font-size:13px;color:#6b7280;margin-bottom:24px;">Seleziona la categoria per risultati e classifica di ogni squadra. Scegli "— predefinito —" per usare il valore del sito.</p>
 
   <style>
@@ -1282,11 +1355,11 @@
 <div class="pannello" id="pan-cat-squadre">
   <div class="toolbar">
     <h2>Categorie Squadre</h2>
-    <button class="btn-aggiungi" onclick="salvaCatSquadreMapping()">💾 Salva mapping</button>
+    <button class="btn-aggiungi" onclick="salvaCatSquadreMapping()">Salva mapping</button>
   </div>
   <p style="font-size:13px;color:#6b7280;margin-bottom:16px">
     Le squadre vengono rilevate automaticamente dagli atleti. Puoi aggiungerne di nuove manualmente.
-    <br><span style="color:#9ca3af;font-size:12px">ℹ️ "Maschile", "Femminile" e "Staff" sono esclusi — usa nomi specifici (es. Serie D Femminile).</span>
+    <br><span style="color:#9ca3af;font-size:12px">"Maschile", "Femminile" e "Staff" sono esclusi — usa nomi specifici (es. Serie D Femminile).</span>
   </p>
 
   <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center;">
@@ -1320,8 +1393,8 @@
     <h2>Sessioni calendario</h2>
     <div style="display:flex;gap:8px;">
       <button class="filtro-btn on" id="sfTutti"       onclick="filtraSessioni('')">Tutti</button>
-      <button class="filtro-btn"    id="sfAllenamento" onclick="filtraSessioni('allenamento')">🏋️ Allenamento</button>
-      <button class="filtro-btn"    id="sfEvento"      onclick="filtraSessioni('evento')">🎉 Evento</button>
+      <button class="filtro-btn"    id="sfAllenamento" onclick="filtraSessioni('allenamento')">Allenamento</button>
+      <button class="filtro-btn"    id="sfEvento"      onclick="filtraSessioni('evento')">Evento</button>
     </div>
   </div>
   <div class="card-table">
@@ -1332,8 +1405,8 @@
         <th>Titolo</th>
         <th>Tipo</th>
         <th>Categoria</th>
-        <th style="text-align:center">✅ Partecipano</th>
-        <th style="text-align:center">❌ Non partecipano</th>
+        <th style="text-align:center">Partecipano</th>
+        <th style="text-align:center">Non partecipano</th>
         <th>Azioni</th>
       </tr></thead>
       <tbody id="sessioniBody"></tbody>
@@ -1449,8 +1522,8 @@
         <div class="mf">
           <label>Visibile nello shop</label>
           <select id="pDisponibile">
-            <option value="true">✅ Sì</option>
-            <option value="false">❌ No (nascosto)</option>
+            <option value="true">Sì</option>
+            <option value="false">No (nascosto)</option>
           </select>
         </div>
       </div>
@@ -1467,7 +1540,7 @@
     </div>
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalProdotto')">Annulla</button>
-      <button class="btn-annulla" onclick="anteprimaProdotto()" style="color:var(--blu);border-color:var(--blu);">👁 Anteprima</button>
+      <button class="btn-annulla" onclick="anteprimaProdotto()" style="color:var(--blu);border-color:var(--blu);">Anteprima</button>
       <button class="btn-salva" id="btnSalvaProdotto" onclick="salvaProdotto()">Salva</button>
     </div>
   </div>
@@ -1494,9 +1567,9 @@
         <div class="mf">
           <label>Categoria</label>
           <select id="nColore">
-            <option value="blu">🔵 Notizia</option>
-            <option value="arancio">🟠 Comunicato</option>
-            <option value="azzurro">🩵 Risultato</option>
+            <option value="blu">Notizia</option>
+            <option value="arancio">Comunicato</option>
+            <option value="azzurro">Risultato</option>
           </select>
         </div>
         <div class="mf">
@@ -1513,7 +1586,7 @@
     </div>
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalNotizia')">Annulla</button>
-      <button class="btn-annulla" onclick="anteprimaNotizia()" style="color:var(--blu);border-color:var(--blu);">👁 Anteprima</button>
+      <button class="btn-annulla" onclick="anteprimaNotizia()" style="color:var(--blu);border-color:var(--blu);">Anteprima</button>
       <button class="btn-salva" id="btnSalvaNotizia" onclick="salvaNotizia()">Salva</button>
     </div>
   </div>
@@ -1554,11 +1627,11 @@
         <div style="display:flex;gap:8px;">
           <button id="sTipoAllenamento" onclick="setSessioneTipo('allenamento')"
             style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #0d2055;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-            🏋️ Allenamento
+            Allenamento
           </button>
           <button id="sTipoEvento" onclick="setSessioneTipo('evento')"
             style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-            🎉 Evento
+            Evento
           </button>
         </div>
         <input type="hidden" id="sTipo" value="allenamento">
@@ -1662,7 +1735,7 @@
     </div>
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalGiocatrice')">Annulla</button>
-      <button class="btn-annulla" onclick="anteprimaPersona('gFotoPreview','gNome','gCognome','gNumero','gRuolo','modalAnteprimaPersona')" style="color:var(--blu);border-color:var(--blu);">👁 Anteprima</button>
+      <button class="btn-annulla" onclick="anteprimaPersona('gFotoPreview','gNome','gCognome','gNumero','gRuolo','modalAnteprimaPersona')" style="color:var(--blu);border-color:var(--blu);">Anteprima</button>
       <button class="btn-salva" id="btnSalvaGiocatrice" onclick="salvaGiocatrice()">Salva</button>
     </div>
   </div>
@@ -1705,7 +1778,7 @@
     </div>
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalStaff')">Annulla</button>
-      <button class="btn-annulla" onclick="anteprimaPersona('stFotoPreview','stNome','stCognome',null,'stRuolo','modalAnteprimaPersona')" style="color:var(--blu);border-color:var(--blu);">👁 Anteprima</button>
+      <button class="btn-annulla" onclick="anteprimaPersona('stFotoPreview','stNome','stCognome',null,'stRuolo','modalAnteprimaPersona')" style="color:var(--blu);border-color:var(--blu);">Anteprima</button>
       <button class="btn-salva" id="btnSalvaStaff" onclick="salvaStaff()">Salva</button>
     </div>
   </div>
@@ -1787,15 +1860,15 @@
       <div style="display:flex;gap:10px;">
         <button id="btnTabAtleta" onclick="toggleTipoTab('atleta')"
           style="flex:1;padding:14px 10px;border-radius:10px;border:2px solid #d1d5db;background:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;">
-          🏐 Atleta
+          Atleta
         </button>
         <button id="btnTabAllenatore" onclick="toggleTipoTab('allenatore')"
           style="flex:1;padding:14px 10px;border-radius:10px;border:2px solid #d1d5db;background:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;">
-          📋 Allenatore
+          Allenatore
         </button>
       </div>
       <div id="squadreAtletaSection" style="display:none;">
-        <label style="font-size:13px;font-weight:700;color:#16a34a;display:block;margin-bottom:6px;">🏐 Squadre come Atleta</label>
+        <label style="font-size:13px;font-weight:700;color:#16a34a;display:block;margin-bottom:6px;">Squadre come Atleta</label>
         <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">Ctrl/Cmd per più selezioni.</p>
         <select id="squadreAtletaSelect" multiple
           style="width:100%;min-height:100px;border:1.5px solid #86efac;border-radius:8px;padding:6px;font-size:13px;outline:none;">
@@ -1813,7 +1886,7 @@
         </select>
       </div>
       <div id="squadreAllenatoreSection" style="display:none;">
-        <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin-bottom:6px;">📋 Squadre come Allenatore</label>
+        <label style="font-size:13px;font-weight:700;color:#1d4ed8;display:block;margin-bottom:6px;">Squadre come Allenatore</label>
         <p style="font-size:12px;color:#9ca3af;margin:0 0 8px;">Ctrl/Cmd per più selezioni.</p>
         <select id="squadreAllenatoreSelect" multiple
           style="width:100%;min-height:100px;border:1.5px solid #93c5fd;border-radius:8px;padding:6px;font-size:13px;outline:none;">
@@ -1837,7 +1910,8 @@
 <script>
   /* ── Quill WYSIWYG ── */
   let quill = null;
-  document.addEventListener('DOMContentLoaded', () => {
+  function initQuill() {
+    if (quill) return;
     quill = new Quill('#quillEditor', {
       theme: 'snow',
       modules: { toolbar: [
@@ -1852,7 +1926,7 @@
     quill.on('text-change', () => {
       document.getElementById('nTesto').value = quill.root.innerHTML;
     });
-  });
+  }
 
   const TUTTE_TAGLIE = ['XS','S','M','L','XL','XXL','XXXL'];
   let TOKEN = localStorage.getItem('vc_admin_token') || '';
@@ -1896,12 +1970,33 @@
   }
 
   /* ══ TABS ══ */
+  const TAB_GROUP = {
+    prodotti:'shop', ordini:'shop',
+    calendario:'pianifica', sessioni:'pianifica',
+    notizie:'aggiungi', staff:'aggiungi', squadra:'aggiungi',
+    sponsor:'aggiungi', 'link-squadre':'aggiungi', 'cat-squadre':'aggiungi',
+  };
+
+  function toggleGrp(id) {
+    document.getElementById(id).classList.toggle('open');
+  }
+
   function switchTab(nome) {
     document.querySelectorAll('.tab-btn[data-tab]').forEach(b =>
       b.classList.toggle('attivo', b.dataset.tab === nome)
     );
     document.querySelectorAll('.pannello').forEach(p => p.classList.remove('attivo'));
     document.getElementById('pan-'+nome).classList.add('attivo');
+
+    // auto-open group containing this tab
+    const grp = TAB_GROUP[nome];
+    if (grp) {
+      ['sgrp-','dgrp-'].forEach(prefix => {
+        const el = document.getElementById(prefix+grp);
+        if (el) el.classList.add('open');
+      });
+    }
+
     closeDrawer();
     if (nome === 'dashboard')    caricaDashboard();
     if (nome === 'prodotti')     caricaProdotti();
@@ -1983,8 +2078,8 @@
           <td data-label="Stato"><span class="badge ${p.disponibile ? 'badge-verde' : 'badge-rosso'}">${p.disponibile ? 'Disponibile' : 'Non disp.'}</span></td>
           <td data-label="Azioni">
             <div class="azioni">
-              <button class="btn-azione btn-edit"   onclick="apriModalProdotto('${p.id}')">✏️ Modifica</button>
-              <button class="btn-azione btn-delete" onclick="eliminaProdotto('${p.id}','${p.nome.replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+              <button class="btn-azione btn-edit"   onclick="apriModalProdotto('${p.id}')">Modifica</button>
+              <button class="btn-azione btn-delete" onclick="eliminaProdotto('${p.id}','${p.nome.replace(/'/g,"\\'")}')">Elimina</button>
             </div>
           </td>
         </tr>`).join('');
@@ -2107,8 +2202,8 @@
           <td data-label="Data" style="color:var(--sub);font-size:13px;">${n.data||'—'}</td>
           <td data-label="Azioni">
             <div class="azioni">
-              <button class="btn-azione btn-edit"   onclick="apriModalNotizia('${n.id}')">✏️ Modifica</button>
-              <button class="btn-azione btn-delete" onclick="eliminaNotizia('${n.id}','${(n.titolo||'').replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+              <button class="btn-azione btn-edit"   onclick="apriModalNotizia('${n.id}')">Modifica</button>
+              <button class="btn-azione btn-delete" onclick="eliminaNotizia('${n.id}','${(n.titolo||'').replace(/'/g,"\\'")}')">Elimina</button>
             </div>
           </td>
         </tr>`).join('');
@@ -2122,30 +2217,38 @@
     document.getElementById('modalNotiziaTitolo').textContent = id ? 'Modifica notizia' : 'Nuova notizia';
     document.getElementById('nTitolo').value  = '';
     document.getElementById('nTesto').value   = '';
-    if (quill) quill.root.innerHTML = '';
     document.getElementById('nColore').value  = 'blu';
     document.getElementById('nData').value    = new Date().toISOString().slice(0,10);
     document.getElementById('nImmagine').value = '';
     document.getElementById('nImgPreview').style.display = 'none';
     document.getElementById('nImmagineFile').value = '';
 
+    document.getElementById('modalNotizia').classList.add('aperto');
+
+    let notiziaData = null;
     if (id) {
       const notizie = await fetch('/api/notizie').then(r => r.json());
-      const n = notizie.find(x => x.id === id);
-      if (n) {
-        document.getElementById('nTitolo').value  = n.titolo;
-        document.getElementById('nTesto').value   = n.testo;
-        if (quill) quill.root.innerHTML = n.testo || '';
-        document.getElementById('nColore').value  = n.colore || 'blu';
-        document.getElementById('nData').value    = n.data ? isoDate(n.data) : '';
-        document.getElementById('nImmagine').value = n.immagine || '';
-        if (n.immagine) {
-          document.getElementById('nImgPreview').src = n.immagine;
+      notiziaData = notizie.find(x => x.id === id) || null;
+      if (notiziaData) {
+        document.getElementById('nTitolo').value  = notiziaData.titolo;
+        document.getElementById('nTesto').value   = notiziaData.testo;
+        document.getElementById('nColore').value  = notiziaData.colore || 'blu';
+        document.getElementById('nData').value    = notiziaData.data ? isoDate(notiziaData.data) : '';
+        document.getElementById('nImmagine').value = notiziaData.immagine || '';
+        if (notiziaData.immagine) {
+          document.getElementById('nImgPreview').src = notiziaData.immagine;
           document.getElementById('nImgPreview').style.display = 'block';
         }
       }
     }
-    document.getElementById('modalNotizia').classList.add('aperto');
+
+    // requestAnimationFrame ensures browser has painted the modal (display:flex)
+    // before Quill measures container dimensions — avoids 0-height editor bug
+    requestAnimationFrame(() => {
+      initQuill();
+      quill.root.innerHTML = notiziaData ? (notiziaData.testo || '') : '';
+      quill.focus();
+    });
   }
 
   function isoDate(d) {
@@ -2211,9 +2314,9 @@
   async function caricaCalendario() {
     const tbody = document.getElementById('calendarioBody');
     try {
-      const sessions = await fetch('/api/calendario').then(r => r.json());
+      const sessions = await fetch('/api/calendario', { headers: headers() }).then(r => r.json());
       if (!sessions.length) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">📅</div>Nessuna sessione. Aggiungine una!</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon"></div>Nessuna sessione. Aggiungine una!</div></td></tr>`;
         return;
       }
       tbody.innerHTML = sessions.map(s => `
@@ -2228,8 +2331,8 @@
           <td data-label="Categoria" style="color:var(--sub);font-size:13px;">${s.categoria || '—'}</td>
           <td data-label="Azioni">
             <div class="azioni">
-              <button class="btn-azione btn-edit"   onclick="apriModalSessione('${s.id}')">✏️ Modifica</button>
-              <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+              <button class="btn-azione btn-edit"   onclick="apriModalSessione('${s.id}')">Modifica</button>
+              <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">Elimina</button>
             </div>
           </td>
         </tr>`).join('');
@@ -2276,7 +2379,7 @@
 
     let categoriaCorrente = '';
     if (id) {
-      const sessions = await fetch('/api/calendario').then(r => r.json());
+      const sessions = await fetch('/api/calendario', { headers: headers() }).then(r => r.json());
       const s = sessions.find(x => x.id === id);
       if (s) {
         document.getElementById('sTitolo').value    = s.titolo;
@@ -2443,17 +2546,17 @@
           <td data-label="Azioni">
             <div class="azioni" style="gap:6px;flex-wrap:wrap;">
               <select class="stato-select" onchange="aggiornaStatoOrdine('${o.id}', this.value)">
-                <option value="ricevuto"       ${o.stato==='ricevuto'       ?'selected':''}>📦 Ricevuto</option>
-                <option value="in lavorazione" ${o.stato==='in lavorazione' ?'selected':''}>🔧 In lavorazione</option>
-                <option value="pronto"          ${o.stato==='pronto'         ?'selected':''}>📦 Pronto per ritiro</option>
-                <option value="ritirato"       ${o.stato==='ritirato'       ?'selected':''}>✅ Ritirato</option>
-                <option value="annullato"      ${o.stato==='annullato'      ?'selected':''}>❌ Annullato</option>
+                <option value="ricevuto"       ${o.stato==='ricevuto'       ?'selected':''}>Ricevuto</option>
+                <option value="in lavorazione" ${o.stato==='in lavorazione' ?'selected':''}>In lavorazione</option>
+                <option value="pronto"          ${o.stato==='pronto'         ?'selected':''}>Pronto per ritiro</option>
+                <option value="ritirato"       ${o.stato==='ritirato'       ?'selected':''}>Ritirato</option>
+                <option value="annullato"      ${o.stato==='annullato'      ?'selected':''}>Annullato</option>
               </select>
               ${o.stato !== 'annullato' && o.stato !== 'ritirato' ? `
               <button onclick="richiediRimborso('${o.id}','${(o.nome+' '+o.cognome).replace(/'/g,"\\'")}', '€ ${Number(o.totale).toFixed(2)}')"
                 style="padding:7px 12px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s;"
                 onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fff'">
-                🗑 Cancella
+                Cancella
               </button>` : ''}
             </div>
           </td>
@@ -2502,7 +2605,7 @@
       if (!res.ok) {
         alert(`Errore: ${data.error}`);
       } else {
-        alert('✅ Ordine cancellato. Il cliente è stato notificato via email.');
+        alert('Ordine cancellato. Il cliente è stato notificato via email.');
         caricaOrdini();
         caricaDashboard();
       }
@@ -2606,8 +2709,8 @@
           <td data-label="Ruolo" style="color:var(--sub);font-size:13px;">${g.ruolo || '—'}</td>
           <td data-label="Stato"><span class="badge ${g.attiva ? 'badge-verde':'badge-rosso'}">${g.attiva?'Attiva':'Inattiva'}</span></td>
           <td data-label="Azioni"><div class="azioni">
-            <button class="btn-azione btn-edit" onclick="apriModalGiocatrice('${g.id}')">✏️ Modifica</button>
-            <button class="btn-azione btn-delete" onclick="eliminaGiocatrice('${g.id}','${(g.nome+' '+g.cognome).replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+            <button class="btn-azione btn-edit" onclick="apriModalGiocatrice('${g.id}')">Modifica</button>
+            <button class="btn-azione btn-delete" onclick="eliminaGiocatrice('${g.id}','${(g.nome+' '+g.cognome).replace(/'/g,"\\'")}')">Elimina</button>
           </div></td>
         </tr>`).join('');
     } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore.</div></td></tr>`; }
@@ -2734,8 +2837,8 @@
           <td data-label="Bio" style="color:var(--sub);font-size:13px;max-width:200px;">${(g.bio||'').slice(0,60)}${(g.bio||'').length>60?'…':''}</td>
           <td data-label="Stato"><span class="badge ${g.attiva ? 'badge-verde':'badge-rosso'}">${g.attiva?'Attivo':'Inattivo'}</span></td>
           <td data-label="Azioni"><div class="azioni">
-            <button class="btn-azione btn-edit" onclick="apriModalStaff('${g.id}')">✏️ Modifica</button>
-            <button class="btn-azione btn-delete" onclick="eliminaStaff('${g.id}','${(g.nome+' '+g.cognome).replace(/'/g,"\\'")}')">🗑️ Elimina</button>
+            <button class="btn-azione btn-edit" onclick="apriModalStaff('${g.id}')">Modifica</button>
+            <button class="btn-azione btn-delete" onclick="eliminaStaff('${g.id}','${(g.nome+' '+g.cognome).replace(/'/g,"\\'")}')">Elimina</button>
           </div></td>
         </tr>`).join('');
     } catch { tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore caricamento staff.</div></td></tr>`; }
@@ -2793,12 +2896,12 @@
 
   /* ══ SVUOTA ORDINI ══ */
   async function svuotaOrdini() {
-    if (!confirm('⚠️ Sei sicuro di voler eliminare TUTTI gli ordini dal database? Questa operazione non è reversibile.')) return;
+    if (!confirm('Sei sicuro di voler eliminare TUTTI gli ordini dal database? Questa operazione non è reversibile.')) return;
     if (!confirm('Conferma definitiva: eliminare tutti gli ordini?')) return;
     try {
       const res = await fetch('/api/admin/ordini/all', { method:'DELETE', headers: headers() });
       const data = await res.json();
-      if (res.ok) { alert(`✅ ${data.eliminati} ordini eliminati dal database.`); caricaOrdini(); caricaDashboard(); }
+      if (res.ok) { alert(`${data.eliminati} ordini eliminati dal database.`); caricaOrdini(); caricaDashboard(); }
       else alert('Errore: ' + data.error);
     } catch { alert('Errore di rete.'); }
   }
@@ -2842,7 +2945,7 @@
       const data = await res.json();
       if (!res.ok) { spikeLog('Errore salvataggio: ' + (data.error || res.status), false); return; }
       setLiveStatus('spikeLiveStatus', url ? '● Attiva' : '○ Inattiva', !!url);
-      spikeLog(url ? '✅ Live attivata. Verifica su /live' : '✅ Live disattivata.', true);
+      spikeLog(url ? 'Live attivata. Verifica su /live' : 'Live disattivata.', true);
     } catch (e) { spikeLog('Errore di rete: ' + e.message, false); }
   }
 
@@ -2856,7 +2959,7 @@
       });
       if (!res.ok) { spikeLog('Errore disattivazione: ' + res.status, false); return; }
       setLiveStatus('spikeLiveStatus', '○ Inattiva', false);
-      spikeLog('✅ Live disattivata.', true);
+      spikeLog('Live disattivata.', true);
     } catch (e) { spikeLog('Errore di rete: ' + e.message, false); }
   }
 
@@ -2944,9 +3047,9 @@
         return;
       }
       const statoBadge = s => ({
-        in_attesa:  '<span class="badge badge-arancio">⏳ In attesa</span>',
-        approvato:  '<span class="badge badge-blu">📧 Email inviata</span>',
-        attivo:     '<span class="badge badge-verde">✅ Attivo</span>',
+        in_attesa:  '<span class="badge badge-arancio">In attesa</span>',
+        approvato:  '<span class="badge badge-blu">Email inviata</span>',
+        attivo:     '<span class="badge badge-verde">Attivo</span>',
         rifiutato:  '<span class="badge" style="background:#fef2f2;color:#b91c1c;">❌ Rifiutato</span>',
       }[s] || `<span class="badge">${s}</span>`);
       const tipoBadge = u => {
@@ -2954,12 +3057,12 @@
         if (u.is_atleta) {
           const sq = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
           const ruolo = u.ruolo_atleta ? `<span style="font-size:11px;color:#16a34a;font-weight:700;margin-left:4px;">(${u.ruolo_atleta})</span>` : '';
-          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">🏐 Atleta</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">Atleta</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
         }
         if (u.is_allenatore) {
           const sq = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
           const ruolo = u.ruolo_allenatore ? `<span style="font-size:11px;color:#1d4ed8;font-weight:700;margin-left:4px;">(${u.ruolo_allenatore})</span>` : '';
-          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">📋 Allenatore</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
+          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">Allenatore</span>${ruolo}${sq.length ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${sq.join(', ')}</span>` : ''}</div>`);
         }
         return tags.length ? tags.join('') : '<span style="color:#9ca3af;font-size:12px;">—</span>';
       };
@@ -2976,25 +3079,25 @@
             <div class="azioni" style="gap:6px;flex-wrap:wrap;">
               <button onclick="apriModalTipoUtente('${u.id}')"
                 style="padding:6px 12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#374151;font-size:12px;font-weight:700;cursor:pointer;">
-                👤 Tipo
+                Tipo
               </button>
               ${u.stato === 'in_attesa' ? `
                 <button onclick="approvaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
                   style="padding:6px 12px;border-radius:8px;border:1.5px solid #86efac;background:#fff;color:#16a34a;font-size:12px;font-weight:700;cursor:pointer;">
-                  ✅ Approva
+                  Approva
                 </button>
                 <button onclick="rifiutaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
                   style="padding:6px 12px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;">
-                  ❌ Rifiuta
+                  Rifiuta
                 </button>` : ''}
               ${u.stato === 'approvato' ? `
                 <button onclick="approvaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
                   style="padding:6px 12px;border-radius:8px;border:1.5px solid #93c5fd;background:#fff;color:#1d4ed8;font-size:12px;font-weight:700;cursor:pointer;">
-                  📧 Reinvia link
+                  Reinvia link
                 </button>` : ''}
               <button onclick="eliminaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
                 style="padding:6px 12px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:12px;cursor:pointer;">
-                🗑
+                Elimina
               </button>
             </div>
           </td>
@@ -3009,10 +3112,10 @@
     if (!res.ok) { alert('Errore: ' + (d.error || 'sconosciuto')); return; }
     caricaUtenti();
     if (d.setupLink) {
-      const copia = confirm(`✅ ${nome} approvato.\n\nLink impostazione password (invialo manualmente se la mail non arriva):\n\n${d.setupLink}\n\nClicca OK per copiare il link.`);
+      const copia = confirm(`${nome} approvato.\n\nLink impostazione password (invialo manualmente se la mail non arriva):\n\n${d.setupLink}\n\nClicca OK per copiare il link.`);
       if (copia) navigator.clipboard?.writeText(d.setupLink).catch(() => {});
     } else {
-      alert(`✅ Email inviata a ${nome}.`);
+      alert(`Email inviata a ${nome}.`);
     }
   }
 
@@ -3116,7 +3219,7 @@
           <td data-label="Album"><span class="badge badge-blu">${f.album}</span></td>
           <td data-label="Titolo">${f.titolo || '—'}</td>
           <td data-label="Data" style="color:var(--sub);font-size:13px;">${f.created_at ? new Date(f.created_at).toLocaleDateString('it-IT') : '—'}</td>
-          <td data-label="Azioni"><button class="btn-azione btn-delete" onclick="eliminaFoto('${f.id}')">🗑️ Elimina</button></td>
+          <td data-label="Azioni"><button class="btn-azione btn-delete" onclick="eliminaFoto('${f.id}')">Elimina</button></td>
         </tr>`).join('');
     } catch { tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Errore.</div></td></tr>`; }
   }
@@ -3234,7 +3337,7 @@
       });
       const data = await res.json();
       if (!res.ok) { sqLinkLog('Errore: ' + (data.error || res.status), false); return; }
-      sqLinkLog('✅ Link salvati correttamente.', true);
+      sqLinkLog('Link salvati correttamente.', true);
     } catch (e) { sqLinkLog('Errore di rete: ' + e.message, false); }
   }
 
@@ -3284,7 +3387,7 @@
             </td>
             <td>
               <div style="display:flex;gap:4px;">
-                ${sq.custom ? `<button onclick="avviaRinominaSquadra('${sq.nome.replace(/'/g,"\\'")}',this)" title="Rinomina" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;font-size:12px;cursor:pointer;">✏️</button>` : ''}
+                ${sq.custom ? `<button onclick="avviaRinominaSquadra('${sq.nome.replace(/'/g,"\\'")}',this)" title="Rinomina" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;font-size:12px;cursor:pointer;">Modifica</button>` : ''}
                 <button onclick="${sq.custom ? `rimuoviSquadraCustom('${sq.nome.replace(/'/g,"\\'")}')` : `esludiSquadraAuto('${sq.nome.replace(/'/g,"\\'")}')` }" title="Elimina" style="padding:4px 8px;border-radius:6px;border:1px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;cursor:pointer;">✕</button>
               </div>
             </td>
@@ -3375,10 +3478,10 @@
       const log = document.getElementById('catSquadreLog');
       log.style.display = '';
       if (!res.ok) {
-        log.textContent = '❌ Errore: ' + (data.error || res.status);
+        log.textContent = 'Errore: ' + (data.error || res.status);
         log.style.background = '#fee2e2'; log.style.color = '#dc2626';
       } else {
-        log.textContent = '✅ Mapping salvato correttamente.';
+        log.textContent = 'Mapping salvato correttamente.';
         log.style.background = '#dcfce7'; log.style.color = '#15803d';
         setTimeout(() => { log.style.display = 'none'; }, 3000);
       }
@@ -3421,8 +3524,8 @@
     }
     tbody.innerHTML = list.map(s => {
       const tipoBadge = s.tipo === 'evento'
-        ? '<span style="background:#fce7f3;color:#be185d;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">🎉 Evento</span>'
-        : '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">🏋️ Allenamento</span>';
+        ? '<span style="background:#fce7f3;color:#be185d;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">Evento</span>'
+        : '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">Allenamento</span>';
       const d = new Date(s.data + 'T00:00:00').toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short' });
       return `<tr>
         <td style="white-space:nowrap">${d}</td>
@@ -3432,7 +3535,7 @@
         <td style="color:#6b7280;font-size:13px">${s.categoria || '—'}</td>
         <td style="text-align:center;font-weight:700;color:#16a34a">${s.partecipanti_si}</td>
         <td style="text-align:center;font-weight:700;color:#dc2626">${s.partecipanti_no}</td>
-        <td><button onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')" style="padding:5px 12px;border-radius:7px;border:1px solid #0d2055;background:#fff;color:#0d2055;font-size:12px;font-weight:700;cursor:pointer;">👥 Vedi</button></td>
+        <td><button onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')" style="padding:5px 12px;border-radius:7px;border:1px solid #0d2055;background:#fff;color:#0d2055;font-size:12px;font-weight:700;cursor:pointer;">Vedi</button></td>
       </tr>`;
     }).join('');
   }
@@ -3464,9 +3567,9 @@
           </div>
         </div>` : '';
       list.innerHTML =
-        renderGruppo(si,     '✅ Partecipano',          '#16a34a', '#dcfce7') +
-        renderGruppo(no,     '❌ Non partecipano',       '#dc2626', '#fee2e2') +
-        renderGruppo(attesa, '⏳ In attesa di risposta', '#92400e', '#fef3c7');
+        renderGruppo(si,     'Partecipano',          '#16a34a', '#dcfce7') +
+        renderGruppo(no,     'Non partecipano',       '#dc2626', '#fee2e2') +
+        renderGruppo(attesa, 'In attesa di risposta', '#92400e', '#fef3c7');
     } catch {
       list.innerHTML = '<p style="color:#dc2626;text-align:center">Errore di caricamento.</p>';
     }

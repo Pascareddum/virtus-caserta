@@ -15,7 +15,8 @@
       "Bash(grep -E \"\\\\.js$|\\\\.html$\")",
       "Bash(awk -F: '$1>=1340 && $1<=1420')",
       "Bash(awk 'NR>=1280 && NR<=1350 {print NR\": \"$0}' /Users/alessandrro/Documents/GitHub/virtus-caserta/admin.html)",
-      "Bash(grep -E \"^[0-9]+: </div>$|^[0-9]+: <!-- \")"
+      "Bash(grep -E \"^[0-9]+: </div>$|^[0-9]+: <!-- \")",
+      "Bash(grep -E \"\\\\.py$|\\\\.js$|\\\\.json$|\\\\.sql$\")"
     ]
   }
 }

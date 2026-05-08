@@ -523,7 +523,6 @@
   <!-- FAB Carrello -->
   <button class="cart-fab" onclick="apriCarrello()">
     <img src="images/carrello-icon.png" alt="Carrello" style="width:22px;height:22px;object-fit:contain;filter:brightness(0) invert(1);">
-    <span class="cart-label">Carrello</span>
     <span class="cart-count" id="cartCount">0</span>
   </button>
 
@@ -538,7 +537,7 @@
   <section class="shop-section">
     <div class="container">
       <div id="catalogoGrid" class="catalogo-grid">
-        <div style="text-align:center;padding:60px;color:#9ca3af;grid-column:1/-1">⏳ Caricamento prodotti...</div>
+        <div style="text-align:center;padding:60px;color:#9ca3af;grid-column:1/-1">Caricamento prodotti...</div>
       </div>
     </div>
   </section>
@@ -547,12 +546,11 @@
   <div class="cart-overlay" id="cartOverlay" onclick="chiudiCarrello()"></div>
   <div class="cart-drawer" id="cartDrawer">
     <div class="cart-header">
-      <h2><img src="images/carrello-icon.png" alt="Carrello" style="width:22px;height:22px;vertical-align:middle;object-fit:contain;margin-right:8px;"> Il tuo carrello</h2>
+      <h2> Il tuo carrello</h2>
       <button class="close-btn" onclick="chiudiCarrello()">✕</button>
     </div>
     <div class="cart-items" id="cartItems">
       <div class="cart-vuoto">
-        <div class="icon">🛒</div>
         Il carrello è vuoto
       </div>
     </div>
@@ -770,7 +768,7 @@
               </div>
             </div>
             <button class="btn-add-cart" style="margin-top:4px" onclick="aggiungiProdotto('${p.id}')" ${esaurito(p) ? 'disabled style="opacity:.4;cursor:not-allowed;margin-top:4px"' : ''}>
-              🛒 ${esaurito(p) ? 'Esaurito' : 'Aggiungi al carrello'}
+              ${esaurito(p) ? 'Esaurito' : 'Aggiungi al carrello'}
             </button>
           </div>
         </div>`).join('');
@@ -793,9 +791,9 @@
     function aggiungiProdotto(pid) {
       const p = prodotti.find(x => String(x.id) === String(pid));
       if (!p) return;
-      if (esaurito(p)) { mostraToast('⚠️ Prodotto esaurito'); return; }
+      if (esaurito(p)) { mostraToast('Prodotto esaurito'); return; }
       if (p.taglie && p.taglie.length > 1 && !taglieSel[pid]) {
-        mostraToast('⚠️ Seleziona una taglia'); return;
+        mostraToast('Seleziona una taglia'); return;
       }
       const taglia  = taglieSel[pid] || p.taglie?.[0] || 'UNICA';
       const prezzo  = prezzoScontato(p);
@@ -803,7 +801,7 @@
       if (esistente) esistente.qty = Math.min(10, esistente.qty + 1);
       else carrello.push({ id: pid, nome: p.nome, prezzo, emoji: p.emoji || '🏐', immagine: p.immagine || '', taglia, qty: 1 });
       aggiornaCarrello();
-      mostraToast(`✅ ${p.nome} (${taglia}) aggiunta al carrello`);
+      mostraToast(`${p.nome} (${taglia}) aggiunta al carrello`);
     }
 
     /* ══ QUANTITÀ ══ */
@@ -814,13 +812,13 @@
 
     /* ══ CARRELLO ══ */
     function aggiungiAlCarrello() {
-      if (!tagliaSel) { mostraToast('⚠️ Seleziona una taglia'); return; }
+      if (!tagliaSel) { mostraToast('Seleziona una taglia'); return; }
       const qty = parseInt(document.getElementById('qty').value);
       const esistente = carrello.find(i => i.taglia === tagliaSel);
       if (esistente) esistente.qty = Math.min(10, esistente.qty + qty);
       else carrello.push({ ...PRODOTTO, taglia: tagliaSel, qty });
       aggiornaCarrello();
-      mostraToast(`✅ ${qty}× taglia ${tagliaSel} aggiunta al carrello`);
+      mostraToast(`${qty}× taglia ${tagliaSel} aggiunta al carrello`);
       document.getElementById('qty').value = 1;
     }
 
@@ -831,7 +829,7 @@
       document.getElementById('cartTotale').textContent = `€ ${tot.toFixed(2).replace('.', ',')}`;
       const el = document.getElementById('cartItems');
       if (!carrello.length) {
-        el.innerHTML = `<div class="cart-vuoto"><div class="icon">🛒</div>Il carrello è vuoto</div>`;
+        el.innerHTML = `<div class="cart-vuoto"><div class="icon"></div>Il carrello è vuoto</div>`;
         return;
       }
       el.innerHTML = carrello.map((item, i) => `
@@ -875,7 +873,7 @@
 
     function apriCheckout() {
       try {
-        if (!carrello.length) { mostraToast('⚠️ Aggiungi almeno un prodotto al carrello'); return; }
+        if (!carrello.length) { mostraToast('Aggiungi almeno un prodotto al carrello'); return; }
         chiudiCarrello();
         const { totale } = calcolaTotali();
         const righe = carrello.map(i =>
@@ -887,7 +885,7 @@
           <div class="checkout-riga totale"><span>Totale ordine</span><span>€ ${totale.toFixed(2).replace('.', ',')}</span></div>`;
         document.getElementById('modalOverlay').classList.add('aperto');
       } catch(err) {
-        mostraToast('⚠️ Errore: ' + err.message);
+        mostraToast('Errore: ' + err.message);
         console.error('[apriCheckout]', err);
       }
     }
@@ -901,10 +899,10 @@
       const email   = document.getElementById('chkEmail').value.trim();
       const tel     = document.getElementById('chkTel').value.trim();
       if (!nome || !cognome || !email || !tel) {
-        mostraToast('⚠️ Compila tutti i campi obbligatori'); return false;
+        mostraToast('Compila tutti i campi obbligatori'); return false;
       }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        mostraToast('⚠️ Email non valida'); return false;
+        mostraToast('Email non valida'); return false;
       }
       return true;
     }
@@ -935,9 +933,9 @@
         if (!res.ok || !data.success) throw new Error(data.error || 'Errore durante l\'invio');
         window.location.href = '/ordine-confermato' + (data.ordineId ? '?id=' + encodeURIComponent(data.ordineId) : '');
       } catch (err) {
-        mostraToast('⚠️ ' + err.message);
+        mostraToast(err.message);
         btn.disabled = false;
-        btn.innerHTML = '📩 Invia richiesta d\'acquisto';
+        btn.innerHTML = 'Invia richiesta d\'acquisto';
       }
     }
 

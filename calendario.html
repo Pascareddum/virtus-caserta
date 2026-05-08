@@ -218,29 +218,68 @@
     /* ── MODAL DETTAGLIO EVENTO ── */
     .modal-bg{
       display:none;position:fixed;inset:0;z-index:500;
-      background:rgba(0,0,0,.45);backdrop-filter:blur(4px);
+      background:rgba(0,0,0,.5);backdrop-filter:blur(6px);
       align-items:center;justify-content:center;padding:20px;
     }
     .modal-bg.open{display:flex;}
     .modal-box{
-      background:#fff;border-radius:20px;padding:28px;
-      width:100%;max-width:400px;
-      box-shadow:0 24px 64px rgba(0,0,0,.25);
+      background:#fff;border-radius:22px;
+      width:100%;max-width:420px;overflow:hidden;
+      box-shadow:0 32px 80px rgba(0,0,0,.22),0 8px 24px rgba(0,0,0,.12);
     }
-    .modal-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;}
-    .modal-title{font-size:19px;font-weight:800;color:var(--testo);line-height:1.2;}
+    .dm-accent{height:4px;width:100%;}
+    .dm-hdr{
+      display:flex;align-items:flex-start;justify-content:space-between;
+      padding:20px 22px 16px;gap:12px;border-bottom:1px solid #f1f5f9;
+    }
+    .dm-hdr-left{flex:1;min-width:0;}
+    .dm-tag{
+      display:inline-block;font-size:10px;font-weight:700;letter-spacing:.8px;
+      text-transform:uppercase;padding:3px 10px;border-radius:20px;
+      color:#fff;margin-bottom:9px;
+    }
+    .dm-title{font-size:18px;font-weight:800;color:var(--testo);line-height:1.25;}
+    .dm-close{
+      width:30px;height:30px;border-radius:50%;border:none;
+      background:#f1f5f9;color:#6b7280;font-size:14px;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;transition:background .15s,color .15s;margin-top:2px;
+    }
+    .dm-close:hover{background:#e2e8f0;color:var(--testo);}
+    .dm-photo{width:100%;max-height:190px;object-fit:cover;display:block;}
+    .dm-info{padding:16px 22px;display:flex;flex-direction:column;gap:11px;}
+    .dm-field{display:flex;flex-direction:column;gap:2px;}
+    .dm-lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.7px;}
+    .dm-val{font-size:14px;color:var(--testo);font-weight:500;line-height:1.4;}
+    .dm-val strong{font-weight:700;}
+    .dm-val-badge{
+      display:inline-block;padding:2px 10px;border-radius:20px;
+      font-size:12px;font-weight:700;background:#fef3c7;color:#92400e;
+    }
+    .dm-val-badge.rinviata{background:#fee2e2;color:#991b1b;}
+    /* RSVP */
+    .dm-rsvp{padding:14px 22px 20px;border-top:1px solid #f1f5f9;}
+    .dm-rsvp-lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;}
+    .rsvp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .rsvp-card{
+      padding:12px 10px;border-radius:12px;border:1.5px solid #e5e7eb;
+      background:none;cursor:pointer;font-family:inherit;
+      display:flex;align-items:center;justify-content:center;gap:7px;
+      font-size:13px;font-weight:600;color:#6b7280;
+      transition:all .18s;
+    }
+    .rsvp-card:hover:not(.active){background:#f9fafb;border-color:#d1d5db;}
+    .rsvp-card .rsvp-dot{
+      width:8px;height:8px;border-radius:50%;
+      border:2px solid #d1d5db;flex-shrink:0;transition:all .18s;
+    }
+    .rsvp-card.si.active{border-color:#16a34a;background:#f0fdf4;color:#15803d;}
+    .rsvp-card.si.active .rsvp-dot{background:#16a34a;border-color:#16a34a;}
+    .rsvp-card.no.active{border-color:#dc2626;background:#fef2f2;color:#b91c1c;}
+    .rsvp-card.no.active .rsvp-dot{background:#dc2626;border-color:#dc2626;}
+    /* legacy classes kept for add-modal close btn */
     .modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--sub);line-height:1;flex-shrink:0;}
     .modal-close:hover{color:var(--testo);}
-    .modal-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;}
-    .modal-row:last-child{border-bottom:none;}
-    .modal-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;}
-    .modal-val{color:var(--testo);line-height:1.4;}
-    .modal-val strong{font-weight:700;}
-    .modal-tag{
-      display:inline-flex;align-items:center;gap:5px;
-      font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
-      padding:4px 11px;border-radius:20px;color:#fff;margin-bottom:16px;
-    }
 
     /* ── MODAL AGGIUNGI (admin) ── */
     .add-modal-bg{
@@ -401,7 +440,6 @@
 
   <!-- NOTA ALLENAMENTI -->
   <div class="notice-allenamenti" id="noticeAllenamenti">
-    <span>🔒</span>
     Gli allenamenti sono visibili solo agli utenti registrati appartenenti alla rispettiva squadra
   </div>
 
@@ -423,7 +461,7 @@
       <span class="dot" style="background:var(--co)"></span>OPES
     </button>
     <button class="fpill" data-c="evento"           onclick="setFiltro('evento',this)">
-      <span class="dot" style="background:var(--ce)"></span>🎉 Evento
+      <span class="dot" style="background:var(--ce)"></span>Evento
     </button>
   </div>
 
@@ -446,7 +484,7 @@
     <span class="legenda-item"><span class="legenda-dot" style="background:var(--cs)"></span>FIPAV Senior</span>
     <span class="legenda-item"><span class="legenda-dot" style="background:var(--cu)"></span>FIPAV Under</span>
     <span class="legenda-item"><span class="legenda-dot" style="background:var(--co)"></span>OPES</span>
-    <span class="legenda-item"><span class="legenda-dot" style="background:var(--ce)"></span>🎉 Evento</span>
+    <span class="legenda-item"><span class="legenda-dot" style="background:var(--ce)"></span>Evento</span>
   </div>
 
   <!-- MOBILE -->
@@ -465,12 +503,13 @@
 <!-- MODAL DETTAGLIO EVENTO -->
 <div class="modal-bg" id="detailModal" onclick="chiudiDetail(event)">
   <div class="modal-box">
-    <div class="modal-top">
-      <div>
-        <div id="dmTag" class="modal-tag"></div>
-        <div id="dmTitle" class="modal-title"></div>
+    <div id="dmAccent" class="dm-accent"></div>
+    <div class="dm-hdr">
+      <div class="dm-hdr-left">
+        <div id="dmTag" class="dm-tag"></div>
+        <div id="dmTitle" class="dm-title"></div>
       </div>
-      <button class="modal-close" onclick="chiudiDetail()">✕</button>
+      <button class="dm-close" onclick="chiudiDetail()">✕</button>
     </div>
     <div id="dmBody"></div>
   </div>
@@ -488,11 +527,11 @@
       <div style="display:flex;gap:8px;">
         <button id="mTipoAllenamento" onclick="setMTipo('allenamento')"
           style="flex:1;padding:9px 6px;border-radius:8px;border:2px solid #0d2055;background:#0d2055;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
-          🏋️ Allenamento
+          Allenamento
         </button>
         <button id="mTipoEvento" onclick="setMTipo('evento')"
           style="flex:1;padding:9px 6px;border-radius:8px;border:2px solid #d1d5db;background:#fff;font-size:12px;font-weight:700;cursor:pointer;">
-          🎉 Evento
+          Evento
         </button>
       </div>
       <input type="hidden" id="mTipo" value="allenamento">
@@ -536,7 +575,7 @@
     'fipav-senior':{ label:'FIPAV Senior', color:'#059669', cls:'ev-fipav-senior', badge:'badge-s', mcls:'badge-s' },
     'fipav-under': { label:'FIPAV Under',  color:'#7c3aed', cls:'ev-fipav-under',  badge:'badge-u', mcls:'badge-u' },
     opes:          { label:'OPES',         color:'#ea580c', cls:'ev-opes',         badge:'badge-o', mcls:'badge-o' },
-    evento:        { label:'🎉 Evento',    color:'#e11d48', cls:'ev-evento',        badge:'badge-e', mcls:'badge-e' },
+    evento:        { label:'Evento',    color:'#e11d48', cls:'ev-evento',        badge:'badge-e', mcls:'badge-e' },
   };
 
   /* ── STATE ── */
@@ -748,7 +787,6 @@
 
     if (!evList.length) {
       events.innerHTML = `<div class="mob-empty">
-        <div class="ico">📅</div>
         <div style="font-weight:700;color:var(--testo);margin-bottom:4px;">${dateLabel}</div>
         <div>${filtroAtt==='tutte'?'Nessun evento programmato.':'Nessun evento di questa categoria.'}</div>
       </div>`;
@@ -763,12 +801,12 @@
             const {inizio,fine}=parseOra(e.ora);
             timeStr=inizio+(fine?' – '+fine:'');
             titleStr=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
-            subStr=(e.luogo?'📍 '+e.luogo:'')+(e.note?' · '+e.note:'');
+            subStr=(e.luogo?'Dove: '+e.luogo:'')+(e.note?' · '+e.note:'');
           } else {
             timeStr=e.timestamp?oraDaTs(e.timestamp):'—';
             titleStr='vs '+avversario(e);
-            subStr=(e.luogo?'📍 '+e.luogo:'');
-            if(e.played&&e.risultato) subStr+=(subStr?' · ':'')+'🏐 '+e.risultato;
+            subStr=(e.luogo?'Dove:'+e.luogo:'');
+            if(e.played&&e.risultato) subStr+=(subStr?' · ':'')+'Risultato: '+e.risultato;
           }
           return `<div class="mob-ev" onclick='apriDetail(${JSON.stringify(e).replace(/'/g,"&#39;")})'>
             <div class="mob-stripe" style="background:${ci.color}"></div>
@@ -776,7 +814,7 @@
               <div class="mob-cat" style="color:${ci.color}">${ci.label}</div>
               <div class="mob-title">${titleStr}</div>
               <div class="mob-info">
-                <span>🕐 ${timeStr}</span>
+                <span>Ore: ${timeStr}</span>
                 ${subStr?`<span>${subStr}</span>`:''}
               </div>
             </div>
@@ -787,49 +825,58 @@
   /* ── MODAL DETTAGLIO ── */
   function apriDetail(e) {
     const ci = CAT[e.cat]||CAT.allenamento;
-    const tag  = document.getElementById('dmTag');
-    const title= document.getElementById('dmTitle');
-    const body = document.getElementById('dmBody');
+    const tag    = document.getElementById('dmTag');
+    const title  = document.getElementById('dmTitle');
+    const body   = document.getElementById('dmBody');
+    const accent = document.getElementById('dmAccent');
 
-    tag.textContent  = ci.label;
+    tag.textContent      = ci.label;
     tag.style.background = ci.color;
+    accent.style.background = ci.color;
 
-    let rows = '';
+    let photoHtml = '';
+    let fields = [];
+
     if (e.tipo==='allenamento' || e.tipo==='evento') {
       title.textContent = e.titolo || e.categoria || (e.tipo==='evento' ? 'Evento' : 'Allenamento');
-      if (e.foto) rows += `<div class="modal-row" style="padding:0 0 12px;border:none;"><img src="${e.foto}" style="width:100%;border-radius:12px;object-fit:cover;max-height:180px;" loading="lazy"></div>`;
-      if (e.categoria) rows += `<div class="modal-row"><span class="modal-icon">📋</span><div class="modal-val">${e.categoria}</div></div>`;
+      if (e.foto) photoHtml = `<img class="dm-photo" src="${e.foto}" loading="lazy">`;
+      if (e.categoria) fields.push({lbl:'Categoria', val: e.categoria});
       const {inizio,fine}=parseOra(e.ora);
-      const orario=fine?`${inizio} – ${fine}`:inizio;
-      rows += `<div class="modal-row"><span class="modal-icon">🕐</span><div class="modal-val">${orario}</div></div>`;
-      if (e.luogo) rows += `<div class="modal-row"><span class="modal-icon">📍</span><div class="modal-val">${e.luogo}</div></div>`;
-      if (e.note)  rows += `<div class="modal-row"><span class="modal-icon">📝</span><div class="modal-val">${e.note}</div></div>`;
+      fields.push({lbl:'Orario', val: fine?`${inizio} – ${fine}`:inizio});
+      if (e.luogo) fields.push({lbl:'Luogo', val: e.luogo});
+      if (e.note)  fields.push({lbl:'Note', val: e.note});
     } else {
-      title.innerHTML = `<span style="font-weight:400;color:var(--sub)">vs</span> ${avversario(e)}`;
-      if (e.categoria) rows += `<div class="modal-row"><span class="modal-icon">🏆</span><div class="modal-val">${e.categoria}</div></div>`;
+      title.innerHTML = `<span style="font-weight:400;font-size:14px;color:var(--sub)">vs</span><br>${avversario(e)}`;
+      if (e.categoria) fields.push({lbl:'Categoria', val: e.categoria});
       const ora = e.timestamp ? oraDaTs(e.timestamp) : '—';
-      rows += `<div class="modal-row"><span class="modal-icon">🕐</span><div class="modal-val">${ora}</div></div>`;
-      rows += `<div class="modal-row"><span class="modal-icon">🏠</span><div class="modal-val"><strong>${e.casa}</strong> vs <strong>${e.ospite}</strong></div></div>`;
-      if (e.luogo) rows += `<div class="modal-row"><span class="modal-icon">📍</span><div class="modal-val">${e.luogo}</div></div>`;
+      fields.push({lbl:'Orario', val: ora});
+      fields.push({lbl:'Squadre', val: `<strong>${e.casa}</strong> vs <strong>${e.ospite}</strong>`});
+      if (e.luogo) fields.push({lbl:'Luogo', val: e.luogo});
       if (e.played && e.risultato) {
         const parc = e.parziali&&e.parziali.length ? ` <span style="font-size:12px;color:var(--sub)">(${e.parziali.join(', ')})</span>` : '';
-        rows += `<div class="modal-row"><span class="modal-icon">🏐</span><div class="modal-val"><strong>${e.risultato}</strong>${parc}</div></div>`;
+        fields.push({lbl:'Risultato', val: `<strong>${e.risultato}</strong>${parc}`});
       } else if (e.postponed) {
-        rows += `<div class="modal-row"><span class="modal-icon">⚠️</span><div class="modal-val" style="color:#dc2626">Partita rinviata</div></div>`;
+        fields.push({lbl:'Stato', val: '<span class="dm-val-badge rinviata">Partita rinviata</span>'});
       } else {
-        rows += `<div class="modal-row"><span class="modal-icon">📌</span><div class="modal-val">Da giocare</div></div>`;
+        fields.push({lbl:'Stato', val: '<span class="dm-val-badge">Da giocare</span>'});
       }
     }
-    body.innerHTML = rows;
 
-    // RSVP section for logged-in users (allenamento / evento)
+    const infoHtml = fields.map(f=>`
+      <div class="dm-field">
+        <div class="dm-lbl">${f.lbl}</div>
+        <div class="dm-val">${f.val}</div>
+      </div>`).join('');
+
+    body.innerHTML = photoHtml + `<div class="dm-info">${infoHtml}</div>`;
+
     if ((e.tipo === 'allenamento' || e.tipo === 'evento') && e.id) {
       const token = localStorage.getItem('vc_token');
       if (token) {
         const rsvpDiv = document.createElement('div');
         rsvpDiv.id = 'rsvpSection';
-        rsvpDiv.style.cssText = 'margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb;';
-        rsvpDiv.innerHTML = '<div style="font-size:12px;color:#9ca3af;text-align:center">Caricamento...</div>';
+        rsvpDiv.className = 'dm-rsvp';
+        rsvpDiv.innerHTML = '<div class="dm-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento...</div>';
         body.appendChild(rsvpDiv);
         fetch(`/api/calendario/${e.id}/mia-risposta`, { headers: { Authorization: `Bearer ${token}` } })
           .then(r => r.json())
@@ -842,9 +889,16 @@
   }
 
   function _renderRsvp(container, sessioneId, risposta) {
-    const btnSi = `<button onclick="submitRsvp('${sessioneId}','si')" style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid ${risposta==='si'?'#16a34a':'#d1d5db'};background:${risposta==='si'?'#16a34a':'#fff'};color:${risposta==='si'?'#fff':'#374151'};font-size:13px;font-weight:700;cursor:pointer;">✅ Partecipo</button>`;
-    const btnNo = `<button onclick="submitRsvp('${sessioneId}','no')" style="flex:1;padding:10px 8px;border-radius:8px;border:2px solid ${risposta==='no'?'#dc2626':'#d1d5db'};background:${risposta==='no'?'#dc2626':'#fff'};color:${risposta==='no'?'#fff':'#374151'};font-size:13px;font-weight:700;cursor:pointer;">❌ Non partecipo</button>`;
-    container.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:10px;">La tua risposta</div><div style="display:flex;gap:8px;">${btnSi}${btnNo}</div>`;
+    container.innerHTML = `
+      <div class="dm-rsvp-lbl">La tua partecipazione</div>
+      <div class="rsvp-grid">
+        <button class="rsvp-card si${risposta==='si'?' active':''}" onclick="submitRsvp('${sessioneId}','si')">
+          <span class="rsvp-dot"></span>Partecipo
+        </button>
+        <button class="rsvp-card no${risposta==='no'?' active':''}" onclick="submitRsvp('${sessioneId}','no')">
+          <span class="rsvp-dot"></span>Non partecipo
+        </button>
+      </div>`;
   }
 
   window.submitRsvp = async function(sessioneId, risposta) {
@@ -947,7 +1001,8 @@
     render(); // mostra UI subito
 
     try {
-      const sessioni=await fetch('/api/calendario').then(r=>r.json());
+      const _calTok=localStorage.getItem('vc_token')||localStorage.getItem('vc_admin_token');
+      const sessioni=await fetch('/api/calendario',{headers:_calTok?{Authorization:`Bearer ${_calTok}`}:{}}).then(r=>r.json());
       sessioni.forEach(s=>{
         if (!s.data) return;
         if (!mappa[s.data]) mappa[s.data]=[];
