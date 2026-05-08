@@ -791,55 +791,85 @@
 
       /* Tabelle scorrevoli (tutti i pannelli tranne prodotti/ordini/notizie) */
       .card-table { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      /* Colonna Azioni sticky a destra — visibile senza scorrere */
+      .card-table th:last-child,
+      .card-table td:last-child {
+        position:sticky; right:0; z-index:2;
+        background:var(--surface);
+        box-shadow:-3px 0 6px rgba(16,24,40,.07);
+      }
+      .card-table thead th:last-child { background:var(--surface-2); }
 
-      /* Card layout solo per prodotti, ordini, notizie */
+      /* Card layout per prodotti, ordini, notizie, calendario, sessioni */
       #pan-prodotti .card-table,
       #pan-ordini   .card-table,
-      #pan-notizie  .card-table {
+      #pan-notizie  .card-table,
+      #pan-calendario .card-table,
+      #pan-sessioni .card-table {
         background:transparent; box-shadow:none; border:none; border-radius:0; overflow:visible;
       }
-      #pan-prodotti table, #pan-prodotti tbody,
-      #pan-ordini   table, #pan-ordini   tbody,
-      #pan-notizie  table, #pan-notizie  tbody { display:block; width:100%; }
+      #pan-prodotti table,   #pan-prodotti tbody,
+      #pan-ordini   table,   #pan-ordini   tbody,
+      #pan-notizie  table,   #pan-notizie  tbody,
+      #pan-calendario table, #pan-calendario tbody,
+      #pan-sessioni table,   #pan-sessioni tbody { display:block; width:100%; }
 
-      #pan-prodotti thead, #pan-ordini thead, #pan-notizie thead { display:none; }
+      #pan-prodotti thead, #pan-ordini thead,
+      #pan-notizie thead,  #pan-calendario thead,
+      #pan-sessioni thead { display:none; }
 
       #pan-prodotti tbody tr,
       #pan-ordini   tbody tr,
-      #pan-notizie  tbody tr {
+      #pan-notizie  tbody tr,
+      #pan-calendario tbody tr,
+      #pan-sessioni tbody tr {
         display:block; background:var(--surface);
         border:1px solid var(--bordo) !important;
         border-radius:var(--radius-lg);
         margin-bottom:10px; padding:14px; box-shadow:var(--shadow-xs);
       }
-      #pan-prodotti td, #pan-ordini td, #pan-notizie td {
+      #pan-prodotti td, #pan-ordini td,
+      #pan-notizie td,  #pan-calendario td,
+      #pan-sessioni td {
         display:flex; align-items:flex-start;
         gap:10px; padding:6px 0; font-size:13.5px; border:none !important;
       }
-      #pan-prodotti td::before, #pan-ordini td::before, #pan-notizie td::before {
+      #pan-prodotti td::before, #pan-ordini td::before,
+      #pan-notizie td::before, #pan-calendario td::before,
+      #pan-sessioni td::before {
         content:attr(data-label);
         font-size:11.5px; font-weight:600; color:var(--sub);
         min-width:72px; flex-shrink:0; padding-top:2px;
       }
       #pan-prodotti td[data-label=""],
       #pan-ordini   td[data-label=""],
-      #pan-notizie  td[data-label=""] { display:none; }
+      #pan-notizie  td[data-label=""],
+      #pan-calendario td[data-label=""],
+      #pan-sessioni td[data-label=""] { display:none; }
 
       #pan-prodotti td[data-label="Azioni"]::before,
       #pan-ordini   td[data-label="Azioni"]::before,
-      #pan-notizie  td[data-label="Azioni"]::before { display:none; }
+      #pan-notizie  td[data-label="Azioni"]::before,
+      #pan-calendario td[data-label="Azioni"]::before,
+      #pan-sessioni td[data-label="Azioni"]::before { display:none; }
 
       #pan-prodotti td[data-label="Azioni"],
       #pan-ordini   td[data-label="Azioni"],
-      #pan-notizie  td[data-label="Azioni"] {
+      #pan-notizie  td[data-label="Azioni"],
+      #pan-calendario td[data-label="Azioni"],
+      #pan-sessioni td[data-label="Azioni"] {
         padding-top:10px; border-top:1px solid var(--bordo-2) !important; margin-top:6px;
       }
       #pan-prodotti .empty-state td,
       #pan-ordini   .empty-state td,
-      #pan-notizie  .empty-state td { display:block; }
+      #pan-notizie  .empty-state td,
+      #pan-calendario .empty-state td,
+      #pan-sessioni .empty-state td { display:block; }
       #pan-prodotti .empty-state td::before,
       #pan-ordini   .empty-state td::before,
-      #pan-notizie  .empty-state td::before { display:none; }
+      #pan-notizie  .empty-state td::before,
+      #pan-calendario .empty-state td::before,
+      #pan-sessioni .empty-state td::before { display:none; }
 
       .azioni { flex-wrap:wrap; gap:6px; }
 
@@ -1431,13 +1461,11 @@
   <div class="card-table">
     <table>
       <thead><tr>
-        <th>Data</th>
-        <th>Orario</th>
+        <th>Data / Orario</th>
         <th>Titolo</th>
         <th>Tipo</th>
         <th>Categoria</th>
-        <th style="text-align:center">Partecipano</th>
-        <th style="text-align:center">Non partecipano</th>
+        <th style="text-align:center">Partecipanti</th>
         <th>Azioni</th>
       </tr></thead>
       <tbody id="sessioniBody"></tbody>
@@ -3536,14 +3564,14 @@
   let _sessioniFiltro = '';
 
   async function caricaSessioni() {
-    document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9ca3af">Caricamento…</td></tr>';
+    document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">Caricamento…</td></tr>';
     chiudiSessioniDetail();
     try {
       const r = await fetch('/api/admin/calendario/sessioni', { headers: headers() });
       _sessioniAll = await r.json();
       renderSessioni();
     } catch {
-      document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="8" style="color:#dc2626;text-align:center;padding:24px">Errore di caricamento.</td></tr>';
+      document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="6" style="color:#dc2626;text-align:center;padding:24px">Errore di caricamento.</td></tr>';
     }
   }
 
@@ -3560,7 +3588,7 @@
     const list = _sessioniFiltro ? _sessioniAll.filter(s => s.tipo === _sessioniFiltro) : _sessioniAll;
     const tbody = document.getElementById('sessioniBody');
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#9ca3af">Nessuna sessione.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#9ca3af">Nessuna sessione.</td></tr>';
       return;
     }
     tbody.innerHTML = list.map(s => {
@@ -3569,14 +3597,12 @@
         : '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">Allenamento</span>';
       const d = new Date(s.data + 'T00:00:00').toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short' });
       return `<tr>
-        <td style="white-space:nowrap">${d}</td>
-        <td>${s.ora || '—'}</td>
-        <td style="font-weight:600">${s.titolo}</td>
-        <td>${tipoBadge}</td>
-        <td style="color:#6b7280;font-size:13px">${s.categoria || '—'}</td>
-        <td style="text-align:center;font-weight:700;color:#16a34a">${s.partecipanti_si}</td>
-        <td style="text-align:center;font-weight:700;color:#dc2626">${s.partecipanti_no}</td>
-        <td><button onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')" style="padding:5px 12px;border-radius:7px;border:1px solid #0d2055;background:#fff;color:#0d2055;font-size:12px;font-weight:700;cursor:pointer;">Vedi</button></td>
+        <td data-label="Data / Orario" style="white-space:nowrap">${d}${s.ora ? ' · ' + s.ora : ''}</td>
+        <td data-label="Titolo" style="font-weight:600">${s.titolo}</td>
+        <td data-label="Tipo">${tipoBadge}</td>
+        <td data-label="Categoria" style="color:#6b7280;font-size:13px">${s.categoria || '—'}</td>
+        <td data-label="Partecipanti"><span style="color:#16a34a;font-weight:700">${s.partecipanti_si} sì</span> / <span style="color:#dc2626;font-weight:700">${s.partecipanti_no} no</span></td>
+        <td data-label="Azioni"><button onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')" style="padding:5px 12px;border-radius:7px;border:1px solid #0d2055;background:#fff;color:#0d2055;font-size:12px;font-weight:700;cursor:pointer;">Vedi</button></td>
       </tr>`;
     }).join('');
   }
