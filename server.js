@@ -474,6 +474,138 @@ app.post('/api/login', loginLimiter, async (req, res) => {
   }
 });
 
+/* ─── Profilo utente loggato ─── */
+app.get('/api/profilo', userAuth, async (req, res) => {
+  try {
+    const r = await db.query(
+      'SELECT id,nome,cognome,email,is_atleta,is_allenatore,ruolo_atleta,ruolo_allenatore,squadre_atleta,squadre_allenatore FROM utenti WHERE id=$1',
+      [req.user.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Utente non trovato.' });
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+/* ─── Impegni settimana corrente per l'utente loggato ─── */
+app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
+  try {
+    const uRes = await db.query(
+      'SELECT squadre_atleta,squadre_allenatore FROM utenti WHERE id=$1',
+      [req.user.id]
+    );
+    if (!uRes.rows.length) return res.status(404).json({ error: 'Utente non trovato.' });
+    const u = uRes.rows[0];
+
+    // Mappa squadra → ruolo utente
+    const squadraRuolo = {};
+    for (const s of (u.squadre_atleta    || [])) squadraRuolo[s] = 'atleta';
+    for (const s of (u.squadre_allenatore|| [])) squadraRuolo[s] = squadraRuolo[s] === 'atleta' ? 'entrambi' : 'allenatore';
+    const nomiSquadre = Object.keys(squadraRuolo);
+    if (!nomiSquadre.length) return res.json([]);
+
+    // Calcola ts robusto: evita NaN da ora non zero-padded ("9:00")
+    function safeTs(dateStr, timeStr) {
+      if (!dateStr) return 0;
+      const parts = (timeStr || '0:00').split(':');
+      const h = parseInt(parts[0], 10) || 0;
+      const m = parseInt(parts[1], 10) || 0;
+      const [y, mo, d] = dateStr.split('-').map(Number);
+      if (!y || !mo || !d) return 0;
+      return new Date(y, mo - 1, d, h, m).getTime();
+    }
+
+    // Range lunedì–domenica in timezone Europe/Rome (server su Railway è UTC)
+    const now = new Date();
+    const todayIT = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(now);
+    const [ty, tm, td] = todayIT.split('-').map(Number);
+    const todayLocal = new Date(ty, tm - 1, td);
+    const dow = todayLocal.getDay() === 0 ? 6 : todayLocal.getDay() - 1;
+    const lunLocal = new Date(ty, tm - 1, td - dow);
+    const domLocal = new Date(ty, tm - 1, td - dow + 6);
+    function isoDate(dt) {
+      return dt.getFullYear() + '-' +
+        String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+        String(dt.getDate()).padStart(2, '0');
+    }
+    const lunStr = isoDate(lunLocal);
+    const domStr = isoDate(domLocal);
+    // Per fipav_matches (TIMESTAMPTZ): mezzanotte Rome lunedì/domenica
+    const lun = new Date(`${lunStr}T00:00:00+02:00`);
+    const dom = new Date(`${domStr}T23:59:59+02:00`);
+
+    // Mapping squadra → categoria FIPAV
+    const mRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_mappa'`);
+    const catMappa = JSON.parse(mRaw.rows[0]?.valore || '{}');
+
+    const eventi = [];
+
+    // Allenamenti/eventi da calendario per ogni squadra
+    for (const nome of nomiSquadre) {
+      const calRes = await db.query(
+        `SELECT titolo,data_str,ora,luogo,tipo FROM calendario
+         WHERE categoria ILIKE $1 AND data_str >= $2 AND data_str <= $3
+         ORDER BY data_str, ora`,
+        [nome, lunStr, domStr]
+      );
+      for (const r of calRes.rows) {
+        eventi.push({
+          tipo: 'allenamento',
+          titolo: r.titolo,
+          data: r.data_str,
+          ora: r.ora,
+          luogo: r.luogo || '',
+          squadra: nome,
+          ruolo: squadraRuolo[nome],
+          ts: safeTs(r.data_str, r.ora),
+        });
+      }
+    }
+
+    // Partite FIPAV per categorie mappate
+    const fipavCats = [...new Set(nomiSquadre.map(n => catMappa[n]).filter(Boolean))];
+    for (const cat of fipavCats) {
+      const mRes = await db.query(
+        `SELECT casa,ospite,data_ora,luogo,categoria,giornata FROM fipav_matches
+         WHERE categoria ILIKE $1 AND played=false AND postponed=false
+           AND data_ora >= $2 AND data_ora <= $3
+         ORDER BY data_ora`,
+        [cat, lun, dom]
+      );
+      // Trova squadra che mappa a questa categoria
+      const squadra = nomiSquadre.find(n => catMappa[n] === cat) || '';
+      for (const m of mRes.rows) {
+        eventi.push({
+          tipo: 'partita',
+          casa: m.casa, ospite: m.ospite,
+          data_ora: m.data_ora,
+          luogo: m.luogo || '',
+          categoria: m.categoria,
+          giornata: m.giornata || '',
+          squadra,
+          ruolo: squadraRuolo[squadra] || 'atleta',
+          ts: new Date(m.data_ora).getTime(),
+        });
+      }
+    }
+
+    // Deduplicazione partite (stessa partita può apparire da più sorgenti)
+    const seen = new Set();
+    const unici = eventi.filter(e => {
+      const key = e.tipo === 'partita' ? `${e.casa}|${e.ospite}|${e.ts}` : `${e.titolo}|${e.data}|${e.ora}|${e.squadra}`;
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+
+    unici.sort((a, b) => a.ts - b.ts);
+    res.json({ settimana: { da: lunStr, a: domStr }, eventi: unici });
+  } catch (err) {
+    console.error('[/api/profilo/prossimi]', err);
+    res.status(500).json({ error: 'Errore interno.' });
+  }
+});
+
 /* ─── Utenti: lista admin ─── */
 app.get('/api/admin/utenti', adminAuth, async (_req, res) => {
   try {
@@ -1816,6 +1948,7 @@ async function saveMatchesToDB(matches) {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
         CASE WHEN $11 THEN true ELSE false END, NOW())
       ON CONFLICT (id) DO UPDATE SET
+        data_ora       = COALESCE(EXCLUDED.data_ora, fipav_matches.data_ora),
         risultato      = CASE WHEN EXCLUDED.played THEN EXCLUDED.risultato ELSE fipav_matches.risultato END,
         played         = EXCLUDED.played,
         postponed      = EXCLUDED.postponed,
@@ -2018,12 +2151,17 @@ function scheduleOpesWeekly() {
 
 function scheduleDailyRefresh() {
   const now = new Date();
-  const next = new Date(now);
-  next.setHours(14, 0, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1);
+  // Schedule both 09:00 and 14:00 checks; pick the next upcoming one
+  const targets = [9, 14].map(h => {
+    const t = new Date(now);
+    t.setHours(h, 0, 0, 0);
+    if (t <= now) t.setDate(t.getDate() + 1);
+    return t;
+  });
+  const next = targets.reduce((a, b) => a < b ? a : b);
   const delay = next.getTime() - Date.now();
   setTimeout(async () => {
-    console.log('[FIPAV Scheduler] Check giornaliero spostamenti partite (14:00)');
+    console.log(`[FIPAV Scheduler] Check giornaliero spostamenti partite (${next.getHours()}:00)`);
     await refreshFutureMatches();
     scheduleDailyRefresh();
   }, delay);
