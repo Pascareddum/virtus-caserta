@@ -260,7 +260,12 @@ body.nav-aperta { overflow: hidden; }
 }
 
 @media (max-width: 768px) {
-  .nav-brand-label { display: inline; }
+  .nav-brand-label {
+    display: inline;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-left: 6px;
+  }
 }
 
 /* Su mobile: logo a sinistra, label centrata */
@@ -277,6 +282,8 @@ body.nav-aperta { overflow: hidden; }
     transform: translateX(-50%);
     display: block;
     pointer-events: none;
+    font-size: 12px;
+    letter-spacing: .5px;
   }
 }
 

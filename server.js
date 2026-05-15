@@ -366,6 +366,15 @@ const upload = multer({
 });
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+const uploadDoc = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /\.(pdf|doc|docx|xls|xlsx|jpg|jpeg|png|gif|webp|txt)$/i.test(file.originalname);
+    cb(null, ok);
+  },
+});
+
 /* ─── Auth middleware ─── */
 function verifyToken(req) {
   const auth  = req.headers.authorization || '';
@@ -541,13 +550,14 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
 
     const eventi = [];
 
-    // Allenamenti/eventi da calendario per ogni squadra
+    // Allenamenti/eventi da calendario per ogni squadra (primaria + collegate)
     for (const nome of nomiSquadre) {
       const calRes = await db.query(
         `SELECT titolo,data_str,ora,luogo,tipo FROM calendario
-         WHERE categoria ILIKE $1 AND data_str >= $2 AND data_str <= $3
+         WHERE (categoria ILIKE $1 OR categorie_collegate @> $2::jsonb)
+           AND data_str >= $3 AND data_str <= $4
          ORDER BY data_str, ora`,
-        [nome, lunStr, domStr]
+        [nome, JSON.stringify([nome]), lunStr, domStr]
       );
       for (const r of calRes.rows) {
         eventi.push({
@@ -765,8 +775,10 @@ app.get('/api/calendario', async (req, res) => {
       luogo:     r.luogo,
       categoria: r.categoria,
       note:      r.note,
-      tipo:      r.tipo || 'allenamento',
-      foto:      r.foto || '',
+      tipo:                r.tipo || 'allenamento',
+      foto:                r.foto || '',
+      categorie_collegate: r.categorie_collegate || [],
+      utenti_collegati:    r.utenti_collegati    || [],
     }));
 
     const payload = verifyToken(req);
@@ -775,21 +787,24 @@ app.get('/api/calendario', async (req, res) => {
       return res.json(rows);
     }
 
-    const matchesCat = (r, sq) => {
-      if (!r.categoria) return true;
-      return r.categoria.split(',').map(c => c.trim()).filter(Boolean).some(c => sq.has(c));
+    const matchesCat = (r, sq, uid) => {
+      if (!r.categoria && !(r.categorie_collegate||[]).length && !(r.utenti_collegati||[]).length) return true;
+      if (uid && (r.utenti_collegati || []).map(String).includes(String(uid))) return true;
+      const primarie  = (r.categoria || '').split(',').map(c => c.trim()).filter(Boolean);
+      const collegate = r.categorie_collegate || [];
+      return [...primarie, ...collegate].some(c => sq.has(c));
     };
 
     if (payload && payload.id) {
       const u = await db.query('SELECT squadre_atleta, squadre_allenatore FROM utenti WHERE id=$1', [payload.id]);
       if (u.rows.length) {
         const sq = new Set([...(u.rows[0].squadre_atleta || []), ...(u.rows[0].squadre_allenatore || [])]);
-        rows = rows.filter(r => matchesCat(r, sq));
+        rows = rows.filter(r => matchesCat(r, sq, payload.id));
       } else {
-        rows = rows.filter(r => !r.categoria);
+        rows = rows.filter(r => !r.categoria && !(r.categorie_collegate||[]).length);
       }
     } else {
-      rows = rows.filter(r => !r.categoria);
+      rows = rows.filter(r => !r.categoria && !(r.categorie_collegate||[]).length);
     }
 
     res.json(rows);
@@ -839,7 +854,7 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
       let i = 0;
       while (currentDate <= endDate) {
         const id      = Date.now().toString() + '_' + i;
-        const dataStr = currentDate.toISOString().slice(0, 10);
+        const dataStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
         await db.query(
           `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
@@ -950,6 +965,136 @@ app.delete('/api/calendario/:id', adminAuth, async (req, res) => {
   }
 });
 
+/* ─── Calendario: collega sessione a categoria o utente ─── */
+app.post('/api/calendario/:id/collega', adminAuth, async (req, res) => {
+  const { tipo, valore } = req.body;
+  if (!['categoria', 'utente'].includes(tipo) || !valore) return res.status(400).json({ error: 'Parametri non validi' });
+  const col = tipo === 'categoria' ? 'categorie_collegate' : 'utenti_collegati';
+  try {
+    const r = await db.query(
+      `UPDATE calendario SET ${col} = CASE WHEN ${col} @> $1::jsonb THEN ${col} ELSE ${col} || $1::jsonb END WHERE id=$2 RETURNING id`,
+      [JSON.stringify([valore]), req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/calendario/:id/collega', adminAuth, async (req, res) => {
+  const { tipo, valore } = req.body;
+  if (!['categoria', 'utente'].includes(tipo) || !valore) return res.status(400).json({ error: 'Parametri non validi' });
+  const col = tipo === 'categoria' ? 'categorie_collegate' : 'utenti_collegati';
+  try {
+    const r = await db.query(
+      `UPDATE calendario SET ${col} = COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements_text(${col}) AS x WHERE x != $1), '[]'::jsonb) WHERE id=$2 RETURNING id`,
+      [valore, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Admin: lista utenti attivi (per collegamento sessioni) ─── */
+app.get('/api/admin/utenti-lista', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT id, nome, cognome, email FROM utenti WHERE stato='attivo' ORDER BY cognome, nome`);
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Admin: federazioni (OPES category names) ─── */
+app.get('/api/admin/federazioni', adminAuth, async (_req, res) => {
+  res.json({ opes: OPES_TOURNAMENTS.map(t => t.categoria) });
+});
+
+/* ─── Comunicazioni utente ─── */
+app.get('/api/comunicazioni', userAuth, async (req, res) => {
+  try {
+    const uid = String(req.user.id);
+    const r = await db.query(
+      `SELECT * FROM comunicazioni WHERE mittente_id=$1 OR destinatario_id=$1 ORDER BY creato_il DESC`,
+      [uid]
+    );
+    res.json(r.rows.map(m => ({
+      id: m.id, oggetto: m.oggetto, testo: m.testo,
+      mittente:    m.mittente_nome  || 'Virtus Caserta',
+      destinatario: m.destinatario_label || m.destinatario_tipo,
+      letto: m.letto, creato_il: m.creato_il,
+      inviata: m.mittente_id === uid,
+    })));
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/comunicazioni', userAuth, async (req, res) => {
+  const { oggetto, testo, destinatario } = req.body;
+  if (!oggetto || !testo) return res.status(400).json({ error: 'Oggetto e testo obbligatori' });
+  if (!['staff', 'admin', 'dirigenza'].includes(destinatario)) return res.status(400).json({ error: 'Destinatario non valido' });
+  try {
+    const uid = String(req.user.id);
+    const uRes = await db.query('SELECT nome, cognome FROM utenti WHERE id=$1', [uid]);
+    const mittente_nome = uRes.rows.length ? `${uRes.rows[0].nome} ${uRes.rows[0].cognome || ''}`.trim() : 'Utente';
+    const destLabel = { staff: 'Staff', admin: 'Amministrazione', dirigenza: 'Dirigenza' }[destinatario];
+    const id = Date.now().toString();
+    await db.query(
+      `INSERT INTO comunicazioni (id,mittente_id,mittente_nome,destinatario_tipo,destinatario_label,oggetto,testo) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [id, uid, mittente_nome, destinatario, destLabel, oggetto, testo]
+    );
+    res.status(201).json({ id, oggetto, testo, mittente: mittente_nome, destinatario: destLabel, letto: false, creato_il: new Date().toISOString(), inviata: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/comunicazioni/:id/leggi', userAuth, async (req, res) => {
+  try {
+    const uid = String(req.user.id);
+    await db.query('UPDATE comunicazioni SET letto=true WHERE id=$1 AND destinatario_id=$2', [req.params.id, uid]);
+    res.json({ ok: true });
+  } catch { res.json({ ok: false }); }
+});
+
+/* ─── Documenti utente ─── */
+app.get('/api/documenti', userAuth, async (req, res) => {
+  try {
+    const uid = String(req.user.id);
+    const r = await db.query('SELECT * FROM documenti_utente WHERE utente_id=$1 ORDER BY creato_il DESC', [uid]);
+    res.json(r.rows.map(d => ({ id: d.id, nome: d.nome, url: d.url, dimensione: d.dimensione, creato_il: d.creato_il })));
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/documenti', userAuth, uploadDoc.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nessun file ricevuto' });
+  try {
+    const uid = String(req.user.id);
+    const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `docs_${uid}_${Date.now()}_${safeName}`;
+    let url = '';
+    if (supabaseStorage) {
+      const { error } = await supabaseStorage.from(SUPABASE_BUCKET).upload(storagePath, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+      if (error) throw error;
+      const { data } = supabaseStorage.from(SUPABASE_BUCKET).getPublicUrl(storagePath);
+      url = data.publicUrl;
+    } else {
+      const localPath = path.join(UPLOADS_DIR, storagePath);
+      fs.writeFileSync(localPath, req.file.buffer);
+      url = '/uploads/' + storagePath;
+    }
+    const id = Date.now().toString();
+    await db.query(
+      'INSERT INTO documenti_utente (id,utente_id,nome,url,dimensione) VALUES ($1,$2,$3,$4,$5)',
+      [id, uid, req.file.originalname, url, req.file.size]
+    );
+    res.status(201).json({ id, nome: req.file.originalname, url, dimensione: req.file.size, creato_il: new Date().toISOString() });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore upload' }); }
+});
+
+app.delete('/api/documenti/:id', userAuth, async (req, res) => {
+  try {
+    const uid = String(req.user.id);
+    const r = await db.query('DELETE FROM documenti_utente WHERE id=$1 AND utente_id=$2 RETURNING id', [req.params.id, uid]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Documento non trovato' });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
 /* ─── Partecipazioni: RSVP utente ─── */
 app.post('/api/calendario/:id/partecipa', userAuth, async (req, res) => {
   const { risposta } = req.body;
@@ -1013,24 +1158,35 @@ app.get('/api/admin/calendario/sessioni', adminAuth, async (_req, res) => {
 app.get('/api/admin/calendario/:id/partecipanti', adminAuth, async (req, res) => {
   try {
     const sessId = req.params.id;
-    const sess = await db.query('SELECT categoria FROM calendario WHERE id=$1', [sessId]);
-    const categoria = sess.rows.length ? (sess.rows[0].categoria || '') : '';
-    const catJson = JSON.stringify([categoria]);
+    const sess = await db.query('SELECT categoria, categorie_collegate, utenti_collegati FROM calendario WHERE id=$1', [sessId]);
+    if (!sess.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    const { categoria, categorie_collegate, utenti_collegati } = sess.rows[0];
+    const tutteCategorie = [categoria, ...(categorie_collegate || [])].filter(Boolean);
+    const utentiDiretti  = (utenti_collegati || []).map(String);
+
+    // Build per-category jsonb conditions
+    const catConditions = tutteCategorie.map((_, i) => `u.squadre_atleta @> $${i+3}::jsonb OR u.squadre_allenatore @> $${i+3}::jsonb`).join(' OR ');
+    const catParams     = tutteCategorie.map(c => JSON.stringify([c]));
+    const hasCat        = tutteCategorie.length > 0;
+
+    let whereClause = '';
+    const params = [sessId, utentiDiretti.length ? utentiDiretti : ['__nessuno__']];
+    if (hasCat) {
+      whereClause = `(u.id::text = ANY($2) OR ${catConditions})`;
+      params.push(...catParams);
+    } else {
+      whereClause = `u.id::text = ANY($2)`;
+    }
 
     const r = await db.query(`
       SELECT u.nome, u.cognome, u.email, p.risposta, p.created_at
       FROM utenti u
       LEFT JOIN partecipazioni p ON p.utente_id = u.id AND p.sessione_id = $1
-      WHERE u.stato = 'attivo'
-        AND (
-          $2 = ''
-          OR u.squadre_atleta @> $3::jsonb
-          OR u.squadre_allenatore @> $3::jsonb
-        )
+      WHERE u.stato = 'attivo' AND (${whereClause})
       ORDER BY
         CASE p.risposta WHEN 'si' THEN 1 WHEN 'no' THEN 2 ELSE 3 END,
         u.cognome, u.nome
-    `, [sessId, categoria, catJson]);
+    `, params);
     res.json(r.rows);
   } catch (err) {
     console.error(err);
@@ -1335,6 +1491,9 @@ app.get('/api/squadre-categorie', async (_req, res) => {
     const mRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_mappa'`);
     const mapping = JSON.parse(mRaw.rows[0]?.valore || '{}');
 
+    const campRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_campionato_mappa'`);
+    const campionatoMapping = JSON.parse(campRaw.rows[0]?.valore || '{}');
+
     const esclRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_escluse'`);
     const escluse = new Set(JSON.parse(esclRaw.rows[0]?.valore || '[]'));
 
@@ -1345,6 +1504,7 @@ app.get('/api/squadre-categorie', async (_req, res) => {
       .map(nome => ({
         nome,
         categoria: mapping[nome] || '',
+        campionato: campionatoMapping[nome] || '',
         custom: extraSet.has(nome),
       }));
     res.json(result);
@@ -1394,19 +1554,38 @@ app.put('/api/admin/squadre-escluse', adminAuth, async (req, res) => {
 app.put('/api/admin/squadre-categorie', adminAuth, async (req, res) => {
   try {
     if (typeof req.body !== 'object' || Array.isArray(req.body)) {
-      return res.status(400).json({ error: 'Oggetto {nome:categoria} richiesto' });
+      return res.status(400).json({ error: 'Oggetto richiesto' });
     }
-    const VALIDE = new Set(['Seniores','Giovanili','']);
+    // Accept both legacy flat format and new wrapper { cat_mappa, campionato_mappa }
+    const rawCat  = req.body.cat_mappa  && typeof req.body.cat_mappa  === 'object' ? req.body.cat_mappa  : req.body;
+    const rawCamp = req.body.campionato_mappa && typeof req.body.campionato_mappa === 'object' ? req.body.campionato_mappa : null;
+
+    const CAT_VALIDE  = new Set(['Seniores','Giovanili','']);
+    const CAMP_VALIDE = new Set(['FIPAV','OPES','']);
     const safe = {};
-    for (const [nome, cat] of Object.entries(req.body)) {
-      if (String(nome).length > 100) continue;
-      safe[nome] = VALIDE.has(cat) ? cat : '';
+    for (const [nome, cat] of Object.entries(rawCat)) {
+      if (String(nome).length > 100 || nome === 'cat_mappa' || nome === 'campionato_mappa') continue;
+      safe[nome] = CAT_VALIDE.has(cat) ? cat : '';
     }
     await db.query(
       `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_cat_mappa',$1,NOW())
        ON CONFLICT (chiave) DO UPDATE SET valore=$1, updated_at=NOW()`,
       [JSON.stringify(safe)]
     );
+
+    if (rawCamp) {
+      const safeCamp = {};
+      for (const [nome, camp] of Object.entries(rawCamp)) {
+        if (String(nome).length > 100) continue;
+        safeCamp[nome] = CAMP_VALIDE.has(camp) ? camp : '';
+      }
+      await db.query(
+        `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_campionato_mappa',$1,NOW())
+         ON CONFLICT (chiave) DO UPDATE SET valore=$1, updated_at=NOW()`,
+        [JSON.stringify(safeCamp)]
+      );
+    }
+
     await logActivity('Categorie squadre aggiornate', Object.keys(safe).length + ' mappings');
     res.json({ success: true });
   } catch (err) {
@@ -3185,6 +3364,28 @@ function scheduleReminderMailOrdini() {
 /* ─── Startup ─── */
 db.init().then(async () => {
   try { await db.query(`ALTER TABLE ordini ADD COLUMN IF NOT EXISTS mail_letta BOOLEAN DEFAULT FALSE`); } catch(_){}
+  try { await db.query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS categorie_collegate JSONB DEFAULT '[]'`); } catch(_){}
+  try { await db.query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS utenti_collegati JSONB DEFAULT '[]'`); } catch(_){}
+  try { await db.query(`CREATE TABLE IF NOT EXISTS comunicazioni (
+    id TEXT PRIMARY KEY,
+    mittente_id TEXT NOT NULL,
+    mittente_nome TEXT,
+    destinatario_tipo TEXT NOT NULL,
+    destinatario_label TEXT,
+    destinatario_id TEXT,
+    oggetto TEXT NOT NULL,
+    testo TEXT NOT NULL,
+    letto BOOLEAN DEFAULT FALSE,
+    creato_il TIMESTAMPTZ DEFAULT NOW()
+  )`); } catch(_){}
+  try { await db.query(`CREATE TABLE IF NOT EXISTS documenti_utente (
+    id TEXT PRIMARY KEY,
+    utente_id TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    url TEXT NOT NULL,
+    dimensione INTEGER,
+    creato_il TIMESTAMPTZ DEFAULT NOW()
+  )`); } catch(_){}
   app.listen(PORT, () => {
     console.log(`[OK] Server avviato su porta ${PORT} (${process.env.NODE_ENV || 'development'})`);
     console.log(`[OK] Email configurata: ${emailConfigurata() ? process.env.EMAIL_USER : 'NO – imposta EMAIL_USER e EMAIL_PASS'}`);

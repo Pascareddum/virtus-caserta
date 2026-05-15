@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestione squadra – Virtus Caserta</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f8fa; min-height: 100vh; display: flex; flex-direction: column; }
+    .page-wrap { flex: 1; max-width: 600px; width: 100%; margin: 0 auto; padding: 32px 20px 64px; }
+
+    /* ── Top bar ── */
+    .top-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+    .btn-back { display: inline-flex; align-items: center; gap: 6px; color: #0d2055; text-decoration: none;
+      font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 10px; border: 1.5px solid #e9ecf0;
+      background: #fff; transition: all .2s; }
+    .btn-back:hover { border-color: #0d2055; background: #eef4ff; }
+    .page-title { font-size: 20px; font-weight: 800; color: #0d2055; letter-spacing: -.02em; }
+
+    /* ── Squadra header ── */
+    .squad-header {
+      background: linear-gradient(135deg, #0d2055 0%, #1535a8 100%);
+      border-radius: 20px;
+      padding: 22px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 24px rgba(13,32,85,.18);
+    }
+    .squad-icon { font-size: 36px; }
+    .squad-info { flex: 1; }
+    .squad-nome { font-size: 18px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .squad-cat { font-size: 12px; color: rgba(255,255,255,.6); font-weight: 600; letter-spacing: .5px; margin-top: 2px; }
+    .squad-stats { display: flex; gap: 20px; }
+    .squad-stat { text-align: center; }
+    .squad-stat-num { font-size: 20px; font-weight: 800; color: #fff; line-height: 1; }
+    .squad-stat-lbl { font-size: 10px; color: rgba(255,255,255,.55); font-weight: 600; letter-spacing: .5px; margin-top: 2px; }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+      color: #9ca3af; margin-bottom: 14px;
+    }
+
+    /* ── Action cards grid ── */
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
+    .action-card {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+      padding: 22px 20px 18px;
+      background: #fff;
+      border-radius: 18px;
+      border: 1.5px solid #e9ecf0;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+      box-shadow: 0 2px 12px rgba(13,32,85,.04);
+      position: relative;
+      overflow: hidden;
+    }
+    .action-card:hover { border-color: #c7d2fe; box-shadow: 0 6px 24px rgba(13,32,85,.10); transform: translateY(-2px); }
+    .action-card.full { grid-column: 1 / -1; flex-direction: row; align-items: center; padding: 18px 22px; }
+    .action-ico { font-size: 28px; line-height: 1; }
+    .action-card.full .action-ico { font-size: 26px; }
+    .action-body { flex: 1; }
+    .action-name { font-size: 14px; font-weight: 800; color: #0d2055; line-height: 1.2; }
+    .action-desc { font-size: 12px; color: #6b7280; margin-top: 3px; line-height: 1.4; }
+    .action-card .action-arrow { position: absolute; bottom: 14px; right: 16px; font-size: 16px; color: #d1d5db; }
+    .action-card.full .action-arrow { position: static; margin-left: auto; font-size: 18px; color: #9ca3af; }
+
+    /* ── Quick stats card ── */
+    .stats-card {
+      background: #fff;
+      border-radius: 18px;
+      border: 1.5px solid #e9ecf0;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(13,32,85,.04);
+      margin-bottom: 14px;
+    }
+    .stats-header { padding: 14px 20px 12px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
+    .stats-title { font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: #0d2055; }
+    .stats-row { display: flex; }
+    .stat-cell { flex: 1; padding: 16px 20px; text-align: center; border-right: 1px solid #f1f5f9; }
+    .stat-cell:last-child { border-right: none; }
+    .stat-num { font-size: 22px; font-weight: 800; color: #0d2055; }
+    .stat-lbl { font-size: 11px; color: #9ca3af; font-weight: 600; margin-top: 2px; }
+    .stat-num.green { color: #16a34a; }
+    .stat-num.orange { color: #f57c00; }
+    .stat-num.red { color: #dc2626; }
+
+    .spin { display: inline-block; width: 16px; height: 16px; border: 2px solid #e2e8f0; border-top-color: #0d2055; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .page-wrap { padding: 20px 14px 48px; }
+      .squad-header { padding: 18px 18px; }
+      .action-grid { gap: 10px; }
+      .action-card { padding: 18px 16px 14px; }
+      .squad-stats { gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+
+    <div class="top-bar">
+      <a href="/utente" class="btn-back">← Account</a>
+      <h1 class="page-title">Gestione squadra</h1>
+    </div>
+
+    <!-- Squad header banner -->
+    <div class="squad-header" id="squadHeader">
+      <div class="squad-icon">🏐</div>
+      <div class="squad-info">
+        <div class="squad-nome" id="squadNome">Caricamento…</div>
+        <div class="squad-cat" id="squadCat"></div>
+      </div>
+      <div class="squad-stats" id="squadStats" style="display:none;">
+        <div class="squad-stat">
+          <div class="squad-stat-num" id="statAtleti">—</div>
+          <div class="squad-stat-lbl">Atleti</div>
+        </div>
+        <div class="squad-stat">
+          <div class="squad-stat-num" id="statEventi">—</div>
+          <div class="squad-stat-lbl">Prossimi</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Gestione</div>
+
+    <!-- Action cards -->
+    <div class="action-grid">
+      <a href="gestione-atleti.html" class="action-card">
+        <div class="action-ico">👥</div>
+        <div class="action-body">
+          <div class="action-name">Gestione atleti</div>
+          <div class="action-desc">Visualizza e modifica la rosa della tua squadra</div>
+        </div>
+        <span class="action-arrow">›</span>
+      </a>
+
+      <a href="convocazioni.html" class="action-card">
+        <div class="action-ico">📋</div>
+        <div class="action-body">
+          <div class="action-name">Convocazioni</div>
+          <div class="action-desc">Gestisci le convocazioni per partite e allenamenti</div>
+        </div>
+        <span class="action-arrow">›</span>
+      </a>
+
+      <a href="comunicazioni-utente.html" class="action-card full">
+        <div class="action-ico">💬</div>
+        <div class="action-body">
+          <div class="action-name">Invia comunicazione</div>
+          <div class="action-desc">Manda messaggi alla squadra, allo staff o all'amministrazione</div>
+        </div>
+        <span class="action-arrow">›</span>
+      </a>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="section-label">Riepilogo presenze</div>
+    <div class="stats-card">
+      <div class="stats-header">
+        <span class="stats-title">Ultimo allenamento</span>
+        <span style="font-size:11px;color:#9ca3af;" id="lastEvLabel">—</span>
+      </div>
+      <div class="stats-row" id="statsRow">
+        <div class="stat-cell"><div class="stat-num green" id="statPresenti">—</div><div class="stat-lbl">Presenti</div></div>
+        <div class="stat-cell"><div class="stat-num red" id="statAssenti">—</div><div class="stat-lbl">Assenti</div></div>
+        <div class="stat-cell"><div class="stat-num orange" id="statNonRisp">—</div><div class="stat-lbl">Non risposto</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const _tok = localStorage.getItem('vc_token');
+    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+
+    async function carica() {
+      try {
+        const prof = await fetch('/api/profilo', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+
+        // Squad header
+        const nomeEl = document.getElementById('squadNome');
+        const catEl  = document.getElementById('squadCat');
+        if (prof.is_allenatore && prof.ruolo_allenatore) {
+          const map  = typeof prof.ruolo_allenatore === 'string' ? JSON.parse(prof.ruolo_allenatore) : prof.ruolo_allenatore;
+          const cats = Object.keys(map || {});
+          nomeEl.textContent = prof.nome + ' ' + (prof.cognome || '');
+          catEl.textContent  = 'Allenatore · ' + cats.join(', ');
+        } else {
+          nomeEl.textContent = prof.nome + ' ' + (prof.cognome || '');
+          catEl.textContent  = 'Allenatore';
+        }
+      } catch {}
+
+      // Roster count
+      try {
+        const atleti = await fetch('/api/squadra/atleti', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        document.getElementById('statAtleti').textContent = Array.isArray(atleti) ? atleti.length : '—';
+        document.getElementById('squadStats').style.display = 'flex';
+      } catch {}
+
+      // Upcoming events count
+      try {
+        const ev = await fetch('/api/profilo/prossimi', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        const n  = (ev.eventi || []).length;
+        document.getElementById('statEventi').textContent = n;
+      } catch {}
+
+      // Last session attendance
+      try {
+        const sess = await fetch('/api/squadra/presenze/ultima', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        if (sess && sess.evento) {
+          document.getElementById('lastEvLabel').textContent = sess.evento;
+          document.getElementById('statPresenti').textContent = sess.presenti ?? '—';
+          document.getElementById('statAssenti').textContent  = sess.assenti  ?? '—';
+          document.getElementById('statNonRisp').textContent  = sess.non_risposto ?? '—';
+        }
+      } catch {}
+    }
+
+    carica();
+  </script>
+</body>
+</html>

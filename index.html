@@ -160,6 +160,20 @@
     }
     .nav-login-btn--admin:hover { background: var(--blu-chiaro); }
 
+    /* Auth bar separata — solo desktop, z-index sopra nav */
+    #navAuthBar {
+      position: fixed;
+      top: 0; right: 40px;
+      height: 76px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 1001;
+    }
+    @media (max-width: 768px) {
+      #navAuthBar { display: none !important; }
+    }
+
     /* nascosti di default — JS li mostra dopo auth check */
     #navLoggedArea, #navUtenteLink, #navAdminLink { display: none; }
 
@@ -184,13 +198,7 @@
       nav.nav-std { grid-template-columns: 1fr auto auto !important; }
       nav.nav-std > .nav-auth-icon { grid-column: 2; grid-row: 1; justify-self: end; }
       nav.nav-std > .nav-hamburger { grid-column: 3 !important; }
-      /* Forza nav-actions e bottoni auth a stare nascosti su mobile */
-      nav.nav-std > .nav-actions,
-      nav.nav-std .nav-actions #navLoginArea,
-      nav.nav-std .nav-actions #navLoggedArea,
-      nav.nav-std .nav-actions #navUtenteLink,
-      nav.nav-std .nav-actions #navAdminLink,
-      nav.nav-std .nav-actions .nav-login-btn { display: none !important; }
+      nav.nav-std > .nav-actions { display: none !important; }
     }
 
     .drawer-auth-wrap {
@@ -1820,13 +1828,6 @@
         <li><a href="/shop">Shop</a></li>
         <li><a href="/live">Live</a></li>
       </ul>
-      <div id="navLoginArea" style="margin-left:auto;">
-        <a href="login.html" class="nav-login-btn">Accedi</a> 
-      </div>
-      <div id="navLoggedArea" style="display:none; align-items:center; gap:10px; margin-left:auto;">
-       <a href="/utente" class="nav-login-btn" id="navUtenteLink" style="display:none">Area Utente</a>
-        <a href="/admin" class="nav-login-btn" id="navAdminLink" style="display:none">Amministratore</a> 
-      </div>
     </div>
     <a class="nav-auth-icon" id="navAuthIcon" href="login.html" aria-label="Accedi" title="Accedi">
       <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
@@ -1835,6 +1836,17 @@
       <span></span><span></span><span></span>
     </button>
   </nav>
+
+  <!-- AUTH BAR — separato dalla nav, solo desktop -->
+  <div id="navAuthBar">
+    <div id="navLoginArea">
+      <a href="login.html" class="nav-login-btn">Accedi</a>
+    </div>
+    <div id="navLoggedArea" style="display:none; align-items:center; gap:10px;">
+      <a href="/utente" class="nav-login-btn" id="navUtenteLink" style="display:none">Area Utente</a>
+      <a href="/admin" class="nav-login-btn" id="navAdminLink" style="display:none">Amministratore</a>
+    </div>
+  </div>
 
   <!-- HAMBURGER DRAWER -->
   <div class="nav-drawer" id="navDrawer">

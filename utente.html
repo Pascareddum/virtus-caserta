@@ -56,46 +56,61 @@
       margin-bottom: 14px;
     }
 
-    /* ── Roles ── */
+    /* ── Roles table ── */
     .profile-roles {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
       margin-bottom: 28px;
-      min-height: 0;
+      width: 100%;
     }
-    .role-pill {
+    .roles-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1.5px solid #e9ecf0;
+      background: #fff;
+      text-align: left;
+      table-layout: fixed;
+    }
+    .roles-table tr + tr td { border-top: 1px solid #f1f5f9; }
+    .role-th {
+      width: 96px;
+      padding: 13px 14px;
+      background: #f8fafc;
+      border-right: 1.5px solid #e9ecf0;
+      vertical-align: top;
+    }
+    .role-th-inner {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 5px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0;
-      max-width: 100%;
+      gap: 5px;
     }
-    .role-pill .pill-dot {
-      width: 6px;
-      height: 6px;
+    .role-th-dot {
+      width: 7px; height: 7px;
       border-radius: 50%;
       flex-shrink: 0;
     }
-    .role-pill .pill-tipo {
+    .role-th-lbl {
+      font-size: 10px;
       font-weight: 800;
-      margin-right: 2px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
     }
-    .role-atleta {
-      background: #eef4ff;
-      color: #1d4ed8;
+    .role-th.atleta .role-th-dot { background: #3b82f6; }
+    .role-th.atleta .role-th-lbl { color: #1d4ed8; }
+    .role-th.allenatore .role-th-dot { background: #f97316; }
+    .role-th.allenatore .role-th-lbl { color: #c2410c; }
+    .role-td { padding: 11px 14px; vertical-align: top; }
+    .role-entries { display: flex; flex-direction: column; gap: 6px; }
+    .role-entry { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .role-cat {
+      font-size: 12px; font-weight: 700; color: #0d2055;
+      background: #eef4ff; padding: 2px 9px;
+      border-radius: 6px;
     }
-    .role-atleta .pill-dot { background: #3b82f6; }
-    .role-allenatore {
-      background: #fff7ed;
-      color: #c2410c;
-    }
-    .role-allenatore .pill-dot { background: #f97316; }
+    .role-sep { font-size: 11px; color: #d1d5db; }
+    .role-ruolo { font-size: 12px; color: #6b7280; font-weight: 500; }
+    .role-entry-simple { font-size: 12px; color: #374151; font-weight: 600; }
 
     /* ── Impegni settimana ── */
     .agenda-section {
@@ -124,100 +139,85 @@
       color: #9ca3af;
       font-weight: 600;
     }
-    .agenda-list { display: flex; flex-direction: column; }
-    .agenda-item {
+    /* ── Day strip ── */
+    .agenda-day-strip {
+      display: flex;
+      background: #fff;
+      border-bottom: 1.5px solid #e9ecf0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .agenda-day-strip::-webkit-scrollbar { display: none; }
+    .ads-cell {
+      flex: 1;
+      min-width: 40px;
+      padding: 10px 4px 8px;
+      text-align: center;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: border-color .15s;
+    }
+    .ads-nome {
+      font-size: 9px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+    .ads-num {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 3px auto;
+      transition: background .15s, color .15s;
+    }
+    .ads-cell.sel { border-bottom-color: #0d2055; }
+    .ads-cell.sel .ads-num { background: #0d2055; color: #fff; }
+    .ads-cell.oggi-s .ads-num { background: #f57c00; color: #fff; }
+    .ads-cell.oggi-s.sel .ads-num { background: #0d2055; color: #fff; }
+    .ads-dots { display: flex; justify-content: center; gap: 3px; min-height: 7px; margin-top: 2px; }
+    .ads-dot { width: 5px; height: 5px; border-radius: 50%; }
+    /* ── Day events ── */
+    .agenda-day-events { display: flex; flex-direction: column; }
+    .agenda-date-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      padding: 10px 16px 6px;
+    }
+    .agenda-ev-card {
       display: flex;
       align-items: stretch;
       gap: 0;
-      border-bottom: 1px solid #f1f5f9;
+      border-top: 1px solid #f1f5f9;
+      cursor: pointer;
+      transition: background .12s;
       text-align: left;
     }
-    .agenda-item:last-child { border-bottom: none; }
-    .agenda-day-col {
-      width: 62px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 14px 8px;
-      border-right: 1px solid #f1f5f9;
-      background: #fff;
-    }
-    .agenda-dow {
+    .agenda-ev-card:hover { background: #f8faff; }
+    .aec-stripe { width: 3px; flex-shrink: 0; }
+    .aec-body { flex: 1; padding: 11px 14px; min-width: 0; }
+    .aec-badge {
+      display: inline-block;
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: .8px;
+      letter-spacing: .5px;
       text-transform: uppercase;
-      color: #9ca3af;
-      line-height: 1;
-    }
-    .agenda-day-num {
-      font-size: 20px;
-      font-weight: 800;
-      color: #0d2055;
-      line-height: 1.1;
-    }
-    .agenda-day-col.today .agenda-day-num {
-      background: #0d2055;
-      color: #fff;
-      border-radius: 8px;
-      width: 34px;
-      height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-    }
-    .agenda-day-col.today .agenda-dow { color: #0d2055; }
-    .agenda-accent {
-      width: 3px;
-      flex-shrink: 0;
-    }
-    .agenda-accent.partita    { background: #0d2055; }
-    .agenda-accent.allenamento { background: #16a34a; }
-    .agenda-content {
-      flex: 1;
-      padding: 12px 14px;
-      min-width: 0;
-    }
-    .agenda-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .6px;
-      text-transform: uppercase;
-      border-radius: 5px;
+      border-radius: 4px;
       padding: 2px 7px;
       margin-bottom: 4px;
     }
-    .agenda-badge.partita    { background: #eef4ff; color: #1d4ed8; }
-    .agenda-badge.allenamento { background: #f0fdf4; color: #15803d; }
-    .agenda-titolo {
-      font-size: 14px;
-      font-weight: 700;
-      color: #111827;
-      line-height: 1.3;
-      margin-bottom: 5px;
-    }
-    .agenda-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      font-size: 11px;
-      color: #6b7280;
-      font-weight: 500;
-    }
-    .agenda-meta span { display: flex; align-items: center; gap: 3px; }
-    .agenda-squadra {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .4px;
-      color: #9ca3af;
-      margin-top: 4px;
-    }
+    .aec-title { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.3; }
+    .aec-meta { font-size: 11px; color: #6b7280; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .aec-arrow { padding: 0 12px; display: flex; align-items: center; color: #d1d5db; font-size: 16px; }
     .agenda-empty {
       padding: 24px 18px;
       text-align: center;
@@ -225,6 +225,89 @@
       font-size: 13px;
       font-weight: 600;
     }
+    /* ── Event detail modal ── */
+    .ev-modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 800;
+      background: rgba(0,0,0,.5);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .ev-modal-bg.open { display: flex; }
+    .ev-modal-box {
+      background: #fff;
+      border-radius: 22px;
+      width: 100%;
+      max-width: 400px;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,.22);
+    }
+    .ev-modal-accent { height: 4px; width: 100%; }
+    .ev-modal-hdr {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 18px 20px 14px;
+      gap: 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .ev-modal-hdr-left { flex: 1; min-width: 0; }
+    .ev-modal-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .ev-modal-title { font-size: 17px; font-weight: 800; color: #111827; line-height: 1.3; }
+    .ev-modal-close {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: #f1f5f9;
+      color: #6b7280;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s;
+      margin-top: 2px;
+    }
+    .ev-modal-close:hover { background: #e2e8f0; }
+    .ev-modal-info { padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .ev-field { display: flex; flex-direction: column; gap: 2px; }
+    .ev-field-lbl { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .7px; }
+    .ev-field-val { font-size: 14px; color: #111827; font-weight: 500; }
+    .ev-rsvp { padding: 12px 20px 18px; border-top: 1px solid #f1f5f9; }
+    .ev-rsvp-lbl { font-size: 10px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: .7px; margin-bottom: 10px; }
+    .rsvp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .rsvp-btn {
+      padding: 11px 10px;
+      border-radius: 10px;
+      border: 1.5px solid #e5e7eb;
+      background: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all .18s;
+    }
+    .rsvp-btn:hover:not(.active) { background: #f9fafb; border-color: #d1d5db; }
+    .rsvp-btn .rdot { width: 8px; height: 8px; border-radius: 50%; border: 2px solid #d1d5db; flex-shrink: 0; transition: all .18s; }
+    .rsvp-btn.si.active { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+    .rsvp-btn.si.active .rdot { background: #16a34a; border-color: #16a34a; }
+    .rsvp-btn.no.active { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+    .rsvp-btn.no.active .rdot { background: #dc2626; border-color: #dc2626; }
 
     /* ── Section label ── */
     .section-label {
@@ -366,8 +449,9 @@
           <span class="agenda-title">I tuoi impegni della settimana</span>
           <span class="agenda-range" id="agendaRange"></span>
         </div>
-        <div class="agenda-list" id="agendaList">
-          <div class="agenda-empty">Nessun impegno questa settimana</div>
+        <div class="agenda-day-strip" id="agendaDayStrip"></div>
+        <div class="agenda-day-events" id="agendaDayEvents">
+          <div class="agenda-empty">Caricamento…</div>
         </div>
       </div>
 
@@ -375,29 +459,30 @@
 
       <!-- Coach tile: visible only if allenatore -->
       <div class="btn-grid single" id="coachGrid" style="display:none; margin-bottom:12px;">
-        <button class="tile tile-coach" disabled>
+        <a href="gestione-squadra.html" class="tile tile-coach" style="text-decoration:none;">
+          <span class="tile-icon">🏅</span>
           <span class="tile-label">Gestione squadra</span>
-        </button>
+        </a>
       </div>
 
       <!-- Main 2×2 grid -->
       <div class="btn-grid" id="mainGrid">
-        <button class="tile" disabled>
-          <span class="tile-soon">Presto</span>
+        <a href="documenti-utente.html" class="tile" style="opacity:1;cursor:pointer;text-decoration:none;">
+          <span class="tile-icon">📄</span>
           <span class="tile-label">Documenti</span>
-        </button>
-        <button class="tile" disabled>
-          <span class="tile-soon">Presto</span>
+        </a>
+        <a href="calendario-utente.html" class="tile" style="opacity:1;cursor:pointer;text-decoration:none;">
+          <span class="tile-icon">📅</span>
           <span class="tile-label">Calendario</span>
-        </button>
-        <button class="tile" disabled>
-          <span class="tile-soon">Presto</span>
+        </a>
+        <a href="organizza-partita.html" class="tile" style="opacity:1;cursor:pointer;text-decoration:none;">
+          <span class="tile-icon">🏐</span>
           <span class="tile-label">Organizza partita</span>
-        </button>
-        <button class="tile" disabled>
-          <span class="tile-soon">Presto</span>
+        </a>
+        <a href="comunicazioni-utente.html" class="tile" style="opacity:1;cursor:pointer;text-decoration:none;">
+          <span class="tile-icon">💬</span>
           <span class="tile-label">Comunicazioni</span>
-        </button>
+        </a>
       </div>
 
       <!-- MVP row full width -->
@@ -412,6 +497,21 @@
         <a href="/" class="btn-home">← Home</a>
         <button class="btn-logout" onclick="doLogout()">Esci</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Event detail modal -->
+  <div class="ev-modal-bg" id="evModal" onclick="chiudiEvModal(event)">
+    <div class="ev-modal-box">
+      <div id="evModalAccent" class="ev-modal-accent"></div>
+      <div class="ev-modal-hdr">
+        <div class="ev-modal-hdr-left">
+          <div id="evModalTag" class="ev-modal-tag"></div>
+          <div id="evModalTitle" class="ev-modal-title"></div>
+        </div>
+        <button class="ev-modal-close" onclick="chiudiEvModal()">✕</button>
+      </div>
+      <div id="evModalBody"></div>
     </div>
   </div>
 
@@ -447,67 +547,206 @@
       } catch (_) {}
     }
 
-    const GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+    const GIORNI_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
     const MESI_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    const EV_COLORS = {
+      partita: { color: '#0d2055', badge: '#eef4ff', badgeText: '#1d4ed8', label: 'Partita' },
+      allenamento: { color: '#16a34a', badge: '#f0fdf4', badgeText: '#15803d', label: 'Allenamento' },
+      evento: { color: '#e11d48', badge: '#fff0f3', badgeText: '#be123c', label: 'Evento' },
+    };
+
+    let agendaMappa = {};    // date string → [events]
+    let agendaDays = [];     // 7 Date objects (Mon–Sun)
+    let agendaSelDay = null; // selected date string
+
+    function dateKey(d) {
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+    function lunedi(d) {
+      const c = new Date(d); c.setHours(0,0,0,0);
+      const dow = c.getDay();
+      c.setDate(c.getDate() - (dow === 0 ? 6 : dow - 1));
+      return c;
+    }
 
     function renderAgenda(data) {
       const section = document.getElementById('agendaSection');
-      const list    = document.getElementById('agendaList');
       const rangeEl = document.getElementById('agendaRange');
       const eventi  = data.eventi || [];
 
-      // Range label
-      if (data.settimana) {
-        const da = new Date(data.settimana.da + 'T00:00');
-        const a  = new Date(data.settimana.a  + 'T00:00');
-        rangeEl.textContent = `${da.getDate()} – ${a.getDate()} ${MESI_SHORT[a.getMonth()]}`;
+      const oggi = new Date(); oggi.setHours(0,0,0,0);
+      const ws = lunedi(oggi);
+
+      // Build week days Mon–Sun
+      agendaDays = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(ws); d.setDate(ws.getDate() + i);
+        agendaDays.push(d);
+      }
+
+      const fine = agendaDays[6];
+      rangeEl.textContent = `${ws.getDate()} – ${fine.getDate()} ${MESI_SHORT[fine.getMonth()]}`;
+
+      // Map events by date
+      agendaMappa = {};
+      for (const ev of eventi) {
+        let evDate;
+        if (ev.tipo === 'partita') {
+          evDate = new Date(ev.data_ora);
+        } else {
+          evDate = new Date((ev.data || '') + 'T00:00');
+        }
+        const key = dateKey(evDate);
+        if (!agendaMappa[key]) agendaMappa[key] = [];
+        agendaMappa[key].push(ev);
       }
 
       section.style.display = 'block';
-      list.innerHTML = '';
 
-      if (!eventi.length) {
-        list.innerHTML = '<div class="agenda-empty">Nessun impegno questa settimana 🎉</div>';
+      // Select today or first day with events
+      const todayKey = dateKey(oggi);
+      if (agendaMappa[todayKey]) {
+        agendaSelDay = todayKey;
+      } else {
+        const first = agendaDays.find(d => agendaMappa[dateKey(d)]);
+        agendaSelDay = first ? dateKey(first) : todayKey;
+      }
+
+      renderAgendaStrip();
+      renderAgendaDayEvents();
+    }
+
+    function renderAgendaStrip() {
+      const strip = document.getElementById('agendaDayStrip');
+      const oggi = new Date(); oggi.setHours(0,0,0,0);
+      strip.innerHTML = '';
+      agendaDays.forEach((d, i) => {
+        const key = dateKey(d);
+        const isOggi = dateKey(d) === dateKey(oggi);
+        const isSel  = key === agendaSelDay;
+        const evs    = agendaMappa[key] || [];
+        const dots   = [...new Set(evs.map(e => e.tipo))].slice(0,3);
+        const cell = document.createElement('div');
+        cell.className = 'ads-cell' + (isSel ? ' sel' : '') + (isOggi ? ' oggi-s' : '');
+        const DOW = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+        cell.innerHTML = `<div class="ads-nome">${DOW[d.getDay()]}</div>
+          <div class="ads-num">${d.getDate()}</div>
+          <div class="ads-dots">${dots.map(t => `<div class="ads-dot" style="background:${(EV_COLORS[t]||EV_COLORS.allenamento).color}"></div>`).join('')}</div>`;
+        cell.addEventListener('click', () => { agendaSelDay = key; renderAgendaStrip(); renderAgendaDayEvents(); });
+        strip.appendChild(cell);
+      });
+    }
+
+    function renderAgendaDayEvents() {
+      const container = document.getElementById('agendaDayEvents');
+      const evs = agendaMappa[agendaSelDay] || [];
+      const d = agendaDays.find(x => dateKey(x) === agendaSelDay);
+      const DOW_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+      const label = d ? `${DOW_FULL[d.getDay()]}, ${d.getDate()} ${MESI_SHORT[d.getMonth()]}` : '';
+      container.innerHTML = `<div class="agenda-date-lbl">${label}</div>`;
+      if (!evs.length) {
+        container.innerHTML += '<div class="agenda-empty">Nessun impegno</div>';
         return;
       }
-
-      const oggi = new Date(); oggi.setHours(0,0,0,0);
-
-      for (const ev of eventi) {
-        let dateObj, oraStr = '', isToday = false;
+      evs.forEach(ev => {
+        const ci = EV_COLORS[ev.tipo] || EV_COLORS.allenamento;
+        let oraStr = '', titolo = '';
         if (ev.tipo === 'partita') {
-          dateObj = new Date(ev.data_ora);
-          oraStr  = dateObj.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+          const dt = new Date(ev.data_ora);
+          oraStr = dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+          titolo = (ev.casa || '') + ' vs ' + (ev.ospite || '');
         } else {
-          dateObj = new Date(ev.data + 'T00:00');
-          oraStr  = ev.ora || '';
+          oraStr = ev.ora || '';
+          titolo = ev.titolo || (ev.tipo === 'evento' ? 'Evento' : 'Allenamento');
         }
-        const dayDate = new Date(dateObj); dayDate.setHours(0,0,0,0);
-        isToday = dayDate.getTime() === oggi.getTime();
-
-        const dow     = GIORNI[dateObj.getDay()];
-        const dayNum  = dateObj.getDate();
-
-        const item = document.createElement('div');
-        item.className = 'agenda-item';
-        item.innerHTML = `
-          <div class="agenda-day-col${isToday ? ' today' : ''}">
-            <span class="agenda-dow">${dow}</span>
-            <span class="agenda-day-num">${dayNum}</span>
-          </div>
-          <div class="agenda-accent ${ev.tipo}"></div>
-          <div class="agenda-content">
-            <div class="agenda-badge ${ev.tipo}">${ev.tipo === 'partita' ? 'Partita' : 'Allenamento'}</div>
-            <div class="agenda-titolo">${ev.tipo === 'partita' ? ev.casa + ' vs ' + ev.ospite : (ev.titolo || 'Allenamento')}</div>
-            <div class="agenda-meta">
+        const card = document.createElement('div');
+        card.className = 'agenda-ev-card';
+        card.innerHTML = `
+          <div class="aec-stripe" style="background:${ci.color}"></div>
+          <div class="aec-body">
+            <div class="aec-badge" style="background:${ci.badge};color:${ci.badgeText}">${ci.label}</div>
+            <div class="aec-title">${titolo}</div>
+            <div class="aec-meta">
               ${oraStr ? `<span>Ore: ${oraStr}</span>` : ''}
-              ${ev.luogo ? `<span>Dove: ${ev.luogo}</span>` : ''}
-              ${ev.tipo === 'partita' && ev.giornata ? `<span>${ev.giornata}</span>` : ''}
+              ${ev.luogo ? `<span>${ev.luogo}</span>` : ''}
             </div>
-            ${ev.squadra ? `<div class="agenda-squadra">${ev.squadra}</div>` : ''}
-          </div>`;
-        list.appendChild(item);
+          </div>
+          <div class="aec-arrow">›</div>`;
+        card.addEventListener('click', () => apriEvModal(ev));
+        container.appendChild(card);
+      });
+    }
+
+    function apriEvModal(ev) {
+      const ci = EV_COLORS[ev.tipo] || EV_COLORS.allenamento;
+      document.getElementById('evModalAccent').style.background = ci.color;
+      document.getElementById('evModalTag').style.background = ci.color;
+      document.getElementById('evModalTag').textContent = ci.label;
+
+      let titolo = '', fields = [];
+      if (ev.tipo === 'partita') {
+        const dt = new Date(ev.data_ora);
+        titolo = (ev.casa || '') + ' vs ' + (ev.ospite || '');
+        fields.push({ lbl: 'Orario', val: dt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) });
+        if (ev.luogo) fields.push({ lbl: 'Luogo', val: ev.luogo });
+        if (ev.categoria) fields.push({ lbl: 'Categoria', val: ev.categoria });
+      } else {
+        titolo = ev.titolo || (ev.tipo === 'evento' ? 'Evento' : 'Allenamento');
+        if (ev.ora) fields.push({ lbl: 'Orario', val: ev.ora });
+        if (ev.luogo) fields.push({ lbl: 'Luogo', val: ev.luogo });
+        if (ev.categoria) fields.push({ lbl: 'Categoria', val: ev.categoria });
+        if (ev.note) fields.push({ lbl: 'Note', val: ev.note });
       }
+      document.getElementById('evModalTitle').textContent = titolo;
+      const body = document.getElementById('evModalBody');
+      body.innerHTML = `<div class="ev-modal-info">${fields.map(f=>`<div class="ev-field"><div class="ev-field-lbl">${f.lbl}</div><div class="ev-field-val">${f.val}</div></div>`).join('')}</div>`;
+
+      // RSVP for allenamenti/eventi
+      if ((ev.tipo === 'allenamento' || ev.tipo === 'evento') && ev.id && token) {
+        const rsvpDiv = document.createElement('div');
+        rsvpDiv.className = 'ev-rsvp';
+        rsvpDiv.id = 'evRsvpSection';
+        rsvpDiv.innerHTML = '<div class="ev-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento…</div>';
+        body.appendChild(rsvpDiv);
+        fetch(`/api/calendario/${ev.id}/mia-risposta`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(d => { const el = document.getElementById('evRsvpSection'); if (el) _renderRsvp(el, ev.id, d.risposta); })
+          .catch(() => {});
+      }
+      document.getElementById('evModal').classList.add('open');
+    }
+
+    function _renderRsvp(container, id, risposta) {
+      container.innerHTML = `<div class="ev-rsvp-lbl">La tua partecipazione</div>
+        <div class="rsvp-row">
+          <button class="rsvp-btn si${risposta==='si'?' active':''}" onclick="submitRsvp('${id}','si')">
+            <span class="rdot"></span>Partecipo
+          </button>
+          <button class="rsvp-btn no${risposta==='no'?' active':''}" onclick="submitRsvp('${id}','no')">
+            <span class="rdot"></span>Non partecipo
+          </button>
+        </div>`;
+    }
+
+    window.submitRsvp = async function(id, risposta) {
+      if (!token) return;
+      try {
+        const r = await fetch(`/api/calendario/${id}/partecipa`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ risposta })
+        });
+        const data = await r.json();
+        if (r.ok) {
+          const el = document.getElementById('evRsvpSection');
+          if (el) _renderRsvp(el, id, data.risposta);
+        }
+      } catch {}
+    };
+
+    function chiudiEvModal(e) {
+      if (!e || e.target === document.getElementById('evModal'))
+        document.getElementById('evModal').classList.remove('open');
     }
 
     function renderName(nome, cognome) {
@@ -529,40 +768,38 @@
     function renderRoles(u) {
       const container = document.getElementById('profileRoles');
       container.innerHTML = '';
+      if (!u.is_atleta && !u.is_allenatore) return;
 
-      if (u.is_atleta) {
-        const map = parseRuolo(u.ruolo_atleta);
-        if (map && typeof map === 'object' && !Array.isArray(map)) {
-          for (const [cat, ruolo] of Object.entries(map)) {
-            const b = document.createElement('span');
-            b.className = 'role-pill role-atleta';
-            b.innerHTML = `<span class="pill-dot"></span><span class="pill-tipo">Atleta</span> in: ${cat} come ${ruolo}`;
-            container.appendChild(b);
-          }
-        } else {
-          const b = document.createElement('span');
-          b.className = 'role-pill role-atleta';
-          b.innerHTML = `<span class="pill-dot"></span><span class="pill-tipo">Atleta</span>`;
-          container.appendChild(b);
+      function buildEntries(mapRaw) {
+        const map = parseRuolo(mapRaw);
+        if (map && typeof map === 'object' && !Array.isArray(map) && Object.keys(map).length) {
+          return Object.entries(map).map(([cat, ruolo]) =>
+            `<div class="role-entry">
+              <span class="role-cat">${cat}</span>
+              ${ruolo ? `<span class="role-sep">·</span><span class="role-ruolo">${ruolo}</span>` : ''}
+            </div>`
+          ).join('');
         }
+        return `<div class="role-entry-simple">—</div>`;
       }
 
-      if (u.is_allenatore) {
-        const map = parseRuolo(u.ruolo_allenatore);
-        if (map && typeof map === 'object' && !Array.isArray(map)) {
-          for (const [cat, ruolo] of Object.entries(map)) {
-            const b = document.createElement('span');
-            b.className = 'role-pill role-allenatore';
-            b.innerHTML = `<span class="pill-dot"></span><span class="pill-tipo">Allenatore</span> in: ${cat} come ${ruolo}`;
-            container.appendChild(b);
-          }
-        } else {
-          const b = document.createElement('span');
-          b.className = 'role-pill role-allenatore';
-          b.innerHTML = `<span class="pill-dot"></span><span class="pill-tipo">Allenatore</span>`;
-          container.appendChild(b);
-        }
-      }
+      const rows = [];
+      if (u.is_atleta)     rows.push({ cls: 'atleta',     label: 'Atleta',     entries: buildEntries(u.ruolo_atleta) });
+      if (u.is_allenatore) rows.push({ cls: 'allenatore', label: 'Allenatore', entries: buildEntries(u.ruolo_allenatore) });
+
+      const table = document.createElement('table');
+      table.className = 'roles-table';
+      table.innerHTML = rows.map(r => `
+        <tr>
+          <td class="role-th ${r.cls}">
+            <div class="role-th-inner">
+              <span class="role-th-dot"></span>
+              <span class="role-th-lbl">${r.label}</span>
+            </div>
+          </td>
+          <td class="role-td"><div class="role-entries">${r.entries}</div></td>
+        </tr>`).join('');
+      container.appendChild(table);
     }
 
     function doLogout() {

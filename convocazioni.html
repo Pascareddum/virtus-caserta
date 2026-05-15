@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convocazioni – Virtus Caserta</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f7f8fa;min-height:100vh;display:flex;flex-direction:column;}
+    .page-wrap{flex:1;max-width:660px;width:100%;margin:0 auto;padding:32px 20px 80px;}
+
+    .top-bar{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+    .btn-back{display:inline-flex;align-items:center;gap:6px;color:#0d2055;text-decoration:none;
+      font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;border:1.5px solid #e9ecf0;
+      background:#fff;transition:all .2s;}
+    .btn-back:hover{border-color:#0d2055;background:#eef4ff;}
+    .page-title{font-size:20px;font-weight:800;color:#0d2055;letter-spacing:-.02em;}
+
+    /* ── Event cards ── */
+    .event-card{background:#fff;border-radius:18px;border:1.5px solid #e9ecf0;overflow:hidden;
+      margin-bottom:16px;box-shadow:0 2px 12px rgba(13,32,85,.05);}
+    .event-header{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;
+      transition:background .12s;}
+    .event-header:hover{background:#f9fafb;}
+    .event-type-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .event-info{flex:1;min-width:0;}
+    .event-title{font-size:15px;font-weight:800;color:#111827;}
+    .event-meta{font-size:12px;color:#9ca3af;margin-top:2px;display:flex;flex-wrap:wrap;gap:8px;}
+    .event-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;white-space:nowrap;}
+    .badge-allenamento{background:#eef4ff;color:#1d4ed8;}
+    .badge-partita{background:#f0fdf4;color:#15803d;}
+    .badge-evento{background:#fff0f3;color:#be123c;}
+    .event-stats{display:flex;gap:14px;flex-shrink:0;}
+    .ev-stat{text-align:center;}
+    .ev-stat-n{font-size:16px;font-weight:800;}
+    .ev-stat-l{font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+    .ev-stat-n.si{color:#16a34a;}
+    .ev-stat-n.no{color:#dc2626;}
+    .ev-stat-n.nd{color:#f59e0b;}
+    .expand-ico{color:#d1d5db;font-size:16px;transition:transform .2s;flex-shrink:0;}
+    .event-card.open .expand-ico{transform:rotate(90deg);}
+
+    /* ── Atleti list inside card ── */
+    .event-body{display:none;border-top:1.5px solid #e9ecf0;}
+    .event-card.open .event-body{display:block;}
+    .convoca-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;
+      border-bottom:1px solid #f1f5f9;flex-wrap:wrap;gap:8px;}
+    .convoca-toolbar-left{display:flex;gap:8px;}
+    .btn-convoca-all{padding:7px 14px;background:#0d2055;color:#fff;border:none;border-radius:8px;
+      font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;}
+    .btn-convoca-all:hover{background:#1535a8;}
+    .btn-remind{padding:7px 14px;background:#fff;color:#f57c00;border:1.5px solid #fed7aa;border-radius:8px;
+      font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;}
+    .btn-remind:hover{background:#fff7ed;}
+    .atleta-conv-row{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #f1f5f9;}
+    .atleta-conv-row:last-child{border-bottom:none;}
+    .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(140deg,#0d2055,#1e4bd8);
+      display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;}
+    .conv-name{font-size:13px;font-weight:700;color:#111827;flex:1;}
+    .conv-sub{font-size:11px;color:#9ca3af;}
+    .rsvp-indicator{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;}
+    .rsvp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .rsvp-si .rsvp-dot{background:#16a34a;}
+    .rsvp-si{color:#15803d;}
+    .rsvp-no .rsvp-dot{background:#dc2626;}
+    .rsvp-no{color:#b91c1c;}
+    .rsvp-nd .rsvp-dot{background:#f59e0b;}
+    .rsvp-nd{color:#92400e;}
+    .btn-toggle-conv{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;
+      font-family:inherit;transition:all .2s;}
+    .btn-toggle-conv.on{background:#eef4ff;color:#0d2055;border:1.5px solid #c7d2fe;}
+    .btn-toggle-conv.off{background:#fff;color:#9ca3af;border:1.5px solid #e9ecf0;}
+    .btn-toggle-conv:hover{border-color:#0d2055;color:#0d2055;}
+
+    /* ── Empty / loading ── */
+    .page-empty{padding:60px 20px;text-align:center;color:#9ca3af;font-size:14px;font-weight:600;}
+    .spin{display:inline-block;width:18px;height:18px;border:2.5px solid #e2e8f0;border-top-color:#0d2055;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#111827;color:#fff;
+      padding:10px 20px;border-radius:50px;font-size:13px;font-weight:600;opacity:0;transition:transform .3s,opacity .3s;z-index:900;white-space:nowrap;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .toast.err{background:#dc2626;}
+
+    .section-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#9ca3af;margin-bottom:14px;}
+
+    @media(max-width:480px){
+      .page-wrap{padding:20px 14px 60px;}
+      .event-stats{gap:10px;}
+      .ev-stat-n{font-size:14px;}
+      .convoca-toolbar{padding:10px 16px;}
+      .atleta-conv-row{padding:10px 16px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="top-bar">
+      <a href="gestione-squadra.html" class="btn-back">← Squadra</a>
+      <h1 class="page-title">Convocazioni</h1>
+    </div>
+
+    <div class="section-label">Prossimi eventi</div>
+    <div id="eventiList">
+      <div class="page-empty"><div class="spin"></div> Caricamento…</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const _tok = localStorage.getItem('vc_token');
+    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+
+    const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    const GG   = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+    let atletiRosa = []; // roster from /api/squadra/atleti
+    let convMap    = {}; // eventId → { atletaId → 'si'|'no'|null }
+
+    function toast(msg, err = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+      clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso.includes('T') ? iso : iso + 'T00:00');
+      return `${GG[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function fmtOra(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    }
+
+    function initials(p) { return [p.nome, p.cognome].filter(Boolean).map(s => s[0].toUpperCase()).join('') || '?'; }
+
+    function rsvpLabel(val) {
+      if (val === 'si') return '<span class="rsvp-indicator rsvp-si"><span class="rsvp-dot"></span>Partecipa</span>';
+      if (val === 'no') return '<span class="rsvp-indicator rsvp-no"><span class="rsvp-dot"></span>Non partecipa</span>';
+      return '<span class="rsvp-indicator rsvp-nd"><span class="rsvp-dot"></span>Non risposto</span>';
+    }
+
+    function buildEventCard(ev) {
+      const typeColor = ev.tipo === 'partita' ? '#059669' : ev.tipo === 'evento' ? '#e11d48' : '#0d2055';
+      const badgeCls  = ev.tipo === 'partita' ? 'badge-partita' : ev.tipo === 'evento' ? 'badge-evento' : 'badge-allenamento';
+      const badgeTxt  = ev.tipo === 'partita' ? 'Partita' : ev.tipo === 'evento' ? 'Evento' : 'Allenamento';
+      const dateStr   = ev.tipo === 'partita' ? fmtDate(ev.data_ora) : fmtDate(ev.data);
+      const oraStr    = ev.tipo === 'partita' ? fmtOra(ev.data_ora) : (ev.ora || '');
+      const titolo    = ev.tipo === 'partita'
+        ? (ev.casa || '') + ' vs ' + (ev.ospite || '')
+        : (ev.titolo || ev.categoria || (ev.tipo === 'evento' ? 'Evento' : 'Allenamento'));
+
+      const card = document.createElement('div');
+      card.className = 'event-card';
+      card.dataset.id = ev.id;
+
+      // Convocations for this event
+      const conv = convMap[ev.id] || {};
+      const si  = Object.values(conv).filter(v => v === 'si').length;
+      const no  = Object.values(conv).filter(v => v === 'no').length;
+      const nd  = atletiRosa.length - si - no;
+
+      card.innerHTML = `
+        <div class="event-header">
+          <div class="event-type-dot" style="background:${typeColor}"></div>
+          <div class="event-info">
+            <div class="event-title">${titolo}</div>
+            <div class="event-meta">
+              <span class="event-badge ${badgeCls}">${badgeTxt}</span>
+              <span>${dateStr}${oraStr ? ' · ' + oraStr : ''}</span>
+              ${ev.luogo ? `<span>${ev.luogo}</span>` : ''}
+            </div>
+          </div>
+          <div class="event-stats">
+            <div class="ev-stat"><div class="ev-stat-n si">${si}</div><div class="ev-stat-l">Sì</div></div>
+            <div class="ev-stat"><div class="ev-stat-n no">${no}</div><div class="ev-stat-l">No</div></div>
+            <div class="ev-stat"><div class="ev-stat-n nd">${nd}</div><div class="ev-stat-l">N/R</div></div>
+          </div>
+          <span class="expand-ico">›</span>
+        </div>
+        <div class="event-body">
+          <div class="convoca-toolbar">
+            <div class="convoca-toolbar-left">
+              <button class="btn-convoca-all" onclick="convocaTutti('${ev.id}')">Convoca tutti</button>
+              <button class="btn-remind" onclick="inviaSollecito('${ev.id}')">📣 Sollecita N/R</button>
+            </div>
+            <span style="font-size:11px;color:#9ca3af;">${atletiRosa.length} in rosa</span>
+          </div>
+          <div id="convList-${ev.id}">${buildConvRows(ev.id)}</div>
+        </div>`;
+
+      card.querySelector('.event-header').addEventListener('click', () => toggleCard(card, ev.id));
+      return card;
+    }
+
+    function buildConvRows(evId) {
+      if (!atletiRosa.length) return '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Nessun atleta in rosa</div>';
+      const conv = convMap[evId] || {};
+      return atletiRosa.map(a => {
+        const rsvp = conv[a.id] ?? null;
+        const isConv = rsvp !== null;
+        return `<div class="atleta-conv-row">
+          <div class="av">${initials(a)}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="conv-name">${a.nome || ''} ${a.cognome || ''}</div>
+            <div class="conv-sub">${a.categoria || ''} ${a.ruolo ? '· ' + a.ruolo : ''}</div>
+          </div>
+          ${rsvpLabel(rsvp)}
+          <button class="btn-toggle-conv ${isConv ? 'on' : 'off'}"
+            onclick="toggleConvocazione('${evId}','${a.id}',this)">${isConv ? 'Convocato' : 'Convoca'}</button>
+        </div>`;
+      }).join('');
+    }
+
+    function toggleCard(card, evId) {
+      const isOpen = card.classList.contains('open');
+      document.querySelectorAll('.event-card.open').forEach(c => c.classList.remove('open'));
+      if (!isOpen) {
+        card.classList.add('open');
+        // refresh list
+        const listEl = document.getElementById('convList-' + evId);
+        if (listEl) listEl.innerHTML = buildConvRows(evId);
+        // load RSVP data if not cached
+        if (!convMap[evId]) loadPresenze(evId, card);
+      }
+    }
+
+    async function loadPresenze(evId, card) {
+      try {
+        const data = await fetch(`/api/calendario/${evId}/presenze`, { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        convMap[evId] = {};
+        (data.risposte || data || []).forEach(r => { if (r.utente_id) convMap[evId][r.utente_id] = r.risposta; });
+        const listEl = document.getElementById('convList-' + evId);
+        if (listEl) listEl.innerHTML = buildConvRows(evId);
+        // refresh stats in header
+        refreshStats(card, evId);
+      } catch {}
+    }
+
+    function refreshStats(card, evId) {
+      const conv = convMap[evId] || {};
+      const si   = Object.values(conv).filter(v => v === 'si').length;
+      const no   = Object.values(conv).filter(v => v === 'no').length;
+      const nd   = atletiRosa.length - si - no;
+      const nums = card.querySelectorAll('.ev-stat-n');
+      if (nums[0]) nums[0].textContent = si;
+      if (nums[1]) nums[1].textContent = no;
+      if (nums[2]) nums[2].textContent = nd;
+    }
+
+    window.toggleConvocazione = async function(evId, atletaId, btn) {
+      const conv    = convMap[evId] = convMap[evId] || {};
+      const current = conv[atletaId];
+      const newVal  = current ? null : 'si';
+      try {
+        await fetch(`/api/calendario/${evId}/convoca`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+          body: JSON.stringify({ atleta_id: atletaId, convocato: !current })
+        });
+        if (newVal === null) delete conv[atletaId]; else conv[atletaId] = newVal;
+        // Re-render row
+        const listEl = document.getElementById('convList-' + evId);
+        if (listEl) listEl.innerHTML = buildConvRows(evId);
+        const card = document.querySelector(`.event-card[data-id="${evId}"]`);
+        if (card) refreshStats(card, evId);
+      } catch { toast('Errore salvataggio', true); }
+    };
+
+    window.convocaTutti = async function(evId) {
+      try {
+        await fetch(`/api/calendario/${evId}/convoca-tutti`, { method: 'POST', headers: { Authorization: `Bearer ${_tok}` } });
+        convMap[evId] = {};
+        atletiRosa.forEach(a => convMap[evId][a.id] = 'si');
+        const listEl = document.getElementById('convList-' + evId);
+        if (listEl) listEl.innerHTML = buildConvRows(evId);
+        const card = document.querySelector(`.event-card[data-id="${evId}"]`);
+        if (card) refreshStats(card, evId);
+        toast('Tutti convocati');
+      } catch { toast('Errore', true); }
+    };
+
+    window.inviaSollecito = async function(evId) {
+      try {
+        const r = await fetch(`/api/calendario/${evId}/sollecita`, { method: 'POST', headers: { Authorization: `Bearer ${_tok}` } });
+        const d = await r.json();
+        toast(`Sollecito inviato a ${d.count ?? 'N'} atleti`);
+      } catch { toast('Errore invio sollecito', true); }
+    };
+
+    async function carica() {
+      const container = document.getElementById('eventiList');
+      try {
+        // Load roster
+        const [atletiRes, calRes] = await Promise.all([
+          fetch('/api/squadra/atleti',   { headers: { Authorization: `Bearer ${_tok}` } }),
+          fetch('/api/calendario',       { headers: { Authorization: `Bearer ${_tok}` } }),
+        ]);
+        atletiRosa = atletiRes.ok ? await atletiRes.json() : [];
+        const sessioni = calRes.ok ? await calRes.json() : [];
+
+        // Filter future + today
+        const oggi = new Date(); oggi.setHours(0,0,0,0);
+        const futuri = sessioni
+          .filter(s => s.data && new Date(s.data + 'T00:00') >= oggi)
+          .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+        if (!futuri.length) {
+          container.innerHTML = '<div class="page-empty">Nessun evento programmato</div>';
+          return;
+        }
+        container.innerHTML = '';
+        futuri.forEach(ev => container.appendChild(buildEventCard(ev)));
+      } catch {
+        container.innerHTML = '<div class="page-empty">Impossibile caricare gli eventi</div>';
+      }
+    }
+
+    carica();
+  </script>
+</body>
+</html>

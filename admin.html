@@ -324,6 +324,8 @@
     .btn-edit:hover   { background:#dde8fe; }
     .btn-delete { background:#fef0f2; color:#b42318; border-color:#fecdd3; }
     .btn-delete:hover { background:#fde1e5; }
+    .btn-link   { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+    .btn-link:hover   { background:#dcfce7; }
     .btn-toggle { background:#ebfdf2; color:#0e7f54; border-color:#c5f4d8; }
     .btn-toggle:hover { background:#d5fae4; }
 
@@ -947,6 +949,109 @@
       .ql-toolbar.ql-snow .ql-formats { margin-right:4px; }
       .ql-toolbar.ql-snow button { width:24px; height:24px; padding:2px; }
     }
+
+    /* ── Calendario categorie ── */
+    .cal-cat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+    .cal-cat-card {
+      background:#fff; border:1.5px solid #e5e7eb; border-radius:16px;
+      padding:20px; cursor:pointer;
+      transition:border-color .15s, box-shadow .15s, transform .15s;
+      box-shadow:0 2px 8px rgba(13,32,85,.05);
+    }
+    .cal-cat-card:hover { border-color:#6366f1; box-shadow:0 4px 20px rgba(99,102,241,.12); transform:translateY(-2px); }
+    .cal-cat-card .cat-ico { font-size:28px; margin-bottom:10px; }
+    .cal-cat-card .cat-nome { font-size:15px; font-weight:800; color:#0d2055; margin-bottom:4px; }
+    .cal-cat-card .cat-sub { font-size:12px; color:#6b7280; }
+    .cal-cat-card .cat-pross { font-size:11px; color:#1d4ed8; font-weight:600; margin-top:8px; }
+    .btn-back-cal {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:7px 14px; border-radius:9px;
+      border:1.5px solid #e5e7eb; background:#fff; color:#0d2055;
+      font-size:13px; font-weight:700; cursor:pointer; transition:border-color .15s;
+    }
+    .btn-back-cal:hover { border-color:#0d2055; background:#eef4ff; }
+    .cal-month-nav { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .cal-nav-btn {
+      width:32px; height:32px; border-radius:8px;
+      border:1.5px solid #e5e7eb; background:#fff;
+      font-size:18px; line-height:1; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      color:#0d2055; transition:border-color .15s;
+    }
+    .cal-nav-btn:hover { border-color:#0d2055; background:#eef4ff; }
+    .cal-month-label { font-size:15px; font-weight:700; color:#0d2055; flex:1; text-align:center; }
+    .cal-month-grid {
+      display:grid; grid-template-columns:repeat(7,1fr);
+      border:1.5px solid #e5e7eb; border-radius:14px; overflow:hidden;
+    }
+    .cal-month-grid .cal-dow {
+      background:#f1f5f9; padding:8px 4px; text-align:center;
+      font-size:11px; font-weight:700; color:#6b7280; letter-spacing:.5px;
+      border-bottom:1px solid #e5e7eb;
+    }
+    .cal-month-grid .cal-cell {
+      min-height:56px; padding:6px 8px;
+      border-right:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9;
+      cursor:pointer; transition:background .1s; position:relative;
+    }
+    .cal-month-grid .cal-cell:nth-child(7n+8) { border-right:none; }
+    .cal-month-grid .cal-cell:hover { background:#f8faff; }
+    .cal-month-grid .cal-cell.today { background:#eef4ff; }
+    .cal-month-grid .cal-cell.cal-selected { background:#0d2055; }
+    .cal-month-grid .cal-cell.cal-selected .cal-day-num { color:#fff; }
+    .cal-month-grid .cal-cell.other-month .cal-day-num { color:#d1d5db; }
+    .cal-day-num { font-size:13px; font-weight:700; color:#0d2055; }
+    .cal-cell-dots { display:flex; gap:3px; flex-wrap:wrap; margin-top:4px; }
+    .cal-cell-dot { width:6px; height:6px; border-radius:50%; background:#1d4ed8; }
+    .cal-cell-dot.evento { background:#be185d; }
+
+    /* ── Sessioni settimana ── */
+    .sess-week-nav { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+    .sess-week-strip { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:20px; }
+    .swc {
+      background:#fff; border:1.5px solid #e5e7eb; border-radius:12px;
+      padding:10px 6px; text-align:center; cursor:pointer;
+      transition:border-color .15s, background .15s;
+    }
+    .swc:hover { border-color:#6366f1; background:#f8faff; }
+    .swc.today { border-color:#6366f1; background:#eef4ff; }
+    .swc.selected { background:#0d2055; border-color:#0d2055; }
+    .swc.selected .swc-dow, .swc.selected .swc-day { color:#fff !important; }
+    .swc-dow { font-size:11px; font-weight:700; color:#9ca3af; letter-spacing:.5px; margin-bottom:3px; }
+    .swc-day { font-size:16px; font-weight:800; color:#0d2055; line-height:1; }
+    .swc-dot { width:6px; height:6px; border-radius:50%; background:#1d4ed8; margin:4px auto 0; }
+    .swc.selected .swc-dot { background:rgba(255,255,255,.7); }
+    .prossima-sess-banner {
+      background:linear-gradient(135deg,#0d2055 0%,#1535a8 100%);
+      border-radius:14px; padding:16px 20px;
+      display:flex; align-items:center; gap:16px; margin-bottom:20px;
+    }
+    .psb-ico { font-size:28px; flex-shrink:0; }
+    .psb-info { flex:1; }
+    .psb-label { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:rgba(255,255,255,.6); margin-bottom:2px; }
+    .psb-titolo { font-size:16px; font-weight:800; color:#fff; }
+    .psb-sub { font-size:12px; color:rgba(255,255,255,.7); margin-top:2px; }
+    .psb-vedi { background:rgba(255,255,255,.2); border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:700; color:#fff; cursor:pointer; flex-shrink:0; }
+    .sess-day-list { display:flex; flex-direction:column; gap:10px; }
+    .sess-day-item {
+      background:#fff; border:1.5px solid #e5e7eb; border-radius:12px;
+      padding:14px 16px; display:flex; align-items:center; gap:14px;
+    }
+    .sdi-dot { width:10px; height:10px; border-radius:50%; background:#1d4ed8; flex-shrink:0; }
+    .sdi-dot.evento { background:#be185d; }
+    .sdi-info { flex:1; }
+    .sdi-titolo { font-size:14px; font-weight:700; color:#0d2055; }
+    .sdi-sub { font-size:12px; color:#6b7280; margin-top:2px; }
+    .sdi-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:8px; flex-shrink:0; }
+    .sdi-badge.allenamento { background:#dbeafe; color:#1d4ed8; }
+    .sdi-badge.evento { background:#fce7f3; color:#be185d; }
+    .sdi-vedi { padding:5px 12px; border-radius:7px; border:1px solid #0d2055; background:#fff; color:#0d2055; font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0; }
+    @media(max-width:480px) {
+      .sess-week-strip { gap:3px; }
+      .swc { padding:7px 3px; border-radius:9px; }
+      .swc-day { font-size:14px; }
+      .cal-cat-grid { grid-template-columns:repeat(2,1fr); }
+    }
   </style>
 </head>
 <body>
@@ -1156,20 +1261,23 @@
 <div class="pannello" id="pan-calendario">
   <div class="toolbar">
     <h2>Calendario allenamenti</h2>
-    <button class="btn-aggiungi" onclick="apriModalSessione(null)">+ Aggiungi sessione</button>
   </div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th>Data</th>
-        <th>Orario</th>
-        <th>Titolo</th>
-        <th>Luogo</th>
-        <th>Categoria</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="calendarioBody"></tbody>
-    </table>
+  <!-- Category cards -->
+  <div id="calCatGrid" class="cal-cat-grid"></div>
+  <!-- Single-category month calendar -->
+  <div id="calCatView" style="display:none;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <button onclick="chiudiCalCat()" class="btn-back-cal">← Categorie</button>
+      <h3 id="calCatNome" style="margin:0;font-size:17px;font-weight:800;color:#0d2055;flex:1;"></h3>
+      <button class="btn-aggiungi" onclick="apriModalSessione(null)">+ Aggiungi sessione</button>
+    </div>
+    <div class="cal-month-nav">
+      <button onclick="calMonthShift(-1)" class="cal-nav-btn">&#8249;</button>
+      <span id="calMonthLabel" class="cal-month-label"></span>
+      <button onclick="calMonthShift(1)" class="cal-nav-btn">&#8250;</button>
+    </div>
+    <div id="calMonthGrid" class="cal-month-grid"></div>
+    <div id="calDayList" style="margin-top:20px;display:none;"></div>
   </div>
 </div>
 
@@ -1289,35 +1397,49 @@
 
 <!-- ══ UTENTI ══ -->
 <div class="pannello" id="pan-utenti">
-  <div class="toolbar"><h2>Utenti registrati</h2></div>
-  <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">Gestisci le richieste di registrazione. Approva un utente per inviargli il link di impostazione password.</p>
-  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
-    <input id="uSearchInput" type="text" placeholder="Cerca per nome o email…"
-      oninput="filtraUtenti()"
-      style="flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--testo);box-shadow:var(--shadow-xs);">
-    <select id="uTipoSelect" onchange="filtraUtenti()"
-      style="padding:8px 12px;border:1px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--testo);box-shadow:var(--shadow-xs);cursor:pointer;">
-      <option value="">Tutti i tipi</option>
-      <option value="atleta">Atleta</option>
-      <option value="allenatore">Allenatore</option>
-    </select>
+  <div class="toolbar"><h2>Utenti</h2></div>
+
+  <!-- Level 1: FIPAV / OPES cards + "Tutti" -->
+  <div id="utentiFedGrid" class="cal-cat-grid" style="grid-template-columns:1fr 1fr;"></div>
+
+  <!-- "Tutti gli utenti" view -->
+  <div id="utentiTuttiView" style="display:none;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <button onclick="chiudiUtentiTutti()" class="btn-back-cal">← Federazioni</button>
+      <h3 style="margin:0;font-size:17px;font-weight:800;color:#0d2055;flex:1;">Tutti gli utenti</h3>
+      <input id="uTuttiSearch" type="text" placeholder="Cerca nome, cognome, email…" oninput="renderUtentiTutti()"
+        style="padding:7px 12px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;min-width:200px;flex:1;max-width:320px;">
+    </div>
+    <div id="utentiTuttiList"></div>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-    <button class="filtro-btn on" onclick="filtraUtenti('')" id="uFiltroTutti">Tutti</button>
-    <button class="filtro-btn" onclick="filtraUtenti('in_attesa')" id="uFiltroAttesa">In attesa</button>
-    <button class="filtro-btn" onclick="filtraUtenti('approvato')" id="uFiltroApprovato">Approvati</button>
-    <button class="filtro-btn" onclick="filtraUtenti('attivo')" id="uFiltroAttivo">Attivi</button>
-    <button class="filtro-btn" onclick="filtraUtenti('rifiutato')" id="uFiltroRifiutato">Rifiutati</button>
-  </div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th>Utente</th>
-        <th>Tipo / Stato</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="utentiBody"></tbody>
-    </table>
+
+  <!-- Level 2: categories of selected federation + Level 3: user list -->
+  <div id="utentiFedView" style="display:none;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <button onclick="chiudiUtentiFed()" class="btn-back-cal">← Federazioni</button>
+      <h3 id="utentiFedNome" style="margin:0;font-size:17px;font-weight:800;color:#0d2055;flex:1;"></h3>
+    </div>
+
+    <!-- Category cards grid -->
+    <div id="utentiFedCatGrid" class="cal-cat-grid"></div>
+
+    <!-- Level 3: user list for selected category -->
+    <div id="utentiFedCatView" style="display:none;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <button onclick="chiudiUtentiFedCat()" class="btn-back-cal">← Categorie</button>
+        <h3 id="utentiFedCatNome" style="margin:0;font-size:16px;font-weight:800;color:#0d2055;flex:1;"></h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="filtro-btn on" id="uFiltroTutti"     onclick="setUFiltro('')">Tutti</button>
+          <button class="filtro-btn"    id="uFiltroAttesa"    onclick="setUFiltro('in_attesa')">In attesa</button>
+          <button class="filtro-btn"    id="uFiltroApprovato" onclick="setUFiltro('approvato')">Approvati</button>
+          <button class="filtro-btn"    id="uFiltroAttivo"    onclick="setUFiltro('attivo')">Attivi</button>
+          <button class="filtro-btn"    id="uFiltroRifiutato" onclick="setUFiltro('rifiutato')">Rifiutati</button>
+        </div>
+        <input id="uSearchInput" type="text" placeholder="Cerca…" oninput="renderUtentiFedList()"
+          style="padding:7px 12px;border:1px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;width:160px;">
+      </div>
+      <div id="utentiFedList"></div>
+    </div>
   </div>
 </div>
 
@@ -1464,6 +1586,10 @@
     .cat-sq-badge.Giovanili{background:#dcfce7;color:#15803d;}
     .cat-sq-sel{padding:6px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:13px;background:#fff;cursor:pointer;}
     .cat-sq-sel:focus{outline:none;border-color:#0d2055;}
+    .cat-sq-camp{padding:6px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:13px;background:#fff;cursor:pointer;}
+    .cat-sq-camp:focus{outline:none;border-color:#0d2055;}
+    .cat-sq-camp[value="FIPAV"],.cat-sq-camp option[value="FIPAV"]{color:#1d4ed8;}
+    .cat-sq-camp[value="OPES"],.cat-sq-camp option[value="OPES"]{color:#9333ea;}
   </style>
 
   <div id="catSquadreList"><p style="color:#9ca3af;text-align:center;padding:40px">Caricamento…</p></div>
@@ -1473,27 +1599,27 @@
 <!-- PANNELLO SESSIONI -->
 <div class="pannello" id="pan-sessioni">
   <div class="toolbar">
-    <h2>Sessioni calendario</h2>
+    <h2>Sessioni</h2>
     <div style="display:flex;gap:8px;">
       <button class="filtro-btn on" id="sfTutti"       onclick="filtraSessioni('')">Tutti</button>
       <button class="filtro-btn"    id="sfAllenamento" onclick="filtraSessioni('allenamento')">Allenamento</button>
       <button class="filtro-btn"    id="sfEvento"      onclick="filtraSessioni('evento')">Evento</button>
     </div>
   </div>
-  <div class="card-table">
-    <table>
-      <thead><tr>
-        <th>Data / Orario</th>
-        <th>Titolo</th>
-        <th>Tipo</th>
-        <th>Categoria</th>
-        <th style="text-align:center">Partecipanti</th>
-        <th>Azioni</th>
-      </tr></thead>
-      <tbody id="sessioniBody"></tbody>
-    </table>
+  <!-- Next session banner -->
+  <div id="prossimaSess"></div>
+  <!-- Week navigation -->
+  <div class="sess-week-nav">
+    <button onclick="sessWeekShift(-1)" class="cal-nav-btn">&#8249;</button>
+    <span id="sessWeekLabel" class="cal-month-label"></span>
+    <button onclick="sessWeekShift(1)" class="cal-nav-btn">&#8250;</button>
+    <button onclick="sessWeekOggi()" class="filtro-btn" style="margin-left:8px;padding:5px 12px;">Oggi</button>
   </div>
-  <!-- Dettaglio partecipanti -->
+  <!-- 7-day strip -->
+  <div id="sessWeekStripContainer"></div>
+  <!-- Events for selected day -->
+  <div id="sessWeekDayList"></div>
+  <!-- Participants detail -->
   <div id="sessioniDetail" style="display:none;margin-top:20px;padding:20px;background:#f8fafc;border-radius:12px;border:1px solid #e5e7eb;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <h3 id="sessioniDetailTitolo" style="margin:0;font-size:16px;color:#0d2055;"></h3>
@@ -1739,7 +1865,7 @@
         <label>Luogo</label>
         <input type="text" id="sLuogo" placeholder="Es. Tenda di Abramo, Caserta">
       </div>
-      <div class="mf">
+      <div class="mf" id="sCategoriaWrap">
         <label>Categoria</label>
         <div id="sCategoriaCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 0;"></div>
       </div>
@@ -1767,6 +1893,50 @@
     <div class="modal-ftr">
       <button class="btn-annulla" onclick="chiudiModal('modalSessione')">Annulla</button>
       <button class="btn-salva" id="btnSalvaSessione" onclick="salvaSessione()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COLLEGA SESSIONE -->
+<div class="modal-overlay" id="modalCollega">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-hdr">
+      <h3>Collega sessione</h3>
+      <button class="modal-close" onclick="chiudiModal('modalCollega')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:0;padding-bottom:20px;">
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button class="filtro-btn on" id="collegaTabCat" onclick="setCollegaTab('categoria')">Categoria</button>
+        <button class="filtro-btn" id="collegaTabUtente" onclick="setCollegaTab('utente')">Utente</button>
+      </div>
+      <div id="collegaPanelCat">
+        <div id="collegaCatList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+      <div id="collegaPanelUtente" style="display:none;">
+        <input id="collegaSearch" type="text" placeholder="Cerca per nome…" oninput="renderCollegaUtenti()"
+          style="width:100%;padding:8px 12px;border:1.5px solid var(--bordo);border-radius:8px;font-size:13px;margin-bottom:10px;font-family:inherit;">
+        <div id="collegaUtenteList" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;"></div>
+      </div>
+      <div id="collegaAttuali" style="margin-top:18px;border-top:1px solid var(--bordo-2);padding-top:14px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZZA UTENTE -->
+<div class="modal-overlay" id="modalVisualizzaUtente">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-hdr">
+      <h3 id="vuNome">Utente</h3>
+      <button class="modal-close" onclick="chiudiModal('modalVisualizzaUtente')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><div style="font-size:10px;font-weight:700;color:var(--sub-2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;">Email</div><div id="vuEmail" style="font-size:13px;color:var(--testo);word-break:break-all;"></div></div>
+        <div><div style="font-size:10px;font-weight:700;color:var(--sub-2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;">Telefono</div><div id="vuTelefono" style="font-size:13px;color:var(--testo);"></div></div>
+      </div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--sub-2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;">Squadre</div><div id="vuSquadre" style="font-size:13px;color:var(--testo);"></div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--sub-2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;">Stato</div><div id="vuStato"></div></div>
+      <div id="vuAzioni" style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--bordo-2);"></div>
     </div>
   </div>
 </div>
@@ -2410,34 +2580,127 @@
     return '';
   }
 
+  let _calAllSessions = [];
+  let _calCatSelected = null;
+  let _calViewMonth   = null;
+  let _calDaySelected = null;
+
   async function caricaCalendario() {
-    const tbody = document.getElementById('calendarioBody');
+    const grid = document.getElementById('calCatGrid');
+    grid.innerHTML = '<div style="color:#9ca3af;padding:16px">Caricamento…</div>';
     try {
-      const sessions = await fetch('/api/calendario', { headers: headers() }).then(r => r.json());
-      if (!sessions.length) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon"></div>Nessuna sessione. Aggiungine una!</div></td></tr>`;
-        return;
-      }
-      tbody.innerHTML = sessions.map(s => `
-        <tr>
-          <td data-label="Data" style="font-weight:700;white-space:nowrap;">${s.data ? new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '—'}</td>
-          <td data-label="Orario" style="white-space:nowrap;">${s.ora || '—'}</td>
-          <td data-label="Titolo">
-            <div class="prod-nome">${s.titolo}</div>
-            ${s.note ? `<div class="prod-desc">${s.note}</div>` : ''}
-          </td>
-          <td data-label="Luogo" style="color:var(--sub);font-size:13px;">${s.luogo || '—'}</td>
-          <td data-label="Categoria" style="color:var(--sub);font-size:13px;">${s.categoria || '—'}</td>
-          <td data-label="Azioni">
-            <div class="azioni">
-              <button class="btn-azione btn-edit"   onclick="apriModalSessione('${s.id}')">Modifica</button>
-              <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">Elimina</button>
-            </div>
-          </td>
-        </tr>`).join('');
+      const [cats, sessions] = await Promise.all([
+        _loadCats(),
+        fetch('/api/calendario', { headers: headers() }).then(r => r.json())
+      ]);
+      _calAllSessions = sessions;
+      renderCalCatCards(cats);
     } catch {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Errore caricamento calendario.</div></td></tr>`;
+      grid.innerHTML = '<div style="color:#dc2626;padding:16px">Errore caricamento.</div>';
     }
+  }
+
+  function renderCalCatCards(cats) {
+    document.getElementById('calCatView').style.display = 'none';
+    const grid = document.getElementById('calCatGrid');
+    grid.style.display = 'grid';
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    if (!cats.length) { grid.innerHTML = '<div style="color:#9ca3af;padding:16px">Nessuna categoria configurata.</div>'; return; }
+    grid.innerHTML = cats.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(cat => {
+      const catSess = _calAllSessions.filter(s => s.categoria === cat.nome);
+      const future  = catSess.filter(s => s.data >= today).sort((a,b) => a.data.localeCompare(b.data));
+      const prossLabel = future.length
+        ? 'Prossima: ' + new Date(future[0].data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})
+        : 'Nessuna sessione prossima';
+      return `<div class="cal-cat-card" onclick="apriCalCat('${cat.nome.replace(/'/g,"\\'")}')">
+        <div class="cat-ico">🏐</div>
+        <div class="cat-nome">${cat.nome}</div>
+        <div class="cat-sub">${catSess.length} sessioni totali</div>
+        <div class="cat-pross">${prossLabel}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function apriCalCat(nomecat) {
+    _calCatSelected = nomecat;
+    const now = new Date();
+    _calViewMonth   = { year: now.getFullYear(), month: now.getMonth() };
+    _calDaySelected = null;
+    document.getElementById('calCatGrid').style.display = 'none';
+    document.getElementById('calCatView').style.display = 'block';
+    document.getElementById('calCatNome').textContent   = nomecat;
+    document.getElementById('calDayList').style.display = 'none';
+    renderCalMese();
+  }
+
+  function chiudiCalCat() {
+    _calCatSelected = null;
+    document.getElementById('calCatView').style.display = 'none';
+    document.getElementById('calCatGrid').style.display = 'grid';
+  }
+
+  function calMonthShift(n) {
+    const d = new Date(_calViewMonth.year, _calViewMonth.month + n, 1);
+    _calViewMonth = { year: d.getFullYear(), month: d.getMonth() };
+    renderCalMese();
+  }
+
+  function renderCalMese() {
+    const { year, month } = _calViewMonth;
+    const MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    document.getElementById('calMonthLabel').textContent = `${MESI[month]} ${year}`;
+    const DOW     = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+    const _tn = new Date();
+    const todayStr = `${_tn.getFullYear()}-${String(_tn.getMonth()+1).padStart(2,'0')}-${String(_tn.getDate()).padStart(2,'0')}`;
+    const catSess  = _calAllSessions.filter(s => s.categoria === _calCatSelected || (s.categorie_collegate || []).includes(_calCatSelected));
+    const mappa    = {};
+    catSess.forEach(s => { if (!mappa[s.data]) mappa[s.data] = []; mappa[s.data].push(s); });
+    const first = new Date(year, month, 1);
+    const last  = new Date(year, month + 1, 0);
+    let startDow = first.getDay(); startDow = startDow === 0 ? 6 : startDow - 1;
+    let html = DOW.map(d => `<div class="cal-dow">${d}</div>`).join('');
+    for (let i = 0; i < startDow; i++) {
+      html += `<div class="cal-cell other-month"><div class="cal-day-num">${new Date(year, month, i - startDow + 1).getDate()}</div></div>`;
+    }
+    for (let d = 1; d <= last.getDate(); d++) {
+      const ds   = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const evs  = mappa[ds] || [];
+      const isSel = ds === _calDaySelected;
+      html += `<div class="cal-cell${ds===todayStr?' today':''}${isSel?' cal-selected':''}" onclick="apriCalDay('${ds}')">
+        <div class="cal-day-num">${d}</div>
+        ${evs.length ? `<div class="cal-cell-dots">${evs.slice(0,3).map(e => `<div class="cal-cell-dot${e.tipo==='evento'?' evento':''}"></div>`).join('')}</div>` : ''}
+      </div>`;
+    }
+    let endDow = last.getDay(); endDow = endDow === 0 ? 6 : endDow - 1;
+    for (let i = 1; i < 7 - endDow; i++) {
+      html += `<div class="cal-cell other-month"><div class="cal-day-num">${i}</div></div>`;
+    }
+    document.getElementById('calMonthGrid').innerHTML = html;
+  }
+
+  function apriCalDay(ds) {
+    _calDaySelected = ds;
+    renderCalMese();
+    const catSess = _calAllSessions.filter(s => (s.categoria === _calCatSelected || (s.categorie_collegate || []).includes(_calCatSelected)) && s.data === ds);
+    const list = document.getElementById('calDayList');
+    if (!catSess.length) { list.style.display = 'none'; return; }
+    const d = new Date(ds+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+    list.style.display = 'block';
+    list.innerHTML = `<div style="font-size:13px;font-weight:700;color:#0d2055;margin-bottom:12px;">${d}</div>
+      <div class="sess-day-list">${catSess.map(s => `
+        <div class="sess-day-item">
+          <div class="sdi-dot${s.tipo==='evento'?' evento':''}"></div>
+          <div class="sdi-info">
+            <div class="sdi-titolo">${s.titolo}</div>
+            <div class="sdi-sub">${s.ora||''}${s.luogo?' · '+s.luogo:''}</div>
+          </div>
+          <span class="sdi-badge ${s.tipo==='evento'?'evento':'allenamento'}">${s.tipo==='evento'?'Evento':'Allenamento'}</span>
+          <button class="btn-azione btn-link" onclick="apriModalCollega('${s.id}')">Collega</button>
+          <button class="btn-azione btn-edit" onclick="apriModalSessione('${s.id}')">Modifica</button>
+          <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">Elimina</button>
+        </div>`).join('')}
+      </div>`;
   }
 
   function setSessioneTipo(tipo) {
@@ -2462,7 +2725,7 @@
     sessioneInEditing = id;
     document.getElementById('modalSessioneTitolo').textContent = id ? 'Modifica sessione' : 'Nuova sessione';
     document.getElementById('sTitolo').value    = '';
-    document.getElementById('sData').value      = new Date().toISOString().slice(0,10);
+    const _td = new Date(); document.getElementById('sData').value = `${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,'0')}-${String(_td.getDate()).padStart(2,'0')}`;
     document.getElementById('sOraInizio').value = '18:00';
     document.getElementById('sOraFine').value   = '20:00';
     document.getElementById('sLuogo').value     = '';
@@ -2477,7 +2740,9 @@
     setSessioneTipo('allenamento');
 
     let categoriaCorrente = '';
+    const catWrap = document.getElementById('sCategoriaWrap');
     if (id) {
+      catWrap.style.display = '';
       const sessions = await fetch('/api/calendario', { headers: headers() }).then(r => r.json());
       const s = sessions.find(x => x.id === id);
       if (s) {
@@ -2491,6 +2756,11 @@
         setSessioneTipo(s.tipo || 'allenamento');
         if (s.foto) { document.getElementById('sFotoUrl').value = s.foto; document.getElementById('sFotoPreview').src = s.foto; document.getElementById('sFotoPreview').style.display = 'block'; }
       }
+    } else if (_calCatSelected) {
+      catWrap.style.display = 'none';
+      categoriaCorrente = _calCatSelected;
+    } else {
+      catWrap.style.display = '';
     }
     renderSCategoriaCheckboxes(categoriaCorrente);
     document.getElementById('modalSessione').classList.add('aperto');
@@ -2538,9 +2808,168 @@
 
   async function eliminaSessione(id, titolo) {
     if (!confirm(`Eliminare la sessione "${titolo}"?`)) return;
-    const res = await fetch(`/api/calendario/${id}`, { method:'DELETE', headers: headers() });
-    if (res.ok) caricaCalendario();
-    else alert('Errore durante l\'eliminazione.');
+
+    const sessione = _calAllSessions.find(s => s.id === id);
+    let idsToDelete = [id];
+
+    if (sessione) {
+      const thisDow = new Date(sessione.data + 'T00:00:00').getDay();
+      const future  = _calAllSessions.filter(s =>
+        s.id !== id &&
+        s.data > sessione.data &&
+        s.titolo === sessione.titolo &&
+        s.ora    === sessione.ora &&
+        s.categoria === sessione.categoria &&
+        s.tipo   === sessione.tipo &&
+        new Date(s.data + 'T00:00:00').getDay() === thisDow
+      );
+      if (future.length > 0) {
+        const range = future.length === 1
+          ? future[0].data
+          : `${future[0].data} … ${future[future.length-1].data}`;
+        if (confirm(`Ci sono ${future.length} sessioni future identiche (${range}).\nEliminare anche quelle?`)) {
+          idsToDelete = [id, ...future.map(s => s.id)];
+        }
+      }
+    }
+
+    for (const did of idsToDelete) {
+      const res = await fetch(`/api/calendario/${did}`, { method:'DELETE', headers: headers() });
+      if (!res.ok) { alert(`Errore eliminazione sessione ${did}.`); break; }
+    }
+    caricaCalendario();
+  }
+
+  /* ── Collega sessione ── */
+  let _collegaSessioneId = null;
+  let _collegaTab        = 'categoria';
+  let _allUtentiCollega  = [];
+
+  async function apriModalCollega(sessId) {
+    _collegaSessioneId = sessId;
+    _collegaTab = 'categoria';
+    try {
+      _allUtentiCollega = await fetch('/api/admin/utenti-lista', { headers: headers() }).then(r => r.json());
+    } catch { _allUtentiCollega = []; }
+    document.getElementById('collegaSearch').value = '';
+    document.getElementById('modalCollega').classList.add('aperto');
+    _renderCollegaModal();
+  }
+
+  function setCollegaTab(tab) {
+    _collegaTab = tab;
+    document.getElementById('collegaTabCat').classList.toggle('on', tab === 'categoria');
+    document.getElementById('collegaTabUtente').classList.toggle('on', tab === 'utente');
+    document.getElementById('collegaPanelCat').style.display    = tab === 'categoria' ? '' : 'none';
+    document.getElementById('collegaPanelUtente').style.display = tab === 'utente'    ? '' : 'none';
+    if (tab === 'categoria') _renderCollegaCat();
+    else _renderCollegaUtenti();
+  }
+
+  function _renderCollegaModal() {
+    setCollegaTab(_collegaTab);
+    _renderCollegaAttuali();
+  }
+
+  function _sessCorrente() { return _calAllSessions.find(s => s.id === _collegaSessioneId) || null; }
+
+  function _renderCollegaCat() {
+    const s = _sessCorrente();
+    const catCollegate = s ? (s.categorie_collegate || []) : [];
+    const catPrimaria  = s ? s.categoria : null;
+    const disponibili  = (_catListCache || []).filter(c => c.nome !== catPrimaria && !catCollegate.includes(c.nome));
+    const el = document.getElementById('collegaCatList');
+    if (!disponibili.length) {
+      el.innerHTML = '<div style="color:var(--sub);font-size:13px;">Nessuna categoria disponibile.</div>';
+      return;
+    }
+    el.innerHTML = disponibili.map(c => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--bordo);border-radius:10px;background:#fff;">
+        <span style="font-size:13px;font-weight:600;color:var(--testo);">${c.nome}</span>
+        <button class="btn-azione btn-link" onclick="salvaCollegamento('categoria','${c.nome.replace(/'/g,"\\'")}')">Collega</button>
+      </div>`).join('');
+  }
+
+  function _renderCollegaUtenti() {
+    const s = _sessCorrente();
+    const utentiCollegati = s ? (s.utenti_collegati || []) : [];
+    const q = (document.getElementById('collegaSearch')?.value || '').toLowerCase();
+    let lista = _allUtentiCollega.filter(u => !utentiCollegati.includes(u.id));
+    if (q) lista = lista.filter(u => (u.nome + ' ' + (u.cognome || '')).toLowerCase().includes(q));
+    const el = document.getElementById('collegaUtenteList');
+    if (!lista.length) {
+      el.innerHTML = '<div style="color:var(--sub);font-size:13px;">Nessun utente trovato.</div>';
+      return;
+    }
+    el.innerHTML = lista.map(u => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--bordo);border-radius:10px;background:#fff;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--testo);">${u.nome} ${u.cognome || ''}</div>
+          <div style="font-size:11px;color:var(--sub);">${u.email || ''}</div>
+        </div>
+        <button class="btn-azione btn-link" onclick="salvaCollegamento('utente','${u.id.toString().replace(/'/g,"\\'")}')">Collega</button>
+      </div>`).join('');
+  }
+
+  function renderCollegaUtenti() { _renderCollegaUtenti(); }
+
+  function _renderCollegaAttuali() {
+    const s = _sessCorrente();
+    const catCollegate    = s ? (s.categorie_collegate || []) : [];
+    const utentiCollegati = s ? (s.utenti_collegati    || []) : [];
+    const el = document.getElementById('collegaAttuali');
+    if (!catCollegate.length && !utentiCollegati.length) {
+      el.innerHTML = '<div style="color:var(--sub);font-size:12px;">Nessun collegamento attivo.</div>';
+      return;
+    }
+    let html = '<div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--sub-2);margin-bottom:8px;">Collegati ora</div>';
+    catCollegate.forEach(c => {
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-3);border-radius:8px;margin-bottom:6px;">
+        <span style="font-size:13px;">📂 ${c}</span>
+        <button class="btn-azione btn-delete" onclick="rimuoviCollegamento('categoria','${c.replace(/'/g,"\\'")}')">Rimuovi</button>
+      </div>`;
+    });
+    utentiCollegati.forEach(uid => {
+      const u = _allUtentiCollega.find(x => x.id == uid);
+      const label = u ? `${u.nome} ${u.cognome || ''}` : uid;
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-3);border-radius:8px;margin-bottom:6px;">
+        <span style="font-size:13px;">👤 ${label}</span>
+        <button class="btn-azione btn-delete" onclick="rimuoviCollegamento('utente','${uid.toString().replace(/'/g,"\\'")}')">Rimuovi</button>
+      </div>`;
+    });
+    el.innerHTML = html;
+  }
+
+  async function salvaCollegamento(tipo, valore) {
+    const r = await fetch(`/api/calendario/${_collegaSessioneId}/collega`, {
+      method: 'POST',
+      headers: { ...headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo, valore })
+    });
+    if (!r.ok) { alert('Errore collegamento.'); return; }
+    const s = _sessCorrente();
+    if (s) {
+      if (tipo === 'categoria') s.categorie_collegate = [...(s.categorie_collegate || []), valore];
+      else s.utenti_collegati = [...(s.utenti_collegati || []), valore];
+    }
+    _renderCollegaModal();
+    renderCalMese();
+  }
+
+  async function rimuoviCollegamento(tipo, valore) {
+    const r = await fetch(`/api/calendario/${_collegaSessioneId}/collega`, {
+      method: 'DELETE',
+      headers: { ...headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo, valore })
+    });
+    if (!r.ok) { alert('Errore rimozione.'); return; }
+    const s = _sessCorrente();
+    if (s) {
+      if (tipo === 'categoria') s.categorie_collegate = (s.categorie_collegate || []).filter(c => c !== valore);
+      else s.utenti_collegati = (s.utenti_collegati || []).filter(u => u != valore);
+    }
+    _renderCollegaModal();
+    renderCalMese();
   }
 
   /* ══ INIT ══ */
@@ -3197,102 +3626,224 @@
   }
 
   /* ══ UTENTI ══ */
-  let _filtroUtenti = '';
-  function filtraUtenti(stato) {
-    if (stato !== undefined) {
-      _filtroUtenti = stato;
-      document.querySelectorAll('[id^="uFiltro"]').forEach(b => b.classList.remove('on'));
-      const map = {'':'uFiltroTutti','in_attesa':'uFiltroAttesa','approvato':'uFiltroApprovato','attivo':'uFiltroAttivo','rifiutato':'uFiltroRifiutato'};
-      document.getElementById(map[stato])?.classList.add('on');
-    }
-    caricaUtenti();
-  }
+  let _utentiFedSelected   = null;
+  let _utentiFedCatSel     = null;
+  let _utentiAllCache      = [];
+  let _utentiOpesCategorie = [];
+  let _utentiFiltroStato   = '';
 
   async function caricaUtenti() {
-    const tbody = document.getElementById('utentiBody');
+    const grid = document.getElementById('utentiFedGrid');
+    grid.innerHTML = '<div style="color:#9ca3af;padding:16px;">Caricamento…</div>';
+    _catListCache = null; // force fresh load to pick up campionato field
     try {
-      let list = await fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json());
-      if (_filtroUtenti) list = list.filter(u => u.stato === _filtroUtenti);
-      const q = (document.getElementById('uSearchInput')?.value || '').toLowerCase().trim();
-      if (q) list = list.filter(u => `${u.nome} ${u.cognome} ${u.email}`.toLowerCase().includes(q));
-      const tipo = document.getElementById('uTipoSelect')?.value || '';
-      if (tipo === 'atleta') list = list.filter(u => u.is_atleta);
-      if (tipo === 'allenatore') list = list.filter(u => u.is_allenatore);
-      if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:#999;">Nessun utente trovato.</td></tr>';
-        return;
-      }
-      const statoBadge = s => ({
-        in_attesa:  '<span class="badge badge-arancio">In attesa</span>',
-        approvato:  '<span class="badge badge-blu">Email inviata</span>',
-        attivo:     '<span class="badge badge-verde">Attivo</span>',
-        rifiutato:  '<span class="badge" style="background:#fef2f2;color:#b91c1c;">❌ Rifiutato</span>',
-      }[s] || `<span class="badge">${s}</span>`);
-      const tipoBadge = u => {
-        const tags = [];
-        if (u.is_atleta) {
-          const sq = Array.isArray(u.squadre_atleta) ? u.squadre_atleta : [];
-          let ruoloMapA = {};
-          try { ruoloMapA = JSON.parse(u.ruolo_atleta || '{}'); } catch { ruoloMapA = {}; }
-          const incarichiStrA = sq.map(s => ruoloMapA[s] ? `${s} (${ruoloMapA[s]})` : s).join(', ');
-          tags.push(`<div style="margin-bottom:2px;"><span class="badge badge-verde" style="font-size:11px;">Atleta</span>${incarichiStrA ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${incarichiStrA}</span>` : ''}</div>`);
-        }
-        if (u.is_allenatore) {
-          const sq = Array.isArray(u.squadre_allenatore) ? u.squadre_allenatore : [];
-          let ruoloMap = {};
-          try { ruoloMap = JSON.parse(u.ruolo_allenatore || '{}'); } catch { ruoloMap = {}; }
-          const incarichiStr = sq.map(s => ruoloMap[s] ? `${s} (${ruoloMap[s]})` : s).join(', ');
-          tags.push(`<div><span class="badge badge-blu" style="font-size:11px;">Allenatore</span>${incarichiStr ? `<span style="font-size:11px;color:#374151;margin-left:4px;">${incarichiStr}</span>` : ''}</div>`);
-        }
-        return tags.length ? tags.join('') : '<span style="color:#9ca3af;font-size:12px;">—</span>';
-      };
-      window._utentiMap = Object.fromEntries(list.map(u => [u.id, u]));
-      tbody.innerHTML = list.map(u => `
-        <tr>
-          <td data-label="Utente">
-            <div>
-              <strong>${u.nome} ${u.cognome}</strong>
-              <div style="font-size:12px;color:var(--sub);margin-top:2px;">${u.email}</div>
-              ${u.telefono ? `<div style="font-size:12px;color:var(--sub);">${u.telefono}</div>` : ''}
-            </div>
+      const [fedRaw, utenti, cats] = await Promise.all([
+        fetch('/api/admin/federazioni', { headers: headers() }).then(r => r.json()),
+        fetch('/api/admin/utenti',      { headers: headers() }).then(r => r.json()),
+        _loadCats(),
+      ]);
+      _utentiOpesCategorie = fedRaw.opes || [];
+      _utentiAllCache = Array.isArray(utenti) ? utenti : [];
+      window._utentiMap = Object.fromEntries(_utentiAllCache.map(u => [u.id, u]));
+      renderUtentiFedGrid();
+    } catch { grid.innerHTML = '<div style="color:#dc2626;padding:16px;">Errore caricamento.</div>'; }
+  }
+
+  function renderUtentiFedGrid() {
+    _utentiFedSelected = null;
+    document.getElementById('utentiFedView').style.display = 'none';
+    document.getElementById('utentiTuttiView').style.display = 'none';
+    const grid = document.getElementById('utentiFedGrid');
+    grid.style.display = 'grid';
+    const cats = _catListCache || [];
+    const opesCats = new Set(_utentiOpesCategorie);
+    // Use cat.campionato if set, otherwise fall back to OPES names from API
+    const fipavCats    = cats.filter(c => c.campionato ? c.campionato === 'FIPAV' : !opesCats.has(c.nome));
+    const opesCatsList = cats.filter(c => c.campionato ? c.campionato === 'OPES'  :  opesCats.has(c.nome));
+    const countFed = catList => {
+      const names = new Set(catList.map(c => c.nome));
+      return _utentiAllCache.filter(u =>
+        (u.squadre_atleta    || []).some(s => names.has(s)) ||
+        (u.squadre_allenatore|| []).some(s => names.has(s))
+      ).length;
+    };
+    const fedCards = [
+      { id:'FIPAV', ico:'🏐', cats:fipavCats    },
+      { id:'OPES',  ico:'🏆', cats:opesCatsList },
+    ].map(f => `
+      <div class="cal-cat-card" onclick="apriUtentiFed('${f.id}')">
+        <div class="cat-ico">${f.ico}</div>
+        <div class="cat-nome">${f.id}</div>
+        <div class="cat-sub">${f.cats.length} categorie</div>
+        <div class="cat-pross">${countFed(f.cats)} utenti</div>
+      </div>`).join('');
+    const tuttiCard = `<div class="cal-cat-card" onclick="apriUtentiTutti()" style="grid-column:1/-1;display:flex;flex-direction:row;gap:16px;align-items:center;">
+      <div class="cat-ico" style="margin-bottom:0;font-size:24px;">👤</div>
+      <div style="flex:1;">
+        <div class="cat-nome">Tutti gli utenti</div>
+        <div class="cat-sub">Ricerca su tutti gli utenti registrati</div>
+      </div>
+      <div class="cat-pross">${_utentiAllCache.length} totali</div>
+    </div>`;
+    grid.innerHTML = fedCards + tuttiCard;
+  }
+
+  function apriUtentiFed(fed) {
+    _utentiFedSelected = fed;
+    document.getElementById('utentiFedGrid').style.display = 'none';
+    document.getElementById('utentiFedView').style.display = 'block';
+    document.getElementById('utentiFedNome').textContent = fed;
+    document.getElementById('utentiFedCatView').style.display = 'none';
+    renderUtentiFedCatGrid();
+  }
+
+  function chiudiUtentiFed() {
+    renderUtentiFedGrid();
+  }
+
+  function apriUtentiTutti() {
+    document.getElementById('utentiFedGrid').style.display = 'none';
+    document.getElementById('utentiTuttiView').style.display = 'block';
+    document.getElementById('uTuttiSearch').value = '';
+    renderUtentiTutti();
+  }
+
+  function chiudiUtentiTutti() {
+    document.getElementById('utentiTuttiView').style.display = 'none';
+    renderUtentiFedGrid();
+  }
+
+  function renderUtentiTutti() {
+    const el = document.getElementById('utentiTuttiList');
+    const q = (document.getElementById('uTuttiSearch')?.value || '').toLowerCase().trim();
+    let list = _utentiAllCache;
+    if (q) list = list.filter(u => `${u.nome} ${u.cognome || ''} ${u.email || ''}`.toLowerCase().includes(q));
+    if (!list.length) {
+      el.innerHTML = '<div style="color:#9ca3af;padding:20px;text-align:center;font-size:13px;">Nessun utente trovato.</div>';
+      return;
+    }
+    const statoDot = s => ({ in_attesa:'#f59e0b', approvato:'#3b82f6', attivo:'#16a34a', rifiutato:'#dc2626' }[s] || '#9ca3af');
+    el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="background:#f1f5f9;">
+        <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#374151;letter-spacing:.5px;text-transform:uppercase;">Utente</th>
+        <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#374151;letter-spacing:.5px;text-transform:uppercase;">Email</th>
+        <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#374151;letter-spacing:.5px;text-transform:uppercase;">Tipo</th>
+        <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#374151;letter-spacing:.5px;text-transform:uppercase;">Stato</th>
+        <th style="padding:10px 12px;width:90px;"></th>
+      </tr></thead>
+      <tbody>${list.map(u => `
+        <tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:10px 12px;font-weight:700;color:#0d2055;">
+            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${statoDot(u.stato)};margin-right:7px;vertical-align:middle;"></span>${u.nome} ${u.cognome || ''}
           </td>
-          <td data-label="Tipo / Stato">
-            <div>
-              ${tipoBadge(u)}
-              <div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                ${statoBadge(u.stato)}
-                <span style="font-size:11px;color:#9ca3af;">${u.created_at ? new Date(u.created_at).toLocaleDateString('it-IT') : ''}</span>
-              </div>
-            </div>
+          <td style="padding:10px 12px;color:#6b7280;">${u.email || '—'}</td>
+          <td style="padding:10px 12px;">
+            ${u.is_atleta     ? '<span class="badge badge-verde"  style="font-size:10px;">Atleta</span>'     : ''}
+            ${u.is_allenatore ? '<span class="badge badge-blu"    style="font-size:10px;">Allenatore</span>' : ''}
           </td>
-          <td data-label="Azioni">
-            <div class="azioni" style="gap:6px;flex-wrap:wrap;">
-              <button onclick="apriModalTipoUtente('${u.id}')"
-                style="padding:6px 12px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#374151;font-size:12px;font-weight:700;cursor:pointer;">
-                Tipo
-              </button>
-              ${u.stato === 'in_attesa' ? `
-                <button onclick="approvaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
-                  style="padding:6px 12px;border-radius:8px;border:1.5px solid #86efac;background:#fff;color:#16a34a;font-size:12px;font-weight:700;cursor:pointer;">
-                  Approva
-                </button>
-                <button onclick="rifiutaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
-                  style="padding:6px 12px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;">
-                  Rifiuta
-                </button>` : ''}
-              ${u.stato === 'approvato' ? `
-                <button onclick="approvaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
-                  style="padding:6px 12px;border-radius:8px;border:1.5px solid #93c5fd;background:#fff;color:#1d4ed8;font-size:12px;font-weight:700;cursor:pointer;">
-                  Reinvia link
-                </button>` : ''}
-              <button onclick="eliminaUtente('${u.id}','${(u.nome+' '+u.cognome).replace(/'/g,"\\'")}')"
-                style="padding:6px 12px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:12px;cursor:pointer;">
-                Elimina
-              </button>
-            </div>
-          </td>
-        </tr>`).join('');
-    } catch(e) { tbody.innerHTML = '<tr><td colspan="3">Errore caricamento utenti.</td></tr>'; }
+          <td style="padding:10px 12px;font-size:12px;color:#6b7280;">${u.stato || '—'}</td>
+          <td style="padding:10px 12px;"><button class="btn-azione btn-edit" onclick="apriVisualizzaUtente('${u.id}')">Visualizza</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function renderUtentiFedCatGrid() {
+    const cats = _catListCache || [];
+    const opesCats = new Set(_utentiOpesCategorie);
+    const filtered = _utentiFedSelected === 'OPES'
+      ? cats.filter(c => c.campionato ? c.campionato === 'OPES'  :  opesCats.has(c.nome))
+      : cats.filter(c => c.campionato ? c.campionato === 'FIPAV' : !opesCats.has(c.nome));
+    const grid = document.getElementById('utentiFedCatGrid');
+    grid.style.display = 'grid';
+    if (!filtered.length) { grid.innerHTML = '<div style="color:#9ca3af;padding:16px;">Nessuna categoria.</div>'; return; }
+    grid.innerHTML = filtered.map(cat => {
+      const count = _utentiAllCache.filter(u =>
+        (u.squadre_atleta    || []).includes(cat.nome) ||
+        (u.squadre_allenatore|| []).includes(cat.nome)
+      ).length;
+      return `<div class="cal-cat-card" onclick="apriUtentiFedCat('${cat.nome.replace(/'/g,"\\'")}')">
+        <div class="cat-ico">👥</div>
+        <div class="cat-nome">${cat.nome}</div>
+        <div class="cat-sub">${count} utenti</div>
+      </div>`;
+    }).join('');
+  }
+
+  function apriUtentiFedCat(catNome) {
+    _utentiFedCatSel = catNome;
+    _utentiFiltroStato = '';
+    document.getElementById('utentiFedCatGrid').style.display = 'none';
+    document.getElementById('utentiFedCatView').style.display = 'block';
+    document.getElementById('utentiFedCatNome').textContent = catNome;
+    document.getElementById('uSearchInput').value = '';
+    setUFiltro('');
+  }
+
+  function chiudiUtentiFedCat() {
+    _utentiFedCatSel = null;
+    document.getElementById('utentiFedCatView').style.display = 'none';
+    document.getElementById('utentiFedCatGrid').style.display = 'grid';
+  }
+
+  function setUFiltro(stato) {
+    _utentiFiltroStato = stato;
+    ['uFiltroTutti','uFiltroAttesa','uFiltroApprovato','uFiltroAttivo','uFiltroRifiutato'].forEach(id => document.getElementById(id)?.classList.remove('on'));
+    const map = {'':'uFiltroTutti','in_attesa':'uFiltroAttesa','approvato':'uFiltroApprovato','attivo':'uFiltroAttivo','rifiutato':'uFiltroRifiutato'};
+    document.getElementById(map[stato] || 'uFiltroTutti')?.classList.add('on');
+    renderUtentiFedList();
+  }
+
+  function renderUtentiFedList() {
+    const el = document.getElementById('utentiFedList');
+    let list = _utentiAllCache.filter(u =>
+      (u.squadre_atleta    || []).includes(_utentiFedCatSel) ||
+      (u.squadre_allenatore|| []).includes(_utentiFedCatSel)
+    );
+    if (_utentiFiltroStato) list = list.filter(u => u.stato === _utentiFiltroStato);
+    const q = (document.getElementById('uSearchInput')?.value || '').toLowerCase().trim();
+    if (q) list = list.filter(u => `${u.nome} ${u.cognome} ${u.email}`.toLowerCase().includes(q));
+    if (!list.length) { el.innerHTML = '<div style="color:#9ca3af;padding:20px;text-align:center;font-size:13px;">Nessun utente trovato.</div>'; return; }
+    const statoDot = s => ({ in_attesa:'#f59e0b', approvato:'#3b82f6', attivo:'#16a34a', rifiutato:'#dc2626' }[s] || '#9ca3af');
+    el.innerHTML = list.map(u => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1.5px solid var(--bordo);border-radius:12px;background:#fff;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:${statoDot(u.stato)};flex-shrink:0;display:inline-block;"></span>
+          <span style="font-size:14px;font-weight:700;color:var(--testo);">${u.nome} ${u.cognome || ''}</span>
+          ${u.is_atleta     ? '<span class="badge badge-verde"  style="font-size:10px;">Atleta</span>'     : ''}
+          ${u.is_allenatore ? '<span class="badge badge-blu"    style="font-size:10px;">Allenatore</span>' : ''}
+        </div>
+        <button class="btn-azione btn-edit" onclick="apriVisualizzaUtente('${u.id}')">Visualizza</button>
+      </div>`).join('');
+  }
+
+  function apriVisualizzaUtente(id) {
+    const u = window._utentiMap?.[id];
+    if (!u) return;
+    const statoBadge = s => ({
+      in_attesa: '<span class="badge badge-arancio">In attesa</span>',
+      approvato: '<span class="badge badge-blu">Email inviata</span>',
+      attivo:    '<span class="badge badge-verde">Attivo</span>',
+      rifiutato: '<span class="badge" style="background:#fef2f2;color:#b91c1c;">Rifiutato</span>',
+    }[s] || `<span class="badge">${s}</span>`);
+    const nomeCompleto = `${u.nome} ${u.cognome || ''}`.trim();
+    const modal = document.getElementById('modalVisualizzaUtente');
+    document.getElementById('vuNome').textContent = nomeCompleto;
+    document.getElementById('vuEmail').textContent = u.email || '—';
+    document.getElementById('vuTelefono').textContent = u.telefono || '—';
+    document.getElementById('vuStato').innerHTML = statoBadge(u.stato);
+    const sq = [...(u.squadre_atleta || []).map(s => `${s} (atleta)`), ...(u.squadre_allenatore || []).map(s => `${s} (allenatore)`)];
+    document.getElementById('vuSquadre').textContent = sq.join(', ') || '—';
+    const btns = document.getElementById('vuAzioni');
+    btns.innerHTML = `
+      <button onclick="apriModalTipoUtente('${u.id}')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#374151;font-size:13px;font-weight:700;cursor:pointer;">Tipo</button>
+      ${u.stato === 'in_attesa' ? `
+        <button onclick="approvaUtente('${u.id}','${nomeCompleto.replace(/'/g,"\\'")}')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #86efac;background:#fff;color:#16a34a;font-size:13px;font-weight:700;cursor:pointer;">Approva</button>
+        <button onclick="rifiutaUtente('${u.id}','${nomeCompleto.replace(/'/g,"\\'")}')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">Rifiuta</button>` : ''}
+      ${u.stato === 'approvato' ? `
+        <button onclick="approvaUtente('${u.id}','${nomeCompleto.replace(/'/g,"\\'")}')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #93c5fd;background:#fff;color:#1d4ed8;font-size:13px;font-weight:700;cursor:pointer;">Reinvia link</button>` : ''}
+      <button onclick="eliminaUtente('${u.id}','${nomeCompleto.replace(/'/g,"\\'")}')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:13px;cursor:pointer;">Elimina</button>`;
+    modal.classList.add('aperto');
   }
 
   async function approvaUtente(id, nome) {
@@ -3668,7 +4219,7 @@
       return;
     }
     el.innerHTML = `<table class="cat-sq-table">
-      <thead><tr><th>Squadra</th><th>Macro-categoria</th><th style="width:120px"></th></tr></thead>
+      <thead><tr><th>Squadra</th><th>Macro-categoria</th><th>Campionato</th><th style="width:120px"></th></tr></thead>
       <tbody>
         ${list.map(sq => `
           <tr id="csq-row-${sq.nome.replace(/[^a-z0-9]/gi,'_')}">
@@ -3681,6 +4232,13 @@
                 <option value="">— non assegnata —</option>
                 <option value="Seniores" ${sq.categoria==='Seniores'?'selected':''}>Seniores</option>
                 <option value="Giovanili" ${sq.categoria==='Giovanili'?'selected':''}>Giovanili</option>
+              </select>
+            </td>
+            <td>
+              <select class="cat-sq-camp" data-nome="${sq.nome.replace(/"/g,'&quot;')}">
+                <option value="">— —</option>
+                <option value="FIPAV" ${sq.campionato==='FIPAV'?'selected':''}>FIPAV</option>
+                <option value="OPES"  ${sq.campionato==='OPES' ?'selected':''}>OPES</option>
               </select>
             </td>
             <td>
@@ -3762,15 +4320,21 @@
   }
 
   async function salvaCatSquadreMapping() {
-    const body = {};
+    const cat_mappa = {};
     document.querySelectorAll('.cat-sq-sel[data-nome]').forEach(sel => {
-      body[sel.dataset.nome] = sel.value;
+      cat_mappa[sel.dataset.nome] = sel.value;
     });
+    const campionato_mappa = {};
+    document.querySelectorAll('.cat-sq-camp[data-nome]').forEach(sel => {
+      campionato_mappa[sel.dataset.nome] = sel.value;
+    });
+    // Invalidate cat cache so utenti section picks up new campionato values
+    _catListCache = null;
     try {
       const res = await fetch('/api/admin/squadre-categorie', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ cat_mappa, campionato_mappa }),
       });
       const data = await res.json();
       const log = document.getElementById('catSquadreLog');
@@ -3789,18 +4353,34 @@
   }
 
   /* ══ SESSIONI ══ */
-  let _sessioniAll = [];
+  let _sessioniAll    = [];
   let _sessioniFiltro = '';
+  let _sessWeekStart  = null;
+  let _sessDaySelected = null;
+  let _sessWeekData   = {};
+
+  function _sessLunedi(d) {
+    const d2 = new Date(d); d2.setHours(0,0,0,0);
+    const day = d2.getDay();
+    d2.setDate(d2.getDate() + (day === 0 ? -6 : 1 - day));
+    return d2;
+  }
+  function _ds(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
   async function caricaSessioni() {
-    document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9ca3af">Caricamento…</td></tr>';
     chiudiSessioniDetail();
+    document.getElementById('sessWeekDayList').innerHTML = '';
     try {
       const r = await fetch('/api/admin/calendario/sessioni', { headers: headers() });
       _sessioniAll = await r.json();
-      renderSessioni();
+      if (!_sessWeekStart) _sessWeekStart = _sessLunedi(new Date());
+      if (!_sessDaySelected) _sessDaySelected = _ds(new Date());
+      _buildSessWeekData();
+      renderProssimaSess();
+      renderSessWeek();
+      renderSessDay(_sessDaySelected);
     } catch {
-      document.getElementById('sessioniBody').innerHTML = '<tr><td colspan="6" style="color:#dc2626;text-align:center;padding:24px">Errore di caricamento.</td></tr>';
+      document.getElementById('sessWeekDayList').innerHTML = '<div style="color:#dc2626;padding:16px">Errore di caricamento.</div>';
     }
   }
 
@@ -3809,31 +4389,99 @@
     document.querySelectorAll('#pan-sessioni .filtro-btn').forEach(b => b.classList.remove('on'));
     const ids = {'':"sfTutti",'allenamento':"sfAllenamento",'evento':"sfEvento"};
     if (ids[tipo]) document.getElementById(ids[tipo]).classList.add('on');
-    renderSessioni();
+    _buildSessWeekData();
+    renderSessWeek();
+    renderSessDay(_sessDaySelected);
     chiudiSessioniDetail();
   }
 
-  function renderSessioni() {
+  function _buildSessWeekData() {
+    _sessWeekData = {};
     const list = _sessioniFiltro ? _sessioniAll.filter(s => s.tipo === _sessioniFiltro) : _sessioniAll;
-    const tbody = document.getElementById('sessioniBody');
-    if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:#9ca3af">Nessuna sessione.</td></tr>';
+    list.forEach(s => { if (!_sessWeekData[s.data]) _sessWeekData[s.data] = []; _sessWeekData[s.data].push(s); });
+  }
+
+  function renderProssimaSess() {
+    const oggi   = _ds(new Date());
+    const future = _sessioniAll.filter(s => s.data >= oggi).sort((a,b) => a.data.localeCompare(b.data));
+    const el = document.getElementById('prossimaSess');
+    if (!future.length) {
+      el.innerHTML = '<div style="font-size:13px;color:#9ca3af;margin-bottom:16px;">Nessuna prossima sessione programmata.</div>';
       return;
     }
-    tbody.innerHTML = list.map(s => {
-      const tipoBadge = s.tipo === 'evento'
-        ? '<span style="background:#fce7f3;color:#be185d;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">Evento</span>'
-        : '<span style="background:#dbeafe;color:#1d4ed8;font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px;">Allenamento</span>';
-      const d = new Date(s.data + 'T00:00:00').toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short' });
-      return `<tr>
-        <td data-label="Data / Orario" style="white-space:nowrap">${d}${s.ora ? ' · ' + s.ora : ''}</td>
-        <td data-label="Titolo" style="font-weight:600">${s.titolo}</td>
-        <td data-label="Tipo">${tipoBadge}</td>
-        <td data-label="Categoria" style="color:#6b7280;font-size:13px">${s.categoria || '—'}</td>
-        <td data-label="Partecipanti"><span style="color:#16a34a;font-weight:700">${s.partecipanti_si} sì</span> / <span style="color:#dc2626;font-weight:700">${s.partecipanti_no} no</span></td>
-        <td data-label="Azioni"><button onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')" style="padding:5px 12px;border-radius:7px;border:1px solid #0d2055;background:#fff;color:#0d2055;font-size:12px;font-weight:700;cursor:pointer;">Vedi</button></td>
-      </tr>`;
-    }).join('');
+    const s = future[0];
+    const d = new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+    el.innerHTML = `<div class="prossima-sess-banner">
+      <div class="psb-ico">${s.tipo==='evento'?'🏆':'🏐'}</div>
+      <div class="psb-info">
+        <div class="psb-label">Prossima sessione</div>
+        <div class="psb-titolo">${s.titolo}</div>
+        <div class="psb-sub">${d}${s.ora?' · '+s.ora:''}${s.categoria?' · '+s.categoria:''}${s.luogo?' · '+s.luogo:''}</div>
+      </div>
+      <button class="psb-vedi" onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')">Vedi →</button>
+    </div>`;
+  }
+
+  function sessWeekShift(n) {
+    _sessWeekStart = new Date(_sessWeekStart.getTime() + n*7*86400000);
+    renderSessWeek();
+    renderSessDay(null);
+  }
+
+  function sessWeekOggi() {
+    _sessWeekStart   = _sessLunedi(new Date());
+    _sessDaySelected = _ds(new Date());
+    renderSessWeek();
+    renderSessDay(_sessDaySelected);
+  }
+
+  function renderSessWeek() {
+    if (!_sessWeekStart) return;
+    const DOW      = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+    const MESI     = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    const todayStr = _ds(new Date());
+    let html = '<div class="sess-week-strip">';
+    for (let i = 0; i < 7; i++) {
+      const d  = new Date(_sessWeekStart.getTime() + i*86400000);
+      const ds = _ds(d);
+      const evs = _sessWeekData[ds] || [];
+      html += `<div class="swc${ds===todayStr?' today':''}${ds===_sessDaySelected?' selected':''}" onclick="renderSessDay('${ds}')">
+        <div class="swc-dow">${DOW[i]}</div>
+        <div class="swc-day">${d.getDate()}</div>
+        ${evs.length ? '<div class="swc-dot"></div>' : ''}
+      </div>`;
+    }
+    html += '</div>';
+    const end = new Date(_sessWeekStart.getTime() + 6*86400000);
+    document.getElementById('sessWeekLabel').textContent =
+      `${_sessWeekStart.getDate()} ${MESI[_sessWeekStart.getMonth()]} – ${end.getDate()} ${MESI[end.getMonth()]} ${end.getFullYear()}`;
+    document.getElementById('sessWeekStripContainer').innerHTML = html;
+  }
+
+  function renderSessDay(ds) {
+    if (ds) _sessDaySelected = ds;
+    renderSessWeek();
+    if (!_sessDaySelected) { document.getElementById('sessWeekDayList').innerHTML = ''; return; }
+    const evs = _sessWeekData[_sessDaySelected] || [];
+    const el  = document.getElementById('sessWeekDayList');
+    const d   = new Date(_sessDaySelected+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+    if (!evs.length) {
+      el.innerHTML = `<div style="font-size:13px;color:#9ca3af;padding:16px;text-align:center;background:#f8fafc;border-radius:12px;border:1px solid #e5e7eb;">${d} — Nessuna sessione</div>`;
+      return;
+    }
+    el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#0d2055;margin-bottom:12px;">${d}</div>
+      <div class="sess-day-list">${evs.map(s => `
+        <div class="sess-day-item">
+          <div class="sdi-dot${s.tipo==='evento'?' evento':''}"></div>
+          <div class="sdi-info">
+            <div class="sdi-titolo">${s.titolo}</div>
+            <div class="sdi-sub">${s.categoria||''}${s.ora?' · '+s.ora:''}${s.luogo?' · '+s.luogo:''}</div>
+          </div>
+          <span class="sdi-badge ${s.tipo==='evento'?'evento':'allenamento'}">${s.tipo==='evento'?'Evento':'Allenamento'}</span>
+          <span style="color:#16a34a;font-weight:700;font-size:12px;">${s.partecipanti_si} sì</span>
+          <button class="sdi-vedi" onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')">Vedi</button>
+        </div>`).join('')}
+      </div>`;
   }
 
   async function apriPartecipanti(sessioneId, titolo, data) {

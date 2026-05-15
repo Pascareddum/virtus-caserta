@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestione atleti – Virtus Caserta</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f7f8fa;min-height:100vh;display:flex;flex-direction:column;}
+    .page-wrap{flex:1;max-width:660px;width:100%;margin:0 auto;padding:32px 20px 80px;}
+
+    .top-bar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:24px;}
+    .top-left{display:flex;align-items:center;gap:14px;}
+    .btn-back{display:inline-flex;align-items:center;gap:6px;color:#0d2055;text-decoration:none;
+      font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;border:1.5px solid #e9ecf0;
+      background:#fff;transition:all .2s;}
+    .btn-back:hover{border-color:#0d2055;background:#eef4ff;}
+    .page-title{font-size:20px;font-weight:800;color:#0d2055;letter-spacing:-.02em;}
+
+    /* ── Search + filter bar ── */
+    .toolbar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+    .search-wrap{flex:1;min-width:180px;position:relative;}
+    .search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none;}
+    .search-wrap input{width:100%;padding:10px 14px 10px 38px;border:1.5px solid #e9ecf0;border-radius:12px;
+      font-size:14px;font-family:inherit;outline:none;background:#fff;transition:border-color .2s;}
+    .search-wrap input:focus{border-color:#0d2055;}
+    .filter-select{padding:10px 14px;border:1.5px solid #e9ecf0;border-radius:12px;font-size:13px;
+      font-family:inherit;outline:none;background:#fff;color:#374151;cursor:pointer;transition:border-color .2s;}
+    .filter-select:focus{border-color:#0d2055;}
+
+    /* ── Summary strip ── */
+    .summary-strip{display:flex;gap:10px;margin-bottom:18px;}
+    .sum-pill{flex:1;background:#fff;border-radius:12px;border:1.5px solid #e9ecf0;padding:12px 16px;text-align:center;
+      box-shadow:0 1px 6px rgba(13,32,85,.04);}
+    .sum-num{font-size:20px;font-weight:800;color:#0d2055;}
+    .sum-lbl{font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+
+    /* ── Athletes list ── */
+    .atleti-section{background:#fff;border-radius:18px;border:1.5px solid #e9ecf0;overflow:hidden;
+      box-shadow:0 2px 16px rgba(13,32,85,.05);}
+    .atleti-header{padding:14px 20px 12px;border-bottom:1.5px solid #e9ecf0;display:flex;align-items:center;justify-content:space-between;}
+    .atleti-title{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#0d2055;}
+    .atleti-count{font-size:11px;color:#9ca3af;font-weight:600;}
+    .atleta-row{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #f1f5f9;
+      cursor:pointer;transition:background .12s;}
+    .atleta-row:last-child{border-bottom:none;}
+    .atleta-row:hover{background:#f9fafb;}
+    .atleta-row.expanded{background:#fafcff;}
+    .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(140deg,#0d2055,#1e4bd8);
+      display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+    .atleta-info{flex:1;min-width:0;}
+    .atleta-name{font-size:14px;font-weight:700;color:#111827;}
+    .atleta-sub{font-size:12px;color:#9ca3af;margin-top:2px;display:flex;flex-wrap:wrap;gap:6px;}
+    .cat-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:#eef4ff;color:#1d4ed8;}
+    .presenze-bar{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .pct-label{font-size:12px;font-weight:700;color:#374151;width:34px;text-align:right;}
+    .pct-track{width:50px;height:5px;background:#e9ecf0;border-radius:3px;overflow:hidden;}
+    .pct-fill{height:100%;border-radius:3px;background:#16a34a;transition:width .3s;}
+    .pct-fill.mid{background:#f59e0b;}
+    .pct-fill.low{background:#dc2626;}
+    .expand-ico{color:#d1d5db;font-size:14px;transition:transform .2s;flex-shrink:0;}
+    .atleta-row.expanded .expand-ico{transform:rotate(90deg);}
+
+    /* ── Expanded detail ── */
+    .atleta-detail{display:none;padding:12px 20px 16px 76px;background:#f9fafb;border-bottom:1px solid #f1f5f9;}
+    .atleta-detail.open{display:block;}
+    .detail-grid{display:flex;flex-wrap:wrap;gap:10px 24px;margin-bottom:12px;}
+    .detail-field{display:flex;flex-direction:column;gap:1px;}
+    .detail-lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;}
+    .detail-val{font-size:13px;font-weight:600;color:#374151;}
+    .detail-actions{display:flex;gap:8px;}
+    .btn-sm{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;border:none;}
+    .btn-sm.primary{background:#0d2055;color:#fff;}
+    .btn-sm.primary:hover{background:#1535a8;}
+    .btn-sm.danger{background:#fff;color:#dc2626;border:1.5px solid #fee2e2;}
+    .btn-sm.danger:hover{background:#fef2f2;}
+    .btn-sm.secondary{background:#fff;color:#374151;border:1.5px solid #e9ecf0;}
+    .btn-sm.secondary:hover{background:#f9fafb;}
+
+    /* ── Empty / loading ── */
+    .list-empty{padding:48px 20px;text-align:center;color:#9ca3af;font-size:13px;font-weight:600;}
+    .spin{display:inline-block;width:18px;height:18px;border:2.5px solid #e2e8f0;border-top-color:#0d2055;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── FAB add ── */
+    .fab{position:fixed;bottom:28px;right:24px;width:52px;height:52px;border-radius:50%;
+      background:#f57c00;color:#fff;border:none;font-size:26px;cursor:pointer;
+      box-shadow:0 4px 20px rgba(245,124,0,.4);display:flex;align-items:center;justify-content:center;
+      transition:transform .2s,box-shadow .2s;z-index:200;}
+    .fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(245,124,0,.55);}
+
+    /* ── Modal invita ── */
+    .modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);
+      backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;}
+    .modal-bg.open{display:flex;}
+    .modal-box{background:#fff;border-radius:20px;padding:26px 24px;width:100%;max-width:440px;
+      box-shadow:0 24px 64px rgba(0,0,0,.22);}
+    .mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+    .mhdr h3{font-size:17px;font-weight:800;color:#111827;}
+    .mclose{width:28px;height:28px;border-radius:50%;border:none;background:#f1f5f9;color:#6b7280;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .mclose:hover{background:#e2e8f0;}
+    .mfield{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+    .mfield label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.7px;}
+    .mfield input,.mfield select{padding:10px 13px;border:1.5px solid #e9ecf0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:100%;}
+    .mfield input:focus,.mfield select:focus{border-color:#0d2055;}
+    .mftr{display:flex;gap:10px;margin-top:4px;}
+    .btn-cancel{flex:1;padding:12px;border:1.5px solid #e9ecf0;background:none;border-radius:50px;font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;font-family:inherit;}
+    .btn-confirm{flex:2;padding:12px;border:none;background:#0d2055;color:#fff;border-radius:50px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;}
+    .btn-confirm:hover{opacity:.88;}
+    .btn-confirm:disabled{opacity:.5;cursor:not-allowed;}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#111827;color:#fff;
+      padding:10px 20px;border-radius:50px;font-size:13px;font-weight:600;opacity:0;transition:transform .3s,opacity .3s;z-index:900;white-space:nowrap;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .toast.err{background:#dc2626;}
+
+    @media(max-width:480px){
+      .page-wrap{padding:20px 14px 80px;}
+      .atleta-detail{padding-left:20px;}
+      .presenze-bar{display:none;}
+      .summary-strip{gap:6px;}
+      .sum-pill{padding:10px 12px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="top-bar">
+      <div class="top-left">
+        <a href="gestione-squadra.html" class="btn-back">← Squadra</a>
+        <h1 class="page-title">Gestione atleti</h1>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input type="text" id="searchInput" placeholder="Cerca atleta…" oninput="filtra()">
+      </div>
+      <select class="filter-select" id="catFilter" onchange="filtra()">
+        <option value="">Tutte le categorie</option>
+      </select>
+    </div>
+
+    <div class="summary-strip" id="summaryStrip" style="display:none;">
+      <div class="sum-pill"><div class="sum-num" id="sumTotale">0</div><div class="sum-lbl">Atleti</div></div>
+      <div class="sum-pill"><div class="sum-num" id="sumPresenza" style="color:#16a34a">—%</div><div class="sum-lbl">Presenza media</div></div>
+      <div class="sum-pill"><div class="sum-num" id="sumConvocabili" style="color:#f57c00">0</div><div class="sum-lbl">Convocabili</div></div>
+    </div>
+
+    <div class="atleti-section">
+      <div class="atleti-header">
+        <span class="atleti-title">Rosa</span>
+        <span class="atleti-count" id="atletiCount">—</span>
+      </div>
+      <div id="atletiList">
+        <div class="list-empty"><div class="spin"></div> Caricamento…</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="fab" onclick="apriInvita()" title="Aggiungi atleta">＋</button>
+
+  <!-- Modal invita -->
+  <div class="modal-bg" id="invitaModal" onclick="chiudiInvita(event)">
+    <div class="modal-box">
+      <div class="mhdr"><h3>Aggiungi atleta</h3><button class="mclose" onclick="chiudiInvita()">✕</button></div>
+      <div class="mfield"><label>Nome *</label><input type="text" id="iNome" placeholder="Nome atleta"></div>
+      <div class="mfield"><label>Cognome *</label><input type="text" id="iCognome" placeholder="Cognome atleta"></div>
+      <div class="mfield"><label>Email</label><input type="email" id="iEmail" placeholder="email@esempio.com"></div>
+      <div class="mfield">
+        <label>Categoria *</label>
+        <select id="iCategoria">
+          <option value="">— Seleziona —</option>
+          <option>Prima Squadra</option><option>Under 19</option>
+          <option>Under 16</option><option>Under 13</option>
+        </select>
+      </div>
+      <div class="mfield"><label>Ruolo / posizione</label><input type="text" id="iRuolo" placeholder="Es. Libero, Centrale…"></div>
+      <div class="mftr">
+        <button class="btn-cancel" onclick="chiudiInvita()">Annulla</button>
+        <button class="btn-confirm" id="btnInvita" onclick="invitaAtleta()">Aggiungi</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const _tok = localStorage.getItem('vc_token');
+    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+
+    let atletiAll = [];
+    let expandedId = null;
+
+    function initials(p) { return [p.nome, p.cognome].filter(Boolean).map(s => s[0].toUpperCase()).join('') || '?'; }
+
+    function pctClass(p) { return p >= 75 ? '' : p >= 50 ? ' mid' : ' low'; }
+
+    function toast(msg, err = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+      clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    function filtra() {
+      const q   = document.getElementById('searchInput').value.toLowerCase();
+      const cat = document.getElementById('catFilter').value;
+      const filtered = atletiAll.filter(a => {
+        const nome = `${a.nome || ''} ${a.cognome || ''}`.toLowerCase();
+        const matchQ   = !q   || nome.includes(q);
+        const matchCat = !cat || (a.categoria || '') === cat;
+        return matchQ && matchCat;
+      });
+      renderLista(filtered);
+    }
+
+    function renderLista(lista) {
+      const el = document.getElementById('atletiList');
+      document.getElementById('atletiCount').textContent = lista.length + ' atleti';
+      if (!lista.length) { el.innerHTML = '<div class="list-empty">Nessun atleta trovato</div>'; return; }
+      el.innerHTML = '';
+      lista.forEach(a => {
+        const pct = a.presenze_pct ?? null;
+        const pctHtml = pct !== null
+          ? `<div class="presenze-bar">
+               <span class="pct-label">${pct}%</span>
+               <div class="pct-track"><div class="pct-fill${pctClass(pct)}" style="width:${pct}%"></div></div>
+             </div>` : '';
+        const row = document.createElement('div');
+        row.className = 'atleta-row' + (expandedId === a.id ? ' expanded' : '');
+        row.dataset.id = a.id;
+        row.innerHTML = `
+          <div class="av">${initials(a)}</div>
+          <div class="atleta-info">
+            <div class="atleta-name">${a.nome || ''} ${a.cognome || ''}</div>
+            <div class="atleta-sub">
+              ${a.categoria ? `<span class="cat-badge">${a.categoria}</span>` : ''}
+              ${a.ruolo ? `<span>${a.ruolo}</span>` : ''}
+            </div>
+          </div>
+          ${pctHtml}
+          <span class="expand-ico">›</span>`;
+        row.addEventListener('click', () => toggleDetail(a, row));
+        el.appendChild(row);
+
+        // Detail panel
+        const det = document.createElement('div');
+        det.className = 'atleta-detail' + (expandedId === a.id ? ' open' : '');
+        det.id = 'det-' + a.id;
+        det.innerHTML = `
+          <div class="detail-grid">
+            ${a.email    ? `<div class="detail-field"><div class="detail-lbl">Email</div><div class="detail-val">${a.email}</div></div>` : ''}
+            ${a.telefono ? `<div class="detail-field"><div class="detail-lbl">Telefono</div><div class="detail-val">${a.telefono}</div></div>` : ''}
+            ${a.data_nascita ? `<div class="detail-field"><div class="detail-lbl">Data nascita</div><div class="detail-val">${new Date(a.data_nascita).toLocaleDateString('it-IT')}</div></div>` : ''}
+            ${pct !== null ? `<div class="detail-field"><div class="detail-lbl">Presenze</div><div class="detail-val">${pct}%</div></div>` : ''}
+          </div>
+          <div class="detail-actions">
+            <button class="btn-sm secondary" onclick="event.stopPropagation(); window.location='comunicazioni-utente.html'">💬 Messaggio</button>
+            <button class="btn-sm danger" onclick="event.stopPropagation(); rimuoviAtleta('${a.id}','${(a.nome||'')} ${(a.cognome||'')}')">Rimuovi</button>
+          </div>`;
+        el.appendChild(det);
+      });
+    }
+
+    function toggleDetail(a, rowEl) {
+      const isOpen = expandedId === a.id;
+      // close previous
+      document.querySelectorAll('.atleta-row.expanded').forEach(r => r.classList.remove('expanded'));
+      document.querySelectorAll('.atleta-detail.open').forEach(d => d.classList.remove('open'));
+      if (isOpen) { expandedId = null; return; }
+      expandedId = a.id;
+      rowEl.classList.add('expanded');
+      const det = document.getElementById('det-' + a.id);
+      if (det) det.classList.add('open');
+    }
+
+    async function rimuoviAtleta(id, nome) {
+      if (!confirm(`Rimuovere ${nome} dalla rosa?`)) return;
+      try {
+        const r = await fetch(`/api/squadra/atleti/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${_tok}` } });
+        if (!r.ok) throw new Error('Errore ' + r.status);
+        atletiAll = atletiAll.filter(a => a.id !== id);
+        filtra();
+        toast(nome + ' rimosso dalla rosa');
+      } catch (e) { toast('Errore: ' + e.message, true); }
+    }
+
+    function apriInvita()  { document.getElementById('invitaModal').classList.add('open'); }
+    function chiudiInvita(e) {
+      if (!e || e.target === document.getElementById('invitaModal'))
+        document.getElementById('invitaModal').classList.remove('open');
+    }
+
+    async function invitaAtleta() {
+      const nome     = document.getElementById('iNome').value.trim();
+      const cognome  = document.getElementById('iCognome').value.trim();
+      const email    = document.getElementById('iEmail').value.trim();
+      const categoria = document.getElementById('iCategoria').value;
+      const ruolo    = document.getElementById('iRuolo').value.trim();
+      if (!nome || !cognome || !categoria) { alert('Nome, cognome e categoria obbligatori'); return; }
+      const btn = document.getElementById('btnInvita');
+      btn.disabled = true; btn.textContent = 'Aggiunta…';
+      try {
+        const r = await fetch('/api/squadra/atleti', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+          body: JSON.stringify({ nome, cognome, email, categoria, ruolo })
+        });
+        if (!r.ok) throw new Error('Errore ' + r.status);
+        const nuovo = await r.json();
+        atletiAll.unshift(nuovo);
+        chiudiInvita();
+        ['iNome','iCognome','iEmail','iRuolo'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('iCategoria').value = '';
+        filtra();
+        updateSummary();
+        toast(nome + ' ' + cognome + ' aggiunto');
+      } catch (e) { toast('Errore: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = 'Aggiungi'; }
+    }
+
+    function updateSummary() {
+      const n = atletiAll.length;
+      const pcts = atletiAll.filter(a => a.presenze_pct != null).map(a => a.presenze_pct);
+      const avg  = pcts.length ? Math.round(pcts.reduce((s,v) => s+v, 0) / pcts.length) : null;
+      document.getElementById('sumTotale').textContent = n;
+      document.getElementById('sumPresenza').textContent = avg !== null ? avg + '%' : '—%';
+      document.getElementById('sumConvocabili').textContent = atletiAll.filter(a => a.convocabile !== false).length;
+      document.getElementById('summaryStrip').style.display = 'flex';
+    }
+
+    async function carica() {
+      try {
+        const atleti = await fetch('/api/squadra/atleti', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        atletiAll = Array.isArray(atleti) ? atleti : [];
+
+        // Populate category filter
+        const cats = [...new Set(atletiAll.map(a => a.categoria).filter(Boolean))].sort();
+        const sel  = document.getElementById('catFilter');
+        cats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+
+        updateSummary();
+        filtra();
+      } catch {
+        document.getElementById('atletiList').innerHTML = '<div class="list-empty">Impossibile caricare gli atleti</div>';
+      }
+    }
+
+    carica();
+  </script>
+</body>
+</html>

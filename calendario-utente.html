@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Il mio calendario – Virtus Caserta</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    :root {
+      --blu: #0d2055; --blu2: #1535a8; --arancio: #f57c00;
+      --bg: #f0f4f8; --bordo: #e2e8f0; --testo: #1e293b; --sub: #64748b;
+      --ca: #0d2055; --cs: #059669; --cu: #7c3aed; --co: #ea580c; --ce: #e11d48;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--testo);min-height:100vh;}
+    nav{position:fixed;top:0;left:0;width:100%;z-index:200;background:var(--blu);height:68px;
+      display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 28px;
+      box-shadow:0 2px 20px rgba(13,32,85,.5);}
+    .nav-left{display:flex;align-items:center;justify-content:flex-start;}
+    .nav-back{color:rgba(255,255,255,.75);text-decoration:none;font-size:12px;font-weight:700;
+      letter-spacing:1.5px;text-transform:uppercase;padding:7px 14px;border-radius:8px;
+      border:1px solid rgba(255,255,255,.2);transition:all .2s;}
+    .nav-back:hover{background:rgba(255,255,255,.12);color:#fff;}
+    .nav-brand{display:flex;align-items:center;justify-content:center;text-decoration:none;}
+    .nav-brand img{height:44px;width:auto;object-fit:contain;}
+    .nav-right{display:flex;align-items:center;justify-content:flex-end;}
+    .nav-brand-label{display:none!important;}
+    .page{margin-top:68px;}
+
+    /* ── HEADER SETTIMANA ── */
+    .sett-header{background:var(--blu);padding:16px 24px 0;display:flex;flex-direction:column;gap:0;}
+    .sett-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .sett-range{font-size:16px;font-weight:800;color:#fff;letter-spacing:.5px;text-align:center;flex:1;}
+    .btn-sett-nav{background:rgba(255,255,255,.12);border:none;color:#fff;width:34px;height:34px;
+      border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+    .btn-sett-nav:hover{background:rgba(255,255,255,.24);}
+    .sett-oggi-row{display:flex;justify-content:center;padding-bottom:14px;}
+    .btn-oggi{background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.28);color:rgba(255,255,255,.85);
+      font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+      padding:6px 20px;border-radius:20px;cursor:pointer;transition:all .2s;}
+    .btn-oggi:hover{background:rgba(255,255,255,.22);color:#fff;}
+
+    /* ── BANNER FILTRO ── */
+    .filter-banner{
+      background:rgba(13,32,85,.07);border-bottom:1px solid var(--bordo);
+      padding:9px 20px;font-size:12px;color:var(--sub);font-weight:500;
+      display:flex;align-items:center;gap:8px;
+    }
+    .filter-banner strong{color:var(--testo);}
+    .filter-badge{
+      display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;
+      font-size:11px;font-weight:700;background:var(--blu);color:#fff;
+    }
+
+    /* ── DAY STRIP (mobile + desktop) ── */
+    .day-strip{display:flex;gap:0;overflow-x:auto;background:#fff;
+      border-bottom:2px solid var(--bordo);scrollbar-width:none;position:sticky;top:68px;z-index:90;}
+    .day-strip::-webkit-scrollbar{display:none;}
+    .ds-cell{flex-shrink:0;width:calc(100vw / 7);min-width:46px;
+      padding:10px 2px 8px;text-align:center;cursor:pointer;
+      border-bottom:3px solid transparent;transition:all .15s;}
+    .ds-cell .ds-nome{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;}
+    .ds-cell .ds-num{font-size:15px;font-weight:700;color:var(--testo);
+      width:34px;height:34px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;margin:3px auto;transition:background .15s,color .15s;}
+    .ds-cell.sel{border-bottom-color:var(--blu);}
+    .ds-cell.sel .ds-num{background:var(--blu);color:#fff;}
+    .ds-cell.oggi-s .ds-num{background:var(--arancio);color:#fff;}
+    .ds-cell.oggi-s.sel .ds-num{background:var(--blu);color:#fff;}
+    .ds-cell.domenica-s .ds-num{color:#dc2626;}
+    .ds-dots{display:flex;justify-content:center;gap:3px;min-height:7px;margin-top:2px;}
+    .ds-dot{width:5px;height:5px;border-radius:50%;}
+
+    /* ── EVENT LIST ── */
+    .events-wrap{padding:14px 16px 80px;max-width:640px;margin:0 auto;}
+    .ev-date-lbl{font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;
+      letter-spacing:1px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bordo);}
+    .ev-card{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;
+      display:flex;gap:14px;align-items:stretch;box-shadow:0 1px 8px rgba(0,0,0,.07);
+      cursor:pointer;transition:transform .15s,box-shadow .15s;}
+    .ev-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.12);}
+    .ev-stripe{width:4px;border-radius:4px;flex-shrink:0;}
+    .ev-body{flex:1;min-width:0;}
+    .ev-cat{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px;}
+    .ev-title{font-size:15px;font-weight:800;color:var(--testo);margin-bottom:5px;line-height:1.3;}
+    .ev-meta{font-size:12px;color:var(--sub);display:flex;flex-wrap:wrap;gap:6px;}
+    .ev-empty{text-align:center;padding:52px 20px;color:var(--sub);font-size:14px;}
+    .ev-empty strong{display:block;font-size:15px;font-weight:700;color:var(--testo);margin-bottom:4px;}
+
+    .spin{display:inline-block;width:18px;height:18px;border:2.5px solid #e2e8f0;border-top-color:var(--blu);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── MODAL ── */
+    .modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);
+      backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;}
+    .modal-bg.open{display:flex;}
+    .modal-box{background:#fff;border-radius:22px;width:100%;max-width:420px;overflow:hidden;
+      box-shadow:0 32px 80px rgba(0,0,0,.22);}
+    .dm-accent{height:4px;width:100%;}
+    .dm-hdr{display:flex;align-items:flex-start;justify-content:space-between;
+      padding:18px 22px 14px;gap:12px;border-bottom:1px solid #f1f5f9;}
+    .dm-hdr-left{flex:1;min-width:0;}
+    .dm-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+      padding:3px 10px;border-radius:20px;color:#fff;margin-bottom:9px;}
+    .dm-title{font-size:18px;font-weight:800;color:var(--testo);line-height:1.25;}
+    .dm-close{width:30px;height:30px;border-radius:50%;border:none;background:#f1f5f9;color:#6b7280;
+      font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}
+    .dm-close:hover{background:#e2e8f0;}
+    .dm-info{padding:16px 22px;display:flex;flex-direction:column;gap:11px;}
+    .dm-field{display:flex;flex-direction:column;gap:2px;}
+    .dm-lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.7px;}
+    .dm-val{font-size:14px;color:var(--testo);font-weight:500;line-height:1.4;}
+    .dm-val strong{font-weight:700;}
+    .dm-rsvp{padding:14px 22px 20px;border-top:1px solid #f1f5f9;}
+    .dm-rsvp-lbl{font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;}
+    .rsvp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .rsvp-card{padding:12px 10px;border-radius:12px;border:1.5px solid #e5e7eb;background:none;cursor:pointer;font-family:inherit;
+      display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;font-weight:600;color:#6b7280;transition:all .18s;}
+    .rsvp-card:hover:not(.active){background:#f9fafb;border-color:#d1d5db;}
+    .rsvp-card .rsvp-dot{width:8px;height:8px;border-radius:50%;border:2px solid #d1d5db;flex-shrink:0;transition:all .18s;}
+    .rsvp-card.si.active{border-color:#16a34a;background:#f0fdf4;color:#15803d;}
+    .rsvp-card.si.active .rsvp-dot{background:#16a34a;border-color:#16a34a;}
+    .rsvp-card.no.active{border-color:#dc2626;background:#fef2f2;color:#b91c1c;}
+    .rsvp-card.no.active .rsvp-dot{background:#dc2626;border-color:#dc2626;}
+
+    @media(max-width:480px){nav{height:60px;padding:0 14px;}.page{margin-top:60px;}.nav-brand img{height:36px;}.day-strip{top:60px;}}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-left"><a href="/utente" class="nav-back">← Account</a></div>
+  <a href="/" class="nav-brand"><img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'"></a>
+  <div class="nav-right"></div>
+</nav>
+
+<div class="page">
+  <div class="sett-header">
+    <div class="sett-nav">
+      <button class="btn-sett-nav" id="btnPrec">&#8249;</button>
+      <div class="sett-range" id="weekRange">—</div>
+      <button class="btn-sett-nav" id="btnSucc">&#8250;</button>
+    </div>
+    <div class="sett-oggi-row"><button class="btn-oggi" onclick="vaiOggi()">Oggi</button></div>
+  </div>
+
+  <div class="filter-banner" id="filterBanner" style="display:none;">
+    <span>📅</span>
+    <span>Calendario per: <span id="filterCats"></span></span>
+  </div>
+
+  <div class="day-strip" id="dayStrip"></div>
+  <div class="events-wrap" id="eventsWrap">
+    <div class="ev-empty"><div class="spin"></div> Caricamento…</div>
+  </div>
+</div>
+
+<!-- MODAL DETTAGLIO -->
+<div class="modal-bg" id="detailModal" onclick="chiudiDetail(event)">
+  <div class="modal-box">
+    <div id="dmAccent" class="dm-accent"></div>
+    <div class="dm-hdr">
+      <div class="dm-hdr-left">
+        <div id="dmTag" class="dm-tag"></div>
+        <div id="dmTitle" class="dm-title"></div>
+      </div>
+      <button class="dm-close" onclick="chiudiDetail()">✕</button>
+    </div>
+    <div id="dmBody"></div>
+  </div>
+</div>
+
+<script>
+  const _tok = localStorage.getItem('vc_token');
+  const _atk = localStorage.getItem('vc_admin_token');
+  if (!_tok && !_atk) { location.replace('/login'); }
+
+  const MESI_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const MESI_FULL  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const GG = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const GG_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+
+  const CAT_MAP = {
+    allenamento:    { label:'Allenamento', color:'#0d2055' },
+    'fipav-senior': { label:'FIPAV Senior', color:'#059669' },
+    'fipav-under':  { label:'FIPAV Under', color:'#7c3aed' },
+    opes:           { label:'OPES', color:'#ea580c' },
+    evento:         { label:'Evento', color:'#e11d48' },
+    partita:        { label:'Partita', color:'#0d2055' },
+  };
+  const SENIOR_KW = ['1 divisione','prima div','serie d','serie a','serie b','serie c'];
+
+  let oggi = new Date(); oggi.setHours(0,0,0,0);
+  let weekStart = lunedi(oggi);
+  let selDay = new Date(oggi);
+  let mappa = {};
+  let userCats = []; // user's categories
+
+  function lunedi(d){ const c=new Date(d);c.setHours(0,0,0,0);const dw=c.getDay();c.setDate(c.getDate()-(dw===0?6:dw-1));return c; }
+  function addDays(d,n){ const c=new Date(d);c.setDate(c.getDate()+n);return c; }
+  function dataKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function tsToKey(ts){ if(!ts)return null;const d=new Date(ts);return dataKey(d); }
+  function oraDaTs(ts){ if(!ts)return'—';const d=new Date(ts);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  function parseOra(ora){ if(!ora)return{inizio:'—',fine:''};const sep=ora.includes('–')?'–':(ora.includes('-')?'-':null);if(sep){const p=ora.split(sep);return{inizio:p[0].trim(),fine:p[1]?p[1].trim():''};} return{inizio:ora.trim(),fine:''}; }
+  function isVirtus(n){ return /virtus caserta|virtus santa maria/i.test(n); }
+  function avversario(m){ if(isVirtus(m.casa)&&!isVirtus(m.ospite))return m.ospite;if(!isVirtus(m.casa)&&isVirtus(m.ospite))return m.casa;return m.casa+' – '+m.ospite; }
+  function gruppoPartita(m){ if(m.fonte==='opes')return'opes';const cat=(m.categoria||'').toLowerCase();if(SENIOR_KW.some(k=>cat.includes(k)))return'fipav-senior';return'fipav-under'; }
+
+  function evMatchesUser(e) {
+    if (!userCats.length) return true; // no filter if profile not loaded
+    const cat = (e.categoria || '').toLowerCase();
+    return userCats.some(uc => cat.includes(uc.toLowerCase()) || uc.toLowerCase().includes(cat));
+  }
+
+  function vaiOggi(){ weekStart=lunedi(oggi);selDay=new Date(oggi);render(); }
+  document.getElementById('btnPrec').addEventListener('click',()=>{weekStart=addDays(weekStart,-7);render();});
+  document.getElementById('btnSucc').addEventListener('click',()=>{weekStart=addDays(weekStart,7);render();});
+
+  function render(){
+    const fine=addDays(weekStart,6);
+    const sameMese=weekStart.getMonth()===fine.getMonth();
+    let rs=sameMese?`${weekStart.getDate()} – ${fine.getDate()} ${MESI_SHORT[fine.getMonth()]} ${fine.getFullYear()}`:`${weekStart.getDate()} ${MESI_SHORT[weekStart.getMonth()]} – ${fine.getDate()} ${MESI_SHORT[fine.getMonth()]} ${fine.getFullYear()}`;
+    document.getElementById('weekRange').textContent=rs;
+    renderStrip();
+    renderEvents();
+  }
+
+  function renderStrip(){
+    const strip=document.getElementById('dayStrip');
+    strip.innerHTML='';
+    for(let i=0;i<7;i++){
+      const d=addDays(weekStart,i);
+      const key=dataKey(d);
+      const isOggi=dataKey(d)===dataKey(oggi);
+      const isSel=dataKey(d)===dataKey(selDay);
+      const isDom=d.getDay()===0;
+      const evs=(mappa[key]||[]).filter(evMatchesUser);
+      const cats=[...new Set(evs.map(e=>e.cat||e.tipo))].slice(0,3);
+      const cell=document.createElement('div');
+      cell.className='ds-cell'+(isSel?' sel':'')+(isOggi?' oggi-s':'')+(isDom?' domenica-s':'');
+      cell.innerHTML=`<div class="ds-nome">${GG[d.getDay()]}</div>
+        <div class="ds-num">${d.getDate()}</div>
+        <div class="ds-dots">${cats.map(c=>`<div class="ds-dot" style="background:${CAT_MAP[c]?.color||'#999'}"></div>`).join('')}</div>`;
+      cell.addEventListener('click',()=>{selDay=new Date(d);renderStrip();renderEvents();});
+      strip.appendChild(cell);
+    }
+    const sel=strip.querySelector('.sel');
+    if(sel)sel.scrollIntoView({inline:'center',block:'nearest'});
+  }
+
+  function renderEvents(){
+    const wrap=document.getElementById('eventsWrap');
+    const key=dataKey(selDay);
+    const evs=(mappa[key]||[]).filter(evMatchesUser);
+    const dow=GG_FULL[selDay.getDay()];
+    const label=`${dow}, ${selDay.getDate()} ${MESI_SHORT[selDay.getMonth()]} ${selDay.getFullYear()}`;
+    if(!evs.length){
+      wrap.innerHTML=`<div class="ev-date-lbl">${label}</div><div class="ev-empty"><strong>Nessun evento</strong>Nessun impegno per questa giornata.</div>`;
+      return;
+    }
+    wrap.innerHTML=`<div class="ev-date-lbl">${label}</div>`;
+    evs.forEach(e=>{
+      const ci=CAT_MAP[e.cat||e.tipo]||CAT_MAP.allenamento;
+      let timeStr='',titleStr='',subStr='';
+      if(e.tipo==='allenamento'||e.tipo==='evento'){
+        const{inizio,fine}=parseOra(e.ora);
+        timeStr=inizio+(fine?' – '+fine:'');
+        titleStr=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
+        subStr=e.luogo?'Dove: '+e.luogo:'';
+      } else {
+        timeStr=e.timestamp?oraDaTs(e.timestamp):'—';
+        titleStr='vs '+avversario(e);
+        subStr=e.luogo?'Dove: '+e.luogo:'';
+        if(e.played&&e.risultato)subStr+=(subStr?' · ':'')+'Risultato: '+e.risultato;
+      }
+      const card=document.createElement('div');
+      card.className='ev-card';
+      card.innerHTML=`<div class="ev-stripe" style="background:${ci.color}"></div>
+        <div class="ev-body">
+          <div class="ev-cat" style="color:${ci.color}">${ci.label}</div>
+          <div class="ev-title">${titleStr}</div>
+          <div class="ev-meta"><span>Ore: ${timeStr||'—'}</span>${subStr?`<span>${subStr}</span>`:''}</div>
+        </div>`;
+      card.addEventListener('click',()=>apriDetail(e));
+      wrap.appendChild(card);
+    });
+  }
+
+  function apriDetail(e){
+    const ci=CAT_MAP[e.cat||e.tipo]||CAT_MAP.allenamento;
+    document.getElementById('dmAccent').style.background=ci.color;
+    document.getElementById('dmTag').style.background=ci.color;
+    document.getElementById('dmTag').textContent=ci.label;
+    let fields=[];
+    let titleHtml='';
+    if(e.tipo==='allenamento'||e.tipo==='evento'){
+      titleHtml=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
+      if(e.categoria)fields.push({lbl:'Categoria',val:e.categoria});
+      const{inizio,fine}=parseOra(e.ora);
+      fields.push({lbl:'Orario',val:fine?`${inizio} – ${fine}`:inizio});
+      if(e.luogo)fields.push({lbl:'Luogo',val:e.luogo});
+      if(e.note)fields.push({lbl:'Note',val:e.note});
+    } else {
+      titleHtml=`<span style="font-weight:400;font-size:14px;color:#64748b">vs</span><br>${avversario(e)}`;
+      if(e.categoria)fields.push({lbl:'Categoria',val:e.categoria});
+      fields.push({lbl:'Orario',val:e.timestamp?oraDaTs(e.timestamp):'—'});
+      fields.push({lbl:'Squadre',val:`<strong>${e.casa}</strong> vs <strong>${e.ospite}</strong>`});
+      if(e.luogo)fields.push({lbl:'Luogo',val:e.luogo});
+      if(e.played&&e.risultato)fields.push({lbl:'Risultato',val:`<strong>${e.risultato}</strong>`});
+    }
+    document.getElementById('dmTitle').innerHTML=titleHtml;
+    const body=document.getElementById('dmBody');
+    body.innerHTML=`<div class="dm-info">${fields.map(f=>`<div class="dm-field"><div class="dm-lbl">${f.lbl}</div><div class="dm-val">${f.val}</div></div>`).join('')}</div>`;
+    if((e.tipo==='allenamento'||e.tipo==='evento')&&e.id&&_tok){
+      const rsvpDiv=document.createElement('div');
+      rsvpDiv.className='dm-rsvp';rsvpDiv.id='rsvpSec';
+      rsvpDiv.innerHTML='<div class="dm-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento…</div>';
+      body.appendChild(rsvpDiv);
+      fetch(`/api/calendario/${e.id}/mia-risposta`,{headers:{Authorization:`Bearer ${_tok}`}})
+        .then(r=>r.json()).then(d=>{const el=document.getElementById('rsvpSec');if(el)_renderRsvp(el,e.id,d.risposta);}).catch(()=>{});
+    }
+    document.getElementById('detailModal').classList.add('open');
+  }
+  function _renderRsvp(c,id,r){
+    c.innerHTML=`<div class="dm-rsvp-lbl">La tua partecipazione</div>
+      <div class="rsvp-grid">
+        <button class="rsvp-card si${r==='si'?' active':''}" onclick="submitRsvp('${id}','si')"><span class="rsvp-dot"></span>Partecipo</button>
+        <button class="rsvp-card no${r==='no'?' active':''}" onclick="submitRsvp('${id}','no')"><span class="rsvp-dot"></span>Non partecipo</button>
+      </div>`;
+  }
+  window.submitRsvp=async function(id,risposta){
+    if(!_tok)return;
+    try{
+      const r=await fetch(`/api/calendario/${id}/partecipa`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tok}`},body:JSON.stringify({risposta})});
+      const data=await r.json();if(r.ok){const el=document.getElementById('rsvpSec');if(el)_renderRsvp(el,id,data.risposta);}
+    }catch{}
+  };
+  function chiudiDetail(e){if(!e||e.target===document.getElementById('detailModal'))document.getElementById('detailModal').classList.remove('open');}
+
+  async function carica(){
+    render();
+    // Load user profile for category filter
+    try{
+      if(_tok){
+        const prof=await fetch('/api/profilo',{headers:{Authorization:`Bearer ${_tok}`}}).then(r=>r.json());
+        const parseMap=v=>v?(typeof v==='string'?JSON.parse(v):v):{};
+        const atletaCats=Object.keys(parseMap(prof.ruolo_atleta));
+        const allenatoreCats=Object.keys(parseMap(prof.ruolo_allenatore));
+        userCats=[...new Set([...atletaCats,...allenatoreCats])];
+        if(userCats.length){
+          const banner=document.getElementById('filterBanner');
+          document.getElementById('filterCats').innerHTML=userCats.map(c=>`<span class="filter-badge">${c}</span>`).join(' ');
+          banner.style.display='flex';
+        }
+      }
+    }catch{}
+
+    try{
+      const calTok=_tok||_atk;
+      const sessioni=await fetch('/api/calendario',{headers:calTok?{Authorization:`Bearer ${calTok}`}:{}}).then(r=>r.json());
+      sessioni.forEach(s=>{
+        if(!s.data)return;
+        if(!mappa[s.data])mappa[s.data]=[];
+        const cat=s.tipo==='evento'?'evento':'allenamento';
+        mappa[s.data].push({tipo:s.tipo||'allenamento',cat,...s});
+      });
+    }catch{}
+    try{
+      const resp=await fetch('/api/partite/tutte').then(r=>r.json());
+      Object.values(resp.gruppi||{}).forEach(g=>{
+        (g.partite||[]).forEach(m=>{
+          if(!m.timestamp)return;
+          const key=tsToKey(m.timestamp);if(!key)return;
+          if(!mappa[key])mappa[key]=[];
+          mappa[key].push({tipo:'partita',cat:gruppoPartita(m),...m});
+        });
+      });
+    }catch{}
+    render();
+  }
+  carica();
+</script>
+<script src="common.js"></script>
+</body>
+</html>

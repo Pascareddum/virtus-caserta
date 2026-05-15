@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I miei documenti – Virtus Caserta</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f7f8fa;min-height:100vh;display:flex;flex-direction:column;}
+    .page-wrap{flex:1;max-width:640px;width:100%;margin:0 auto;padding:32px 20px 64px;}
+    /* ── Simple nav ── */
+    .top-bar{display:flex;align-items:center;gap:14px;margin-bottom:28px;}
+    .btn-back{display:inline-flex;align-items:center;gap:6px;color:#0d2055;text-decoration:none;
+      font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;border:1.5px solid #e9ecf0;
+      background:#fff;transition:all .2s;}
+    .btn-back:hover{border-color:#0d2055;background:#eef4ff;}
+    .page-title{font-size:20px;font-weight:800;color:#0d2055;letter-spacing:-.02em;}
+
+    /* ── Upload area ── */
+    .upload-section{background:#fff;border-radius:18px;border:1.5px solid #e9ecf0;padding:28px 24px;margin-bottom:24px;
+      box-shadow:0 2px 16px rgba(13,32,85,.05);}
+    .upload-title{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#0d2055;margin-bottom:16px;}
+    .drop-zone{border:2px dashed #d1d5db;border-radius:14px;padding:32px 20px;text-align:center;
+      background:#f9fafb;cursor:pointer;transition:all .2s;position:relative;}
+    .drop-zone.dragover{border-color:#0d2055;background:#eef4ff;}
+    .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+    .drop-icon{font-size:36px;margin-bottom:10px;}
+    .drop-main{font-size:15px;font-weight:700;color:#374151;margin-bottom:4px;}
+    .drop-sub{font-size:12px;color:#9ca3af;}
+    .drop-note{font-size:11px;color:#9ca3af;margin-top:6px;}
+    .upload-progress{margin-top:14px;display:none;}
+    .prog-bar{height:6px;background:#e5e7eb;border-radius:10px;overflow:hidden;margin-top:6px;}
+    .prog-fill{height:100%;background:#0d2055;border-radius:10px;width:0%;transition:width .3s;}
+    .prog-label{font-size:12px;color:#6b7280;font-weight:500;}
+
+    /* ── Documents list ── */
+    .docs-section{background:#fff;border-radius:18px;border:1.5px solid #e9ecf0;overflow:hidden;
+      box-shadow:0 2px 16px rgba(13,32,85,.05);}
+    .docs-header{display:flex;align-items:center;justify-content:space-between;
+      padding:14px 20px 12px;border-bottom:1.5px solid #e9ecf0;}
+    .docs-title{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#0d2055;}
+    .docs-count{font-size:11px;color:#9ca3af;font-weight:600;}
+    .docs-list{display:flex;flex-direction:column;}
+    .doc-item{display:flex;align-items:center;gap:14px;padding:14px 20px;
+      border-bottom:1px solid #f1f5f9;transition:background .12s;}
+    .doc-item:last-child{border-bottom:none;}
+    .doc-item:hover{background:#f9fafb;}
+    .doc-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+      font-size:20px;flex-shrink:0;}
+    .doc-icon.pdf{background:#fef2f2;}
+    .doc-icon.img{background:#f0fdf4;}
+    .doc-icon.doc{background:#eff6ff;}
+    .doc-icon.other{background:#f5f5f5;}
+    .doc-info{flex:1;min-width:0;}
+    .doc-name{font-size:14px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .doc-meta{font-size:11px;color:#9ca3af;margin-top:2px;}
+    .doc-actions{display:flex;gap:8px;flex-shrink:0;}
+    .btn-dl{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;
+      border:1.5px solid #e9ecf0;background:#fff;color:#374151;font-size:12px;font-weight:600;
+      cursor:pointer;text-decoration:none;transition:all .2s;font-family:inherit;}
+    .btn-dl:hover{border-color:#0d2055;color:#0d2055;background:#eef4ff;}
+    .btn-del{padding:6px 10px;border-radius:8px;border:1.5px solid #fee2e2;background:#fff;
+      color:#dc2626;font-size:12px;cursor:pointer;transition:all .2s;font-family:inherit;}
+    .btn-del:hover{background:#fef2f2;}
+    .docs-empty{padding:36px 20px;text-align:center;color:#9ca3af;font-size:13px;font-weight:600;}
+    .docs-loading{padding:28px 20px;text-align:center;color:#9ca3af;}
+    .spin{display:inline-block;width:18px;height:18px;border:2.5px solid #e2e8f0;border-top-color:#0d2055;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#111827;color:#fff;padding:11px 20px;border-radius:50px;font-size:13px;font-weight:600;
+      opacity:0;transition:transform .3s,opacity .3s;z-index:900;white-space:nowrap;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .toast.err{background:#dc2626;}
+
+    @media(max-width:480px){.page-wrap{padding:20px 14px 48px;}.btn-back{font-size:12px;padding:7px 12px;}.upload-section,.docs-section{border-radius:14px;}.drop-zone{padding:24px 16px;}}
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="top-bar">
+      <a href="/utente" class="btn-back">← Account</a>
+      <h1 class="page-title">I miei documenti</h1>
+    </div>
+
+    <!-- Upload -->
+    <div class="upload-section">
+      <div class="upload-title">Carica documento</div>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.xls,.xlsx">
+        <div class="drop-icon">📎</div>
+        <div class="drop-main">Trascina file qui o clicca per selezionare</div>
+        <div class="drop-sub">PDF, Word, Excel, immagini</div>
+        <div class="drop-note">Max 10 MB per file</div>
+      </div>
+      <div class="upload-progress" id="uploadProgress">
+        <div class="prog-label" id="progLabel">Caricamento…</div>
+        <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+      </div>
+    </div>
+
+    <!-- Docs list -->
+    <div class="docs-section">
+      <div class="docs-header">
+        <span class="docs-title">I tuoi documenti</span>
+        <span class="docs-count" id="docsCount">—</span>
+      </div>
+      <div class="docs-list" id="docsList">
+        <div class="docs-loading"><div class="spin"></div> Caricamento…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const _tok = localStorage.getItem('vc_token');
+    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+
+    function fileIcon(name) {
+      const ext = (name || '').split('.').pop().toLowerCase();
+      if (ext === 'pdf') return { ico: '📄', cls: 'pdf' };
+      if (['jpg','jpeg','png','gif','webp'].includes(ext)) return { ico: '🖼️', cls: 'img' };
+      if (['doc','docx'].includes(ext)) return { ico: '📝', cls: 'doc' };
+      if (['xls','xlsx'].includes(ext)) return { ico: '📊', cls: 'doc' };
+      return { ico: '📁', cls: 'other' };
+    }
+
+    function fmtSize(bytes) {
+      if (!bytes) return '';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+      return (bytes/(1024*1024)).toFixed(1) + ' MB';
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function toast(msg, err = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (err ? ' err' : '');
+      clearTimeout(t._t);
+      t._t = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    async function caricaDocs() {
+      const list = document.getElementById('docsList');
+      const count = document.getElementById('docsCount');
+      try {
+        const r = await fetch('/api/documenti', { headers: { Authorization: `Bearer ${_tok}` } });
+        if (!r.ok) throw new Error('Errore ' + r.status);
+        const docs = await r.json();
+        count.textContent = docs.length + ' file';
+        if (!docs.length) {
+          list.innerHTML = '<div class="docs-empty">Nessun documento caricato</div>';
+          return;
+        }
+        list.innerHTML = '';
+        docs.forEach(doc => {
+          const { ico, cls } = fileIcon(doc.nome || doc.filename);
+          const item = document.createElement('div');
+          item.className = 'doc-item';
+          item.innerHTML = `
+            <div class="doc-icon ${cls}">${ico}</div>
+            <div class="doc-info">
+              <div class="doc-name">${doc.nome || doc.filename || 'Documento'}</div>
+              <div class="doc-meta">${fmtDate(doc.creato_il || doc.created_at)}${doc.dimensione ? ' · ' + fmtSize(doc.dimensione) : ''}</div>
+            </div>
+            <div class="doc-actions">
+              <a class="btn-dl" href="${doc.url}" target="_blank" download>⬇ Scarica</a>
+              <button class="btn-del" onclick="eliminaDoc('${doc.id}', this.closest('.doc-item'))">✕</button>
+            </div>`;
+          list.appendChild(item);
+        });
+      } catch (e) {
+        list.innerHTML = '<div class="docs-empty">Impossibile caricare i documenti</div>';
+      }
+    }
+
+    window.eliminaDoc = async function(id, el) {
+      if (!confirm('Eliminare questo documento?')) return;
+      try {
+        const r = await fetch(`/api/documenti/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${_tok}` } });
+        if (!r.ok) throw new Error();
+        el.remove();
+        toast('Documento eliminato');
+        const remaining = document.querySelectorAll('.doc-item').length;
+        document.getElementById('docsCount').textContent = remaining + ' file';
+        if (!remaining) document.getElementById('docsList').innerHTML = '<div class="docs-empty">Nessun documento caricato</div>';
+      } catch { toast('Errore durante l\'eliminazione', true); }
+    };
+
+    async function uploadFile(file) {
+      const prog = document.getElementById('uploadProgress');
+      const fill = document.getElementById('progFill');
+      const label = document.getElementById('progLabel');
+      prog.style.display = 'block';
+      label.textContent = `Caricamento: ${file.name}`;
+      fill.style.width = '0%';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Simulate progress with XHR
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable) fill.style.width = Math.round(e.loaded / e.total * 100) + '%';
+        });
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            fill.style.width = '100%';
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error('Errore ' + xhr.status));
+          }
+        });
+        xhr.addEventListener('error', () => reject(new Error('Errore di rete')));
+        xhr.open('POST', '/api/documenti');
+        xhr.setRequestHeader('Authorization', `Bearer ${_tok}`);
+        xhr.send(formData);
+      });
+    }
+
+    async function handleFiles(files) {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) { toast(`${file.name} supera 10 MB`, true); continue; }
+        try {
+          await uploadFile(file);
+          toast(`${file.name} caricato`);
+        } catch (e) {
+          toast(`Errore: ${file.name}`, true);
+        }
+      }
+      document.getElementById('uploadProgress').style.display = 'none';
+      caricaDocs();
+    }
+
+    const dz = document.getElementById('dropZone');
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+    document.getElementById('fileInput').addEventListener('change', e => handleFiles(e.target.files));
+
+    caricaDocs();
+  </script>
+</body>
+</html>

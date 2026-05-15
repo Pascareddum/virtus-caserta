@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organizza partita – Virtus Caserta</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f7f8fa;min-height:100vh;display:flex;flex-direction:column;}
+    .page-wrap{flex:1;max-width:600px;width:100%;margin:0 auto;padding:32px 20px 64px;}
+    .top-bar{display:flex;align-items:center;gap:14px;margin-bottom:28px;}
+    .btn-back{display:inline-flex;align-items:center;gap:6px;color:#0d2055;text-decoration:none;
+      font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;border:1.5px solid #e9ecf0;
+      background:#fff;transition:all .2s;}
+    .btn-back:hover{border-color:#0d2055;background:#eef4ff;}
+    .page-title{font-size:20px;font-weight:800;color:#0d2055;letter-spacing:-.02em;}
+
+    /* ── Form card ── */
+    .form-card{background:#fff;border-radius:20px;border:1.5px solid #e9ecf0;padding:28px 24px;
+      box-shadow:0 2px 20px rgba(13,32,85,.06);margin-bottom:24px;}
+    .form-section-title{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+      color:#9ca3af;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
+    .field:last-child{margin-bottom:0;}
+    .field label{font-size:12px;font-weight:700;color:#374151;}
+    .field input,.field select,.field textarea{
+      padding:11px 14px;border:1.5px solid #e9ecf0;border-radius:12px;
+      font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:100%;background:#fff;}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:#0d2055;}
+    .field textarea{resize:vertical;min-height:88px;}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .field-hint{font-size:11px;color:#9ca3af;margin-top:2px;}
+
+    /* Tipo buttons */
+    .tipo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+    .tipo-btn{
+      padding:14px 8px;border-radius:12px;border:2px solid #e9ecf0;background:#f9fafb;
+      cursor:pointer;text-align:center;transition:all .18s;font-family:inherit;
+    }
+    .tipo-btn .tipo-ico{font-size:24px;display:block;margin-bottom:6px;}
+    .tipo-btn .tipo-lbl{font-size:12px;font-weight:700;color:#374151;}
+    .tipo-btn.selected{border-color:#0d2055;background:#eef4ff;}
+    .tipo-btn.selected .tipo-lbl{color:#0d2055;}
+
+    /* Availability toggle */
+    .avail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+    .avail-card{padding:12px 14px;border-radius:12px;border:1.5px solid #e9ecf0;background:#f9fafb;
+      cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .18s;font-family:inherit;}
+    .avail-card.on{border-color:#16a34a;background:#f0fdf4;}
+    .avail-dot{width:10px;height:10px;border-radius:50%;border:2px solid #d1d5db;flex-shrink:0;transition:all .18s;}
+    .avail-card.on .avail-dot{background:#16a34a;border-color:#16a34a;}
+    .avail-name{font-size:13px;font-weight:600;color:#374151;}
+    .avail-card.on .avail-name{color:#15803d;}
+
+    /* ── Pending list ── */
+    .list-card{background:#fff;border-radius:20px;border:1.5px solid #e9ecf0;overflow:hidden;
+      box-shadow:0 2px 16px rgba(13,32,85,.05);}
+    .list-header{padding:14px 20px 12px;border-bottom:1.5px solid #e9ecf0;display:flex;align-items:center;justify-content:space-between;}
+    .list-title{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#0d2055;}
+    .match-item{display:flex;gap:14px;padding:16px 20px;border-bottom:1px solid #f1f5f9;align-items:center;}
+    .match-item:last-child{border-bottom:none;}
+    .match-icon{width:42px;height:42px;border-radius:12px;background:#eef4ff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+    .match-info{flex:1;min-width:0;}
+    .match-vs{font-size:14px;font-weight:700;color:#111827;}
+    .match-meta{font-size:12px;color:#9ca3af;margin-top:2px;display:flex;flex-wrap:wrap;gap:8px;}
+    .match-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+    .match-status.pending{background:#fef3c7;color:#92400e;}
+    .match-status.accepted{background:#f0fdf4;color:#15803d;}
+    .match-status.refused{background:#fef2f2;color:#b91c1c;}
+    .list-empty{padding:36px 20px;text-align:center;color:#9ca3af;font-size:13px;font-weight:600;}
+
+    /* ── Submit btn ── */
+    .btn-submit{width:100%;padding:15px;background:#0d2055;color:#fff;border:none;border-radius:14px;
+      font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-top:6px;}
+    .btn-submit:hover{background:#1535a8;transform:translateY(-1px);}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+    .spin{display:inline-block;width:18px;height:18px;border:2.5px solid #e2e8f0;border-top-color:#0d2055;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#111827;color:#fff;padding:11px 20px;border-radius:50px;font-size:13px;font-weight:600;
+      opacity:0;transition:transform .3s,opacity .3s;z-index:900;white-space:nowrap;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .toast.err{background:#dc2626;}
+
+    /* ── Invite section ── */
+    .invite-tabs{display:flex;background:#f8fafc;border-radius:10px;padding:3px;margin-bottom:16px;border:1.5px solid #e9ecf0;}
+    .invite-tab{flex:1;padding:8px 12px;border-radius:8px;border:none;background:none;
+      font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .15s;font-family:inherit;}
+    .invite-tab.active{background:#fff;color:#0d2055;box-shadow:0 1px 6px rgba(0,0,0,.08);}
+    .cat-chips{display:flex;flex-wrap:wrap;gap:8px;}
+    .cat-chip{padding:7px 14px;border-radius:20px;border:1.5px solid #e9ecf0;background:#f9fafb;
+      font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .15s;font-family:inherit;}
+    .cat-chip.sel{border-color:#0d2055;background:#eef4ff;color:#0d2055;}
+    .invite-summary{font-size:11px;color:#9ca3af;margin-top:10px;}
+    .invite-summary strong{color:#0d2055;}
+    .people-search{position:relative;margin-bottom:10px;}
+    .people-search input{padding:10px 14px 10px 38px;}
+    .search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none;}
+    .people-results{max-height:200px;overflow-y:auto;border:1.5px solid #e9ecf0;border-radius:12px;background:#fff;scrollbar-width:thin;}
+    .person-row{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .12s;border-bottom:1px solid #f1f5f9;}
+    .person-row:last-child{border-bottom:none;}
+    .person-row:hover{background:#f9fafb;}
+    .person-row.sel{background:#eef4ff;}
+    .person-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(140deg,#0d2055,#1e4bd8);
+      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;}
+    .person-info{flex:1;min-width:0;}
+    .person-name{font-size:13px;font-weight:600;color:#111827;}
+    .person-sub{font-size:11px;color:#9ca3af;}
+    .person-check{width:18px;height:18px;border-radius:50%;border:2px solid #d1d5db;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;
+      transition:all .15s;color:#fff;}
+    .person-row.sel .person-check{background:#0d2055;border-color:#0d2055;}
+    .sel-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+    .sel-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 5px 4px 10px;border-radius:20px;
+      background:#eef4ff;color:#0d2055;font-size:12px;font-weight:700;}
+    .sel-chip button{background:none;border:none;color:#93c5fd;cursor:pointer;font-size:13px;
+      padding:0 3px;line-height:1;border-radius:50%;transition:color .15s;}
+    .sel-chip button:hover{color:#0d2055;}
+
+    @media(max-width:480px){
+      .page-wrap{padding:20px 14px 48px;}
+      .form-card{padding:20px 16px;}
+      .tipo-grid{grid-template-columns:1fr 1fr 1fr;}
+      .field-row{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="top-bar">
+      <a href="/utente" class="btn-back">← Account</a>
+      <h1 class="page-title">Organizza partita</h1>
+    </div>
+
+    <!-- Form -->
+    <div class="form-card">
+      <div class="form-section-title">Tipo di partita</div>
+      <div class="tipo-grid" id="tipoGrid">
+        <button class="tipo-btn selected" onclick="setTipo('amichevole',this)">
+          <span class="tipo-ico">🤝</span><span class="tipo-lbl">Amichevole</span>
+        </button>
+        <button class="tipo-btn" onclick="setTipo('allenamento',this)">
+          <span class="tipo-ico">🏋️</span><span class="tipo-lbl">Allenamento</span>
+        </button>
+        <button class="tipo-btn" onclick="setTipo('torneo',this)">
+          <span class="tipo-ico">🏆</span><span class="tipo-lbl">Torneo</span>
+        </button>
+      </div>
+      <input type="hidden" id="tipoVal" value="amichevole">
+    </div>
+
+    <div class="form-card">
+      <div class="form-section-title">Dettagli evento</div>
+      <div class="field">
+        <label>Avversario / Titolo *</label>
+        <input type="text" id="fAvversario" placeholder="Es. ASD Pallavolo Napoli">
+        <span class="field-hint">Nome squadra avversaria o titolo dell'evento</span>
+      </div>
+      <div class="field">
+        <label>Categoria *</label>
+        <select id="fCategoria">
+          <option value="">— Seleziona —</option>
+          <option>Prima Squadra</option>
+          <option>Under 19</option>
+          <option>Under 16</option>
+          <option>Under 13</option>
+          <option>Altro</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Data *</label>
+          <input type="date" id="fData">
+        </div>
+        <div class="field">
+          <label>Orario *</label>
+          <input type="time" id="fOra" value="18:00">
+        </div>
+      </div>
+      <div class="field">
+        <label>Luogo</label>
+        <input type="text" id="fLuogo" placeholder="Es. Tenda di Abramo, Caserta">
+      </div>
+      <div class="field">
+        <label>Note aggiuntive</label>
+        <textarea id="fNote" placeholder="Informazioni per lo staff e i giocatori…"></textarea>
+      </div>
+    </div>
+
+    <div class="form-card" id="disponibilitaCard">
+      <div class="form-section-title">La tua disponibilità</div>
+      <div class="avail-grid">
+        <button class="avail-card on" id="availSi" onclick="setAvail('si')">
+          <span class="avail-dot"></span><span class="avail-name">Disponibile</span>
+        </button>
+        <button class="avail-card" id="availForse" onclick="setAvail('forse')">
+          <span class="avail-dot" style="border-color:#f59e0b"></span><span class="avail-name">Forse</span>
+        </button>
+        <button class="avail-card" id="availNo" onclick="setAvail('no')">
+          <span class="avail-dot" style="border-color:#dc2626"></span><span class="avail-name">Non disponibile</span>
+        </button>
+      </div>
+      <input type="hidden" id="availVal" value="si">
+    </div>
+
+    <!-- Inviti -->
+    <div class="form-card">
+      <div class="form-section-title">Invita partecipanti</div>
+      <div class="invite-tabs">
+        <button class="invite-tab active" id="tabCat"  onclick="switchInviteTab('cat')">Per categoria</button>
+        <button class="invite-tab"        id="tabPers" onclick="switchInviteTab('pers')">Per persona</button>
+      </div>
+
+      <!-- Categoria panel -->
+      <div id="panelCat">
+        <div class="cat-chips">
+          <button class="cat-chip" onclick="toggleCat('Prima Squadra',this)">Prima Squadra</button>
+          <button class="cat-chip" onclick="toggleCat('Under 19',this)">Under 19</button>
+          <button class="cat-chip" onclick="toggleCat('Under 16',this)">Under 16</button>
+          <button class="cat-chip" onclick="toggleCat('Under 13',this)">Under 13</button>
+          <button class="cat-chip" onclick="toggleCat('Altro',this)">Altro</button>
+        </div>
+        <div class="invite-summary" id="catSummary"></div>
+      </div>
+
+      <!-- Persona panel -->
+      <div id="panelPers" style="display:none;">
+        <div class="people-search">
+          <span class="search-ico">🔍</span>
+          <input type="text" id="peopleSearch" placeholder="Cerca per nome…" oninput="filterPeople(this.value)">
+        </div>
+        <div class="people-results" id="peopleResults">
+          <div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Clicca sulla scheda per caricare gli utenti</div>
+        </div>
+        <div class="sel-chips" id="selChips"></div>
+        <div class="invite-summary" id="persSummary"></div>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="btnSubmit" onclick="invia()">Proponi partita</button>
+
+    <!-- Pending matches -->
+    <div class="list-card" style="margin-top:32px;">
+      <div class="list-header">
+        <span class="list-title">Partite proposte</span>
+      </div>
+      <div id="matchList">
+        <div class="list-empty"><div class="spin"></div> Caricamento…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const _tok = localStorage.getItem('vc_token');
+    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+
+    // Pre-fill today
+    document.getElementById('fData').valueAsDate = new Date();
+
+    let availSel = 'si';
+
+    function setTipo(val, btn) {
+      document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById('tipoVal').value = val;
+      document.getElementById('disponibilitaCard').style.display = val === 'allenamento' ? 'block' : 'block';
+    }
+
+    function setAvail(val) {
+      availSel = val;
+      document.getElementById('availVal').value = val;
+      const si = document.getElementById('availSi');
+      const forse = document.getElementById('availForse');
+      const no = document.getElementById('availNo');
+      si.classList.toggle('on', val === 'si');
+      forse.classList.toggle('on', val === 'forse');
+      no.classList.toggle('on', val === 'no');
+      if (val === 'forse') { forse.querySelector('.avail-dot').style.background = '#f59e0b'; forse.querySelector('.avail-dot').style.borderColor = '#f59e0b'; } else { forse.querySelector('.avail-dot').style.background = ''; forse.querySelector('.avail-dot').style.borderColor = '#f59e0b'; }
+      if (val === 'no') { no.querySelector('.avail-dot').style.background = '#dc2626'; no.querySelector('.avail-dot').style.borderColor = '#dc2626'; } else { no.querySelector('.avail-dot').style.background = ''; no.querySelector('.avail-dot').style.borderColor = '#dc2626'; }
+    }
+
+    /* ── Invite state ── */
+    let invitatiCat  = new Set();
+    let invitatiPers = new Map(); // id → person obj
+    let allPeople    = [];
+    let peopleLoaded = false;
+
+    function switchInviteTab(tab) {
+      document.getElementById('tabCat').classList.toggle('active',  tab === 'cat');
+      document.getElementById('tabPers').classList.toggle('active', tab === 'pers');
+      document.getElementById('panelCat').style.display  = tab === 'cat'  ? '' : 'none';
+      document.getElementById('panelPers').style.display = tab === 'pers' ? '' : 'none';
+      if (tab === 'pers' && !peopleLoaded) caricaPersone();
+    }
+
+    function toggleCat(cat, btn) {
+      invitatiCat.has(cat) ? invitatiCat.delete(cat) : invitatiCat.add(cat);
+      btn.classList.toggle('sel', invitatiCat.has(cat));
+      const n = invitatiCat.size;
+      document.getElementById('catSummary').innerHTML = n
+        ? `<strong>${n}</strong> categor${n > 1 ? 'ie' : 'ia'} selezionat${n > 1 ? 'e' : 'a'}`
+        : '';
+    }
+
+    async function caricaPersone() {
+      const res = document.getElementById('peopleResults');
+      res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;"><div class="spin"></div> Caricamento…</div>';
+      try {
+        const r = await fetch('/api/utenti', { headers: { Authorization: `Bearer ${_tok}` } });
+        if (!r.ok) throw new Error();
+        allPeople = await r.json();
+        peopleLoaded = true;
+        filterPeople('');
+      } catch {
+        res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Impossibile caricare gli utenti</div>';
+      }
+    }
+
+    function filterPeople(q) {
+      const list = q.trim()
+        ? allPeople.filter(p => `${p.nome||''} ${p.cognome||''}`.toLowerCase().includes(q.toLowerCase()))
+        : allPeople;
+      const res = document.getElementById('peopleResults');
+      if (!list.length) {
+        res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Nessun risultato</div>';
+        return;
+      }
+      res.innerHTML = '';
+      list.forEach(p => {
+        const isSel = invitatiPers.has(p.id);
+        const ini   = [p.nome, p.cognome].filter(Boolean).map(s => s[0].toUpperCase()).join('') || '?';
+        const row   = document.createElement('div');
+        row.className = 'person-row' + (isSel ? ' sel' : '');
+        row.innerHTML = `
+          <div class="person-av">${ini}</div>
+          <div class="person-info">
+            <div class="person-name">${p.nome || ''} ${p.cognome || ''}</div>
+            ${p.categoria ? `<div class="person-sub">${p.categoria}</div>` : ''}
+          </div>
+          <div class="person-check">${isSel ? '✓' : ''}</div>`;
+        row.addEventListener('click', () => {
+          invitatiPers.has(p.id) ? invitatiPers.delete(p.id) : invitatiPers.set(p.id, p);
+          filterPeople(document.getElementById('peopleSearch').value);
+          renderSelChips();
+        });
+        res.appendChild(row);
+      });
+    }
+
+    function renderSelChips() {
+      const c = document.getElementById('selChips');
+      const s = document.getElementById('persSummary');
+      c.innerHTML = '';
+      for (const [id, p] of invitatiPers) {
+        const chip = document.createElement('span');
+        chip.className = 'sel-chip';
+        chip.innerHTML = `${p.nome || ''} ${p.cognome || ''}<button>✕</button>`;
+        chip.querySelector('button').addEventListener('click', () => {
+          invitatiPers.delete(id);
+          filterPeople(document.getElementById('peopleSearch').value);
+          renderSelChips();
+        });
+        c.appendChild(chip);
+      }
+      const n = invitatiPers.size;
+      s.innerHTML = n ? `<strong>${n}</strong> person${n > 1 ? 'e' : 'a'} selezionat${n > 1 ? 'e' : 'a'}` : '';
+    }
+
+    function toast(msg, err = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+      clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    async function invia() {
+      const avversario = document.getElementById('fAvversario').value.trim();
+      const categoria  = document.getElementById('fCategoria').value;
+      const data       = document.getElementById('fData').value;
+      const ora        = document.getElementById('fOra').value;
+      if (!avversario || !categoria || !data || !ora) { alert('Compila tutti i campi obbligatori (*)'); return; }
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true; btn.textContent = 'Invio…';
+      try {
+        const r = await fetch('/api/partite/proposta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+          body: JSON.stringify({
+            tipo: document.getElementById('tipoVal').value,
+            avversario, categoria, data, ora,
+            luogo: document.getElementById('fLuogo').value.trim(),
+            note: document.getElementById('fNote').value.trim(),
+            disponibilita: availSel,
+            invitati_categorie: [...invitatiCat],
+            invitati_persone:   [...invitatiPers.keys()]
+          })
+        });
+        if (!r.ok) throw new Error('Errore ' + r.status);
+        toast('Proposta inviata allo staff!');
+        document.getElementById('fAvversario').value = '';
+        document.getElementById('fCategoria').value = '';
+        document.getElementById('fLuogo').value = '';
+        document.getElementById('fNote').value = '';
+        caricaProposte();
+      } catch (e) {
+        toast('Errore: ' + e.message, true);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Proponi partita';
+      }
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso + (iso.includes('T') ? '' : 'T00:00'));
+      return d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
+    }
+
+    async function caricaProposte() {
+      const list = document.getElementById('matchList');
+      try {
+        const r = await fetch('/api/partite/proposte', { headers: { Authorization: `Bearer ${_tok}` } });
+        if (!r.ok) throw new Error();
+        const items = await r.json();
+        if (!items.length) { list.innerHTML = '<div class="list-empty">Nessuna proposta inviata</div>'; return; }
+        const STATUS = { pending: 'In attesa', accepted: 'Accettata', refused: 'Rifiutata' };
+        list.innerHTML = '';
+        items.forEach(m => {
+          const item = document.createElement('div');
+          item.className = 'match-item';
+          const stato = m.stato || 'pending';
+          item.innerHTML = `
+            <div class="match-icon">🏐</div>
+            <div class="match-info">
+              <div class="match-vs">${m.tipo === 'allenamento' ? 'Allenamento' : 'vs ' + (m.avversario || m.titolo || '—')}</div>
+              <div class="match-meta">
+                <span>${fmtDate(m.data)} ${m.ora ? '· ' + m.ora : ''}</span>
+                ${m.luogo ? `<span>${m.luogo}</span>` : ''}
+                ${m.categoria ? `<span>${m.categoria}</span>` : ''}
+              </div>
+            </div>
+            <span class="match-status ${stato}">${STATUS[stato] || stato}</span>`;
+          list.appendChild(item);
+        });
+      } catch {
+        list.innerHTML = '<div class="list-empty">Impossibile caricare le proposte</div>';
+      }
+    }
+    caricaProposte();
+  </script>
+</body>
+</html>
