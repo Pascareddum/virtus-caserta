@@ -121,8 +121,8 @@
       color: var(--bianco);
       border: none;
       border-radius: 50px;
-      padding: 8px 22px;
-      font-size: 13px;
+      padding: 6px 16px;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -155,27 +155,60 @@
       color: var(--bianco);
     }
 
-    .nav-social {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .nav-login-btn--admin {
+      background: var(--blu-medio);
     }
+    .nav-login-btn--admin:hover { background: var(--blu-chiaro); }
 
-    .nav-social a {
-      width: 34px; height: 34px;
+    /* nascosti di default — JS li mostra dopo auth check */
+    #navLoggedArea, #navUtenteLink, #navAdminLink { display: none; }
+
+    /* Icona auth mobile (accanto all'hamburger) */
+    .nav-auth-icon {
+      display: none;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
       text-decoration: none;
-      font-size: 15px;
-      font-weight: 900;
-      color: var(--bianco);
-      transition: opacity 0.2s, transform 0.15s;
+      transition: background 0.2s, color 0.2s;
       flex-shrink: 0;
     }
+    .nav-auth-icon:hover { background: rgba(255,255,255,0.12); }
+    .nav-auth-icon svg { display: block; width: 24px; height: 24px; }
+    .nav-auth-icon[data-role="admin"] { color: var(--arancio); }
+    @media (max-width: 768px) {
+      .nav-auth-icon { display: flex; }
+      nav.nav-std { grid-template-columns: 1fr auto auto !important; }
+      nav.nav-std > .nav-auth-icon { grid-column: 2; grid-row: 1; justify-self: end; }
+      nav.nav-std > .nav-hamburger { grid-column: 3 !important; }
+      /* Forza nav-actions e bottoni auth a stare nascosti su mobile */
+      nav.nav-std > .nav-actions,
+      nav.nav-std .nav-actions #navLoginArea,
+      nav.nav-std .nav-actions #navLoggedArea,
+      nav.nav-std .nav-actions #navUtenteLink,
+      nav.nav-std .nav-actions #navAdminLink,
+      nav.nav-std .nav-actions .nav-login-btn { display: none !important; }
+    }
 
-    .nav-social a:hover { opacity: 0.8; transform: scale(1.1); }
-    .nav-social .s-fb, .nav-social .s-ig { background: none; }
-    .nav-social a img { width: 100%; height: 100%; object-fit: contain; display: block; filter: brightness(0) invert(1); }
+    .drawer-auth-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      opacity: 0;
+      transform: translateY(14px);
+      transition: opacity 0.32s ease 0.36s, transform 0.32s ease 0.36s;
+    }
+    .nav-drawer.aperto .drawer-auth-wrap { opacity: 1; transform: translateY(0); }
+    .nav-drawer a.drawer-link:nth-child(9) { transition-delay: 0.32s; }
+
+    .drawer-logout {
+      border-color: rgba(255,255,255,0.35);
+    }
 
     /* ─── MODAL LOGIN / REGISTRAZIONE ─── */
     .modal-overlay {
@@ -1764,7 +1797,7 @@
   </div>
  
   <!-- NAVBAR -->
-  <nav>
+  <nav class="nav-std">
     <ul class="nav-menu">
       <li class="nav-hashtag"><span>#noisiamolasquadra</span></li>
       <li><a href="/chi-siamo">Chi siamo</a></li>
@@ -1787,14 +1820,43 @@
         <li><a href="/shop">Shop</a></li>
         <li><a href="/live">Live</a></li>
       </ul>
-      <div class="nav-social" style="margin-left:auto;">
-        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" class="s-fb" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
-        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" class="s-ig" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
-        <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
-        <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+      <div id="navLoginArea" style="margin-left:auto;">
+        <a href="login.html" class="nav-login-btn">Accedi</a> 
+      </div>
+      <div id="navLoggedArea" style="display:none; align-items:center; gap:10px; margin-left:auto;">
+       <a href="/utente" class="nav-login-btn" id="navUtenteLink" style="display:none">Area Utente</a>
+        <a href="/admin" class="nav-login-btn" id="navAdminLink" style="display:none">Amministratore</a> 
       </div>
     </div>
+    <a class="nav-auth-icon" id="navAuthIcon" href="login.html" aria-label="Accedi" title="Accedi">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
+    </a>
+    <button class="nav-hamburger" id="navHamburger" onclick="toggleDrawer()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </nav>
+
+  <!-- HAMBURGER DRAWER -->
+  <div class="nav-drawer" id="navDrawer">
+    <div class="drawer-logo">
+      <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    </div>
+    <a href="/" class="drawer-link" onclick="chiudiDrawer()">Home</a>
+    <a href="/chi-siamo" class="drawer-link" onclick="chiudiDrawer()">Chi siamo</a>
+    <a href="/notizie" class="drawer-link" onclick="chiudiDrawer()">Notizie</a>
+    <a href="/squadra" class="drawer-link" onclick="chiudiDrawer()">Squadra</a>
+    <a href="/staff" class="drawer-link" onclick="chiudiDrawer()">Staff</a>
+    <a href="/risultati" class="drawer-link" onclick="chiudiDrawer()">Risultati</a>
+    <a href="/shop" class="drawer-link" onclick="chiudiDrawer()">Shop</a>
+    <a href="/live" class="drawer-link" onclick="chiudiDrawer()">Live</a>
+    <div class="drawer-hashtag">#noisiamolasquadra</div>
+    <div class="drawer-social">
+      <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+      <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+      <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+      <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+    </div>
+  </div>
 
   <!-- HERO -->
   <section id="home" class="hero">
@@ -2122,17 +2184,6 @@
       <a href="https://www.twitch.tv/virtuscaserta" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
     </div>
 
-    <div class="footer-auth" id="footerAuthArea">
-      <div class="footer-auth-title">Account</div>
-      <div class="footer-auth-login">
-        <a href="/login" aria-label="Accedi al tuo account">Accedi</a>
-      </div>
-      <div class="footer-auth-logged">
-        <a href="/utente" class="footer-btn" id="footerUtenteLink" style="display:none" aria-label="Vai alla tua area utente">Area Utente</a>
-        <a href="/admin" class="footer-btn" id="footerAdminLink" style="display:none" aria-label="Vai alla sezione amministratore">Sezione amministratore</a>
-        <button class="footer-btn footer-btn-outline" onclick="logout()" aria-label="Esci dall'account">Esci</button>
-      </div>
-    </div>
   </div>
   <div class="footer-bottom">
     <p>© 2024 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a> · Sito realizzato da Alessandro Pascarella</p>
@@ -2510,17 +2561,71 @@
       const adminToken = localStorage.getItem('vc_admin_token');
       const isLoggedIn = !!(token || adminToken);
       const role       = localStorage.getItem('vc_role');
-      const isAdmin    = !!(adminToken || role === 'admin' || role === 'dirigente');
+      const isAdmin    = isLoggedIn && !!(adminToken || role === 'admin' || role === 'dirigente');
 
-      const loginDiv  = document.querySelector('.footer-auth-login');
-      const loggedDiv = document.querySelector('.footer-auth-logged');
-      const adminLink = document.getElementById('footerAdminLink');
+      // Booleani condivisi navbar + drawer
+      const showAccedi = !isLoggedIn;
+      const showUtente = isLoggedIn && !isAdmin;
+      const showAdmin  = isAdmin;
 
-      if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
-      if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
-      if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
-      const utenteLink = document.getElementById('footerUtenteLink');
-      if (utenteLink) utenteLink.style.display = (isLoggedIn && !isAdmin) ? 'inline-flex' : 'none';
+      // Navbar auth
+      const navLoginArea  = document.getElementById('navLoginArea');
+      const navLoggedArea = document.getElementById('navLoggedArea');
+      const navUtenteLink = document.getElementById('navUtenteLink');
+      const navAdminLink  = document.getElementById('navAdminLink');
+      if (navLoginArea)  navLoginArea.style.display  = showAccedi ? '' : 'none';
+      if (navLoggedArea) navLoggedArea.style.display = isLoggedIn ? 'flex' : 'none';
+      if (navUtenteLink) navUtenteLink.style.display = showUtente ? 'inline-flex' : 'none';
+      if (navAdminLink)  navAdminLink.style.display  = showAdmin  ? 'inline-flex' : 'none';
+
+      // Mobile auth icon (accanto all'hamburger)
+      const navAuthIcon = document.getElementById('navAuthIcon');
+      if (navAuthIcon) {
+        if (showAdmin) {
+          navAuthIcon.href = '/admin';
+          navAuthIcon.title = 'Amministratore';
+          navAuthIcon.setAttribute('aria-label', 'Amministratore');
+          navAuthIcon.setAttribute('data-role', 'admin');
+        } else if (showUtente) {
+          navAuthIcon.href = '/utente';
+          navAuthIcon.title = 'Area Utente';
+          navAuthIcon.setAttribute('aria-label', 'Area Utente');
+          navAuthIcon.setAttribute('data-role', 'utente');
+        } else {
+          navAuthIcon.href = 'login.html';
+          navAuthIcon.title = 'Accedi';
+          navAuthIcon.setAttribute('aria-label', 'Accedi');
+          navAuthIcon.removeAttribute('data-role');
+        }
+      }
+
+      // Drawer auth: rimosso dal markup. Nascondi eventuali residui da cache HTML vecchio.
+      document.querySelectorAll('.nav-drawer a.drawer-link').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href === 'login.html' || href === '/utente' || href === '/admin') {
+          a.style.display = 'none';
+        }
+      });
+      ['drawerGroupNoLogin','drawerGroupUtente','drawerGroupAdmin','drawerLoggedArea'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    }
+
+    function toggleDrawer() {
+      const btn    = document.getElementById('navHamburger');
+      const drawer = document.getElementById('navDrawer');
+      btn.classList.toggle('aperto');
+      drawer.classList.toggle('aperto');
+      document.body.classList.toggle('nav-aperta');
+    }
+
+    function chiudiDrawer() {
+      const btn    = document.getElementById('navHamburger');
+      const drawer = document.getElementById('navDrawer');
+      btn.classList.remove('aperto');
+      drawer.classList.remove('aperto');
+      document.body.classList.remove('nav-aperta');
     }
 
     function apriModal() {
