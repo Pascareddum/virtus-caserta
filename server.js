@@ -1002,6 +1002,14 @@ app.get('/api/admin/utenti-lista', adminAuth, async (_req, res) => {
   } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
 });
 
+/* ─── Utenti lista (user-accessible, for invites) ─── */
+app.get('/api/utenti', userAuth, async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT id, nome, cognome, email FROM utenti WHERE stato='attivo' ORDER BY cognome, nome`);
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
 /* ─── Admin: federazioni (OPES category names) ─── */
 app.get('/api/admin/federazioni', adminAuth, async (_req, res) => {
   res.json({ opes: OPES_TOURNAMENTS.map(t => t.categoria) });
@@ -1011,9 +1019,18 @@ app.get('/api/admin/federazioni', adminAuth, async (_req, res) => {
 app.get('/api/comunicazioni', userAuth, async (req, res) => {
   try {
     const uid = String(req.user.id);
+    // Fetch user's squadre for squad-broadcast visibility
+    const sqRes = await db.query(`SELECT sesso FROM squadra WHERE id IN (SELECT squadra_id FROM squadra_atleta WHERE utente_id=$1 AND attiva=true)`, [uid]);
+    const userSquadre = new Set();
+    sqRes.rows.forEach(r => r.sesso && r.sesso.split(',').map(s => s.trim()).filter(Boolean).forEach(s => userSquadre.add(s)));
+    const squadreArr = [...userSquadre];
     const r = await db.query(
-      `SELECT * FROM comunicazioni WHERE mittente_id=$1 OR destinatario_id=$1 ORDER BY creato_il DESC`,
-      [uid]
+      `SELECT * FROM comunicazioni
+       WHERE mittente_id=$1
+          OR destinatario_id=$1
+          OR (destinatario_tipo='squadra' AND destinatario_label = ANY($2::text[]))
+       ORDER BY creato_il DESC`,
+      [uid, squadreArr.length ? squadreArr : ['__none__']]
     );
     res.json(r.rows.map(m => ({
       id: m.id, oggetto: m.oggetto, testo: m.testo,
@@ -1026,14 +1043,16 @@ app.get('/api/comunicazioni', userAuth, async (req, res) => {
 });
 
 app.post('/api/comunicazioni', userAuth, async (req, res) => {
-  const { oggetto, testo, destinatario } = req.body;
+  const { oggetto, testo, destinatario, destinatario_label } = req.body;
   if (!oggetto || !testo) return res.status(400).json({ error: 'Oggetto e testo obbligatori' });
-  if (!['staff', 'admin', 'dirigenza'].includes(destinatario)) return res.status(400).json({ error: 'Destinatario non valido' });
+  const VALIDI = ['staff', 'admin', 'dirigenza', 'squadra'];
+  if (!VALIDI.includes(destinatario)) return res.status(400).json({ error: 'Destinatario non valido' });
   try {
     const uid = String(req.user.id);
     const uRes = await db.query('SELECT nome, cognome FROM utenti WHERE id=$1', [uid]);
     const mittente_nome = uRes.rows.length ? `${uRes.rows[0].nome} ${uRes.rows[0].cognome || ''}`.trim() : 'Utente';
-    const destLabel = { staff: 'Staff', admin: 'Amministrazione', dirigenza: 'Dirigenza' }[destinatario];
+    const DEST_LABEL = { staff: 'Staff', admin: 'Amministrazione', dirigenza: 'Dirigenza', squadra: destinatario_label || 'Squadra' };
+    const destLabel = DEST_LABEL[destinatario];
     const id = Date.now().toString();
     await db.query(
       `INSERT INTO comunicazioni (id,mittente_id,mittente_nome,destinatario_tipo,destinatario_label,oggetto,testo) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
@@ -1090,6 +1109,74 @@ app.delete('/api/documenti/:id', userAuth, async (req, res) => {
   try {
     const uid = String(req.user.id);
     const r = await db.query('DELETE FROM documenti_utente WHERE id=$1 AND utente_id=$2 RETURNING id', [req.params.id, uid]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Documento non trovato' });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Partite proposte ─── */
+app.post('/api/partite/proposta', userAuth, async (req, res) => {
+  const { data, ora, ora_fine, luogo, note, invitati_categorie, invitati_persone } = req.body;
+  if (!data || !ora) return res.status(400).json({ error: 'Data e orario obbligatori' });
+  try {
+    const uid = String(req.user.id);
+    const id = Date.now().toString();
+    await db.query(
+      `INSERT INTO partite_proposte (id,mittente_id,data,ora,ora_fine,luogo,note,invitati_categorie,invitati_persone)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [id, uid, data, ora, ora_fine||null, luogo||null, note||null,
+       JSON.stringify(Array.isArray(invitati_categorie)?invitati_categorie:[]),
+       JSON.stringify(Array.isArray(invitati_persone)?invitati_persone:[])]
+    );
+    res.status(201).json({ id, stato: 'pending' });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.get('/api/partite/proposte', userAuth, async (req, res) => {
+  try {
+    const uid = String(req.user.id);
+    const r = await db.query('SELECT * FROM partite_proposte WHERE mittente_id=$1 ORDER BY creato_il DESC', [uid]);
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Admin: documenti utente ─── */
+app.get('/api/admin/utenti/:id/documenti', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM documenti_utente WHERE utente_id=$1 ORDER BY creato_il DESC', [req.params.id]);
+    res.json(r.rows.map(d => ({ id: d.id, nome: d.nome, url: d.url, dimensione: d.dimensione, creato_il: d.creato_il })));
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/admin/utenti/:id/documenti', adminAuth, uploadDoc.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Nessun file' });
+    const uid = req.params.id;
+    let url;
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+      const { createClient } = require('@supabase/supabase-js');
+      const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+      const storagePath = `documenti/${uid}/${Date.now()}_${req.file.originalname}`;
+      const { error } = await sb.storage.from('virtus').upload(storagePath, req.file.buffer, { contentType: req.file.mimetype });
+      if (error) throw error;
+      url = `${process.env.SUPABASE_URL}/storage/v1/object/public/virtus/${storagePath}`;
+    } else {
+      const fs = require('fs'); const path = require('path');
+      const dir = path.join(__dirname, 'uploads');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const storagePath = `${Date.now()}_${req.file.originalname}`;
+      fs.writeFileSync(path.join(dir, storagePath), req.file.buffer);
+      url = '/uploads/' + storagePath;
+    }
+    const id = Date.now().toString();
+    await db.query('INSERT INTO documenti_utente (id,utente_id,nome,url,dimensione) VALUES ($1,$2,$3,$4,$5)', [id, uid, req.file.originalname, url, req.file.size]);
+    res.status(201).json({ id, nome: req.file.originalname, url, dimensione: req.file.size, creato_il: new Date().toISOString() });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore upload' }); }
+});
+
+app.delete('/api/admin/documenti/:id', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM documenti_utente WHERE id=$1 RETURNING id', [req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Documento non trovato' });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
@@ -3384,6 +3471,19 @@ db.init().then(async () => {
     nome TEXT NOT NULL,
     url TEXT NOT NULL,
     dimensione INTEGER,
+    creato_il TIMESTAMPTZ DEFAULT NOW()
+  )`); } catch(_){}
+  try { await db.query(`CREATE TABLE IF NOT EXISTS partite_proposte (
+    id TEXT PRIMARY KEY,
+    mittente_id TEXT NOT NULL,
+    data TEXT,
+    ora TEXT,
+    ora_fine TEXT,
+    luogo TEXT,
+    note TEXT,
+    stato TEXT DEFAULT 'pending',
+    invitati_categorie JSONB DEFAULT '[]',
+    invitati_persone JSONB DEFAULT '[]',
     creato_il TIMESTAMPTZ DEFAULT NOW()
   )`); } catch(_){}
   app.listen(PORT, () => {

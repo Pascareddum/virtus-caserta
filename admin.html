@@ -1937,6 +1937,18 @@
       <div><div style="font-size:10px;font-weight:700;color:var(--sub-2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;">Squadre</div><div id="vuSquadre" style="font-size:13px;color:var(--testo);"></div></div>
       <div><div style="font-size:10px;font-weight:700;color:var(--sub-2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;">Stato</div><div id="vuStato"></div></div>
       <div id="vuAzioni" style="display:flex;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--bordo-2);"></div>
+
+      <!-- Documents section -->
+      <div style="border-top:1px solid var(--bordo-2);padding-top:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-size:10px;font-weight:700;color:var(--sub-2);text-transform:uppercase;letter-spacing:.7px;">Documenti</div>
+          <label style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1.5px solid var(--bordo);background:#fff;font-size:12px;font-weight:700;color:#0d2055;cursor:pointer;">
+            + Carica
+            <input type="file" id="vuDocInput" style="display:none;" onchange="uploadVuDoc()">
+          </label>
+        </div>
+        <div id="vuDocList" style="font-size:13px;color:var(--sub-2);">—</div>
+      </div>
     </div>
   </div>
 </div>
@@ -3817,9 +3829,49 @@
       </div>`).join('');
   }
 
+  let _vuCurrentId = null;
+
+  async function caricaVuDoc() {
+    const el = document.getElementById('vuDocList');
+    if (!_vuCurrentId) return;
+    el.innerHTML = '<span style="color:#9ca3af">Caricamento…</span>';
+    try {
+      const docs = await fetch(`/api/admin/utenti/${_vuCurrentId}/documenti`, { headers: headers() }).then(r => r.json());
+      if (!docs.length) { el.innerHTML = '<span style="color:#9ca3af">Nessun documento</span>'; return; }
+      const fmtSize = b => b > 1048576 ? (b/1048576).toFixed(1)+'MB' : b > 1024 ? (b/1024).toFixed(0)+'KB' : b+'B';
+      el.innerHTML = docs.map(d => `
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bordo-2);">
+          <span style="flex:1;font-size:12px;color:var(--testo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${d.nome}</span>
+          <span style="font-size:11px;color:var(--sub-2);white-space:nowrap;">${d.dimensione?fmtSize(d.dimensione):''}</span>
+          <a href="${d.url}" target="_blank" style="font-size:11px;font-weight:700;color:#0d2055;text-decoration:none;white-space:nowrap;">Apri</a>
+          <button onclick="eliminaVuDoc('${d.id}')" style="background:none;border:none;cursor:pointer;font-size:13px;color:#dc2626;padding:0 2px;">✕</button>
+        </div>`).join('');
+    } catch { el.innerHTML = '<span style="color:#dc2626">Errore caricamento</span>'; }
+  }
+
+  async function uploadVuDoc() {
+    const input = document.getElementById('vuDocInput');
+    if (!input.files.length || !_vuCurrentId) return;
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    try {
+      const r = await fetch(`/api/admin/utenti/${_vuCurrentId}/documenti`, { method:'POST', headers:{'Authorization':'Bearer '+TOKEN}, body:fd });
+      if (!r.ok) { const d=await r.json(); alert('Errore: '+(d.error||r.status)); return; }
+      input.value = '';
+      caricaVuDoc();
+    } catch (e) { alert('Errore upload: '+e.message); }
+  }
+
+  async function eliminaVuDoc(docId) {
+    if (!confirm('Eliminare il documento?')) return;
+    await fetch(`/api/admin/documenti/${docId}`, { method:'DELETE', headers: headers() });
+    caricaVuDoc();
+  }
+
   function apriVisualizzaUtente(id) {
     const u = window._utentiMap?.[id];
     if (!u) return;
+    _vuCurrentId = id;
     const statoBadge = s => ({
       in_attesa: '<span class="badge badge-arancio">In attesa</span>',
       approvato: '<span class="badge badge-blu">Email inviata</span>',
@@ -3844,6 +3896,7 @@
         <button onclick="approvaUtente('${u.id}','${nomeCompleto.replace(/'/g,"\\'")}')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #93c5fd;background:#fff;color:#1d4ed8;font-size:13px;font-weight:700;cursor:pointer;">Reinvia link</button>` : ''}
       <button onclick="eliminaUtente('${u.id}','${nomeCompleto.replace(/'/g,"\\'")}')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:13px;cursor:pointer;">Elimina</button>`;
     modal.classList.add('aperto');
+    caricaVuDoc();
   }
 
   async function approvaUtente(id, nome) {

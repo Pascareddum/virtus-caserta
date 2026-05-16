@@ -31,17 +31,6 @@
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
     .field-hint{font-size:11px;color:#9ca3af;margin-top:2px;}
 
-    /* Tipo buttons */
-    .tipo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
-    .tipo-btn{
-      padding:14px 8px;border-radius:12px;border:2px solid #e9ecf0;background:#f9fafb;
-      cursor:pointer;text-align:center;transition:all .18s;font-family:inherit;
-    }
-    .tipo-btn .tipo-ico{font-size:24px;display:block;margin-bottom:6px;}
-    .tipo-btn .tipo-lbl{font-size:12px;font-weight:700;color:#374151;}
-    .tipo-btn.selected{border-color:#0d2055;background:#eef4ff;}
-    .tipo-btn.selected .tipo-lbl{color:#0d2055;}
-
     /* Availability toggle */
     .avail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
     .avail-card{padding:12px 14px;border-radius:12px;border:1.5px solid #e9ecf0;background:#f9fafb;
@@ -123,7 +112,6 @@
     @media(max-width:480px){
       .page-wrap{padding:20px 14px 48px;}
       .form-card{padding:20px 16px;}
-      .tipo-grid{grid-template-columns:1fr 1fr 1fr;}
       .field-row{grid-template-columns:1fr;}
     }
   </style>
@@ -137,52 +125,26 @@
 
     <!-- Form -->
     <div class="form-card">
-      <div class="form-section-title">Tipo di partita</div>
-      <div class="tipo-grid" id="tipoGrid">
-        <button class="tipo-btn selected" onclick="setTipo('amichevole',this)">
-          <span class="tipo-ico">🤝</span><span class="tipo-lbl">Amichevole</span>
-        </button>
-        <button class="tipo-btn" onclick="setTipo('allenamento',this)">
-          <span class="tipo-ico">🏋️</span><span class="tipo-lbl">Allenamento</span>
-        </button>
-        <button class="tipo-btn" onclick="setTipo('torneo',this)">
-          <span class="tipo-ico">🏆</span><span class="tipo-lbl">Torneo</span>
-        </button>
-      </div>
-      <input type="hidden" id="tipoVal" value="amichevole">
-    </div>
-
-    <div class="form-card">
       <div class="form-section-title">Dettagli evento</div>
-      <div class="field">
-        <label>Avversario / Titolo *</label>
-        <input type="text" id="fAvversario" placeholder="Es. ASD Pallavolo Napoli">
-        <span class="field-hint">Nome squadra avversaria o titolo dell'evento</span>
-      </div>
-      <div class="field">
-        <label>Categoria *</label>
-        <select id="fCategoria">
-          <option value="">— Seleziona —</option>
-          <option>Prima Squadra</option>
-          <option>Under 19</option>
-          <option>Under 16</option>
-          <option>Under 13</option>
-          <option>Altro</option>
-        </select>
-      </div>
       <div class="field-row">
         <div class="field">
           <label>Data *</label>
           <input type="date" id="fData">
         </div>
         <div class="field">
-          <label>Orario *</label>
+          <label>Orario inizio *</label>
           <input type="time" id="fOra" value="18:00">
         </div>
       </div>
-      <div class="field">
-        <label>Luogo</label>
-        <input type="text" id="fLuogo" placeholder="Es. Tenda di Abramo, Caserta">
+      <div class="field-row">
+        <div class="field">
+          <label>Orario fine</label>
+          <input type="time" id="fOraFine" value="20:00">
+        </div>
+        <div class="field">
+          <label>Luogo</label>
+          <input type="text" id="fLuogo" placeholder="Es. Tenda di Abramo, Caserta">
+        </div>
       </div>
       <div class="field">
         <label>Note aggiuntive</label>
@@ -216,12 +178,8 @@
 
       <!-- Categoria panel -->
       <div id="panelCat">
-        <div class="cat-chips">
-          <button class="cat-chip" onclick="toggleCat('Prima Squadra',this)">Prima Squadra</button>
-          <button class="cat-chip" onclick="toggleCat('Under 19',this)">Under 19</button>
-          <button class="cat-chip" onclick="toggleCat('Under 16',this)">Under 16</button>
-          <button class="cat-chip" onclick="toggleCat('Under 13',this)">Under 13</button>
-          <button class="cat-chip" onclick="toggleCat('Altro',this)">Altro</button>
+        <div class="cat-chips" id="catChips">
+          <div class="spin"></div>
         </div>
         <div class="invite-summary" id="catSummary"></div>
       </div>
@@ -264,13 +222,6 @@
 
     let availSel = 'si';
 
-    function setTipo(val, btn) {
-      document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      document.getElementById('tipoVal').value = val;
-      document.getElementById('disponibilitaCard').style.display = val === 'allenamento' ? 'block' : 'block';
-    }
-
     function setAvail(val) {
       availSel = val;
       document.getElementById('availVal').value = val;
@@ -284,18 +235,24 @@
       if (val === 'no') { no.querySelector('.avail-dot').style.background = '#dc2626'; no.querySelector('.avail-dot').style.borderColor = '#dc2626'; } else { no.querySelector('.avail-dot').style.background = ''; no.querySelector('.avail-dot').style.borderColor = '#dc2626'; }
     }
 
-    /* ── Invite state ── */
-    let invitatiCat  = new Set();
-    let invitatiPers = new Map(); // id → person obj
-    let allPeople    = [];
-    let peopleLoaded = false;
+    /* ── Categories from DB ── */
+    let invitatiCat = new Set();
 
-    function switchInviteTab(tab) {
-      document.getElementById('tabCat').classList.toggle('active',  tab === 'cat');
-      document.getElementById('tabPers').classList.toggle('active', tab === 'pers');
-      document.getElementById('panelCat').style.display  = tab === 'cat'  ? '' : 'none';
-      document.getElementById('panelPers').style.display = tab === 'pers' ? '' : 'none';
-      if (tab === 'pers' && !peopleLoaded) caricaPersone();
+    async function caricaCategorie() {
+      try {
+        const r = await fetch('/api/squadre-categorie');
+        const cats = await r.json();
+        const chips = document.getElementById('catChips');
+        if (!Array.isArray(cats) || !cats.length) {
+          chips.innerHTML = '<span style="font-size:12px;color:#9ca3af;">Nessuna categoria disponibile</span>';
+          return;
+        }
+        chips.innerHTML = cats.map(c => `
+          <button class="cat-chip" data-nome="${c.nome.replace(/"/g,'&quot;')}" onclick="toggleCat('${c.nome.replace(/'/g,"\\'")}',this)">${c.nome}</button>
+        `).join('');
+      } catch {
+        document.getElementById('catChips').innerHTML = '<span style="font-size:12px;color:#9ca3af;">Errore caricamento categorie</span>';
+      }
     }
 
     function toggleCat(cat, btn) {
@@ -307,17 +264,30 @@
         : '';
     }
 
+    /* ── Invite state ── */
+    let invitatiPers = new Map();
+    let allPeople    = [];
+    let peopleLoaded = false;
+
+    function switchInviteTab(tab) {
+      document.getElementById('tabCat').classList.toggle('active',  tab === 'cat');
+      document.getElementById('tabPers').classList.toggle('active', tab === 'pers');
+      document.getElementById('panelCat').style.display  = tab === 'cat'  ? '' : 'none';
+      document.getElementById('panelPers').style.display = tab === 'pers' ? '' : 'none';
+      if (tab === 'pers' && !peopleLoaded) caricaPersone();
+    }
+
     async function caricaPersone() {
       const res = document.getElementById('peopleResults');
       res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;"><div class="spin"></div> Caricamento…</div>';
       try {
         const r = await fetch('/api/utenti', { headers: { Authorization: `Bearer ${_tok}` } });
-        if (!r.ok) throw new Error();
+        if (!r.ok) throw new Error('Status ' + r.status);
         allPeople = await r.json();
         peopleLoaded = true;
         filterPeople('');
-      } catch {
-        res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Impossibile caricare gli utenti</div>';
+      } catch (e) {
+        res.innerHTML = `<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Impossibile caricare gli utenti (${e.message})</div>`;
       }
     }
 
@@ -340,7 +310,6 @@
           <div class="person-av">${ini}</div>
           <div class="person-info">
             <div class="person-name">${p.nome || ''} ${p.cognome || ''}</div>
-            ${p.categoria ? `<div class="person-sub">${p.categoria}</div>` : ''}
           </div>
           <div class="person-check">${isSel ? '✓' : ''}</div>`;
         row.addEventListener('click', () => {
@@ -378,11 +347,10 @@
     }
 
     async function invia() {
-      const avversario = document.getElementById('fAvversario').value.trim();
-      const categoria  = document.getElementById('fCategoria').value;
-      const data       = document.getElementById('fData').value;
-      const ora        = document.getElementById('fOra').value;
-      if (!avversario || !categoria || !data || !ora) { alert('Compila tutti i campi obbligatori (*)'); return; }
+      const data    = document.getElementById('fData').value;
+      const ora     = document.getElementById('fOra').value;
+      const oraFine = document.getElementById('fOraFine').value;
+      if (!data || !ora) { alert('Data e orario obbligatori'); return; }
       const btn = document.getElementById('btnSubmit');
       btn.disabled = true; btn.textContent = 'Invio…';
       try {
@@ -390,21 +358,23 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
           body: JSON.stringify({
-            tipo: document.getElementById('tipoVal').value,
-            avversario, categoria, data, ora,
+            data, ora,
+            ora_fine: oraFine || null,
             luogo: document.getElementById('fLuogo').value.trim(),
             note: document.getElementById('fNote').value.trim(),
-            disponibilita: availSel,
             invitati_categorie: [...invitatiCat],
             invitati_persone:   [...invitatiPers.keys()]
           })
         });
         if (!r.ok) throw new Error('Errore ' + r.status);
         toast('Proposta inviata allo staff!');
-        document.getElementById('fAvversario').value = '';
-        document.getElementById('fCategoria').value = '';
         document.getElementById('fLuogo').value = '';
         document.getElementById('fNote').value = '';
+        invitatiCat.clear();
+        document.querySelectorAll('.cat-chip.sel').forEach(b => b.classList.remove('sel'));
+        invitatiPers.clear();
+        renderSelChips();
+        document.getElementById('catSummary').textContent = '';
         caricaProposte();
       } catch (e) {
         toast('Errore: ' + e.message, true);
@@ -432,14 +402,14 @@
           const item = document.createElement('div');
           item.className = 'match-item';
           const stato = m.stato || 'pending';
+          const orario = m.ora + (m.ora_fine ? ' – ' + m.ora_fine : '');
           item.innerHTML = `
             <div class="match-icon">🏐</div>
             <div class="match-info">
-              <div class="match-vs">${m.tipo === 'allenamento' ? 'Allenamento' : 'vs ' + (m.avversario || m.titolo || '—')}</div>
+              <div class="match-vs">${fmtDate(m.data)}</div>
               <div class="match-meta">
-                <span>${fmtDate(m.data)} ${m.ora ? '· ' + m.ora : ''}</span>
+                <span>${orario}</span>
                 ${m.luogo ? `<span>${m.luogo}</span>` : ''}
-                ${m.categoria ? `<span>${m.categoria}</span>` : ''}
               </div>
             </div>
             <span class="match-status ${stato}">${STATUS[stato] || stato}</span>`;
@@ -449,6 +419,8 @@
         list.innerHTML = '<div class="list-empty">Impossibile caricare le proposte</div>';
       }
     }
+
+    caricaCategorie();
     caricaProposte();
   </script>
 </body>

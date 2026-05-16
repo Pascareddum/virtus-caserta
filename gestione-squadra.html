@@ -98,6 +98,30 @@
       .action-card { padding: 18px 16px 14px; }
       .squad-stats { gap: 14px; }
     }
+
+    /* ── Compose modal ── */
+    .compose-bg{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.45);
+      backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;}
+    .compose-bg.open{display:flex;}
+    .compose-box{background:#fff;border-radius:20px;padding:26px 24px;width:100%;max-width:480px;
+      box-shadow:0 24px 64px rgba(0,0,0,.25);}
+    .compose-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+    .compose-hdr h3{font-size:17px;font-weight:800;color:#111827;}
+    .compose-close{width:30px;height:30px;border-radius:50%;border:none;background:#f1f5f9;color:#6b7280;
+      font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .cfield{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+    .cfield label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.7px;}
+    .cfield input,.cfield select,.cfield textarea{
+      padding:10px 13px;border:1.5px solid #e9ecf0;border-radius:10px;
+      font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:100%;}
+    .cfield input:focus,.cfield select:focus,.cfield textarea:focus{border-color:#0d2055;}
+    .cfield textarea{resize:vertical;min-height:100px;}
+    .compose-ftr{display:flex;gap:10px;margin-top:4px;}
+    .btn-cancel{flex:1;padding:12px;border:1.5px solid #e9ecf0;background:none;border-radius:50px;
+      font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;font-family:inherit;}
+    .btn-send{flex:2;padding:12px;border:none;background:#0d2055;color:#fff;border-radius:50px;
+      font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+    .btn-send:disabled{opacity:.5;cursor:not-allowed;}
   </style>
 </head>
 <body>
@@ -149,14 +173,14 @@
         <span class="action-arrow">›</span>
       </a>
 
-      <a href="comunicazioni-utente.html" class="action-card full">
+      <button class="action-card full" onclick="apriComposeComm()" style="border:none;text-align:left;width:100%;">
         <div class="action-ico">💬</div>
         <div class="action-body">
           <div class="action-name">Invia comunicazione</div>
           <div class="action-desc">Manda messaggi alla squadra, allo staff o all'amministrazione</div>
         </div>
         <span class="action-arrow">›</span>
-      </a>
+      </button>
     </div>
 
     <!-- Quick stats -->
@@ -173,6 +197,30 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Compose modal -->
+  <div class="compose-bg" id="composeModal" onclick="if(event.target===this)chiudiCompose()">
+    <div class="compose-box">
+      <div class="compose-hdr">
+        <h3>Nuova comunicazione</h3>
+        <button class="compose-close" onclick="chiudiCompose()">✕</button>
+      </div>
+      <div class="cfield">
+        <label>Destinatario</label>
+        <select id="cDest">
+          <option value="squadra">Atleti squadra</option>
+          <option value="staff">Staff / Allenatori</option>
+          <option value="admin">Amministrazione</option>
+        </select>
+      </div>
+      <div class="cfield"><label>Oggetto</label><input type="text" id="cOggetto" placeholder="Es. Allenamento straordinario"></div>
+      <div class="cfield"><label>Messaggio</label><textarea id="cMessaggio" placeholder="Scrivi il messaggio…"></textarea></div>
+      <div class="compose-ftr">
+        <button class="btn-cancel" onclick="chiudiCompose()">Annulla</button>
+        <button class="btn-send" id="btnSend" onclick="inviaComm()">Invia</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -221,6 +269,34 @@
           document.getElementById('statNonRisp').textContent  = sess.non_risposto ?? '—';
         }
       } catch {}
+    }
+
+    function apriComposeComm() { document.getElementById('composeModal').classList.add('open'); }
+    function chiudiCompose() { document.getElementById('composeModal').classList.remove('open'); }
+
+    async function inviaComm() {
+      const ogg   = document.getElementById('cOggetto').value.trim();
+      const testo = document.getElementById('cMessaggio').value.trim();
+      const dest  = document.getElementById('cDest').value;
+      if (!ogg || !testo) { alert('Oggetto e messaggio obbligatori'); return; }
+      const btn = document.getElementById('btnSend');
+      btn.disabled = true; btn.textContent = 'Invio…';
+      try {
+        const r = await fetch('/api/comunicazioni', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+          body: JSON.stringify({ oggetto: ogg, testo, destinatario: dest })
+        });
+        if (!r.ok) throw new Error('Errore ' + r.status);
+        chiudiCompose();
+        document.getElementById('cOggetto').value = '';
+        document.getElementById('cMessaggio').value = '';
+        alert('Comunicazione inviata.');
+      } catch (e) {
+        alert('Errore: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Invia';
+      }
     }
 
     carica();

@@ -15,20 +15,7 @@
       background:#fff;transition:all .2s;}
     .btn-back:hover{border-color:#0d2055;background:#eef4ff;}
     .page-title{font-size:20px;font-weight:800;color:#0d2055;letter-spacing:-.02em;}
-    .btn-compose{display:inline-flex;align-items:center;gap:7px;background:#0d2055;color:#fff;
-      padding:9px 18px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;
-      font-family:inherit;transition:background .2s;}
-    .btn-compose:hover{background:#1535a8;}
 
-    /* ── Tabs ── */
-    .tabs{display:flex;gap:0;background:#fff;border-radius:14px;border:1.5px solid #e9ecf0;
-      overflow:hidden;margin-bottom:16px;box-shadow:0 2px 12px rgba(13,32,85,.04);}
-    .tab{flex:1;padding:12px 8px;text-align:center;font-size:13px;font-weight:700;color:#6b7280;
-      cursor:pointer;border:none;background:none;font-family:inherit;transition:all .15s;position:relative;}
-    .tab.active{color:#0d2055;background:#eef4ff;}
-    .tab .unread-badge{position:absolute;top:8px;right:calc(50% - 22px);
-      background:#dc2626;color:#fff;font-size:9px;font-weight:800;
-      min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;}
 
     /* ── Message list ── */
     .msgs-section{background:#fff;border-radius:18px;border:1.5px solid #e9ecf0;overflow:hidden;
@@ -72,29 +59,6 @@
     .sheet-meta strong{color:#374151;}
     .sheet-body{padding:20px 24px;font-size:14px;color:#374151;line-height:1.7;white-space:pre-wrap;}
 
-    /* ── Compose modal ── */
-    .compose-bg{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.45);
-      backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;}
-    .compose-bg.open{display:flex;}
-    .compose-box{background:#fff;border-radius:20px;padding:26px 24px;width:100%;max-width:480px;
-      box-shadow:0 24px 64px rgba(0,0,0,.25);}
-    .compose-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-    .compose-hdr h3{font-size:17px;font-weight:800;color:#111827;}
-    .cfield{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
-    .cfield label{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.7px;}
-    .cfield input,.cfield select,.cfield textarea{
-      padding:10px 13px;border:1.5px solid #e9ecf0;border-radius:10px;
-      font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:100%;}
-    .cfield input:focus,.cfield select:focus,.cfield textarea:focus{border-color:#0d2055;}
-    .cfield textarea{resize:vertical;min-height:100px;}
-    .compose-ftr{display:flex;gap:10px;margin-top:4px;}
-    .btn-cancel{flex:1;padding:12px;border:1.5px solid #e9ecf0;background:none;border-radius:50px;
-      font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;font-family:inherit;transition:background .2s;}
-    .btn-cancel:hover{background:#f9fafb;}
-    .btn-send{flex:2;padding:12px;border:none;background:#0d2055;color:#fff;border-radius:50px;
-      font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;}
-    .btn-send:hover{opacity:.88;}
-    .btn-send:disabled{opacity:.5;cursor:not-allowed;}
 
     @media(max-width:480px){.page-wrap{padding:20px 14px 48px;}.modal-sheet{border-radius:18px 18px 0 0;}.sheet-hdr{padding:16px 18px;}.sheet-body{padding:16px 18px;}.sheet-meta{padding:12px 18px;}}
   </style>
@@ -106,14 +70,6 @@
         <a href="/utente" class="btn-back">← Account</a>
         <h1 class="page-title">Comunicazioni</h1>
       </div>
-      <button class="btn-compose" onclick="apriCompose()">✉ Scrivi</button>
-    </div>
-
-    <div class="tabs">
-      <button class="tab active" id="tabRicevute" onclick="switchTab('ricevute')">
-        Ricevute <span class="unread-badge" id="unreadBadge" style="display:none"></span>
-      </button>
-      <button class="tab" id="tabInviate" onclick="switchTab('inviate')">Inviate</button>
     </div>
 
     <div class="msgs-section">
@@ -136,43 +92,12 @@
     </div>
   </div>
 
-  <!-- Compose modal -->
-  <div class="compose-bg" id="composeModal" onclick="chiudiCompose(event)">
-    <div class="compose-box">
-      <div class="compose-hdr">
-        <h3>Nuova comunicazione</h3>
-        <button class="sheet-close" onclick="chiudiCompose()">✕</button>
-      </div>
-      <div class="cfield">
-        <label>Destinatario</label>
-        <select id="cDest">
-          <option value="staff">Staff / Allenatori</option>
-          <option value="admin">Amministrazione</option>
-          <option value="dirigenza">Dirigenza</option>
-        </select>
-      </div>
-      <div class="cfield"><label>Oggetto</label><input type="text" id="cOggetto" placeholder="Es. Richiesta info allenamento"></div>
-      <div class="cfield"><label>Messaggio</label><textarea id="cMessaggio" placeholder="Scrivi il tuo messaggio…"></textarea></div>
-      <div class="compose-ftr">
-        <button class="btn-cancel" onclick="chiudiCompose()">Annulla</button>
-        <button class="btn-send" id="btnSend" onclick="inviaMsg()">Invia</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     const _tok = localStorage.getItem('vc_token');
     if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
 
-    let curTab = 'ricevute';
     let msgs = [];
-
-    function switchTab(tab) {
-      curTab = tab;
-      document.getElementById('tabRicevute').classList.toggle('active', tab === 'ricevute');
-      document.getElementById('tabInviate').classList.toggle('active', tab === 'inviate');
-      renderList();
-    }
 
     function fmtDate(iso) {
       if (!iso) return '';
@@ -189,21 +114,17 @@
 
     function renderList() {
       const list = document.getElementById('msgsList');
-      const filtered = msgs.filter(m => curTab === 'ricevute' ? !m.inviata : m.inviata);
-      const unread = msgs.filter(m => !m.inviata && !m.letto).length;
-      const badge = document.getElementById('unreadBadge');
-      if (unread > 0) { badge.style.display = ''; badge.textContent = unread; }
-      else { badge.style.display = 'none'; }
+      const filtered = msgs.filter(m => !m.inviata);
 
       if (!filtered.length) {
-        list.innerHTML = `<div class="msg-empty">${curTab === 'ricevute' ? 'Nessuna comunicazione ricevuta' : 'Nessun messaggio inviato'}</div>`;
+        list.innerHTML = '<div class="msg-empty">Nessuna comunicazione ricevuta</div>';
         return;
       }
       list.innerHTML = '';
       filtered.forEach(m => {
         const item = document.createElement('div');
-        item.className = 'msg-item' + (!m.letto && !m.inviata ? ' unread' : '');
-        const name = m.inviata ? (m.destinatario || 'Staff') : (m.mittente || 'Virtus Caserta');
+        item.className = 'msg-item' + (!m.letto ? ' unread' : '');
+        const name = m.mittente || 'Virtus Caserta';
         item.innerHTML = `
           <div class="msg-avatar">${initials(name)}</div>
           <div class="msg-body">
@@ -237,38 +158,6 @@
         document.getElementById('detailModal').classList.remove('open');
     }
 
-    function apriCompose() { document.getElementById('composeModal').classList.add('open'); }
-    function chiudiCompose(e) {
-      if (!e || e.target === document.getElementById('composeModal'))
-        document.getElementById('composeModal').classList.remove('open');
-    }
-
-    async function inviaMsg() {
-      const ogg = document.getElementById('cOggetto').value.trim();
-      const testo = document.getElementById('cMessaggio').value.trim();
-      const dest = document.getElementById('cDest').value;
-      if (!ogg || !testo) { alert('Oggetto e messaggio obbligatori'); return; }
-      const btn = document.getElementById('btnSend');
-      btn.disabled = true; btn.textContent = 'Invio…';
-      try {
-        const r = await fetch('/api/comunicazioni', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
-          body: JSON.stringify({ oggetto: ogg, testo, destinatario: dest })
-        });
-        if (!r.ok) throw new Error('Errore ' + r.status);
-        const nm = await r.json();
-        msgs.unshift({ ...nm, inviata: true });
-        chiudiCompose();
-        document.getElementById('cOggetto').value = '';
-        document.getElementById('cMessaggio').value = '';
-        switchTab('inviate');
-      } catch (e) {
-        alert('Errore durante l\'invio: ' + e.message);
-      } finally {
-        btn.disabled = false; btn.textContent = 'Invia';
-      }
-    }
 
     async function carica() {
       try {
