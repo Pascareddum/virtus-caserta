@@ -958,6 +958,23 @@
       .ql-toolbar.ql-snow button { width:24px; height:24px; padding:2px; }
     }
 
+    /* ── Tabella settimanale palestre ── */
+    .pal-week-table { border-collapse:collapse; width:100%; min-width:560px; font-size:13px; }
+    .pal-week-table th { padding:8px 10px; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); background:var(--surface-3); border:1px solid var(--bordo); text-align:center; }
+    .pal-week-table th.pal-nome-col { text-align:left; min-width:140px; }
+    .pal-week-table td { padding:8px 10px; border:1px solid var(--bordo); vertical-align:top; min-width:88px; }
+    .pal-week-table td.pal-nome-cell { font-weight:600; color:var(--testo); white-space:nowrap; background:var(--surface-2); }
+    .pal-week-table tr:hover td { background:var(--surface-3); }
+    .pal-week-table tr:hover td.pal-nome-cell { background:var(--surface-3); }
+    .pal-slot { display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:20px;font-size:11px;font-weight:600;margin:2px;white-space:nowrap; }
+    .pal-slot-free { background:#dcfce7;color:#15803d; }
+    .pal-slot-busy { background:#fee2e2;color:#b91c1c; }
+    .pal-slot-dot  { width:6px;height:6px;border-radius:50%;flex-shrink:0; }
+    .pal-slot-dot.free { background:#16a34a; }
+    .pal-slot-dot.busy { background:#dc2626; }
+    .pal-day-today { background:#eff6ff !important; }
+    .pal-day-today.pal-nome-cell { background:#dbeafe !important; }
+
     /* ── Calendario categorie ── */
     .cal-cat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
     .cal-cat-card {
@@ -1645,6 +1662,30 @@
     <h2>Palestre</h2>
     <button class="btn-aggiungi" onclick="apriModalPalestra(null)">+ Aggiungi palestra</button>
   </div>
+
+  <!-- Tabella settimanale disponibilità -->
+  <div style="background:var(--surface);border:1px solid var(--bordo);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;box-shadow:var(--shadow-sm);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <h3 style="font-size:14px;font-weight:700;color:var(--testo);margin:0;">Disponibilità settimanale</h3>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="palWeekShift(-1)" class="cal-nav-btn">&#8249;</button>
+        <span id="palWeekLabel" style="font-size:13px;font-weight:600;color:var(--testo);min-width:160px;text-align:center;"></span>
+        <button onclick="palWeekShift(1)"  class="cal-nav-btn">&#8250;</button>
+        <button onclick="palWeekReset()" class="filtro-btn" style="margin-left:4px;padding:5px 12px;">Oggi</button>
+      </div>
+    </div>
+    <div id="palWeekGrid" style="overflow-x:auto;">
+      <div style="padding:20px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+      <span style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span>Disponibile</span>
+      <span style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;"></span>Occupata</span>
+      <span style="font-size:12px;color:var(--sub);display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#e5e7eb;display:inline-block;"></span>Non disponibile</span>
+    </div>
+  </div>
+
+  <!-- Lista palestre -->
+  <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub-2);margin-bottom:10px;">Gestione palestre</div>
   <div class="card-table">
     <table>
       <thead><tr>
@@ -4660,7 +4701,139 @@
 
   /* ══ PALESTRE ══ */
   const GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const GIORNI_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
   let _palestreCache = [];
+  let _palWeekOffset = 0;
+
+  function _palGetWeekDates(offset = 0) {
+    const today = new Date();
+    const dow   = today.getDay();
+    const mon   = new Date(today);
+    mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1) + offset * 7);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(mon);
+      d.setDate(mon.getDate() + i);
+      return d.toISOString().slice(0, 10);
+    });
+  }
+
+  function _palDateLabel(isoDate) {
+    const d = new Date(isoDate + 'T00:00:00');
+    return `${GIORNI[d.getDay()]} ${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+
+  function _palToMin(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  function _palFromMin(min) {
+    return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  }
+
+  function _palParseOra(ora) {
+    if (ora.includes('–')) { const [a, b] = ora.split('–'); return [_palToMin(a.trim()), _palToMin(b.trim())]; }
+    const si = _palToMin(ora.trim()); return [si, si + 60];
+  }
+
+  function _palSplitSlot(slotInizio, slotFine, sessioniGiorno) {
+    const slotI = _palToMin(slotInizio);
+    const slotF = _palToMin(slotFine);
+    const matches = sessioniGiorno
+      .map(s => { const [si, sf] = _palParseOra(s.ora); return { si, sf, titolo: s.titolo }; })
+      .filter(s => s.si < slotF && s.sf > slotI)
+      .sort((a, b) => a.si - b.si);
+    if (!matches.length) return { disponibili: [{ inizio: slotInizio, fine: slotFine }], occupati: [] };
+    const disponibili = [], occupati = [];
+    let cursor = slotI;
+    for (const s of matches) {
+      const busyStart = Math.max(s.si, slotI);
+      const busyEnd   = Math.min(s.sf, slotF);
+      if (cursor < busyStart) disponibili.push({ inizio: _palFromMin(cursor), fine: _palFromMin(busyStart) });
+      occupati.push({ inizio: _palFromMin(busyStart), fine: _palFromMin(busyEnd), titolo: s.titolo });
+      cursor = busyEnd;
+    }
+    if (cursor < slotF) disponibili.push({ inizio: _palFromMin(cursor), fine: _palFromMin(slotF) });
+    return { disponibili, occupati };
+  }
+
+  function palWeekShift(delta) {
+    _palWeekOffset += delta;
+    renderPalestreWeek();
+  }
+
+  function palWeekReset() {
+    _palWeekOffset = 0;
+    renderPalestreWeek();
+  }
+
+  async function renderPalestreWeek() {
+    const grid = document.getElementById('palWeekGrid');
+    const label = document.getElementById('palWeekLabel');
+    if (!grid) return;
+
+    const dates = _palGetWeekDates(_palWeekOffset);
+    const d0 = new Date(dates[0] + 'T00:00:00');
+    const d6 = new Date(dates[6] + 'T00:00:00');
+    const fmt = d => `${d.getDate()} ${d.toLocaleDateString('it-IT',{month:'short'})}`;
+    if (label) label.textContent = `${fmt(d0)} – ${fmt(d6)} ${d6.getFullYear()}`;
+
+    if (!_palestreCache.length) {
+      grid.innerHTML = '<div style="padding:20px;text-align:center;color:var(--sub);font-size:13px;">Nessuna palestra configurata.</div>';
+      return;
+    }
+
+    grid.innerHTML = '<div style="padding:12px;color:var(--sub);font-size:13px;">Caricamento sessioni…</div>';
+
+    let sessions = [];
+    try {
+      const r = await fetch('/api/calendario', { headers: headers() });
+      sessions = await r.json();
+    } catch {}
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    let html = '<table class="pal-week-table"><thead><tr>';
+    html += '<th class="pal-nome-col">Palestra</th>';
+    dates.forEach(d => {
+      const isToday = d === todayStr;
+      html += `<th${isToday ? ' style="background:#dbeafe;color:#1d4ed8;"' : ''}>${_palDateLabel(d)}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    _palestreCache.forEach(palestra => {
+      html += '<tr>';
+      html += `<td class="pal-nome-cell"><div style="font-weight:700;color:var(--testo);">${palestra.nome}</div>${palestra.indirizzo ? `<div style="font-size:11px;color:var(--sub);margin-top:2px;">${palestra.indirizzo}</div>` : ''}</td>`;
+
+      dates.forEach(d => {
+        const isToday = d === todayStr;
+        const dow = new Date(d + 'T00:00:00').getDay();
+        const slotsForDay = (palestra.orari || []).filter(o => o.giorno === dow);
+        const sessioniDelGiorno = sessions.filter(s => s.data === d && s.palestra_id === palestra.id);
+
+        let cellContent = '';
+        if (!slotsForDay.length) {
+          cellContent = '<span style="color:var(--sub-2);font-size:11px;">—</span>';
+        } else {
+          slotsForDay.forEach(slot => {
+            const { disponibili: liberi, occupati: busy } = _palSplitSlot(slot.inizio, slot.fine, sessioniDelGiorno);
+            liberi.forEach(s => {
+              cellContent += `<span class="pal-slot pal-slot-free"><span class="pal-slot-dot free"></span>${s.inizio}–${s.fine}</span>`;
+            });
+            busy.forEach(s => {
+              cellContent += `<span class="pal-slot pal-slot-busy" title="${s.titolo}"><span class="pal-slot-dot busy"></span>${s.inizio}–${s.fine}</span>`;
+            });
+          });
+        }
+        html += `<td${isToday ? ' class="pal-day-today"' : ''}>${cellContent}</td>`;
+      });
+
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    grid.innerHTML = html;
+  }
 
   async function caricaPalestre() {
     const tbody = document.getElementById('palestreBody');
@@ -4670,6 +4843,7 @@
       const r = await fetch('/api/palestre', { headers: headers() });
       const list = await r.json();
       _palestreCache = list;
+      await renderPalestreWeek();
       if (!list.length) {
         tbody.innerHTML = '<tr><td colspan="4" class="empty-state" style="padding:24px;text-align:center;color:var(--sub);">Nessuna palestra. Aggiungine una.</td></tr>';
         return;

@@ -31,7 +31,44 @@
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
     .field-hint{font-size:11px;color:#9ca3af;margin-top:2px;}
 
-    /* Availability toggle */
+    /* ── Step label ── */
+    .step-label{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+      color:#0d2055;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+    .step-num{width:20px;height:20px;border-radius:50%;background:#0d2055;color:#fff;
+      font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+    /* ── Palestre disponibili ── */
+    .palestre-grid{display:flex;flex-direction:column;gap:10px;}
+    .palestra-card{border:1.5px solid #e9ecf0;border-radius:14px;padding:14px 16px;
+      background:#fafbfc;transition:border-color .15s;}
+    .palestra-card-nome{font-size:13px;font-weight:700;color:#111827;margin-bottom:2px;}
+    .palestra-card-addr{font-size:11px;color:#9ca3af;margin-bottom:10px;}
+    .slot-list{display:flex;flex-wrap:wrap;gap:8px;}
+    .slot-btn{padding:7px 14px;border-radius:20px;border:1.5px solid #e9ecf0;background:#fff;
+      font-size:12px;font-weight:700;color:#374151;cursor:pointer;transition:all .15s;font-family:inherit;
+      display:flex;align-items:center;gap:6px;}
+    .slot-btn:hover{border-color:#16a34a;background:#f0fdf4;color:#15803d;}
+    .slot-btn.selected{border-color:#0d2055;background:#eef4ff;color:#0d2055;}
+    .slot-dot{width:7px;height:7px;border-radius:50%;background:#16a34a;flex-shrink:0;}
+    .slot-btn.selected .slot-dot{background:#0d2055;}
+    .no-palestre{text-align:center;padding:24px 16px;color:#9ca3af;font-size:13px;font-weight:600;
+      background:#fafbfc;border-radius:14px;border:1.5px dashed #e9ecf0;}
+
+    /* ── Selezione attiva ── */
+    .selezione-card{border:1.5px solid #0d2055;border-radius:14px;padding:14px 16px;
+      background:#eef4ff;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
+    .selezione-info{flex:1;min-width:0;}
+    .selezione-nome{font-size:14px;font-weight:700;color:#0d2055;}
+    .selezione-orario{font-size:13px;color:#374151;margin-top:2px;}
+    .btn-cambia{padding:6px 12px;border-radius:8px;border:1.5px solid #0d2055;background:#fff;
+      font-size:12px;font-weight:700;color:#0d2055;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .btn-cambia:hover{background:#eef4ff;}
+
+    /* ── Orario manuale ── */
+    .orario-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:16px;}
+    .orario-sep{font-size:16px;color:#9ca3af;text-align:center;font-weight:700;}
+
+    /* ── Availability toggle ── */
     .avail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
     .avail-card{padding:12px 14px;border-radius:12px;border:1.5px solid #e9ecf0;background:#f9fafb;
       cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .18s;font-family:inherit;}
@@ -58,7 +95,7 @@
     .match-status.refused{background:#fef2f2;color:#b91c1c;}
     .list-empty{padding:36px 20px;text-align:center;color:#9ca3af;font-size:13px;font-weight:600;}
 
-    /* ── Submit btn ── */
+    /* ── Submit ── */
     .btn-submit{width:100%;padding:15px;background:#0d2055;color:#fff;border:none;border-radius:14px;
       font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-top:6px;}
     .btn-submit:hover{background:#1535a8;transform:translateY(-1px);}
@@ -74,17 +111,7 @@
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
     .toast.err{background:#dc2626;}
 
-    /* ── Invite section ── */
-    .invite-tabs{display:flex;background:#f8fafc;border-radius:10px;padding:3px;margin-bottom:16px;border:1.5px solid #e9ecf0;}
-    .invite-tab{flex:1;padding:8px 12px;border-radius:8px;border:none;background:none;
-      font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .15s;font-family:inherit;}
-    .invite-tab.active{background:#fff;color:#0d2055;box-shadow:0 1px 6px rgba(0,0,0,.08);}
-    .cat-chips{display:flex;flex-wrap:wrap;gap:8px;}
-    .cat-chip{padding:7px 14px;border-radius:20px;border:1.5px solid #e9ecf0;background:#f9fafb;
-      font-size:12px;font-weight:700;color:#6b7280;cursor:pointer;transition:all .15s;font-family:inherit;}
-    .cat-chip.sel{border-color:#0d2055;background:#eef4ff;color:#0d2055;}
-    .invite-summary{font-size:11px;color:#9ca3af;margin-top:10px;}
-    .invite-summary strong{color:#0d2055;}
+    /* ── People search ── */
     .people-search{position:relative;margin-bottom:10px;}
     .people-search input{padding:10px 14px 10px 38px;}
     .search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none;}
@@ -97,7 +124,6 @@
       display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;}
     .person-info{flex:1;min-width:0;}
     .person-name{font-size:13px;font-weight:600;color:#111827;}
-    .person-sub{font-size:11px;color:#9ca3af;}
     .person-check{width:18px;height:18px;border-radius:50%;border:2px solid #d1d5db;flex-shrink:0;
       display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;
       transition:all .15s;color:#fff;}
@@ -108,11 +134,14 @@
     .sel-chip button{background:none;border:none;color:#93c5fd;cursor:pointer;font-size:13px;
       padding:0 3px;line-height:1;border-radius:50%;transition:color .15s;}
     .sel-chip button:hover{color:#0d2055;}
+    .invite-summary{font-size:11px;color:#9ca3af;margin-top:10px;}
+    .invite-summary strong{color:#0d2055;}
 
     @media(max-width:480px){
       .page-wrap{padding:20px 14px 48px;}
       .form-card{padding:20px 16px;}
       .field-row{grid-template-columns:1fr;}
+      .orario-row{grid-template-columns:1fr auto 1fr;}
     }
   </style>
 </head>
@@ -123,45 +152,70 @@
       <h1 class="page-title">Organizza partita</h1>
     </div>
 
-    <!-- Form -->
+    <!-- STEP 1 + 2 + 3 in unica card -->
     <div class="form-card">
-      <div class="form-section-title">Dettagli evento</div>
-      <div class="field-row">
-        <div class="field">
-          <label>Data *</label>
-          <input type="date" id="fData" onchange="onPalestraChangeOrganizza()">
-        </div>
-        <div class="field">
-          <label>Orario inizio *</label>
-          <input type="time" id="fOra" value="18:00">
+      <!-- Step 1: Data -->
+      <div class="step-label"><span class="step-num">1</span>Scegli la data</div>
+      <div class="field" style="margin-bottom:20px;">
+        <input type="date" id="fData" onchange="onDataChange()">
+      </div>
+
+      <!-- Step 2: Palestre disponibili (nascosto finché data non selezionata) -->
+      <div id="palestreSection" style="display:none;">
+        <div class="step-label"><span class="step-num">2</span>Palestra disponibile</div>
+        <div id="palestreGrid" class="palestre-grid" style="margin-bottom:20px;">
+          <div style="text-align:center;padding:16px;color:#9ca3af;font-size:13px;"><div class="spin"></div></div>
         </div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Orario fine</label>
-          <input type="time" id="fOraFine" value="20:00">
+
+      <!-- Step 3: Orario + dettagli (nascosto finché slot non selezionato) -->
+      <div id="orarioSection" style="display:none;">
+        <div class="step-label"><span class="step-num">3</span>Conferma orario</div>
+
+        <!-- Selezione attiva -->
+        <div class="selezione-card" id="selezioneCard">
+          <div class="selezione-info">
+            <div class="selezione-nome" id="selNome">—</div>
+            <div class="selezione-orario" id="selOrario">—</div>
+          </div>
+          <button class="btn-cambia" onclick="cambiaSelezione()">Cambia</button>
         </div>
+
+        <!-- Orario fine-tune -->
+        <div class="field" style="margin-bottom:16px;">
+          <label>Aggiusta orario (opzionale)</label>
+          <div class="orario-row">
+            <div>
+              <label style="font-size:11px;color:#9ca3af;font-weight:600;display:block;margin-bottom:4px;">Inizio</label>
+              <input type="time" id="fOra" style="padding:9px 12px;border:1.5px solid #e9ecf0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;width:100%;">
+            </div>
+            <div class="orario-sep">–</div>
+            <div>
+              <label style="font-size:11px;color:#9ca3af;font-weight:600;display:block;margin-bottom:4px;">Fine</label>
+              <input type="time" id="fOraFine" style="padding:9px 12px;border:1.5px solid #e9ecf0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;width:100%;">
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Note aggiuntive</label>
+          <textarea id="fNote" placeholder="Informazioni per lo staff e i giocatori…"></textarea>
+        </div>
+      </div>
+
+      <!-- Fallback luogo manuale se nessuna palestra (sezione sempre visibile quando data scelta) -->
+      <div id="luogoFallback" style="display:none;">
         <div class="field">
           <label>Luogo</label>
           <input type="text" id="fLuogo" placeholder="Es. Tenda di Abramo, Caserta">
         </div>
       </div>
-      <div class="field">
-        <label>Palestra</label>
-        <select id="fPalestra" onchange="onPalestraChangeOrganizza()" style="padding:11px 14px;border:1.5px solid #e9ecf0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;width:100%;background:#fff;">
-          <option value="">— Nessuna / altra —</option>
-        </select>
-      </div>
-      <div id="fOccupazioneWrap" style="display:none;">
-        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:8px;">Disponibilità palestra nella data selezionata</label>
-        <div id="fOccupazioneTable" style="border:1.5px solid #e9ecf0;border-radius:12px;overflow:hidden;font-size:13px;background:#fff;"></div>
-      </div>
-      <div class="field">
-        <label>Note aggiuntive</label>
-        <textarea id="fNote" placeholder="Informazioni per lo staff e i giocatori…"></textarea>
-      </div>
+
+      <!-- Hidden: palestra_id selezionata -->
+      <input type="hidden" id="fPalestra">
     </div>
 
+    <!-- Disponibilità propria -->
     <div class="form-card" id="disponibilitaCard">
       <div class="form-section-title">La tua disponibilità</div>
       <div class="avail-grid">
@@ -178,39 +232,23 @@
       <input type="hidden" id="availVal" value="si">
     </div>
 
-    <!-- Inviti -->
+    <!-- Inviti: solo per persona -->
     <div class="form-card">
       <div class="form-section-title">Invita partecipanti</div>
-      <div class="invite-tabs">
-        <button class="invite-tab active" id="tabCat"  onclick="switchInviteTab('cat')">Per categoria</button>
-        <button class="invite-tab"        id="tabPers" onclick="switchInviteTab('pers')">Per persona</button>
+      <div class="people-search">
+        <span class="search-ico">🔍</span>
+        <input type="text" id="peopleSearch" placeholder="Cerca per nome…" oninput="filterPeople(this.value)">
       </div>
-
-      <!-- Categoria panel -->
-      <div id="panelCat">
-        <div class="cat-chips" id="catChips">
-          <div class="spin"></div>
-        </div>
-        <div class="invite-summary" id="catSummary"></div>
+      <div class="people-results" id="peopleResults">
+        <div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Caricamento…</div>
       </div>
-
-      <!-- Persona panel -->
-      <div id="panelPers" style="display:none;">
-        <div class="people-search">
-          <span class="search-ico">🔍</span>
-          <input type="text" id="peopleSearch" placeholder="Cerca per nome…" oninput="filterPeople(this.value)">
-        </div>
-        <div class="people-results" id="peopleResults">
-          <div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Clicca sulla scheda per caricare gli utenti</div>
-        </div>
-        <div class="sel-chips" id="selChips"></div>
-        <div class="invite-summary" id="persSummary"></div>
-      </div>
+      <div class="sel-chips" id="selChips"></div>
+      <div class="invite-summary" id="persSummary"></div>
     </div>
 
     <button class="btn-submit" id="btnSubmit" onclick="invia()">Proponi partita</button>
 
-    <!-- Pending matches -->
+    <!-- Partite proposte -->
     <div class="list-card" style="margin-top:32px;">
       <div class="list-header">
         <span class="list-title">Partite proposte</span>
@@ -227,65 +265,139 @@
     const _tok = localStorage.getItem('vc_token');
     if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
 
-    // Pre-fill today
     document.getElementById('fData').valueAsDate = new Date();
 
-    let availSel = 'si';
+    // ── Palestre cache ──
+    let _orgPalestre = [];
 
-    function setAvail(val) {
-      availSel = val;
-      document.getElementById('availVal').value = val;
-      const si = document.getElementById('availSi');
-      const forse = document.getElementById('availForse');
-      const no = document.getElementById('availNo');
-      si.classList.toggle('on', val === 'si');
-      forse.classList.toggle('on', val === 'forse');
-      no.classList.toggle('on', val === 'no');
-      if (val === 'forse') { forse.querySelector('.avail-dot').style.background = '#f59e0b'; forse.querySelector('.avail-dot').style.borderColor = '#f59e0b'; } else { forse.querySelector('.avail-dot').style.background = ''; forse.querySelector('.avail-dot').style.borderColor = '#f59e0b'; }
-      if (val === 'no') { no.querySelector('.avail-dot').style.background = '#dc2626'; no.querySelector('.avail-dot').style.borderColor = '#dc2626'; } else { no.querySelector('.avail-dot').style.background = ''; no.querySelector('.avail-dot').style.borderColor = '#dc2626'; }
+    async function caricaPalestre() {
+      try {
+        const r = await fetch('/api/palestre');
+        _orgPalestre = await r.json();
+      } catch {}
     }
 
-    /* ── Categories from DB ── */
-    let invitatiCat = new Set();
+    // ── Step 1: data cambia → carica palestre disponibili ──
+    async function onDataChange() {
+      const data = document.getElementById('fData').value;
+      if (!data) return;
 
-    async function caricaCategorie() {
+      // Reset step 3
+      resetSelezione();
+
+      const palestreSection = document.getElementById('palestreSection');
+      const grid = document.getElementById('palestreGrid');
+      palestreSection.style.display = '';
+      grid.innerHTML = '<div style="text-align:center;padding:16px;color:#9ca3af;font-size:13px;"><div class="spin"></div> Caricamento…</div>';
+
+      if (!_orgPalestre.length) await caricaPalestre();
+
       try {
-        const r = await fetch('/api/squadre-categorie');
-        const cats = await r.json();
-        const chips = document.getElementById('catChips');
-        if (!Array.isArray(cats) || !cats.length) {
-          chips.innerHTML = '<span style="font-size:12px;color:#9ca3af;">Nessuna categoria disponibile</span>';
+        const results = await Promise.all(
+          _orgPalestre.map(p =>
+            fetch(`/api/palestre/${p.id}/occupazione?data=${data}`)
+              .then(r => r.json())
+              .then(occ => ({ ...p, disponibili: occ.disponibili || [], occupati: occ.occupati || [] }))
+              .catch(() => ({ ...p, disponibili: [], occupati: [] }))
+          )
+        );
+
+        const conSlot = results.filter(p => p.disponibili.length > 0 || p.occupati.length > 0);
+
+        if (!conSlot.length) {
+          grid.innerHTML = '<div class="no-palestre">Nessuna palestra disponibile per questa data.<br><span style="font-size:12px;font-weight:400;">Puoi inserire comunque il luogo manualmente.</span></div>';
+          document.getElementById('luogoFallback').style.display = '';
           return;
         }
-        chips.innerHTML = cats.map(c => `
-          <button class="cat-chip" data-nome="${c.nome.replace(/"/g,'&quot;')}" onclick="toggleCat('${c.nome.replace(/'/g,"\\'")}',this)">${c.nome}</button>
-        `).join('');
+
+        document.getElementById('luogoFallback').style.display = 'none';
+        grid.innerHTML = '';
+
+        conSlot.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'palestra-card';
+          card.id = `pcard-${p.id}`;
+
+          let slotsHtml = '';
+          p.disponibili.forEach(s => {
+            slotsHtml += `<button class="slot-btn" data-palestra="${p.id}" data-nome="${p.nome.replace(/"/g,'&quot;')}" data-inizio="${s.inizio}" data-fine="${s.fine}" onclick="selezionaSlot(this)">
+              <span class="slot-dot"></span>${s.inizio}–${s.fine}
+            </button>`;
+          });
+          p.occupati.forEach(s => {
+            slotsHtml += `<span class="slot-btn" style="opacity:.45;cursor:not-allowed;border-color:#fecaca;background:#fef2f2;color:#b91c1c;">
+              <span class="slot-dot" style="background:#dc2626;"></span>${s.inizio}–${s.fine}
+            </span>`;
+          });
+
+          card.innerHTML = `
+            <div class="palestra-card-nome">${p.nome}</div>
+            ${p.indirizzo ? `<div class="palestra-card-addr">${p.indirizzo}</div>` : ''}
+            <div class="slot-list">${slotsHtml}</div>`;
+          grid.appendChild(card);
+        });
+
       } catch {
-        document.getElementById('catChips').innerHTML = '<span style="font-size:12px;color:#9ca3af;">Errore caricamento categorie</span>';
+        grid.innerHTML = '<div class="no-palestre" style="color:#dc2626;">Errore di caricamento palestre.</div>';
       }
     }
 
-    function toggleCat(cat, btn) {
-      invitatiCat.has(cat) ? invitatiCat.delete(cat) : invitatiCat.add(cat);
-      btn.classList.toggle('sel', invitatiCat.has(cat));
-      const n = invitatiCat.size;
-      document.getElementById('catSummary').innerHTML = n
-        ? `<strong>${n}</strong> categor${n > 1 ? 'ie' : 'ia'} selezionat${n > 1 ? 'e' : 'a'}`
-        : '';
+    // ── Step 2: click su slot ──
+    function selezionaSlot(btn) {
+      // Deseleziona tutti
+      document.querySelectorAll('.slot-btn.selected').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+      const pid    = btn.dataset.palestra;
+      const nome   = btn.dataset.nome;
+      const inizio = btn.dataset.inizio;
+      const fine   = btn.dataset.fine;
+      const data   = document.getElementById('fData').value;
+
+      document.getElementById('fPalestra').value = pid;
+      document.getElementById('fOra').value      = inizio;
+      document.getElementById('fOraFine').value  = fine;
+
+      const dd = new Date(data + 'T00:00:00');
+      const dataFmt = dd.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+
+      document.getElementById('selNome').textContent    = nome;
+      document.getElementById('selOrario').textContent  = `${dataFmt} · ${inizio}–${fine}`;
+
+      document.getElementById('orarioSection').style.display = '';
+      document.getElementById('orarioSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    /* ── Invite state ── */
+    function cambiaSelezione() {
+      resetSelezione();
+    }
+
+    function resetSelezione() {
+      document.getElementById('orarioSection').style.display = 'none';
+      document.getElementById('fPalestra').value = '';
+      document.getElementById('fOra').value = '';
+      document.getElementById('fOraFine').value = '';
+      document.querySelectorAll('.slot-btn.selected').forEach(b => b.classList.remove('selected'));
+    }
+
+    // ── Disponibilità ──
+    let availSel = 'si';
+    function setAvail(val) {
+      availSel = val;
+      document.getElementById('availVal').value = val;
+      ['si','forse','no'].forEach(v => document.getElementById('avail'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('on', v === val));
+      const forse = document.getElementById('availForse');
+      const no    = document.getElementById('availNo');
+      forse.querySelector('.avail-dot').style.background   = val === 'forse' ? '#f59e0b' : '';
+      forse.querySelector('.avail-dot').style.borderColor  = '#f59e0b';
+      no.querySelector('.avail-dot').style.background      = val === 'no' ? '#dc2626' : '';
+      no.querySelector('.avail-dot').style.borderColor     = '#dc2626';
+    }
+
+    // ── Persone ──
     let invitatiPers = new Map();
     let allPeople    = [];
     let peopleLoaded = false;
-
-    function switchInviteTab(tab) {
-      document.getElementById('tabCat').classList.toggle('active',  tab === 'cat');
-      document.getElementById('tabPers').classList.toggle('active', tab === 'pers');
-      document.getElementById('panelCat').style.display  = tab === 'cat'  ? '' : 'none';
-      document.getElementById('panelPers').style.display = tab === 'pers' ? '' : 'none';
-      if (tab === 'pers' && !peopleLoaded) caricaPersone();
-    }
 
     async function caricaPersone() {
       const res = document.getElementById('peopleResults');
@@ -302,14 +414,12 @@
     }
 
     function filterPeople(q) {
+      if (!peopleLoaded) { caricaPersone(); return; }
       const list = q.trim()
         ? allPeople.filter(p => `${p.nome||''} ${p.cognome||''}`.toLowerCase().includes(q.toLowerCase()))
         : allPeople;
       const res = document.getElementById('peopleResults');
-      if (!list.length) {
-        res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Nessun risultato</div>';
-        return;
-      }
+      if (!list.length) { res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Nessun risultato</div>'; return; }
       res.innerHTML = '';
       list.forEach(p => {
         const isSel = invitatiPers.has(p.id);
@@ -318,9 +428,7 @@
         row.className = 'person-row' + (isSel ? ' sel' : '');
         row.innerHTML = `
           <div class="person-av">${ini}</div>
-          <div class="person-info">
-            <div class="person-name">${p.nome || ''} ${p.cognome || ''}</div>
-          </div>
+          <div class="person-info"><div class="person-name">${p.nome||''} ${p.cognome||''}</div></div>
           <div class="person-check">${isSel ? '✓' : ''}</div>`;
         row.addEventListener('click', () => {
           invitatiPers.has(p.id) ? invitatiPers.delete(p.id) : invitatiPers.set(p.id, p);
@@ -338,7 +446,7 @@
       for (const [id, p] of invitatiPers) {
         const chip = document.createElement('span');
         chip.className = 'sel-chip';
-        chip.innerHTML = `${p.nome || ''} ${p.cognome || ''}<button>✕</button>`;
+        chip.innerHTML = `${p.nome||''} ${p.cognome||''}<button>✕</button>`;
         chip.querySelector('button').addEventListener('click', () => {
           invitatiPers.delete(id);
           filterPeople(document.getElementById('peopleSearch').value);
@@ -356,11 +464,13 @@
       clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3500);
     }
 
+    // ── Invio ──
     async function invia() {
       const data    = document.getElementById('fData').value;
       const ora     = document.getElementById('fOra').value;
       const oraFine = document.getElementById('fOraFine').value;
-      if (!data || !ora) { alert('Data e orario obbligatori'); return; }
+      if (!data) { alert('Seleziona una data'); return; }
+      if (!ora)  { alert('Seleziona un orario dalla palestra disponibile'); return; }
       const btn = document.getElementById('btnSubmit');
       btn.disabled = true; btn.textContent = 'Invio…';
       try {
@@ -369,23 +479,21 @@
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
           body: JSON.stringify({
             data, ora,
-            ora_fine:   oraFine || null,
-            luogo:      document.getElementById('fLuogo').value.trim(),
-            note:       document.getElementById('fNote').value.trim(),
+            ora_fine:    oraFine || null,
+            luogo:       document.getElementById('fLuogo').value.trim(),
+            note:        document.getElementById('fNote').value.trim(),
             palestra_id: document.getElementById('fPalestra').value || null,
-            invitati_categorie: [...invitatiCat],
+            invitati_categorie: [],
             invitati_persone:   [...invitatiPers.keys()]
           })
         });
         if (!r.ok) throw new Error('Errore ' + r.status);
         toast('Proposta inviata allo staff!');
-        document.getElementById('fLuogo').value = '';
         document.getElementById('fNote').value = '';
-        invitatiCat.clear();
-        document.querySelectorAll('.cat-chip.sel').forEach(b => b.classList.remove('sel'));
+        document.getElementById('fLuogo').value = '';
+        resetSelezione();
         invitatiPers.clear();
         renderSelChips();
-        document.getElementById('catSummary').textContent = '';
         caricaProposte();
       } catch (e) {
         toast('Errore: ' + e.message, true);
@@ -412,7 +520,7 @@
         items.forEach(m => {
           const item = document.createElement('div');
           item.className = 'match-item';
-          const stato = m.stato || 'pending';
+          const stato  = m.stato || 'pending';
           const orario = m.ora + (m.ora_fine ? ' – ' + m.ora_fine : '');
           item.innerHTML = `
             <div class="match-icon">🏐</div>
@@ -431,47 +539,12 @@
       }
     }
 
-    caricaCategorie();
+    // ── Init ──
+    caricaPalestre();
+    caricaPersone();
     caricaProposte();
-    caricaPalestreOrganizza();
-
-    async function caricaPalestreOrganizza() {
-      try {
-        const r = await fetch('/api/palestre');
-        const list = await r.json();
-        const sel = document.getElementById('fPalestra');
-        list.forEach(p => {
-          const opt = document.createElement('option');
-          opt.value = p.id; opt.textContent = p.nome + (p.indirizzo ? ` – ${p.indirizzo}` : '');
-          sel.appendChild(opt);
-        });
-      } catch {}
-    }
-
-    async function onPalestraChangeOrganizza() {
-      const palestraId = document.getElementById('fPalestra').value;
-      const data       = document.getElementById('fData').value;
-      const wrap       = document.getElementById('fOccupazioneWrap');
-      if (!palestraId || !data) { wrap.style.display = 'none'; return; }
-      wrap.style.display = '';
-      const tbl = document.getElementById('fOccupazioneTable');
-      tbl.innerHTML = '<div style="padding:12px;color:#9ca3af;font-size:13px;">Caricamento…</div>';
-      try {
-        const r = await fetch(`/api/palestre/${palestraId}/occupazione?data=${data}`);
-        const { disponibili, occupati } = await r.json();
-        if (!disponibili.length && !occupati.length) {
-          tbl.innerHTML = '<div style="padding:12px;color:#9ca3af;font-size:13px;">Nessuna fascia configurata per questo giorno.</div>';
-          return;
-        }
-        const rows = [
-          ...disponibili.map(s => `<tr><td style="padding:10px 14px;font-weight:700;color:#15803d;border-bottom:1px solid #f1f5f9;">🟢 ${s.inizio} – ${s.fine}</td><td style="padding:10px 14px;font-size:12px;color:#9ca3af;border-bottom:1px solid #f1f5f9;">Libera</td></tr>`),
-          ...occupati.map(s   => `<tr><td style="padding:10px 14px;font-weight:700;color:#b91c1c;border-bottom:1px solid #f1f5f9;">🔴 ${s.inizio} – ${s.fine}</td><td style="padding:10px 14px;font-size:12px;color:#9ca3af;border-bottom:1px solid #f1f5f9;">Occupata: ${s.titolo}</td></tr>`),
-        ].join('');
-        tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table>`;
-      } catch {
-        tbl.innerHTML = '<div style="padding:12px;color:#dc2626;font-size:13px;">Errore di caricamento</div>';
-      }
-    }
+    // Carica subito palestre per la data di oggi
+    onDataChange();
   </script>
 </body>
 </html>

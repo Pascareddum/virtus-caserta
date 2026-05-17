@@ -1061,20 +1061,48 @@ app.get('/api/palestre/:id/occupazione', async (req, res) => {
       const [h, m] = hhmm.split(':').map(Number);
       return h * 60 + m;
     }
-    function overlaps(slotI, slotF, sOra) {
-      const [oi, of2] = sOra.includes('–') ? sOra.split('–') : [sOra, null];
-      const si = toMin(oi.trim());
-      const sf = of2 ? toMin(of2.trim()) : si + 60;
-      return si < toMin(slotF) && sf > toMin(slotI);
+    function fromMin(min) {
+      return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+    }
+    function parseOra(ora) {
+      if (ora.includes('–')) {
+        const [a, b] = ora.split('–');
+        return [toMin(a.trim()), toMin(b.trim())];
+      }
+      const si = toMin(ora.trim());
+      return [si, si + 60];
     }
 
     const disponibili = [];
     const occupati = [];
+
     for (const slot of orariGiorno) {
-      const match = sessioni.find(s => overlaps(slot.inizio, slot.fine, s.ora));
-      if (match) occupati.push({ inizio: slot.inizio, fine: slot.fine, titolo: match.titolo });
-      else disponibili.push({ inizio: slot.inizio, fine: slot.fine });
+      const slotI = toMin(slot.inizio);
+      const slotF = toMin(slot.fine);
+
+      // Sessioni che si sovrappongono parzialmente o totalmente a questo slot
+      const matches = sessioni
+        .map(s => { const [si, sf] = parseOra(s.ora); return { si, sf, titolo: s.titolo }; })
+        .filter(s => s.si < slotF && s.sf > slotI)
+        .sort((a, b) => a.si - b.si);
+
+      if (!matches.length) {
+        disponibili.push({ inizio: slot.inizio, fine: slot.fine });
+        continue;
+      }
+
+      // Split slot attorno alle sessioni
+      let cursor = slotI;
+      for (const s of matches) {
+        const busyStart = Math.max(s.si, slotI);
+        const busyEnd   = Math.min(s.sf, slotF);
+        if (cursor < busyStart) disponibili.push({ inizio: fromMin(cursor), fine: fromMin(busyStart) });
+        occupati.push({ inizio: fromMin(busyStart), fine: fromMin(busyEnd), titolo: s.titolo });
+        cursor = busyEnd;
+      }
+      if (cursor < slotF) disponibili.push({ inizio: fromMin(cursor), fine: fromMin(slotF) });
     }
+
     res.json({ disponibili, occupati });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
