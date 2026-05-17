@@ -808,6 +808,7 @@
       #pan-notizie  .card-table,
       #pan-calendario .card-table,
       #pan-sessioni .card-table,
+      #pan-palestre .card-table,
       #pan-utenti   .card-table,
       #pan-squadra  .card-table,
       #pan-staff    .card-table {
@@ -818,13 +819,14 @@
       #pan-notizie  table,   #pan-notizie  tbody,
       #pan-calendario table, #pan-calendario tbody,
       #pan-sessioni table,   #pan-sessioni tbody,
+      #pan-palestre table,   #pan-palestre tbody,
       #pan-utenti   table,   #pan-utenti   tbody,
       #pan-squadra  table,   #pan-squadra  tbody,
       #pan-staff    table,   #pan-staff    tbody { display:block; width:100%; }
 
       #pan-prodotti thead, #pan-ordini thead,
       #pan-notizie thead,  #pan-calendario thead,
-      #pan-sessioni thead, #pan-utenti thead,
+      #pan-sessioni thead, #pan-palestre thead, #pan-utenti thead,
       #pan-squadra thead,  #pan-staff thead { display:none; }
 
       #pan-prodotti tbody tr,
@@ -832,6 +834,7 @@
       #pan-notizie  tbody tr,
       #pan-calendario tbody tr,
       #pan-sessioni tbody tr,
+      #pan-palestre tbody tr,
       #pan-utenti   tbody tr,
       #pan-squadra  tbody tr,
       #pan-staff    tbody tr {
@@ -842,14 +845,14 @@
       }
       #pan-prodotti td, #pan-ordini td,
       #pan-notizie td,  #pan-calendario td,
-      #pan-sessioni td, #pan-utenti td,
+      #pan-sessioni td, #pan-palestre td, #pan-utenti td,
       #pan-squadra td,  #pan-staff td {
         display:flex; align-items:flex-start;
         gap:10px; padding:6px 0; font-size:13.5px; border:none !important;
       }
       #pan-prodotti td::before, #pan-ordini td::before,
       #pan-notizie td::before, #pan-calendario td::before,
-      #pan-sessioni td::before, #pan-utenti td::before,
+      #pan-sessioni td::before, #pan-palestre td::before, #pan-utenti td::before,
       #pan-squadra td::before,  #pan-staff td::before {
         content:attr(data-label);
         font-size:11.5px; font-weight:600; color:var(--sub);
@@ -860,6 +863,7 @@
       #pan-notizie  td[data-label=""],
       #pan-calendario td[data-label=""],
       #pan-sessioni td[data-label=""],
+      #pan-palestre td[data-label=""],
       #pan-utenti   td[data-label=""],
       #pan-squadra  td[data-label=""],
       #pan-staff    td[data-label=""] { display:none; }
@@ -869,6 +873,7 @@
       #pan-notizie  td[data-label="Azioni"]::before,
       #pan-calendario td[data-label="Azioni"]::before,
       #pan-sessioni td[data-label="Azioni"]::before,
+      #pan-palestre td[data-label="Azioni"]::before,
       #pan-utenti   td[data-label="Azioni"]::before,
       #pan-squadra  td[data-label="Azioni"]::before,
       #pan-staff    td[data-label="Azioni"]::before { display:none; }
@@ -878,6 +883,7 @@
       #pan-notizie  td[data-label="Azioni"],
       #pan-calendario td[data-label="Azioni"],
       #pan-sessioni td[data-label="Azioni"],
+      #pan-palestre td[data-label="Azioni"],
       #pan-utenti   td[data-label="Azioni"],
       #pan-squadra  td[data-label="Azioni"],
       #pan-staff    td[data-label="Azioni"] {
@@ -888,6 +894,7 @@
       #pan-notizie  .empty-state td,
       #pan-calendario .empty-state td,
       #pan-sessioni .empty-state td,
+      #pan-palestre .empty-state td,
       #pan-utenti   .empty-state td,
       #pan-squadra  .empty-state td,
       #pan-staff    .empty-state td { display:block; }
@@ -896,6 +903,7 @@
       #pan-notizie  .empty-state td::before,
       #pan-calendario .empty-state td::before,
       #pan-sessioni .empty-state td::before,
+      #pan-palestre .empty-state td::before,
       #pan-utenti   .empty-state td::before,
       #pan-squadra  .empty-state td::before,
       #pan-staff    .empty-state td::before { display:none; }
@@ -1119,6 +1127,7 @@
       <div class="nav-grp-items">
         <button class="tab-btn nav-sub" data-tab="calendario" onclick="switchTab('calendario')">Calendario</button>
         <button class="tab-btn nav-sub" data-tab="sessioni"   onclick="switchTab('sessioni')">Sessioni</button>
+        <button class="tab-btn nav-sub" data-tab="palestre"   onclick="switchTab('palestre')">Palestre</button>
       </div>
     </div>
     <div class="nav-group" id="dgrp-aggiungi">
@@ -1163,6 +1172,7 @@
     <div class="nav-grp-items">
       <button class="tab-btn nav-sub" data-tab="calendario" onclick="switchTab('calendario')">Calendario</button>
       <button class="tab-btn nav-sub" data-tab="sessioni"   onclick="switchTab('sessioni')">Sessioni</button>
+      <button class="tab-btn nav-sub" data-tab="palestre"   onclick="switchTab('palestre')">Palestre</button>
     </div>
   </div>
   <div class="nav-group" id="sgrp-aggiungi">
@@ -1629,6 +1639,59 @@
   </div>
 </div>
 
+<!-- PANNELLO PALESTRE -->
+<div class="pannello" id="pan-palestre">
+  <div class="toolbar">
+    <h2>Palestre</h2>
+    <button class="btn-aggiungi" onclick="apriModalPalestra(null)">+ Aggiungi palestra</button>
+  </div>
+  <div class="card-table">
+    <table>
+      <thead><tr>
+        <th>Nome</th>
+        <th>Indirizzo</th>
+        <th>Fasce orarie</th>
+        <th>Azioni</th>
+      </tr></thead>
+      <tbody id="palestreBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL PALESTRA -->
+<div class="modal-overlay" id="modalPalestra">
+  <div class="modal-box" style="max-width:540px;">
+    <div class="modal-hdr">
+      <h3 id="modalPalestraTitolo">Nuova palestra</h3>
+      <button class="modal-close" onclick="chiudiModal('modalPalestra')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:14px;">
+      <input type="hidden" id="palestraId">
+      <div class="mf">
+        <label>Nome *</label>
+        <input type="text" id="palestraNome" placeholder="Es. Palasport Caserta">
+      </div>
+      <div class="mf">
+        <label>Indirizzo</label>
+        <input type="text" id="palestraIndirizzo" placeholder="Es. Via Roma 1, Caserta">
+      </div>
+      <div class="mf">
+        <label>Fasce orarie disponibili</label>
+        <p style="font-size:12px;color:var(--sub);margin-bottom:8px;">Aggiungi le fasce orarie in cui la palestra è disponibile per ogni giorno della settimana.</p>
+        <div id="palestraOrariList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+        <button type="button" onclick="aggiungiOrarioPalestra()"
+          style="padding:7px 14px;border-radius:8px;border:1.5px dashed var(--bordo);background:var(--surface-3);font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;width:100%;">
+          + Aggiungi fascia oraria
+        </button>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalPalestra')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaPalestra" onclick="salvaPalestra()">Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL SPONSOR -->
 <div class="modal-overlay" id="modalSponsor">
   <div class="modal-box" style="max-width:480px;">
@@ -1850,7 +1913,7 @@
       <div class="mf-row3">
         <div class="mf">
           <label>Data *</label>
-          <input type="date" id="sData">
+          <input type="date" id="sData" onchange="onPalestraChange()">
         </div>
         <div class="mf">
           <label>Inizio *</label>
@@ -1862,7 +1925,17 @@
         </div>
       </div>
       <div class="mf">
-        <label>Luogo</label>
+        <label>Palestra</label>
+        <select id="sPalestra" onchange="onPalestraChange()" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
+          <option value="">— Nessuna palestra —</option>
+        </select>
+      </div>
+      <div id="sOccupazioneWrap" style="display:none;" class="mf">
+        <label>Disponibilità palestra</label>
+        <div id="sOccupazioneTable" style="border:1px solid var(--bordo);border-radius:var(--radius);overflow:hidden;font-size:13px;"></div>
+      </div>
+      <div class="mf">
+        <label>Luogo (manuale)</label>
         <input type="text" id="sLuogo" placeholder="Es. Tenda di Abramo, Caserta">
       </div>
       <div class="mf" id="sCategoriaWrap">
@@ -2250,7 +2323,7 @@
   /* ══ TABS ══ */
   const TAB_GROUP = {
     prodotti:'shop', ordini:'shop',
-    calendario:'pianifica', sessioni:'pianifica',
+    calendario:'pianifica', sessioni:'pianifica', palestre:'pianifica',
     notizie:'aggiungi', staff:'aggiungi', squadra:'aggiungi',
     sponsor:'aggiungi', 'link-squadre':'aggiungi', 'cat-squadre':'aggiungi',
   };
@@ -2289,6 +2362,7 @@
     if (nome === 'link-squadre') caricaLinkSquadre();
     if (nome === 'cat-squadre')  caricaCatSquadre();
     if (nome === 'sessioni')     caricaSessioni();
+    if (nome === 'palestre')     caricaPalestre();
   }
 
   function toggleDrawer() {
@@ -2749,7 +2823,10 @@
     document.getElementById('sFotoFile').value  = '';
     document.getElementById('sFotoUrl').value   = '';
     document.getElementById('sFotoPreview').style.display = 'none';
+    document.getElementById('sOccupazioneWrap').style.display = 'none';
     setSessioneTipo('allenamento');
+    await aggiornaPalestreSelect();
+    document.getElementById('sPalestra').value = '';
 
     let categoriaCorrente = '';
     const catWrap = document.getElementById('sCategoriaWrap');
@@ -2766,6 +2843,10 @@
         categoriaCorrente = s.categoria || '';
         document.getElementById('sNote').value      = s.note || '';
         setSessioneTipo(s.tipo || 'allenamento');
+        if (s.palestra_id) {
+          document.getElementById('sPalestra').value = s.palestra_id;
+          onPalestraChange();
+        }
         if (s.foto) { document.getElementById('sFotoUrl').value = s.foto; document.getElementById('sFotoPreview').src = s.foto; document.getElementById('sFotoPreview').style.display = 'block'; }
       }
     } else if (_calCatSelected) {
@@ -2795,11 +2876,12 @@
       const foto = fotoUpload || document.getElementById('sFotoUrl').value.trim() || '';
       const body = {
         titolo, data, ora,
-        luogo:     document.getElementById('sLuogo').value.trim(),
-        categoria: getSCategoriaValue(),
-        note:      document.getElementById('sNote').value.trim(),
-        tipo:      document.getElementById('sTipo').value,
+        luogo:       document.getElementById('sLuogo').value.trim(),
+        categoria:   getSCategoriaValue(),
+        note:        document.getElementById('sNote').value.trim(),
+        tipo:        document.getElementById('sTipo').value,
         foto,
+        palestra_id: document.getElementById('sPalestra').value || '',
         ripetizione_settimanale: ripetizione,
         data_fine_ripetizione:   ripetizione ? dataFine : undefined,
       };
@@ -4574,6 +4656,157 @@
 
   function chiudiSessioniDetail() {
     document.getElementById('sessioniDetail').style.display = 'none';
+  }
+
+  /* ══ PALESTRE ══ */
+  const GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  let _palestreCache = [];
+
+  async function caricaPalestre() {
+    const tbody = document.getElementById('palestreBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state" style="padding:24px;text-align:center;color:var(--sub);">Caricamento…</td></tr>';
+    try {
+      const r = await fetch('/api/palestre', { headers: headers() });
+      const list = await r.json();
+      _palestreCache = list;
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state" style="padding:24px;text-align:center;color:var(--sub);">Nessuna palestra. Aggiungine una.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      list.forEach(p => {
+        const tr = document.createElement('tr');
+        const slotCount = (p.orari || []).length;
+        tr.innerHTML = `
+          <td data-label="Nome"><strong>${p.nome}</strong></td>
+          <td data-label="Indirizzo">${p.indirizzo || '—'}</td>
+          <td data-label="Fasce orarie">${slotCount} fascia${slotCount !== 1 ? 'e' : ''}</td>
+          <td data-label="Azioni" style="display:flex;gap:6px;">
+            <button class="btn-azione btn-edit" onclick='apriModalPalestra(${JSON.stringify(p)})'>Modifica</button>
+            <button class="btn-azione btn-del"  onclick="eliminaPalestra('${p.id}','${p.nome.replace(/'/g,"\\'")}')">Elimina</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    } catch {
+      tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#dc2626;">Errore di caricamento</td></tr>';
+    }
+  }
+
+  function apriModalPalestra(p) {
+    document.getElementById('palestraId').value      = p ? p.id : '';
+    document.getElementById('palestraNome').value    = p ? p.nome : '';
+    document.getElementById('palestraIndirizzo').value = p ? (p.indirizzo || '') : '';
+    document.getElementById('modalPalestraTitolo').textContent = p ? 'Modifica palestra' : 'Nuova palestra';
+    renderOrariPalestra(p ? (p.orari || []) : []);
+    document.getElementById('modalPalestra').classList.add('aperto');
+  }
+
+  function renderOrariPalestra(orari) {
+    const c = document.getElementById('palestraOrariList');
+    c.innerHTML = '';
+    orari.forEach((o, i) => aggiungiOrarioPalestra(o, i));
+  }
+
+  function aggiungiOrarioPalestra(val, idx) {
+    const c = document.getElementById('palestraOrariList');
+    const row = document.createElement('div');
+    row.className = 'palestra-orario-row';
+    row.style.cssText = 'display:grid;grid-template-columns:110px 90px 90px 32px;gap:8px;align-items:center;';
+    const giornoVal = val ? val.giorno : 1;
+    const inizioVal = val ? val.inizio : '18:00';
+    const fineVal   = val ? val.fine   : '20:00';
+    row.innerHTML = `
+      <select style="padding:8px 10px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);">
+        ${GIORNI.map((g,i)=>`<option value="${i}"${i===giornoVal?' selected':''}>${g}</option>`).join('')}
+      </select>
+      <input type="time" value="${inizioVal}" style="padding:8px 10px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;">
+      <input type="time" value="${fineVal}"   style="padding:8px 10px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;">
+      <button type="button" onclick="this.closest('.palestra-orario-row').remove()"
+        style="width:28px;height:28px;border-radius:6px;border:1px solid var(--bordo);background:var(--surface-3);font-size:14px;cursor:pointer;color:var(--rosso);line-height:1;">✕</button>`;
+    c.appendChild(row);
+  }
+
+  function getPalestraOrari() {
+    return Array.from(document.querySelectorAll('#palestraOrariList .palestra-orario-row')).map(row => {
+      const [sel, t1, t2] = row.querySelectorAll('select,input');
+      return { giorno: parseInt(sel.value), inizio: t1.value, fine: t2.value };
+    }).filter(o => o.inizio && o.fine && o.inizio < o.fine);
+  }
+
+  async function salvaPalestra() {
+    const id     = document.getElementById('palestraId').value;
+    const nome   = document.getElementById('palestraNome').value.trim();
+    const indirizzo = document.getElementById('palestraIndirizzo').value.trim();
+    if (!nome) { alert('Nome obbligatorio'); return; }
+    const orari = getPalestraOrari();
+    const btn = document.getElementById('btnSalvaPalestra');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    try {
+      const url    = id ? `/api/admin/palestre/${id}` : '/api/admin/palestre';
+      const method = id ? 'PUT' : 'POST';
+      const r = await fetch(url, { method, headers: headers(), body: JSON.stringify({ nome, indirizzo, orari }) });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error); }
+      chiudiModal('modalPalestra');
+      caricaPalestre();
+      await aggiornaPalestreSelect();
+    } catch (e) {
+      alert('Errore: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salva';
+    }
+  }
+
+  async function eliminaPalestra(id, nome) {
+    if (!confirm(`Eliminare la palestra "${nome}"?`)) return;
+    try {
+      const r = await fetch(`/api/admin/palestre/${id}`, { method: 'DELETE', headers: headers() });
+      if (!r.ok) throw new Error('Errore eliminazione');
+      caricaPalestre();
+      await aggiornaPalestreSelect();
+    } catch (e) { alert('Errore: ' + e.message); }
+  }
+
+  async function aggiornaPalestreSelect() {
+    try {
+      const r = await fetch('/api/palestre', { headers: headers() });
+      _palestreCache = await r.json();
+      const sel = document.getElementById('sPalestra');
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— Nessuna palestra —</option>';
+      _palestreCache.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id; opt.textContent = p.nome;
+        if (p.id === cur) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    } catch {}
+  }
+
+  async function onPalestraChange() {
+    const palestraId = document.getElementById('sPalestra').value;
+    const data       = document.getElementById('sData').value;
+    const wrap       = document.getElementById('sOccupazioneWrap');
+    if (!palestraId || !data) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    const tbl = document.getElementById('sOccupazioneTable');
+    tbl.innerHTML = '<div style="padding:12px;color:var(--sub);font-size:13px;">Caricamento…</div>';
+    try {
+      const r = await fetch(`/api/palestre/${palestraId}/occupazione?data=${data}`, { headers: headers() });
+      const { disponibili, occupati } = await r.json();
+      if (!disponibili.length && !occupati.length) {
+        tbl.innerHTML = '<div style="padding:12px;color:var(--sub);font-size:13px;">Nessuna fascia oraria configurata per questo giorno.</div>';
+        return;
+      }
+      const rows = [
+        ...disponibili.map(s => `<tr><td style="padding:8px 12px;font-weight:600;color:#15803d;">🟢 ${s.inizio}–${s.fine}</td><td style="padding:8px 12px;color:var(--sub);font-size:12px;">Disponibile</td></tr>`),
+        ...occupati.map(s   => `<tr><td style="padding:8px 12px;font-weight:600;color:#b91c1c;">🔴 ${s.inizio}–${s.fine}</td><td style="padding:8px 12px;color:var(--sub);font-size:12px;">Occupata: ${s.titolo}</td></tr>`),
+      ].join('');
+      tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table>`;
+    } catch {
+      tbl.innerHTML = '<div style="padding:12px;color:#dc2626;font-size:13px;">Errore di caricamento</div>';
+    }
   }
 
   /* ══ EXPORT CSV ORDINI ══ */

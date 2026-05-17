@@ -777,6 +777,7 @@ app.get('/api/calendario', async (req, res) => {
       note:      r.note,
       tipo:                r.tipo || 'allenamento',
       foto:                r.foto || '',
+      palestra_id:         r.palestra_id || '',
       categorie_collegate: r.categorie_collegate || [],
       utenti_collegati:    r.utenti_collegati    || [],
     }));
@@ -843,9 +844,10 @@ app.get('/api/prossimi-eventi', async (req, res) => {
 
 /* ─── Calendario: crea sessione ─── */
 app.post('/api/calendario', adminAuth, async (req, res) => {
-  const { titolo, data, ora, luogo, categoria, note, ripetizione_settimanale, data_fine_ripetizione, tipo, foto } = req.body;
+  const { titolo, data, ora, luogo, categoria, note, ripetizione_settimanale, data_fine_ripetizione, tipo, foto, palestra_id } = req.body;
   if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
   const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
+  const palestraVal = palestra_id || '';
   try {
     if (ripetizione_settimanale && data_fine_ripetizione && data_fine_ripetizione >= data) {
       const sessioni = [];
@@ -856,9 +858,9 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
         const id      = Date.now().toString() + '_' + i;
         const dataStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
         await db.query(
-          `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [id, titolo, dataStr, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '']
+          `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto, palestra_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [id, titolo, dataStr, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', palestraVal]
         );
         sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal });
         currentDate.setDate(currentDate.getDate() + 7);
@@ -868,9 +870,9 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
     }
     const id = Date.now().toString();
     await db.query(
-      `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [id, titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '']
+      `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto, palestra_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [id, titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', palestraVal]
     );
 
     // Notifica email agli utenti attivi se è un evento (filtrata per categoria)
@@ -934,19 +936,20 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
 
 /* ─── Calendario: aggiorna sessione ─── */
 app.put('/api/calendario/:id', adminAuth, async (req, res) => {
-  const { titolo, data, ora, luogo, categoria, note, tipo, foto } = req.body;
+  const { titolo, data, ora, luogo, categoria, note, tipo, foto, palestra_id } = req.body;
   const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
+  const palestraVal = palestra_id || '';
   try {
     const result = await db.query(
       `UPDATE calendario
-       SET titolo=$1, data_str=$2, ora=$3, luogo=$4, categoria=$5, note=$6, tipo=$7, foto=$8
-       WHERE id=$9
+       SET titolo=$1, data_str=$2, ora=$3, luogo=$4, categoria=$5, note=$6, tipo=$7, foto=$8, palestra_id=$9
+       WHERE id=$10
        RETURNING *`,
-      [titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', req.params.id]
+      [titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', palestraVal, req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     const r = result.rows[0];
-    res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, luogo: r.luogo, categoria: r.categoria, note: r.note, tipo: r.tipo, foto: r.foto });
+    res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, luogo: r.luogo, categoria: r.categoria, note: r.note, tipo: r.tipo, foto: r.foto, palestra_id: r.palestra_id || '' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -991,6 +994,88 @@ app.delete('/api/calendario/:id/collega', adminAuth, async (req, res) => {
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Palestre: CRUD ─── */
+app.get('/api/palestre', async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM palestres ORDER BY nome');
+    res.json(r.rows.map(p => ({ id: p.id, nome: p.nome, indirizzo: p.indirizzo || '', orari: p.orari || [] })));
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/admin/palestre', adminAuth, async (req, res) => {
+  const { nome, indirizzo, orari } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  const id = Date.now().toString();
+  try {
+    const r = await db.query(
+      `INSERT INTO palestres (id, nome, indirizzo, orari) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [id, nome.trim(), (indirizzo || '').trim(), JSON.stringify(orari || [])]
+    );
+    const p = r.rows[0];
+    res.json({ id: p.id, nome: p.nome, indirizzo: p.indirizzo, orari: p.orari });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.put('/api/admin/palestre/:id', adminAuth, async (req, res) => {
+  const { nome, indirizzo, orari } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  try {
+    const r = await db.query(
+      `UPDATE palestres SET nome=$1, indirizzo=$2, orari=$3 WHERE id=$4 RETURNING *`,
+      [nome.trim(), (indirizzo || '').trim(), JSON.stringify(orari || []), req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Palestra non trovata' });
+    const p = r.rows[0];
+    res.json({ id: p.id, nome: p.nome, indirizzo: p.indirizzo, orari: p.orari });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/admin/palestre/:id', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM palestres WHERE id=$1 RETURNING id', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Palestra non trovata' });
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.get('/api/palestre/:id/occupazione', async (req, res) => {
+  const { data } = req.query;
+  if (!data) return res.status(400).json({ error: 'Parametro data obbligatorio' });
+  try {
+    const pr = await db.query('SELECT orari FROM palestres WHERE id=$1', [req.params.id]);
+    if (!pr.rows.length) return res.status(404).json({ error: 'Palestra non trovata' });
+    const orariTutti = pr.rows[0].orari || [];
+    const dow = new Date(data + 'T00:00:00').getDay();
+    const orariGiorno = orariTutti.filter(o => o.giorno === dow);
+
+    const sr = await db.query(
+      `SELECT titolo, ora FROM calendario WHERE palestra_id=$1 AND data_str=$2`,
+      [req.params.id, data]
+    );
+    const sessioni = sr.rows;
+
+    function toMin(hhmm) {
+      const [h, m] = hhmm.split(':').map(Number);
+      return h * 60 + m;
+    }
+    function overlaps(slotI, slotF, sOra) {
+      const [oi, of2] = sOra.includes('–') ? sOra.split('–') : [sOra, null];
+      const si = toMin(oi.trim());
+      const sf = of2 ? toMin(of2.trim()) : si + 60;
+      return si < toMin(slotF) && sf > toMin(slotI);
+    }
+
+    const disponibili = [];
+    const occupati = [];
+    for (const slot of orariGiorno) {
+      const match = sessioni.find(s => overlaps(slot.inizio, slot.fine, s.ora));
+      if (match) occupati.push({ inizio: slot.inizio, fine: slot.fine, titolo: match.titolo });
+      else disponibili.push({ inizio: slot.inizio, fine: slot.fine });
+    }
+    res.json({ disponibili, occupati });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 

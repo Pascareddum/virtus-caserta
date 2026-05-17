@@ -129,7 +129,7 @@
       <div class="field-row">
         <div class="field">
           <label>Data *</label>
-          <input type="date" id="fData">
+          <input type="date" id="fData" onchange="onPalestraChangeOrganizza()">
         </div>
         <div class="field">
           <label>Orario inizio *</label>
@@ -145,6 +145,16 @@
           <label>Luogo</label>
           <input type="text" id="fLuogo" placeholder="Es. Tenda di Abramo, Caserta">
         </div>
+      </div>
+      <div class="field">
+        <label>Palestra</label>
+        <select id="fPalestra" onchange="onPalestraChangeOrganizza()" style="padding:11px 14px;border:1.5px solid #e9ecf0;border-radius:12px;font-size:14px;font-family:inherit;outline:none;width:100%;background:#fff;">
+          <option value="">— Nessuna / altra —</option>
+        </select>
+      </div>
+      <div id="fOccupazioneWrap" style="display:none;">
+        <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:8px;">Disponibilità palestra nella data selezionata</label>
+        <div id="fOccupazioneTable" style="border:1.5px solid #e9ecf0;border-radius:12px;overflow:hidden;font-size:13px;background:#fff;"></div>
       </div>
       <div class="field">
         <label>Note aggiuntive</label>
@@ -359,9 +369,10 @@
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
           body: JSON.stringify({
             data, ora,
-            ora_fine: oraFine || null,
-            luogo: document.getElementById('fLuogo').value.trim(),
-            note: document.getElementById('fNote').value.trim(),
+            ora_fine:   oraFine || null,
+            luogo:      document.getElementById('fLuogo').value.trim(),
+            note:       document.getElementById('fNote').value.trim(),
+            palestra_id: document.getElementById('fPalestra').value || null,
             invitati_categorie: [...invitatiCat],
             invitati_persone:   [...invitatiPers.keys()]
           })
@@ -422,6 +433,45 @@
 
     caricaCategorie();
     caricaProposte();
+    caricaPalestreOrganizza();
+
+    async function caricaPalestreOrganizza() {
+      try {
+        const r = await fetch('/api/palestre');
+        const list = await r.json();
+        const sel = document.getElementById('fPalestra');
+        list.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id; opt.textContent = p.nome + (p.indirizzo ? ` – ${p.indirizzo}` : '');
+          sel.appendChild(opt);
+        });
+      } catch {}
+    }
+
+    async function onPalestraChangeOrganizza() {
+      const palestraId = document.getElementById('fPalestra').value;
+      const data       = document.getElementById('fData').value;
+      const wrap       = document.getElementById('fOccupazioneWrap');
+      if (!palestraId || !data) { wrap.style.display = 'none'; return; }
+      wrap.style.display = '';
+      const tbl = document.getElementById('fOccupazioneTable');
+      tbl.innerHTML = '<div style="padding:12px;color:#9ca3af;font-size:13px;">Caricamento…</div>';
+      try {
+        const r = await fetch(`/api/palestre/${palestraId}/occupazione?data=${data}`);
+        const { disponibili, occupati } = await r.json();
+        if (!disponibili.length && !occupati.length) {
+          tbl.innerHTML = '<div style="padding:12px;color:#9ca3af;font-size:13px;">Nessuna fascia configurata per questo giorno.</div>';
+          return;
+        }
+        const rows = [
+          ...disponibili.map(s => `<tr><td style="padding:10px 14px;font-weight:700;color:#15803d;border-bottom:1px solid #f1f5f9;">🟢 ${s.inizio} – ${s.fine}</td><td style="padding:10px 14px;font-size:12px;color:#9ca3af;border-bottom:1px solid #f1f5f9;">Libera</td></tr>`),
+          ...occupati.map(s   => `<tr><td style="padding:10px 14px;font-weight:700;color:#b91c1c;border-bottom:1px solid #f1f5f9;">🔴 ${s.inizio} – ${s.fine}</td><td style="padding:10px 14px;font-size:12px;color:#9ca3af;border-bottom:1px solid #f1f5f9;">Occupata: ${s.titolo}</td></tr>`),
+        ].join('');
+        tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;">${rows}</table>`;
+      } catch {
+        tbl.innerHTML = '<div style="padding:12px;color:#dc2626;font-size:13px;">Errore di caricamento</div>';
+      }
+    }
   </script>
 </body>
 </html>

@@ -260,6 +260,17 @@ async function createTables() {
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS squadre_allenatore JSONB DEFAULT '[]'`);
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS ruolo_atleta VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS ruolo_allenatore VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS palestra_id VARCHAR DEFAULT ''`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS palestres (
+      id         VARCHAR PRIMARY KEY,
+      nome       VARCHAR NOT NULL,
+      indirizzo  VARCHAR DEFAULT '',
+      orari      JSONB   DEFAULT '[]',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
 
   await query(`
     CREATE TABLE IF NOT EXISTS utenti (
