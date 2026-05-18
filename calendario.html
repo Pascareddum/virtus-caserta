@@ -577,7 +577,6 @@
       <div class="mf"><label>Inizio *</label><input type="time" id="mInizio"></div>
       <div class="mf"><label>Fine</label><input type="time" id="mFine"></div>
     </div>
-    <div class="mf"><label>Luogo</label><input type="text" id="mLuogo" placeholder="Es. Tenda di Abramo"></div>
     <div class="mf">
       <label>Categoria</label>
       <select id="mCategoria">
@@ -617,6 +616,7 @@
   let oggi = new Date(); oggi.setHours(0,0,0,0);
   let weekStart = lunedi(oggi);   // lunedì della settimana corrente
   let mappa   = {};               // YYYY-MM-DD → [event, ...]
+  let palestreMap = {};           // id → nome
   let filtroAtt = 'tutte';
   let selMobile = new Date(oggi); // giorno selezionato su mobile
   let loaded  = false;
@@ -814,7 +814,7 @@
           endMin   = parseMin(fine);
           timeStr  = inizio + (fine ? '–' + fine : '');
           titleStr = e.titolo || e.categoria || (e.tipo === 'evento' ? 'Evento' : 'Allenamento');
-          subStr   = e.luogo || '';
+          subStr   = (e.palestra_id && palestreMap[e.palestra_id]) ? palestreMap[e.palestra_id] : '';
         } else {
           if (e.timestamp) {
             const dt = new Date(e.timestamp);
@@ -954,7 +954,8 @@
             const {inizio,fine}=parseOra(e.ora);
             timeStr=inizio+(fine?' – '+fine:'');
             titleStr=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
-            subStr=(e.luogo?'Dove: '+e.luogo:'')+(e.note?' · '+e.note:'');
+            const _pn=e.palestra_id&&palestreMap[e.palestra_id]?palestreMap[e.palestra_id]:'';
+            subStr=_pn+(e.note?(_pn?' · ':'')+e.note:'');
           } else {
             timeStr=e.timestamp?oraDaTs(e.timestamp):'—';
             titleStr='vs '+avversario(e);
@@ -996,7 +997,7 @@
       if (e.categoria) fields.push({lbl:'Categoria', val: e.categoria});
       const {inizio,fine}=parseOra(e.ora);
       fields.push({lbl:'Orario', val: fine?`${inizio} – ${fine}`:inizio});
-      if (e.luogo) fields.push({lbl:'Luogo', val: e.luogo});
+      if (e.palestra_id && palestreMap[e.palestra_id]) fields.push({lbl:'Palestra', val: palestreMap[e.palestra_id]});
       if (e.note)  fields.push({lbl:'Note', val: e.note});
     } else {
       title.innerHTML = `<span style="font-weight:400;font-size:14px;color:var(--sub)">vs</span><br>${avversario(e)}`;
@@ -1098,7 +1099,6 @@
     document.getElementById('mData').value=dataKey(selMobile)||d;
     document.getElementById('mInizio').value='18:00';
     document.getElementById('mFine').value='20:00';
-    document.getElementById('mLuogo').value='';
     document.getElementById('mCategoria').value='';
     document.getElementById('mFoto').value='';
     document.getElementById('mNote').value='';
@@ -1126,7 +1126,6 @@
       const res=await fetch('/api/calendario',{method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
         body:JSON.stringify({titolo,data,ora,tipo,foto,
-          luogo:document.getElementById('mLuogo').value.trim(),
           categoria:document.getElementById('mCategoria').value,
           note:document.getElementById('mNote').value.trim()})});
       if (!res.ok) throw new Error('Errore server');
@@ -1152,6 +1151,11 @@
   /* ── CARICA DATI ── */
   async function carica() {
     render(); // mostra UI subito
+
+    try {
+      const pals = await fetch('/api/palestre').then(r=>r.json());
+      pals.forEach(p => { palestreMap[p.id] = p.nome; });
+    } catch(e){console.warn('[Palestre]',e.message);}
 
     try {
       const _calTok=localStorage.getItem('vc_token')||localStorage.getItem('vc_admin_token');

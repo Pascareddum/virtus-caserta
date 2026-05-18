@@ -388,6 +388,48 @@
     .tile-coach .tile-label { color: #c2410c; font-size: 14px; text-align: left; }
     .tile-coach .tile-soon { display: none; }
 
+    /* ── Staff arbitrale ── */
+    .staff-arb-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 14px 18px;
+      border-top: 1px solid #f1f5f9;
+      text-align: left;
+    }
+    .staff-arb-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .btn-conferma {
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1.5px solid #16a34a;
+      background: #f0fdf4;
+      color: #15803d;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .18s;
+    }
+    .btn-conferma:hover { background: #dcfce7; }
+    .btn-rifiuta {
+      padding: 9px 10px;
+      border-radius: 10px;
+      border: 1.5px solid #dc2626;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .18s;
+    }
+    .btn-rifiuta:hover { background: #fee2e2; }
+
     /* ── Footer ── */
     .profile-footer {
       display: flex;
@@ -491,6 +533,31 @@
           <span class="tile-soon">Presto</span>
           <span class="tile-label" style="font-size:14px; text-align:left;">Vota l'MVP della partita</span>
         </button>
+      </div>
+
+      <!-- Staff arbitrale -->
+      <div id="staffArbWrap" style="margin-bottom:20px;display:none;">
+        <!-- empty state -->
+        <div id="staffArbEmpty" style="display:none;">
+          <div class="section-label" style="margin-bottom:8px;">Staff arbitrale</div>
+          <div class="tile" style="aspect-ratio:auto;flex-direction:row;justify-content:flex-start;gap:14px;padding:18px 20px;opacity:.45;cursor:default;">
+            <span class="tile-icon" style="font-size:22px;">🏟️</span>
+            <div style="text-align:left;">
+              <div class="tile-label" style="font-size:14px;">Staff arbitrale</div>
+              <div style="font-size:12px;color:#9ca3af;margin-top:3px;">Nessuna partita assegnata</div>
+            </div>
+          </div>
+        </div>
+        <!-- active state -->
+        <div id="staffArbActive" style="display:none;">
+          <div class="section-label" style="margin-bottom:8px;">Staff arbitrale</div>
+          <div class="agenda-section" style="margin-bottom:0;">
+            <div class="agenda-header">
+              <span class="agenda-title">Le tue partite assegnate</span>
+            </div>
+            <div id="staffArbList" class="agenda-day-events"></div>
+          </div>
+        </div>
       </div>
 
       <div class="profile-footer">
@@ -807,7 +874,71 @@
       location.replace('/');
     }
 
+    async function loadStaffArbitrale() {
+      if (!token) return;
+      try {
+        const r = await fetch('/api/utente/staff-arbitrale', { headers: { Authorization: 'Bearer ' + token } });
+        if (!r.ok) return;
+        const data = await r.json();
+        renderStaffArbitrale(data);
+      } catch (_) {}
+    }
+
+    function renderStaffArbitrale(lista) {
+      const wrap    = document.getElementById('staffArbWrap');
+      const emptyEl = document.getElementById('staffArbEmpty');
+      const activeEl= document.getElementById('staffArbActive');
+      const listEl  = document.getElementById('staffArbList');
+      wrap.style.display = 'block';
+      if (!lista || !lista.length) {
+        emptyEl.style.display = 'block';
+        activeEl.style.display = 'none';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      activeEl.style.display = 'block';
+      const RUOLI = { addetto: "Addetto all'arbitro", refertista: 'Refertista' };
+      const STATI = {
+        attesa:     { c:'#d97706', bg:'#fffbeb', lbl:'In attesa' },
+        confermato: { c:'#16a34a', bg:'#f0fdf4', lbl:'Confermato' },
+        rifiutato:  { c:'#dc2626', bg:'#fef2f2', lbl:'Rifiutato' },
+      };
+      listEl.innerHTML = lista.map(a => {
+        const dt = a.data_ora ? new Date(a.data_ora) : null;
+        const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'long', year:'numeric' }) : '—';
+        const oraStr  = dt ? dt.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
+        const si = STATI[a.stato] || { c:'#6b7280', bg:'#f9fafb', lbl: a.stato };
+        const badge = `<span style="font-size:10px;font-weight:700;background:${si.bg};color:${si.c};border-radius:4px;padding:2px 8px;">${si.lbl}</span>`;
+        const actions = a.stato === 'attesa' ? `<div class="staff-arb-actions">
+          <button class="btn-conferma" onclick="rispondiStaff('${a.id}','confermato')">✓ Confermo</button>
+          <button class="btn-rifiuta"  onclick="rispondiStaff('${a.id}','rifiutato')">✕ Rifiuto</button>
+        </div>` : '';
+        return `<div class="staff-arb-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+            <div style="font-size:13px;font-weight:700;color:#111827;">${a.casa} vs ${a.ospite}</div>
+            ${badge}
+          </div>
+          <div style="font-size:12px;color:#6b7280;">${dataStr}${oraStr?' · '+oraStr:''}</div>
+          <div style="font-size:12px;color:#374151;font-weight:600;">${RUOLI[a.ruolo]||a.ruolo}</div>
+          ${actions}
+        </div>`;
+      }).join('');
+    }
+
+    window.rispondiStaff = async function(id, stato) {
+      if (!token) return;
+      try {
+        const r = await fetch(`/api/utente/staff-arbitrale/${id}/risposta`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ stato })
+        });
+        if (r.ok) loadStaffArbitrale();
+      } catch (_) {}
+    };
+
     loadProfile();
+    loadStaffArbitrale();
   </script>
 </body>
 </html>

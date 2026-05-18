@@ -265,7 +265,7 @@
         const{inizio,fine}=parseOra(e.ora);
         timeStr=inizio+(fine?' – '+fine:'');
         titleStr=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
-        subStr=e.luogo?'Dove: '+e.luogo:'';
+        subStr='';
       } else {
         timeStr=e.timestamp?oraDaTs(e.timestamp):'—';
         titleStr='vs '+avversario(e);
@@ -297,7 +297,6 @@
       if(e.categoria)fields.push({lbl:'Categoria',val:e.categoria});
       const{inizio,fine}=parseOra(e.ora);
       fields.push({lbl:'Orario',val:fine?`${inizio} – ${fine}`:inizio});
-      if(e.luogo)fields.push({lbl:'Luogo',val:e.luogo});
       if(e.note)fields.push({lbl:'Note',val:e.note});
     } else {
       titleHtml=`<span style="font-weight:400;font-size:14px;color:#64748b">vs</span><br>${avversario(e)}`;

@@ -95,7 +95,6 @@ async function createTables() {
       titolo                  VARCHAR NOT NULL,
       data_str                VARCHAR NOT NULL,
       ora                     VARCHAR NOT NULL,
-      luogo                   VARCHAR DEFAULT '',
       categoria               VARCHAR DEFAULT '',
       note                    TEXT    DEFAULT '',
       ripetizione_settimanale BOOLEAN DEFAULT false,
@@ -261,6 +260,35 @@ async function createTables() {
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS ruolo_atleta VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS ruolo_allenatore VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS palestra_id VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE calendario DROP COLUMN IF EXISTS luogo`);
+  await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS addetto_arbitro VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS refertista VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS is_casa BOOLEAN DEFAULT false`);
+  await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS addetto_staff_id VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS refertista_staff_id VARCHAR DEFAULT ''`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS assegnazioni_partita (
+      id          VARCHAR PRIMARY KEY,
+      partita_id  VARCHAR NOT NULL,
+      utente_id   VARCHAR NOT NULL,
+      ruolo       VARCHAR NOT NULL,
+      stato       VARCHAR DEFAULT 'attesa',
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_assegn_partita_ruolo ON assegnazioni_partita(partita_id, ruolo)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS staff_arbitrale (
+      id         VARCHAR PRIMARY KEY,
+      utente_id  VARCHAR DEFAULT '',
+      nome       VARCHAR NOT NULL,
+      cognome    VARCHAR NOT NULL,
+      ruolo      VARCHAR DEFAULT 'entrambi',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
 
   await query(`
     CREATE TABLE IF NOT EXISTS palestres (

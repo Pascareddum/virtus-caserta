@@ -1142,9 +1142,10 @@
         <span>Pianifica</span><span class="nav-grp-chevron"></span>
       </button>
       <div class="nav-grp-items">
-        <button class="tab-btn nav-sub" data-tab="calendario" onclick="switchTab('calendario')">Calendario</button>
-        <button class="tab-btn nav-sub" data-tab="sessioni"   onclick="switchTab('sessioni')">Sessioni</button>
-        <button class="tab-btn nav-sub" data-tab="palestre"   onclick="switchTab('palestre')">Palestre</button>
+        <button class="tab-btn nav-sub" data-tab="calendario"    onclick="switchTab('calendario')">Calendario</button>
+        <button class="tab-btn nav-sub" data-tab="sessioni"      onclick="switchTab('sessioni')">Sessioni</button>
+        <button class="tab-btn nav-sub" data-tab="palestre"      onclick="switchTab('palestre')">Palestre</button>
+        <button class="tab-btn nav-sub" data-tab="partite-casa"  onclick="switchTab('partite-casa')">Partite in casa</button>
       </div>
     </div>
     <div class="nav-group" id="dgrp-aggiungi">
@@ -1152,12 +1153,13 @@
         <span>Aggiungi</span><span class="nav-grp-chevron"></span>
       </button>
       <div class="nav-grp-items">
-        <button class="tab-btn nav-sub" data-tab="notizie"      onclick="switchTab('notizie')">Notizie</button>
-        <button class="tab-btn nav-sub" data-tab="staff"        onclick="switchTab('staff')">Staff</button>
-        <button class="tab-btn nav-sub" data-tab="squadra"      onclick="switchTab('squadra')">Squadra</button>
-        <button class="tab-btn nav-sub" data-tab="sponsor"      onclick="switchTab('sponsor')">Sponsor</button>
-        <button class="tab-btn nav-sub" data-tab="link-squadre" onclick="switchTab('link-squadre')">Link Squadre</button>
-        <button class="tab-btn nav-sub" data-tab="cat-squadre"  onclick="switchTab('cat-squadre')">Categorie Squadre</button>
+        <button class="tab-btn nav-sub" data-tab="notizie"         onclick="switchTab('notizie')">Notizie</button>
+        <button class="tab-btn nav-sub" data-tab="staff"           onclick="switchTab('staff')">Staff</button>
+        <button class="tab-btn nav-sub" data-tab="squadra"         onclick="switchTab('squadra')">Squadra</button>
+        <button class="tab-btn nav-sub" data-tab="sponsor"         onclick="switchTab('sponsor')">Sponsor</button>
+        <button class="tab-btn nav-sub" data-tab="link-squadre"    onclick="switchTab('link-squadre')">Link Squadre</button>
+        <button class="tab-btn nav-sub" data-tab="cat-squadre"     onclick="switchTab('cat-squadre')">Categorie Squadre</button>
+        <button class="tab-btn nav-sub" data-tab="staff-arbitrale" onclick="switchTab('staff-arbitrale')">Staff arbitrale</button>
       </div>
     </div>
     <div class="nav-divider"></div>
@@ -1187,9 +1189,10 @@
       <span>Pianifica</span><span class="nav-grp-chevron"></span>
     </button>
     <div class="nav-grp-items">
-      <button class="tab-btn nav-sub" data-tab="calendario" onclick="switchTab('calendario')">Calendario</button>
-      <button class="tab-btn nav-sub" data-tab="sessioni"   onclick="switchTab('sessioni')">Sessioni</button>
-      <button class="tab-btn nav-sub" data-tab="palestre"   onclick="switchTab('palestre')">Palestre</button>
+      <button class="tab-btn nav-sub" data-tab="calendario"   onclick="switchTab('calendario')">Calendario</button>
+      <button class="tab-btn nav-sub" data-tab="sessioni"     onclick="switchTab('sessioni')">Sessioni</button>
+      <button class="tab-btn nav-sub" data-tab="palestre"     onclick="switchTab('palestre')">Palestre</button>
+      <button class="tab-btn nav-sub" data-tab="partite-casa" onclick="switchTab('partite-casa')">Partite in casa</button>
     </div>
   </div>
   <div class="nav-group" id="sgrp-aggiungi">
@@ -1197,12 +1200,13 @@
       <span>Aggiungi</span><span class="nav-grp-chevron"></span>
     </button>
     <div class="nav-grp-items">
-      <button class="tab-btn nav-sub" data-tab="notizie"      onclick="switchTab('notizie')">Notizie</button>
-      <button class="tab-btn nav-sub" data-tab="staff"        onclick="switchTab('staff')">Staff</button>
-      <button class="tab-btn nav-sub" data-tab="squadra"      onclick="switchTab('squadra')">Squadra</button>
-      <button class="tab-btn nav-sub" data-tab="sponsor"      onclick="switchTab('sponsor')">Sponsor</button>
-      <button class="tab-btn nav-sub" data-tab="link-squadre" onclick="switchTab('link-squadre')">Link Squadre</button>
-      <button class="tab-btn nav-sub" data-tab="cat-squadre"  onclick="switchTab('cat-squadre')">Categorie Squadre</button>
+      <button class="tab-btn nav-sub" data-tab="notizie"         onclick="switchTab('notizie')">Notizie</button>
+      <button class="tab-btn nav-sub" data-tab="staff"           onclick="switchTab('staff')">Staff</button>
+      <button class="tab-btn nav-sub" data-tab="squadra"         onclick="switchTab('squadra')">Squadra</button>
+      <button class="tab-btn nav-sub" data-tab="sponsor"         onclick="switchTab('sponsor')">Sponsor</button>
+      <button class="tab-btn nav-sub" data-tab="link-squadre"    onclick="switchTab('link-squadre')">Link Squadre</button>
+      <button class="tab-btn nav-sub" data-tab="cat-squadre"     onclick="switchTab('cat-squadre')">Categorie Squadre</button>
+      <button class="tab-btn nav-sub" data-tab="staff-arbitrale" onclick="switchTab('staff-arbitrale')">Staff arbitrale</button>
     </div>
   </div>
   <div class="nav-divider"></div>
@@ -1237,6 +1241,12 @@
     </div>
 
   </div>
+  <!-- Partite in casa questa settimana -->
+  <div style="background:var(--surface);border:1px solid var(--bordo);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:20px;box-shadow:var(--shadow-sm);">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--sub-2);margin-bottom:12px;">Partite in casa — questa settimana</div>
+    <div id="dashPartiteCasa"><div style="font-size:13px;color:var(--sub);padding:8px 0;">Caricamento…</div></div>
+  </div>
+
   <div class="ordini-mini">
     <div class="ordini-mini-hdr">Ultimi ordini</div>
     <div id="dashOrdini"><div class="empty-state" style="padding:24px;text-align:center;color:var(--sub);">Nessun ordine.</div></div>
@@ -1627,10 +1637,11 @@
 <div class="pannello" id="pan-sessioni">
   <div class="toolbar">
     <h2>Sessioni</h2>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button class="filtro-btn on" id="sfTutti"       onclick="filtraSessioni('')">Tutti</button>
       <button class="filtro-btn"    id="sfAllenamento" onclick="filtraSessioni('allenamento')">Allenamento</button>
       <button class="filtro-btn"    id="sfEvento"      onclick="filtraSessioni('evento')">Evento</button>
+      <button onclick="svuotaCalendario()" style="padding:6px 14px;border-radius:var(--radius);border:1.5px solid var(--rosso);background:transparent;color:var(--rosso);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;">🗑 Svuota calendario</button>
     </div>
   </div>
   <!-- Next session banner -->
@@ -1653,6 +1664,123 @@
       <button onclick="chiudiSessioniDetail()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9ca3af;">✕</button>
     </div>
     <div id="sessioniPartecipantiList"></div>
+  </div>
+
+</div>
+
+<!-- MODAL STAFF ARBITRALE -->
+<div class="modal-overlay" id="modalStaffArbitrale">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr">
+      <h3>Staff arbitrale</h3>
+      <button class="modal-close" onclick="chiudiModal('modalStaffArbitrale')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:14px;">
+      <input type="hidden" id="staffPartitaId">
+      <div id="staffPartitaInfo" style="background:var(--surface-2);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--testo);"></div>
+      <div class="mf">
+        <label>Addetto all'arbitro</label>
+        <select id="staffAddetto" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
+          <option value="">— Nessuno —</option>
+        </select>
+      </div>
+      <div class="mf">
+        <label>Refertista</label>
+        <select id="staffRefertista" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
+          <option value="">— Nessuno —</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalStaffArbitrale')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaStaff" onclick="salvaStaffArbitrale()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANNELLO PARTITE IN CASA -->
+<div class="pannello" id="pan-partite-casa">
+  <div class="toolbar">
+    <h2>Partite in casa</h2>
+    <div style="display:flex;gap:8px;">
+      <button onclick="caricaPartiteInCasa()" class="filtro-btn" style="padding:6px 14px;">↻ Aggiorna</button>
+      <button onclick="apriModalSelezionaPartita()" class="btn-aggiungi">+ Aggiungi partita</button>
+    </div>
+  </div>
+  <div id="partiteInCasaList">
+    <div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>
+  </div>
+</div>
+
+<!-- MODAL SELEZIONA PARTITA IN CASA -->
+<div class="modal-overlay" id="modalSelezionaPartita">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-hdr">
+      <h3>Aggiungi partita in casa</h3>
+      <button class="modal-close" onclick="chiudiModal('modalSelezionaPartita')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:0;padding:0;">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--bordo);">
+        <input type="text" id="filtroPartiteFuture" oninput="filtraPartiteFuture(this.value)"
+          placeholder="Cerca squadra o categoria…"
+          style="width:100%;padding:10px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;">
+      </div>
+      <div id="partiteFutureList" style="max-height:360px;overflow-y:auto;padding:10px 16px;"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalSelezionaPartita')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANNELLO STAFF ARBITRALE -->
+<div class="pannello" id="pan-staff-arbitrale">
+  <div class="toolbar">
+    <h2>Staff arbitrale</h2>
+    <button class="btn-aggiungi" onclick="apriModalAggiungiStaffArb()">+ Aggiungi</button>
+  </div>
+  <div id="staffArbitraleList">
+    <div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>
+  </div>
+</div>
+
+<!-- MODAL AGGIUNGI STAFF ARBITRALE -->
+<div class="modal-overlay" id="modalAggiungiStaffArb">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-hdr">
+      <h3>Aggiungi staff arbitrale</h3>
+      <button class="modal-close" onclick="chiudiModal('modalAggiungiStaffArb')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:14px;">
+      <div class="mf">
+        <label>Seleziona utente esistente (opzionale)</label>
+        <select id="staffArbUtente" onchange="prefillStaffArb(this)" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
+          <option value="">— Inserisci manualmente —</option>
+        </select>
+      </div>
+      <div class="mf-row2">
+        <div class="mf">
+          <label>Nome *</label>
+          <input type="text" id="staffArbNome" placeholder="Es. Mario">
+        </div>
+        <div class="mf">
+          <label>Cognome *</label>
+          <input type="text" id="staffArbCognome" placeholder="Es. Rossi">
+        </div>
+      </div>
+      <div class="mf">
+        <label>Ruolo</label>
+        <select id="staffArbRuolo" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
+          <option value="entrambi">Addetto arbitro + Refertista</option>
+          <option value="addetto">Solo addetto arbitro</option>
+          <option value="refertista">Solo refertista</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalAggiungiStaffArb')">Annulla</button>
+      <button class="btn-salva" id="btnSalvaStaffArb" onclick="salvaStaffArb()">Salva</button>
+    </div>
   </div>
 </div>
 
@@ -1974,10 +2102,6 @@
       <div id="sOccupazioneWrap" style="display:none;" class="mf">
         <label>Disponibilità palestra</label>
         <div id="sOccupazioneTable" style="border:1px solid var(--bordo);border-radius:var(--radius);overflow:hidden;font-size:13px;"></div>
-      </div>
-      <div class="mf">
-        <label>Luogo (manuale)</label>
-        <input type="text" id="sLuogo" placeholder="Es. Tenda di Abramo, Caserta">
       </div>
       <div class="mf" id="sCategoriaWrap">
         <label>Categoria</label>
@@ -2364,9 +2488,9 @@
   /* ══ TABS ══ */
   const TAB_GROUP = {
     prodotti:'shop', ordini:'shop',
-    calendario:'pianifica', sessioni:'pianifica', palestre:'pianifica',
+    calendario:'pianifica', sessioni:'pianifica', palestre:'pianifica', 'partite-casa':'pianifica',
     notizie:'aggiungi', staff:'aggiungi', squadra:'aggiungi',
-    sponsor:'aggiungi', 'link-squadre':'aggiungi', 'cat-squadre':'aggiungi',
+    sponsor:'aggiungi', 'link-squadre':'aggiungi', 'cat-squadre':'aggiungi', 'staff-arbitrale':'aggiungi',
   };
 
   function toggleGrp(id) {
@@ -2402,8 +2526,10 @@
     if (nome === 'utenti')       caricaUtenti();
     if (nome === 'link-squadre') caricaLinkSquadre();
     if (nome === 'cat-squadre')  caricaCatSquadre();
-    if (nome === 'sessioni')     caricaSessioni();
-    if (nome === 'palestre')     caricaPalestre();
+    if (nome === 'sessioni')      caricaSessioni();
+    if (nome === 'palestre')      caricaPalestre();
+    if (nome === 'partite-casa')  caricaPartiteInCasa();
+    if (nome === 'staff-arbitrale') caricaStaffArbitrale();
   }
 
   function toggleDrawer() {
@@ -2820,7 +2946,7 @@
           <div class="sdi-dot${s.tipo==='evento'?' evento':''}"></div>
           <div class="sdi-info">
             <div class="sdi-titolo">${s.titolo}</div>
-            <div class="sdi-sub">${s.ora||''}${s.luogo?' · '+s.luogo:''}</div>
+            <div class="sdi-sub">${s.ora||''}</div>
           </div>
           <span class="sdi-badge ${s.tipo==='evento'?'evento':'allenamento'}">${s.tipo==='evento'?'Evento':'Allenamento'}</span>
           <button class="btn-azione btn-link" onclick="apriModalCollega('${s.id}')">Collega</button>
@@ -2855,7 +2981,7 @@
     const _td = new Date(); document.getElementById('sData').value = `${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,'0')}-${String(_td.getDate()).padStart(2,'0')}`;
     document.getElementById('sOraInizio').value = '18:00';
     document.getElementById('sOraFine').value   = '20:00';
-    document.getElementById('sLuogo').value     = '';
+
     document.getElementById('sNote').value      = '';
     document.getElementById('sRipetizione').checked = false;
     document.getElementById('sDataFine').value  = '';
@@ -2880,7 +3006,6 @@
         document.getElementById('sData').value      = s.data || '';
         document.getElementById('sOraInizio').value = parseOraInizio(s.ora);
         document.getElementById('sOraFine').value   = parseOraFine(s.ora);
-        document.getElementById('sLuogo').value     = s.luogo || '';
         categoriaCorrente = s.categoria || '';
         document.getElementById('sNote').value      = s.note || '';
         setSessioneTipo(s.tipo || 'allenamento');
@@ -2917,7 +3042,6 @@
       const foto = fotoUpload || document.getElementById('sFotoUrl').value.trim() || '';
       const body = {
         titolo, data, ora,
-        luogo:       document.getElementById('sLuogo').value.trim(),
         categoria:   getSCategoriaValue(),
         note:        document.getElementById('sNote').value.trim(),
         tipo:        document.getElementById('sTipo').value,
@@ -3125,6 +3249,7 @@
 
   /* ══ DASHBOARD ══ */
   async function caricaDashboard() {
+    caricaDashPartiteCasa();
     try {
       const s = await fetch('/api/admin/stats', { headers: headers() }).then(r => r.json());
       document.getElementById('statProdotti').textContent = s.prodotti ?? '—';
@@ -4560,6 +4685,317 @@
     }
   }
 
+  async function svuotaCalendario() {
+    if (!confirm('Eliminare TUTTE le sessioni del calendario? Operazione irreversibile.')) return;
+    try {
+      const r = await fetch('/api/admin/calendario/svuota', { method: 'DELETE', headers: headers() });
+      if (!r.ok) throw new Error('Errore server');
+      _sessioniAll = [];
+      _buildSessWeekData();
+      renderSessWeek();
+      renderSessDay(null);
+      chiudiSessioniDetail();
+      alert('Calendario svuotato.');
+    } catch (err) {
+      alert('Errore: ' + err.message);
+    }
+  }
+
+  /* ── Partite in casa ── */
+  let _partiteCasaCache = [];
+  let _utentiStaffCache = [];
+
+  async function caricaPartiteInCasa() {
+    const el = document.getElementById('partiteInCasaList');
+    if (!el) return;
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>';
+    try {
+      const [partite, staff] = await Promise.all([
+        fetch('/api/admin/partite/casa', { headers: headers() }).then(r => r.json()),
+        fetch('/api/admin/staff-arbitrale', { headers: headers() }).then(r => r.json()),
+      ]);
+      _partiteCasaCache = partite;
+      _utentiStaffCache = staff;
+      renderPartiteInCasa();
+    } catch(e) {
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--rosso);font-size:13px;">Errore di caricamento.</div>';
+    }
+  }
+
+  function renderPartiteInCasa() {
+    const el = document.getElementById('partiteInCasaList');
+    if (!el) return;
+    if (!_partiteCasaCache.length) {
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Nessuna partita in casa programmata.</div>';
+      return;
+    }
+    const statoBadge = (stato) => {
+      if (!stato) return '';
+      const cfg = { attesa:['#d97706','#fffbeb','In attesa'], confermato:['#16a34a','#f0fdf4','Confermato'], rifiutato:['#dc2626','#fef2f2','Rifiutato'] };
+      const [c,bg,lbl] = cfg[stato] || ['#6b7280','#f9fafb',stato];
+      return `<span style="font-size:10px;font-weight:700;background:${bg};color:${c};border-radius:4px;padding:1px 6px;margin-left:4px;">${lbl}</span>`;
+    };
+    el.innerHTML = _partiteCasaCache.map(p => {
+      const dt = p.data_ora ? new Date(p.data_ora) : null;
+      const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short', year:'numeric' }) : '—';
+      const oraStr  = dt ? dt.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
+      const addetto = p.addetto_arbitro || '—';
+      const refert  = p.refertista || '—';
+      const staffOk = p.addetto_arbitro && p.refertista;
+      const borderColor = staffOk ? '#16a34a' : '#d97706';
+      return `<div style="background:var(--surface);border:1px solid var(--bordo);border-left:4px solid ${borderColor};border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:13px;font-weight:700;color:var(--testo);">${p.casa} <span style="color:var(--sub);font-weight:400;">vs</span> ${p.ospite}</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:3px;">${p.categoria||''}${p.giornata?' · Giornata '+p.giornata:''}</div>
+          <div style="font-size:12px;color:var(--sub);">${dataStr}${oraStr?' · '+oraStr:''}</div>
+          <div style="margin-top:8px;font-size:12px;display:flex;gap:14px;flex-wrap:wrap;">
+            <span><strong style="color:var(--sub-2);">Addetto:</strong> ${addetto}${statoBadge(p.addetto_stato)}</span>
+            <span><strong style="color:var(--sub-2);">Refertista:</strong> ${refert}${statoBadge(p.refertista_stato)}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button onclick="apriStaffArbitrale('${p.id}')" class="btn-azione btn-edit" style="white-space:nowrap;">Assegna staff</button>
+          <button onclick="rimuoviPartitaCasa('${p.id}')" class="btn-azione btn-delete" style="white-space:nowrap;">Rimuovi</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function apriStaffArbitrale(partitaId) {
+    const p = _partiteCasaCache.find(x => x.id === partitaId);
+    if (!p) return;
+    document.getElementById('staffPartitaId').value = partitaId;
+    const dt = p.data_ora ? new Date(p.data_ora) : null;
+    const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : '—';
+    document.getElementById('staffPartitaInfo').innerHTML =
+      `<strong>${p.casa} vs ${p.ospite}</strong><br><span style="color:var(--sub);">${p.categoria||''} · ${dataStr}</span>`;
+    const mkOpts = (ruoli) => '<option value="">— Nessuno —</option>' +
+      _utentiStaffCache
+        .filter(u => u.ruolo === 'entrambi' || ruoli.includes(u.ruolo))
+        .map(u => `<option value="${u.id}">${u.cognome} ${u.nome}</option>`).join('');
+    document.getElementById('staffAddetto').innerHTML = mkOpts(['addetto']);
+    document.getElementById('staffRefertista').innerHTML = mkOpts(['refertista']);
+    document.getElementById('staffAddetto').value = p.addetto_staff_id || '';
+    document.getElementById('staffRefertista').value = p.refertista_staff_id || '';
+    document.getElementById('modalStaffArbitrale').classList.add('aperto');
+  }
+
+  async function salvaStaffArbitrale() {
+    const id       = document.getElementById('staffPartitaId').value;
+    const addetto  = document.getElementById('staffAddetto').value;
+    const refert   = document.getElementById('staffRefertista').value;
+    const btn = document.getElementById('btnSalvaStaff');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    try {
+      const r = await fetch(`/api/admin/partite/${id}/staff-arbitrale`, {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify({ addetto_staff_id: addetto, refertista_staff_id: refert }),
+      });
+      if (!r.ok) throw new Error('Errore server');
+      await caricaPartiteInCasa();
+      chiudiModal('modalStaffArbitrale');
+    } catch(e) {
+      alert('Errore: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salva';
+    }
+  }
+
+  /* ── Staff arbitrale ── */
+  let _staffArbitraleCache = [];
+  let _utentiListaCache    = [];
+
+  async function caricaStaffArbitrale() {
+    const el = document.getElementById('staffArbitraleList');
+    if (!el) return;
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>';
+    try {
+      const [staff, utenti] = await Promise.all([
+        fetch('/api/admin/staff-arbitrale', { headers: headers() }).then(r => r.json()),
+        fetch('/api/admin/utenti-lista',    { headers: headers() }).then(r => r.json()),
+      ]);
+      _staffArbitraleCache = staff;
+      _utentiListaCache    = utenti;
+      renderStaffArbitrale();
+      const sel = document.getElementById('staffArbUtente');
+      if (sel) {
+        sel.innerHTML = '<option value="">— Inserisci manualmente —</option>' +
+          utenti.map(u => `<option value="${u.id}" data-nome="${u.nome}" data-cognome="${u.cognome}">${u.cognome} ${u.nome}</option>`).join('');
+      }
+    } catch(e) {
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--rosso);font-size:13px;">Errore di caricamento.</div>';
+    }
+  }
+
+  function renderStaffArbitrale() {
+    const el = document.getElementById('staffArbitraleList');
+    if (!el) return;
+    const ruoloLabel = { addetto:'Addetto arbitro', refertista:'Refertista', entrambi:'Addetto + Refertista' };
+    if (!_staffArbitraleCache.length) {
+      el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Nessuno staff registrato.</div>';
+      return;
+    }
+    el.innerHTML = `<table><thead><tr><th>Cognome</th><th>Nome</th><th>Ruolo</th><th>Azioni</th></tr></thead><tbody>` +
+      _staffArbitraleCache.map(s => `<tr>
+        <td>${s.cognome}</td>
+        <td>${s.nome}</td>
+        <td>${ruoloLabel[s.ruolo] || s.ruolo}</td>
+        <td><button class="btn-azione btn-delete" onclick="eliminaStaffArb('${s.id}','${s.cognome} ${s.nome}')">Elimina</button></td>
+      </tr>`).join('') + `</tbody></table>`;
+  }
+
+  function apriModalAggiungiStaffArb() {
+    document.getElementById('staffArbUtente').value  = '';
+    document.getElementById('staffArbNome').value    = '';
+    document.getElementById('staffArbCognome').value = '';
+    document.getElementById('staffArbRuolo').value   = 'entrambi';
+    document.getElementById('modalAggiungiStaffArb').classList.add('aperto');
+  }
+
+  function prefillStaffArb(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt.value) return;
+    document.getElementById('staffArbNome').value    = opt.dataset.nome    || '';
+    document.getElementById('staffArbCognome').value = opt.dataset.cognome || '';
+  }
+
+  async function salvaStaffArb() {
+    const utente_id = document.getElementById('staffArbUtente').value;
+    const nome      = document.getElementById('staffArbNome').value.trim();
+    const cognome   = document.getElementById('staffArbCognome').value.trim();
+    const ruolo     = document.getElementById('staffArbRuolo').value;
+    if (!nome || !cognome) { alert('Nome e cognome obbligatori'); return; }
+    const btn = document.getElementById('btnSalvaStaffArb');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    try {
+      const r = await fetch('/api/admin/staff-arbitrale', {
+        method: 'POST', headers: headers(),
+        body: JSON.stringify({ utente_id, nome, cognome, ruolo }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || 'Errore server');
+      const s = await r.json();
+      _staffArbitraleCache.push(s);
+      renderStaffArbitrale();
+      chiudiModal('modalAggiungiStaffArb');
+    } catch(e) {
+      alert('Errore: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Salva';
+    }
+  }
+
+  async function eliminaStaffArb(id, nome) {
+    if (!confirm(`Rimuovere ${nome} dallo staff arbitrale?`)) return;
+    try {
+      await fetch(`/api/admin/staff-arbitrale/${id}`, { method: 'DELETE', headers: headers() });
+      _staffArbitraleCache = _staffArbitraleCache.filter(s => s.id !== id);
+      renderStaffArbitrale();
+    } catch(e) {
+      alert('Errore eliminazione');
+    }
+  }
+
+  /* ── Partite in casa: modal selezione ── */
+  let _partiteFutureAll = [];
+
+  async function apriModalSelezionaPartita() {
+    document.getElementById('filtroPartiteFuture').value = '';
+    document.getElementById('partiteFutureList').innerHTML = '<div style="padding:12px;color:var(--sub);font-size:13px;">Caricamento…</div>';
+    document.getElementById('modalSelezionaPartita').classList.add('aperto');
+    try {
+      _partiteFutureAll = await fetch('/api/admin/partite/future', { headers: headers() }).then(r => r.json());
+      renderPartiteFuture(_partiteFutureAll);
+    } catch {
+      document.getElementById('partiteFutureList').innerHTML = '<div style="padding:12px;color:var(--rosso);font-size:13px;">Errore caricamento.</div>';
+    }
+  }
+
+  function filtraPartiteFuture(q) {
+    const filtered = q ? _partiteFutureAll.filter(p =>
+      (p.casa + ' ' + p.ospite + ' ' + (p.categoria||'')).toLowerCase().includes(q.toLowerCase())
+    ) : _partiteFutureAll;
+    renderPartiteFuture(filtered);
+  }
+
+  function renderPartiteFuture(lista) {
+    const el = document.getElementById('partiteFutureList');
+    if (!lista.length) { el.innerHTML = '<div style="padding:12px;color:var(--sub);font-size:13px;">Nessuna partita trovata.</div>'; return; }
+    el.innerHTML = lista.map(p => {
+      const dt = p.data_ora ? new Date(p.data_ora) : null;
+      const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short' }) : '—';
+      const oraStr  = dt ? dt.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
+      const isCasa  = p.is_casa;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--bordo);">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${p.casa} vs ${p.ospite}</div>
+          <div style="font-size:11px;color:var(--sub);">${p.categoria||''} · ${dataStr}${oraStr?' '+oraStr:''}</div>
+        </div>
+        ${isCasa
+          ? `<button onclick="toggleIsCasa('${p.id}',false)" class="btn-azione btn-delete" style="white-space:nowrap;">Rimuovi</button>`
+          : `<button onclick="toggleIsCasa('${p.id}',true)"  class="btn-azione btn-edit"   style="white-space:nowrap;">+ Casa</button>`
+        }
+      </div>`;
+    }).join('');
+  }
+
+  async function toggleIsCasa(id, isCasa) {
+    try {
+      const r = await fetch(`/api/admin/partite/${id}/is-casa`, {
+        method: 'PUT', headers: headers(),
+        body: JSON.stringify({ is_casa: isCasa }),
+      });
+      if (!r.ok) throw new Error();
+      const p = _partiteFutureAll.find(x => x.id === id);
+      if (p) p.is_casa = isCasa;
+      renderPartiteFuture(document.getElementById('filtroPartiteFuture').value
+        ? _partiteFutureAll.filter(x => (x.casa+' '+x.ospite+' '+(x.categoria||'')).toLowerCase().includes(document.getElementById('filtroPartiteFuture').value.toLowerCase()))
+        : _partiteFutureAll);
+      caricaPartiteInCasa();
+    } catch {
+      alert('Errore aggiornamento.');
+    }
+  }
+
+  async function rimuoviPartitaCasa(id) {
+    await toggleIsCasa(id, false);
+  }
+
+  /* ── Dashboard: partite settimana ── */
+  async function caricaDashPartiteCasa() {
+    const el = document.getElementById('dashPartiteCasa');
+    if (!el) return;
+    try {
+      const partite = await fetch('/api/admin/partite/casa-settimana', { headers: headers() }).then(r => r.json());
+      if (!partite.length) {
+        el.innerHTML = '<div style="font-size:13px;color:var(--sub);">Nessuna partita in casa questa settimana.</div>';
+        return;
+      }
+      el.innerHTML = partite.map(p => {
+        const dt = p.data_ora ? new Date(p.data_ora) : null;
+        const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'short' }) : '—';
+        const oraStr  = dt ? dt.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
+        const staffOk = p.addetto_arbitro && p.refertista;
+        const staffParz = p.addetto_arbitro || p.refertista;
+        const colore = staffOk ? '#16a34a' : staffParz ? '#d97706' : '#dc2626';
+        const staffLabel = staffOk
+          ? `✓ ${p.addetto_arbitro} · ${p.refertista}`
+          : staffParz
+            ? `⚠ ${p.addetto_arbitro || p.refertista} (incompleto)`
+            : '⚠ Staff mancante';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius);border-left:4px solid ${colore};background:var(--surface-2);margin-bottom:8px;">
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">${p.casa} vs ${p.ospite}</div>
+            <div style="font-size:11px;color:var(--sub);">${p.categoria||''} · ${dataStr}${oraStr?' · '+oraStr:''}</div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:${colore};text-align:right;white-space:nowrap;">${staffLabel}</div>
+        </div>`;
+      }).join('');
+    } catch {
+      el.innerHTML = '<div style="font-size:13px;color:var(--sub);">Dati non disponibili.</div>';
+    }
+  }
+
   function filtraSessioni(tipo) {
     _sessioniFiltro = tipo;
     document.querySelectorAll('#pan-sessioni .filtro-btn').forEach(b => b.classList.remove('on'));
@@ -4592,7 +5028,7 @@
       <div class="psb-info">
         <div class="psb-label">Prossima sessione</div>
         <div class="psb-titolo">${s.titolo}</div>
-        <div class="psb-sub">${d}${s.ora?' · '+s.ora:''}${s.categoria?' · '+s.categoria:''}${s.luogo?' · '+s.luogo:''}</div>
+        <div class="psb-sub">${d}${s.ora?' · '+s.ora:''}${s.categoria?' · '+s.categoria:''}</div>
       </div>
       <button class="psb-vedi" onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')">Vedi →</button>
     </div>`;
@@ -4651,7 +5087,7 @@
           <div class="sdi-dot${s.tipo==='evento'?' evento':''}"></div>
           <div class="sdi-info">
             <div class="sdi-titolo">${s.titolo}</div>
-            <div class="sdi-sub">${s.categoria||''}${s.ora?' · '+s.ora:''}${s.luogo?' · '+s.luogo:''}</div>
+            <div class="sdi-sub">${s.categoria||''}${s.ora?' · '+s.ora:''}</div>
           </div>
           <span class="sdi-badge ${s.tipo==='evento'?'evento':'allenamento'}">${s.tipo==='evento'?'Evento':'Allenamento'}</span>
           <span style="color:#16a34a;font-weight:700;font-size:12px;">${s.partecipanti_si} sì</span>
@@ -4892,7 +5328,7 @@
     const fineVal   = val ? val.fine   : '20:00';
     row.innerHTML = `
       <select style="padding:8px 10px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);">
-        ${GIORNI.map((g,i)=>`<option value="${i}"${i===giornoVal?' selected':''}>${g}</option>`).join('')}
+        ${[[1,'Lun'],[2,'Mar'],[3,'Mer'],[4,'Gio'],[5,'Ven'],[6,'Sab'],[0,'Dom']].map(([v,g])=>`<option value="${v}"${v===giornoVal?' selected':''}>${g}</option>`).join('')}
       </select>
       <input type="time" value="${inizioVal}" style="padding:8px 10px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;">
       <input type="time" value="${fineVal}"   style="padding:8px 10px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;">

@@ -553,7 +553,7 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
     // Allenamenti/eventi da calendario per ogni squadra (primaria + collegate)
     for (const nome of nomiSquadre) {
       const calRes = await db.query(
-        `SELECT titolo,data_str,ora,luogo,tipo FROM calendario
+        `SELECT titolo,data_str,ora,tipo FROM calendario
          WHERE (categoria ILIKE $1 OR categorie_collegate @> $2::jsonb)
            AND data_str >= $3 AND data_str <= $4
          ORDER BY data_str, ora`,
@@ -565,7 +565,6 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
           titolo: r.titolo,
           data: r.data_str,
           ora: r.ora,
-          luogo: r.luogo || '',
           squadra: nome,
           ruolo: squadraRuolo[nome],
           ts: safeTs(r.data_str, r.ora),
@@ -772,7 +771,6 @@ app.get('/api/calendario', async (req, res) => {
       titolo:    r.titolo,
       data:      r.data_str,
       ora:       r.ora,
-      luogo:     r.luogo,
       categoria: r.categoria,
       note:      r.note,
       tipo:                r.tipo || 'allenamento',
@@ -820,7 +818,7 @@ app.get('/api/prossimi-eventi', async (req, res) => {
   try {
     const oggi = new Date().toISOString().slice(0, 10);
     const r = await db.query(
-      `SELECT id,titolo,data_str,ora,luogo,foto,categoria FROM calendario WHERE tipo='evento' AND data_str >= $1 ORDER BY data_str LIMIT 10`,
+      `SELECT id,titolo,data_str,ora,foto,categoria FROM calendario WHERE tipo='evento' AND data_str >= $1 ORDER BY data_str LIMIT 10`,
       [oggi]
     );
     let eventi = r.rows.map(x => ({ ...x, data: x.data_str }));
@@ -844,7 +842,7 @@ app.get('/api/prossimi-eventi', async (req, res) => {
 
 /* ─── Calendario: crea sessione ─── */
 app.post('/api/calendario', adminAuth, async (req, res) => {
-  const { titolo, data, ora, luogo, categoria, note, ripetizione_settimanale, data_fine_ripetizione, tipo, foto, palestra_id } = req.body;
+  const { titolo, data, ora, categoria, note, ripetizione_settimanale, data_fine_ripetizione, tipo, foto, palestra_id } = req.body;
   if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
   const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
   const palestraVal = palestra_id || '';
@@ -858,9 +856,9 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
         const id      = Date.now().toString() + '_' + i;
         const dataStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
         await db.query(
-          `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto, palestra_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-          [id, titolo, dataStr, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', palestraVal]
+          `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, foto, palestra_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [id, titolo, dataStr, ora, categoria || '', note || '', tipoVal, foto || '', palestraVal]
         );
         sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal });
         currentDate.setDate(currentDate.getDate() + 7);
@@ -870,9 +868,9 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
     }
     const id = Date.now().toString();
     await db.query(
-      `INSERT INTO calendario (id, titolo, data_str, ora, luogo, categoria, note, tipo, foto, palestra_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [id, titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', palestraVal]
+      `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, foto, palestra_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [id, titolo, data, ora, categoria || '', note || '', tipoVal, foto || '', palestraVal]
     );
 
     // Notifica email agli utenti attivi se è un evento (filtrata per categoria)
@@ -899,7 +897,6 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
             <h2 style="color:#e11d48;font-size:22px;margin:0 0 16px;">${esc(titolo)}</h2>
             <p style="font-size:15px;color:#374151;"><strong>Data:</strong> ${dataFormattata}</p>
             ${ora ? `<p style="font-size:15px;color:#374151;"><strong>Orario:</strong> ${esc(ora)}</p>` : ''}
-            ${luogo ? `<p style="font-size:15px;color:#374151;"><strong>Luogo:</strong> ${esc(luogo)}</p>` : ''}
             ${categoriaVal ? `<p style="font-size:15px;color:#374151;"><strong>Categoria:</strong> ${esc(categoriaVal)}</p>` : ''}
             ${note ? `<p style="font-size:14px;color:#6b7280;margin-top:12px;">${esc(note)}</p>` : ''}
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px 24px;margin:24px 0;text-align:center">
@@ -927,7 +924,7 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
       }
     }
 
-    res.status(201).json({ id, titolo, data, ora, luogo: luogo || '', categoria: categoria || '', note: note || '', tipo: tipoVal, foto: foto || '' });
+    res.status(201).json({ id, titolo, data, ora, categoria: categoria || '', note: note || '', tipo: tipoVal, foto: foto || '' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -936,20 +933,20 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
 
 /* ─── Calendario: aggiorna sessione ─── */
 app.put('/api/calendario/:id', adminAuth, async (req, res) => {
-  const { titolo, data, ora, luogo, categoria, note, tipo, foto, palestra_id } = req.body;
+  const { titolo, data, ora, categoria, note, tipo, foto, palestra_id } = req.body;
   const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
   const palestraVal = palestra_id || '';
   try {
     const result = await db.query(
       `UPDATE calendario
-       SET titolo=$1, data_str=$2, ora=$3, luogo=$4, categoria=$5, note=$6, tipo=$7, foto=$8, palestra_id=$9
-       WHERE id=$10
+       SET titolo=$1, data_str=$2, ora=$3, categoria=$4, note=$5, tipo=$6, foto=$7, palestra_id=$8
+       WHERE id=$9
        RETURNING *`,
-      [titolo, data, ora, luogo || '', categoria || '', note || '', tipoVal, foto || '', palestraVal, req.params.id]
+      [titolo, data, ora, categoria || '', note || '', tipoVal, foto || '', palestraVal, req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     const r = result.rows[0];
-    res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, luogo: r.luogo, categoria: r.categoria, note: r.note, tipo: r.tipo, foto: r.foto, palestra_id: r.palestra_id || '' });
+    res.json({ id: r.id, titolo: r.titolo, data: r.data_str, ora: r.ora, categoria: r.categoria, note: r.note, tipo: r.tipo, foto: r.foto, palestra_id: r.palestra_id || '' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -961,6 +958,17 @@ app.delete('/api/calendario/:id', adminAuth, async (req, res) => {
   try {
     const result = await db.query('DELETE FROM calendario WHERE id=$1 RETURNING id', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Calendario: svuota tutto ─── */
+app.delete('/api/admin/calendario/svuota', adminAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM calendario');
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -2921,6 +2929,223 @@ app.get('/api/partite/tutte', async (_req, res) => {
   } catch (err) {
     console.error('[Partite/tutte] Errore:', err);
     res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Staff arbitrale ─── */
+app.get('/api/admin/staff-arbitrale', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM staff_arbitrale ORDER BY cognome, nome');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+app.post('/api/admin/staff-arbitrale', adminAuth, async (req, res) => {
+  const { utente_id, nome, cognome, ruolo } = req.body;
+  if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
+  const ruoloVal = ['addetto','refertista','entrambi'].includes(ruolo) ? ruolo : 'entrambi';
+  try {
+    const id = Date.now().toString();
+    const r = await db.query(
+      `INSERT INTO staff_arbitrale (id, utente_id, nome, cognome, ruolo) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [id, utente_id || '', nome.trim(), cognome.trim(), ruoloVal]
+    );
+    res.status(201).json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+app.delete('/api/admin/staff-arbitrale/:id', adminAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM staff_arbitrale WHERE id=$1', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+/* ─── Partite in casa (admin) ─── */
+app.get('/api/admin/partite/casa', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT f.id, f.categoria, f.giornata, f.data_ora, f.casa, f.ospite, f.luogo,
+              f.addetto_arbitro, f.refertista, f.is_casa, f.addetto_staff_id, f.refertista_staff_id,
+              a1.stato AS addetto_stato, a2.stato AS refertista_stato
+       FROM fipav_matches f
+       LEFT JOIN assegnazioni_partita a1 ON a1.partita_id=f.id AND a1.ruolo='addetto'
+       LEFT JOIN assegnazioni_partita a2 ON a2.partita_id=f.id AND a2.ruolo='refertista'
+       WHERE f.is_casa = true AND f.played=false AND f.postponed=false AND f.data_ora >= NOW()
+       ORDER BY f.data_ora`
+    );
+    res.json(r.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.get('/api/admin/partite/future', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT id, categoria, giornata, data_ora, casa, ospite, luogo, is_casa
+       FROM fipav_matches
+       WHERE played=false AND postponed=false AND data_ora >= NOW()
+       ORDER BY data_ora`
+    );
+    res.json(r.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.put('/api/admin/partite/:id/is-casa', adminAuth, async (req, res) => {
+  const { is_casa } = req.body;
+  try {
+    const r = await db.query(
+      `UPDATE fipav_matches SET is_casa=$1 WHERE id=$2 RETURNING id`,
+      [!!is_casa, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Partita non trovata' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.get('/api/admin/partite/casa-settimana', adminAuth, async (_req, res) => {
+  try {
+    const now = new Date();
+    const dow = now.getDay();
+    const mon = new Date(now);
+    mon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+    mon.setHours(0, 0, 0, 0);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    sun.setHours(23, 59, 59, 999);
+    const r = await db.query(
+      `SELECT id, categoria, giornata, data_ora, casa, ospite, luogo, addetto_arbitro, refertista
+       FROM fipav_matches
+       WHERE is_casa = true AND data_ora >= $1 AND data_ora <= $2
+       ORDER BY data_ora`,
+      [mon.toISOString(), sun.toISOString()]
+    );
+    res.json(r.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+app.put('/api/admin/partite/:id/staff-arbitrale', adminAuth, async (req, res) => {
+  const { addetto_staff_id, refertista_staff_id } = req.body;
+  const partitaId = req.params.id;
+  try {
+    const pRes = await db.query('SELECT casa, ospite, data_ora, categoria FROM fipav_matches WHERE id=$1', [partitaId]);
+    if (!pRes.rows.length) return res.status(404).json({ error: 'Partita non trovata' });
+    const partita = pRes.rows[0];
+
+    async function processRuolo(staffId, ruolo) {
+      if (!staffId) {
+        await db.query('DELETE FROM assegnazioni_partita WHERE partita_id=$1 AND ruolo=$2', [partitaId, ruolo]);
+        return '';
+      }
+      const sRes = await db.query('SELECT * FROM staff_arbitrale WHERE id=$1', [staffId]);
+      if (!sRes.rows.length) return '';
+      const staff = sRes.rows[0];
+      const nomeDisplay = `${staff.cognome} ${staff.nome}`;
+      if (staff.utente_id) {
+        const assegId = Date.now().toString() + '_' + ruolo;
+        await db.query(`
+          INSERT INTO assegnazioni_partita (id, partita_id, utente_id, ruolo, stato)
+          VALUES ($1,$2,$3,$4,'attesa')
+          ON CONFLICT (partita_id, ruolo) DO UPDATE SET utente_id=$3, stato='attesa'
+        `, [assegId, partitaId, staff.utente_id, ruolo]);
+        const uRes = await db.query('SELECT nome, cognome, email FROM utenti WHERE id=$1', [staff.utente_id]);
+        if (uRes.rows.length && uRes.rows[0].email) {
+          const u = uRes.rows[0];
+          const dt = partita.data_ora ? new Date(partita.data_ora) : null;
+          const dataFmt = dt ? dt.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) : '—';
+          const oraFmt  = dt ? dt.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
+          const ruoloLabel = ruolo === 'addetto' ? "Addetto all'arbitro" : 'Refertista';
+          const base = process.env.BASE_URL || 'https://www.virtuscaserta.com';
+          const emailHtml = `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222">
+              <div style="background:#0d2055;padding:24px;text-align:center">
+                <h1 style="color:#fff;font-size:20px;margin:0;letter-spacing:2px">VIRTUS CASERTA</h1>
+                <p style="color:#93c5fd;margin:6px 0 0;font-size:13px">RICHIESTA STAFF ARBITRALE</p>
+              </div>
+              <div style="padding:28px 24px">
+                <p style="font-size:15px;">Ciao <strong>${esc(u.nome)}</strong>,</p>
+                <p style="font-size:15px;">sei stato selezionato come <strong>${esc(ruoloLabel)}</strong> per la seguente partita:</p>
+                <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px;margin:20px 0;">
+                  <p style="margin:0 0 6px;font-size:16px;font-weight:700;">${esc(partita.casa)} vs ${esc(partita.ospite)}</p>
+                  <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">${esc(partita.categoria||'')} · ${dataFmt}${oraFmt?' · '+oraFmt:''}</p>
+                </div>
+                <p style="font-size:14px;color:#374151;">Accedi al tuo profilo per confermare o rifiutare la disponibilità:</p>
+                <div style="text-align:center;margin:24px 0;">
+                  <a href="${base}/utente.html" style="display:inline-block;background:#0d2055;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;">Rispondi ora</a>
+                </div>
+              </div>
+              <div style="background:#f8fafc;padding:14px;text-align:center;font-size:12px;color:#9ca3af">© 2026 Virtus Caserta</div>
+            </div>`;
+          const subject = `Richiesta staff arbitrale: ${partita.casa} vs ${partita.ospite} | Virtus Caserta`;
+          if (brevoApiConfigurato()) {
+            sendBrevoEmail({ to: u.email, subject, html: emailHtml }).catch(e => console.error('[Staff email]', e.message));
+          } else if (brevoConfigurato()) {
+            creaTransporterShop().sendMail({ from: shopFrom(), to: u.email, subject, html: emailHtml }).catch(e => console.error('[Staff SMTP]', e.message));
+          }
+        }
+      }
+      return nomeDisplay;
+    }
+
+    const [addettoNome, refertistaNome] = await Promise.all([
+      processRuolo(addetto_staff_id, 'addetto'),
+      processRuolo(refertista_staff_id, 'refertista'),
+    ]);
+
+    await db.query(
+      `UPDATE fipav_matches SET addetto_arbitro=$1, addetto_staff_id=$2, refertista=$3, refertista_staff_id=$4 WHERE id=$5`,
+      [addettoNome, addetto_staff_id || '', refertistaNome, refertista_staff_id || '', partitaId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno del server.' });
+  }
+});
+
+/* ─── Staff arbitrale: API utente ─── */
+app.get('/api/utente/staff-arbitrale', userAuth, async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT a.id, a.ruolo, a.stato, a.created_at,
+              f.id AS partita_id, f.casa, f.ospite, f.data_ora, f.categoria, f.luogo
+       FROM assegnazioni_partita a
+       JOIN fipav_matches f ON f.id = a.partita_id
+       WHERE a.utente_id = $1
+       ORDER BY f.data_ora`,
+      [req.user.id]
+    );
+    res.json(r.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno.' });
+  }
+});
+
+app.put('/api/utente/staff-arbitrale/:id/risposta', userAuth, async (req, res) => {
+  const { stato } = req.body;
+  if (!['confermato', 'rifiutato'].includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
+  try {
+    const r = await db.query(
+      `UPDATE assegnazioni_partita SET stato=$1 WHERE id=$2 AND utente_id=$3 RETURNING id`,
+      [stato, req.params.id, req.user.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Assegnazione non trovata' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Errore interno.' });
   }
 });
 
