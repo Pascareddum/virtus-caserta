@@ -1076,6 +1076,51 @@
       .swc { padding:7px 3px; border-radius:9px; }
       .swc-day { font-size:14px; }
       .cal-cat-grid { grid-template-columns:repeat(2,1fr); }
+
+      /* pan-utenti: search inputs full-width, no min-width */
+      #pan-utenti #uSearchInput,
+      #pan-utenti #uTuttiSearch { min-width:0!important; width:100%!important; max-width:none!important; }
+      /* Prevent filter bar + search from overflowing */
+      #pan-utenti [style*="flex-wrap:wrap"] { row-gap:8px; }
+
+      /* pan-cat-squadre: add-row wraps + button full-width */
+      #pan-cat-squadre .cat-add-row { flex-wrap:wrap; }
+      #pan-cat-squadre .cat-add-row #nuovaSquadraInput,
+      #pan-cat-squadre .cat-add-row button { width:100%; }
+
+      /* pan-live: prevent iOS zoom on url input */
+      #pan-live input { font-size:16px!important; }
+
+      /* Global: prevent iOS auto-zoom on all pannello form controls */
+      .pannello input[type="text"], .pannello input[type="email"],
+      .pannello input[type="url"],  .pannello input[type="password"],
+      .pannello input[type="number"],.pannello textarea,
+      .modal-body input, .modal-body select, .modal-body textarea { font-size:16px!important; }
+
+      /* partite-casa cards: stack buttons on very small screens */
+      #partiteInCasaList [style*="flex-direction:column"] { flex-direction:row!important; flex-wrap:wrap; }
+    }
+
+    /* ── pan-staff-arbitrale + pan-cat-squadre: card layout on mobile ── */
+    @media(max-width:640px) {
+      #pan-staff-arbitrale .card-table,
+      #pan-cat-squadre     .card-table { background:transparent;box-shadow:none;border:none;border-radius:0;overflow:visible; }
+      #pan-staff-arbitrale table, #pan-staff-arbitrale tbody,
+      #pan-cat-squadre     table, #pan-cat-squadre     tbody { display:block;width:100%; }
+      #pan-staff-arbitrale thead, #pan-cat-squadre thead { display:none; }
+      #pan-staff-arbitrale tbody tr,
+      #pan-cat-squadre     tbody tr { display:block;background:var(--surface);border:1px solid var(--bordo)!important;border-radius:var(--radius-lg);margin-bottom:10px;padding:14px;box-shadow:var(--shadow-xs); }
+      #pan-staff-arbitrale td,
+      #pan-cat-squadre td { display:flex;align-items:flex-start;gap:10px;padding:5px 0;font-size:13px;border:none!important; }
+      #pan-staff-arbitrale td::before,
+      #pan-cat-squadre     td::before { content:attr(data-label);font-size:11px;font-weight:600;color:var(--sub);min-width:80px;flex-shrink:0;padding-top:3px; }
+      #pan-staff-arbitrale td[data-label="Azioni"],
+      #pan-cat-squadre     td[data-label="Azioni"] { padding-top:10px;border-top:1px solid var(--bordo-2)!important;margin-top:4px; }
+      #pan-staff-arbitrale td[data-label="Azioni"]::before,
+      #pan-cat-squadre     td[data-label="Azioni"]::before { display:none; }
+      /* cat-sq selects full-width inside card */
+      #pan-cat-squadre .cat-sq-sel,
+      #pan-cat-squadre .cat-sq-camp { width:100%; }
     }
   </style>
 </head>
@@ -1407,7 +1452,7 @@
         <span id="spikeLiveStatus" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f1f5f9;color:#6b7280;">—</span>
       </div>
       <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">Incolla il link YouTube della diretta Spike. La live apparirà direttamente sul sito. Lascia vuoto e salva per spegnere.</p>
-      <input type="text" id="spikeLiveUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:14px;margin-bottom:12px;">
+      <input type="text" id="spikeLiveUrl" placeholder="https://www.youtube.com/watch?v=..." style="width:100%;padding:10px 14px;border:1.5px solid #d1d5db;border-radius:10px;font-size:16px;margin-bottom:12px;">
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
         <button onclick="salvaLiveLink()" style="padding:9px 22px;border-radius:10px;border:none;background:#e8372a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Salva e attiva</button>
         <button onclick="cancellaLiveLink()" style="padding:9px 22px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">Disattiva</button>
@@ -1604,7 +1649,7 @@
     <br><span style="color:#9ca3af;font-size:12px">"Maschile", "Femminile" e "Staff" sono esclusi — usa nomi specifici (es. Serie D Femminile).</span>
   </p>
 
-  <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center;">
+  <div class="cat-add-row" style="display:flex;gap:8px;margin-bottom:20px;align-items:center;">
     <input type="text" id="nuovaSquadraInput" placeholder="Es. Serie B Maschile"
       style="flex:1;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;outline:none;"
       onkeydown="if(event.key==='Enter') aggiungiSquadraCustom()">
@@ -4519,38 +4564,38 @@
       el.innerHTML = `<p style="color:#9ca3af;text-align:center;padding:32px">Nessuna squadra. Aggiungine una con il campo sopra o aggiungi atleti con squadra assegnata.</p>`;
       return;
     }
-    el.innerHTML = `<table class="cat-sq-table">
+    el.innerHTML = `<div class="card-table"><table class="cat-sq-table">
       <thead><tr><th>Squadra</th><th>Macro-categoria</th><th>Campionato</th><th style="width:120px"></th></tr></thead>
       <tbody>
         ${list.map(sq => `
           <tr id="csq-row-${sq.nome.replace(/[^a-z0-9]/gi,'_')}">
-            <td style="font-weight:600">
+            <td data-label="Squadra" style="font-weight:600">
               <span class="csq-nome">${sq.nome}</span>
               ${sq.custom ? '<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px;">(custom)</span>' : '<span style="font-size:10px;color:#9ca3af;font-weight:400;margin-left:4px;">(da atleti)</span>'}
             </td>
-            <td>
+            <td data-label="Macro-cat">
               <select class="cat-sq-sel" data-nome="${sq.nome.replace(/"/g,'&quot;')}">
                 <option value="">— non assegnata —</option>
                 <option value="Seniores" ${sq.categoria==='Seniores'?'selected':''}>Seniores</option>
                 <option value="Giovanili" ${sq.categoria==='Giovanili'?'selected':''}>Giovanili</option>
               </select>
             </td>
-            <td>
+            <td data-label="Campionato">
               <select class="cat-sq-camp" data-nome="${sq.nome.replace(/"/g,'&quot;')}">
                 <option value="">— —</option>
                 <option value="FIPAV" ${sq.campionato==='FIPAV'?'selected':''}>FIPAV</option>
                 <option value="OPES"  ${sq.campionato==='OPES' ?'selected':''}>OPES</option>
               </select>
             </td>
-            <td>
-              <div style="display:flex;gap:4px;">
+            <td data-label="Azioni">
+              <div style="display:flex;gap:4px;flex-wrap:wrap;">
                 ${sq.custom ? `<button onclick="avviaRinominaSquadra('${sq.nome.replace(/'/g,"\\'")}',this)" title="Rinomina" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;font-size:12px;cursor:pointer;">Modifica</button>` : ''}
                 <button onclick="${sq.custom ? `rimuoviSquadraCustom('${sq.nome.replace(/'/g,"\\'")}')` : `esludiSquadraAuto('${sq.nome.replace(/'/g,"\\'")}')` }" title="Elimina" style="padding:4px 8px;border-radius:6px;border:1px solid #fca5a5;background:#fff;color:#dc2626;font-size:12px;cursor:pointer;">✕</button>
               </div>
             </td>
           </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table></div>`;
   }
 
   async function avviaRinominaSquadra(nomeVecchio, btn) {
@@ -4836,13 +4881,13 @@
       el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Nessuno staff registrato.</div>';
       return;
     }
-    el.innerHTML = `<table><thead><tr><th>Cognome</th><th>Nome</th><th>Ruolo</th><th>Azioni</th></tr></thead><tbody>` +
+    el.innerHTML = `<div class="card-table"><table><thead><tr><th>Cognome</th><th>Nome</th><th>Ruolo</th><th>Azioni</th></tr></thead><tbody>` +
       _staffArbitraleCache.map(s => `<tr>
-        <td>${s.cognome}</td>
-        <td>${s.nome}</td>
-        <td>${ruoloLabel[s.ruolo] || s.ruolo}</td>
-        <td><button class="btn-azione btn-delete" onclick="eliminaStaffArb('${s.id}','${s.cognome} ${s.nome}')">Elimina</button></td>
-      </tr>`).join('') + `</tbody></table>`;
+        <td data-label="Cognome">${s.cognome}</td>
+        <td data-label="Nome">${s.nome}</td>
+        <td data-label="Ruolo">${ruoloLabel[s.ruolo] || s.ruolo}</td>
+        <td data-label="Azioni"><button class="btn-azione btn-delete" onclick="eliminaStaffArb('${s.id}','${s.cognome} ${s.nome}')">Elimina</button></td>
+      </tr>`).join('') + `</tbody></table></div>`;
   }
 
   function apriModalAggiungiStaffArb() {

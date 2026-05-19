@@ -139,9 +139,30 @@
 
     @media(max-width:480px){
       .page-wrap{padding:20px 14px 48px;}
-      .form-card{padding:20px 16px;}
+      .top-bar{gap:10px;}
+      .btn-back{font-size:12px;padding:7px 12px;}
+      .page-title{font-size:18px;}
+      .form-card{padding:20px 16px;border-radius:16px;}
+      .list-card{border-radius:16px;}
       .field-row{grid-template-columns:1fr;}
       .orario-row{grid-template-columns:1fr auto 1fr;}
+      /* prevent iOS zoom */
+      .field input,.field select,.field textarea,
+      .people-search input { font-size:16px!important; }
+      /* match-item: status badge wraps below */
+      .match-item{flex-wrap:wrap;gap:10px;}
+      .match-icon{align-self:flex-start;}
+      .match-status{margin-left:calc(42px + 14px);}
+      /* availability: 3 cols */
+      .avail-grid{grid-template-columns:repeat(3,1fr);}
+      .avail-card{padding:10px 10px;}
+      .avail-name{font-size:12px;}
+      /* selezione card: stack on very small */
+      .selezione-card{flex-wrap:wrap;}
+      .btn-cambia{align-self:flex-end;}
+    }
+    @media(max-width:360px){
+      .avail-grid{grid-template-columns:1fr;}
     }
   </style>
 </head>

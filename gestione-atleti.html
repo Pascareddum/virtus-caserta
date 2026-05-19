@@ -117,10 +117,37 @@
 
     @media(max-width:480px){
       .page-wrap{padding:20px 14px 80px;}
-      .atleta-detail{padding-left:20px;}
-      .presenze-bar{display:none;}
+      .top-bar{gap:10px;}
+      .btn-back{font-size:12px;padding:7px 12px;}
+      .page-title{font-size:18px;}
+      /* toolbar: filter select goes full-width below search */
+      .toolbar{flex-direction:column;gap:8px;}
+      .search-wrap{width:100%;}
+      .filter-select{width:100%;}
+      /* summary */
       .summary-strip{gap:6px;}
-      .sum-pill{padding:10px 12px;}
+      .sum-pill{padding:10px 10px;}
+      .sum-num{font-size:18px;}
+      /* athletes list */
+      .atleti-section{border-radius:14px;}
+      .atleta-row{padding:12px 16px;gap:10px;}
+      .av{width:36px;height:36px;font-size:13px;}
+      .atleta-name{font-size:13px;}
+      /* expanded detail: no large left padding */
+      .atleta-detail{padding-left:20px;}
+      /* detail actions: wrap buttons */
+      .detail-actions{flex-wrap:wrap;}
+      .btn-sm{flex:1;min-width:0;}
+      /* hide presence bar to save space */
+      .presenze-bar{display:none;}
+      /* modal inputs: prevent iOS zoom */
+      .mfield input,.mfield select{font-size:16px!important;}
+      /* fab: slightly smaller + closer to edge */
+      .fab{width:48px;height:48px;font-size:22px;bottom:20px;right:16px;}
+    }
+    @media(max-width:360px){
+      .summary-strip{flex-wrap:wrap;}
+      .sum-pill{flex:0 0 calc(50% - 3px);}
     }
   </style>
 </head>

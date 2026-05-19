@@ -74,7 +74,27 @@
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
     .toast.err{background:#dc2626;}
 
-    @media(max-width:480px){.page-wrap{padding:20px 14px 48px;}.btn-back{font-size:12px;padding:7px 12px;}.upload-section,.docs-section{border-radius:14px;}.drop-zone{padding:24px 16px;}}
+    @media(max-width:480px){
+      .page-wrap{padding:20px 14px 48px;}
+      .top-bar{gap:10px;}
+      .btn-back{font-size:12px;padding:7px 12px;}
+      .page-title{font-size:18px;}
+      .upload-section,.docs-section{border-radius:14px;}
+      .upload-section{padding:20px 16px;}
+      .drop-zone{padding:22px 14px;}
+      .drop-main{font-size:14px;}
+      /* doc items: stack actions below info on narrow screens */
+      .doc-item{flex-wrap:wrap;gap:10px;}
+      .doc-info{min-width:0;width:calc(100% - 54px);}
+      .doc-actions{width:100%;justify-content:flex-end;}
+      .btn-dl,.btn-del{font-size:12px;padding:5px 10px;}
+      /* prevent iOS zoom on file input */
+      input[type="file"]{font-size:16px;}
+    }
+    @media(max-width:360px){
+      .doc-icon{width:34px;height:34px;font-size:17px;}
+      .doc-info{width:calc(100% - 46px);}
+    }
   </style>
 </head>
 <body>

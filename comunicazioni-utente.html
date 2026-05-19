@@ -60,7 +60,25 @@
     .sheet-body{padding:20px 24px;font-size:14px;color:#374151;line-height:1.7;white-space:pre-wrap;}
 
 
-    @media(max-width:480px){.page-wrap{padding:20px 14px 48px;}.modal-sheet{border-radius:18px 18px 0 0;}.sheet-hdr{padding:16px 18px;}.sheet-body{padding:16px 18px;}.sheet-meta{padding:12px 18px;}}
+    @media(max-width:480px){
+      .page-wrap{padding:20px 14px 48px;}
+      .top-bar{gap:10px;}
+      .btn-back{font-size:12px;padding:7px 12px;}
+      .page-title{font-size:18px;}
+      .msgs-section{border-radius:14px;}
+      /* tighter message rows */
+      .msg-item{padding:12px 14px;gap:10px;}
+      .msg-avatar{width:36px;height:36px;font-size:13px;}
+      .msg-from{font-size:13px;}
+      .msg-subject{font-size:12px;}
+      .msg-preview{font-size:11px;}
+      /* bottom sheet */
+      .modal-sheet{border-radius:18px 18px 0 0;max-height:90vh;}
+      .sheet-hdr{padding:16px 18px;}
+      .sheet-subject{font-size:16px;}
+      .sheet-body{padding:14px 18px;font-size:13px;}
+      .sheet-meta{padding:10px 18px;font-size:11px;}
+    }
   </style>
 </head>
 <body>

@@ -93,10 +93,29 @@
 
     @media (max-width: 480px) {
       .page-wrap { padding: 20px 14px 48px; }
-      .squad-header { padding: 18px 18px; }
+      .top-bar { gap: 10px; }
+      .btn-back { font-size: 12px; padding: 7px 12px; }
+      .page-title { font-size: 18px; }
+      .squad-header { padding: 16px; gap: 12px; border-radius: 16px; }
+      .squad-icon { font-size: 28px; }
+      .squad-nome { font-size: 16px; }
+      .squad-stats { gap: 12px; }
+      .squad-stat-num { font-size: 17px; }
       .action-grid { gap: 10px; }
-      .action-card { padding: 18px 16px 14px; }
-      .squad-stats { gap: 14px; }
+      .action-card { padding: 16px 14px 12px; border-radius: 14px; }
+      .action-ico { font-size: 24px; }
+      .action-name { font-size: 13px; }
+      .action-desc { font-size: 11px; }
+      .stats-card { border-radius: 14px; }
+      .stat-num { font-size: 20px; }
+      /* compose modal */
+      .compose-box { padding: 20px 18px; border-radius: 16px; }
+      .cfield input, .cfield select, .cfield textarea { font-size: 16px!important; }
+    }
+    @media (max-width: 360px) {
+      .squad-header { flex-wrap: wrap; }
+      .squad-stats { width: 100%; justify-content: space-around; }
+      .action-grid { grid-template-columns: 1fr; }
     }
 
     /* ── Compose modal ── */
