@@ -975,6 +975,40 @@
     .pal-day-today { background:#eff6ff !important; }
     .pal-day-today.pal-nome-cell { background:#dbeafe !important; }
 
+    /* ── Palestre mobile view ── */
+    .pal-mobile-view { display:none; }
+    .pal-day-strip-mob { display:flex; gap:5px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px; margin-bottom:14px; }
+    .pal-day-strip-mob::-webkit-scrollbar { display:none; }
+    .pal-day-btn-mob { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:2px; padding:9px 7px 7px; border-radius:10px; border:1.5px solid var(--bordo); background:var(--surface); cursor:pointer; min-width:44px; transition:all .15s; font-family:inherit; }
+    .pal-day-btn-mob.oggi { border-color:#6366f1; background:#eef4ff; }
+    .pal-day-btn-mob.sel { background:var(--blu); border-color:var(--blu); }
+    .pal-day-btn-mob .pd-dow { font-size:9px; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:.4px; }
+    .pal-day-btn-mob .pd-num { font-size:17px; font-weight:800; color:var(--testo); line-height:1.1; }
+    .pal-day-btn-mob.sel .pd-dow, .pal-day-btn-mob.sel .pd-num { color:#fff; }
+    .pal-day-btn-mob.oggi .pd-num { color:#4f46e5; }
+    .pal-day-btn-mob.sel.oggi .pd-num { color:#fff; }
+    .pal-day-btn-mob .pd-dots { display:flex; gap:3px; margin-top:3px; min-height:6px; }
+    .pal-day-btn-mob .pd-dot { width:5px; height:5px; border-radius:50%; }
+    .pal-mob-cards { display:flex; flex-direction:column; gap:10px; }
+    .pal-mob-card { background:var(--surface); border:1px solid var(--bordo); border-radius:var(--radius-lg); padding:14px 16px; }
+    .pal-mob-card-nome { font-size:14px; font-weight:700; color:var(--testo); margin-bottom:2px; }
+    .pal-mob-card-addr { font-size:11px; color:var(--sub); margin-bottom:10px; }
+    .pal-mob-slots { display:flex; flex-direction:column; gap:7px; }
+    .pal-mob-slot { display:flex; align-items:center; gap:10px; }
+    .pal-mob-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .pal-mob-dot.free { background:#16a34a; }
+    .pal-mob-dot.busy { background:#dc2626; }
+    .pal-mob-dot.none { background:#d1d5db; }
+    .pal-mob-time { font-size:13px; font-weight:700; color:var(--testo); }
+    .pal-mob-lbl { font-size:11px; color:var(--sub); margin-left:auto; }
+    .pal-mob-busy-title { font-size:11px; color:#b91c1c; font-weight:600; margin-left:4px; }
+
+    @media(max-width:640px) {
+      .pal-desktop-view { display:none; }
+      .pal-mobile-view { display:block; }
+      #palWeekLabel { min-width:0!important; font-size:12px!important; }
+    }
+
     /* ── Calendario categorie ── */
     .cal-cat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
     .cal-cat-card {
@@ -1099,6 +1133,22 @@
 
       /* partite-casa cards: stack buttons on very small screens */
       #partiteInCasaList [style*="flex-direction:column"] { flex-direction:row!important; flex-wrap:wrap; }
+    }
+
+    /* ── pan-sponsor: card layout on mobile ── */
+    @media(max-width:640px) {
+      #pan-sponsor .card-table { background:transparent;box-shadow:none;border:none;border-radius:0;overflow:visible; }
+      #pan-sponsor table, #pan-sponsor tbody { display:block;width:100%; }
+      #pan-sponsor thead { display:none; }
+      #pan-sponsor tbody tr { display:block;background:var(--surface);border:1px solid var(--bordo)!important;border-radius:var(--radius-lg);margin-bottom:10px;padding:14px;box-shadow:var(--shadow-xs); }
+      #pan-sponsor td { display:flex;align-items:flex-start;gap:10px;padding:5px 0;font-size:13px;border:none!important; }
+      #pan-sponsor td::before { content:attr(data-label);font-size:11px;font-weight:600;color:var(--sub);min-width:68px;flex-shrink:0;padding-top:3px; }
+      #pan-sponsor td[data-label="Logo"] { margin-bottom:4px; }
+      #pan-sponsor td[data-label="Logo"]::before { display:none; }
+      #pan-sponsor td[data-label="Logo"] img { height:28px;max-width:80px; }
+      #pan-sponsor td[data-label="URL"] a { white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;display:inline-block; }
+      #pan-sponsor td[data-label="Azioni"] { padding-top:10px;border-top:1px solid var(--bordo-2)!important;margin-top:4px; }
+      #pan-sponsor td[data-label="Azioni"]::before { display:none; }
     }
 
     /* ── pan-staff-arbitrale + pan-cat-squadre: card layout on mobile ── */
@@ -3874,12 +3924,12 @@
       if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#999;">Nessuno sponsor.</td></tr>'; return; }
       tbody.innerHTML = list.map(s => `
         <tr>
-          <td>${s.logo ? `<img src="${s.logo}" style="height:36px;max-width:100px;object-fit:contain;" alt="${s.nome}">` : '—'}</td>
-          <td style="font-weight:700;">${s.nome}</td>
-          <td style="font-size:12px;color:#6b7280;">${s.url ? `<a href="${s.url}" target="_blank" rel="noopener" style="color:#1535a8;">${s.url}</a>` : '—'}</td>
-          <td>${s.livello}</td>
-          <td>${s.attivo ? '<span style="color:#16a34a;font-weight:700;">✓</span>' : '<span style="color:#999;">✗</span>'}</td>
-          <td style="display:flex;gap:6px;">
+          <td data-label="Logo">${s.logo ? `<img src="${s.logo}" style="height:36px;max-width:100px;object-fit:contain;" alt="${s.nome}">` : '—'}</td>
+          <td data-label="Nome" style="font-weight:700;">${s.nome}</td>
+          <td data-label="URL" style="font-size:12px;color:#6b7280;">${s.url ? `<a href="${s.url}" target="_blank" rel="noopener" style="color:#1535a8;">${s.url}</a>` : '—'}</td>
+          <td data-label="Livello">${s.livello}</td>
+          <td data-label="Attivo">${s.attivo ? '<span style="color:#16a34a;font-weight:700;">✓ Sì</span>' : '<span style="color:#999;">✗ No</span>'}</td>
+          <td data-label="Azioni" style="display:flex;gap:6px;">
             <button onclick="modificaSponsor(${JSON.stringify(s).replace(/"/g,'&quot;')})" class="btn-azione btn-edit">✏️</button>
             <button onclick="eliminaSponsor(${s.id},'${s.nome.replace(/'/g,"\\\'")}')" class="btn-azione btn-delete">🗑</button>
           </td>
@@ -5313,7 +5363,88 @@
     });
 
     html += '</tbody></table>';
-    grid.innerHTML = html;
+
+    // ── Mobile day-strip ──────────────────────────────────────────
+    const DOW_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+    const mobStrip = dates.map(d => {
+      const dd = new Date(d + 'T00:00:00');
+      const dow = dd.getDay();
+      const isToday = d === todayStr;
+      let hasFree = false, hasBusy = false;
+      _palestreCache.forEach(p => {
+        const slotsForDay = (p.orari||[]).filter(o => o.giorno === dow);
+        if (!slotsForDay.length) return;
+        const sessioniDelGiorno = sessions.filter(s => s.data === d && s.palestra_id === p.id);
+        slotsForDay.forEach(slot => {
+          const { disponibili, occupati } = _palSplitSlot(slot.inizio, slot.fine, sessioniDelGiorno);
+          if (disponibili.length) hasFree = true;
+          if (occupati.length) hasBusy = true;
+        });
+      });
+      const dots = [];
+      if (hasFree)  dots.push(`<div class="pd-dot" style="background:#16a34a"></div>`);
+      if (hasBusy)  dots.push(`<div class="pd-dot" style="background:#dc2626"></div>`);
+      return `<button class="pal-day-btn-mob${isToday ? ' oggi' : ''}" id="pdb-${d}" onclick="palSelectDay('${d}',this)">
+        <div class="pd-dow">${DOW_SHORT[dow]}</div>
+        <div class="pd-num">${dd.getDate()}</div>
+        <div class="pd-dots">${dots.join('')}</div>
+      </button>`;
+    }).join('');
+
+    // Store sessions + dates for palSelectDay
+    window._palMobSessions = sessions;
+    window._palMobDates = dates;
+
+    grid.innerHTML =
+      `<div class="pal-desktop-view" style="overflow-x:auto">${html}</div>` +
+      `<div class="pal-mobile-view"><div class="pal-day-strip-mob">${mobStrip}</div><div id="palMobCards" class="pal-mob-cards"></div></div>`;
+
+    // Auto-select today or monday
+    const autoDay = dates.includes(todayStr) ? todayStr : dates[0];
+    const autoBtn = document.getElementById('pdb-' + autoDay);
+    palSelectDay(autoDay, autoBtn);
+  }
+
+  function palSelectDay(dateStr, btn) {
+    document.querySelectorAll('.pal-day-btn-mob.sel').forEach(b => b.classList.remove('sel'));
+    if (btn) btn.classList.add('sel');
+
+    const sessions = window._palMobSessions || [];
+    const dd = new Date(dateStr + 'T00:00:00');
+    const dow = dd.getDay();
+    const cardsEl = document.getElementById('palMobCards');
+    if (!cardsEl) return;
+
+    if (!_palestreCache.length) {
+      cardsEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Nessuna palestra configurata.</div>';
+      return;
+    }
+
+    cardsEl.innerHTML = _palestreCache.map(p => {
+      const slotsForDay = (p.orari || []).filter(o => o.giorno === dow);
+      const sessioniDelGiorno = sessions.filter(s => s.data === dateStr && s.palestra_id === p.id);
+
+      let slotsHtml = '';
+      if (!slotsForDay.length) {
+        slotsHtml = `<div class="pal-mob-slot"><div class="pal-mob-dot none"></div><span class="pal-mob-lbl" style="margin-left:0;">Non disponibile</span></div>`;
+      } else {
+        slotsForDay.forEach(slot => {
+          const { disponibili, occupati } = _palSplitSlot(slot.inizio, slot.fine, sessioniDelGiorno);
+          disponibili.forEach(s => {
+            slotsHtml += `<div class="pal-mob-slot"><div class="pal-mob-dot free"></div><span class="pal-mob-time">${s.inizio}–${s.fine}</span><span class="pal-mob-lbl">disponibile</span></div>`;
+          });
+          occupati.forEach(s => {
+            slotsHtml += `<div class="pal-mob-slot"><div class="pal-mob-dot busy"></div><span class="pal-mob-time">${s.inizio}–${s.fine}</span>${s.titolo ? `<span class="pal-mob-busy-title">${s.titolo}</span>` : `<span class="pal-mob-lbl">occupata</span>`}</div>`;
+          });
+        });
+      }
+
+      return `<div class="pal-mob-card">
+        <div class="pal-mob-card-nome">${p.nome}</div>
+        ${p.indirizzo ? `<div class="pal-mob-card-addr">${p.indirizzo}</div>` : ''}
+        <div class="pal-mob-slots">${slotsHtml}</div>
+      </div>`;
+    }).join('');
   }
 
   async function caricaPalestre() {
