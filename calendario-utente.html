@@ -41,16 +41,12 @@
     .btn-oggi:hover{background:rgba(255,255,255,.22);color:#fff;}
 
     /* ── BANNER FILTRO ── */
-    .filter-banner{
-      background:rgba(13,32,85,.07);border-bottom:1px solid var(--bordo);
-      padding:9px 20px;font-size:12px;color:var(--sub);font-weight:500;
-      display:flex;align-items:center;gap:8px;
+    .legenda{
+      background:#fff;border-bottom:1px solid var(--bordo);
+      padding:8px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
     }
-    .filter-banner strong{color:var(--testo);}
-    .filter-badge{
-      display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;
-      font-size:11px;font-weight:700;background:var(--blu);color:#fff;
-    }
+    .leg-item{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--sub);}
+    .leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 
     /* ── DAY STRIP (mobile + desktop) ── */
     .day-strip{display:flex;gap:0;overflow-x:auto;background:#fff;
@@ -143,9 +139,12 @@
     <div class="sett-oggi-row"><button class="btn-oggi" onclick="vaiOggi()">Oggi</button></div>
   </div>
 
-  <div class="filter-banner" id="filterBanner" style="display:none;">
-    <span>📅</span>
-    <span>Calendario per: <span id="filterCats"></span></span>
+  <div class="legenda">
+    <span class="leg-item"><span class="leg-dot" style="background:#0d2055;"></span>Allenamento</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#7c3aed;"></span>Torneo</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#e11d48;"></span>Evento</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#059669;"></span>Partita FIPAV</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#ea580c;"></span>Partita OPES</span>
   </div>
 
   <div class="day-strip" id="dayStrip"></div>
@@ -180,12 +179,13 @@
   const GG_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
 
   const CAT_MAP = {
-    allenamento:    { label:'Allenamento', color:'#0d2055' },
-    'fipav-senior': { label:'FIPAV Senior', color:'#059669' },
-    'fipav-under':  { label:'FIPAV Under', color:'#7c3aed' },
-    opes:           { label:'OPES', color:'#ea580c' },
-    evento:         { label:'Evento', color:'#e11d48' },
-    partita:        { label:'Partita', color:'#0d2055' },
+    allenamento:    { label:'Allenamento',   color:'#0d2055' },
+    torneo:         { label:'Torneo',        color:'#7c3aed' },
+    'fipav-senior': { label:'FIPAV Senior',  color:'#059669' },
+    'fipav-under':  { label:'FIPAV Under',   color:'#059669' },
+    opes:           { label:'OPES',          color:'#ea580c' },
+    evento:         { label:'Evento',        color:'#e11d48' },
+    partita:        { label:'Partita',       color:'#059669' },
   };
   const SENIOR_KW = ['1 divisione','prima div','serie d','serie a','serie b','serie c'];
 
@@ -193,7 +193,9 @@
   let weekStart = lunedi(oggi);
   let selDay = new Date(oggi);
   let mappa = {};
-  let userCats = []; // user's categories
+  let userCats = [];
+  let _userId = null;
+  try { if (_tok) { const _p = JSON.parse(atob(_tok.split('.')[1])); _userId = String(_p.id); } } catch {}
 
   function lunedi(d){ const c=new Date(d);c.setHours(0,0,0,0);const dw=c.getDay();c.setDate(c.getDate()-(dw===0?6:dw-1));return c; }
   function addDays(d,n){ const c=new Date(d);c.setDate(c.getDate()+n);return c; }
@@ -206,7 +208,8 @@
   function gruppoPartita(m){ if(m.fonte==='opes')return'opes';const cat=(m.categoria||'').toLowerCase();if(SENIOR_KW.some(k=>cat.includes(k)))return'fipav-senior';return'fipav-under'; }
 
   function evMatchesUser(e) {
-    if (!userCats.length) return true; // no filter if profile not loaded
+    if (_userId && (e.utenti_collegati || []).map(String).includes(_userId)) return true;
+    if (!userCats.length) return true;
     const cat = (e.categoria || '').toLowerCase();
     return userCats.some(uc => cat.includes(uc.toLowerCase()) || uc.toLowerCase().includes(cat));
   }
@@ -345,19 +348,18 @@
         const atletaCats=Object.keys(parseMap(prof.ruolo_atleta));
         const allenatoreCats=Object.keys(parseMap(prof.ruolo_allenatore));
         userCats=[...new Set([...atletaCats,...allenatoreCats])];
-        if(userCats.length){
-          const banner=document.getElementById('filterBanner');
-          document.getElementById('filterCats').innerHTML=userCats.map(c=>`<span class="filter-badge">${c}</span>`).join(' ');
-          banner.style.display='flex';
-        }
+        if(userCats.length){/* legenda fissa, categorie usate solo per filtrare */}
       }
     }catch{}
 
     try{
       const calTok=_tok||_atk;
       const sessioni=await fetch('/api/calendario',{headers:calTok?{Authorization:`Bearer ${calTok}`}:{}}).then(r=>r.json());
+      const _seenIds=new Set();
       sessioni.forEach(s=>{
         if(!s.data)return;
+        if(s.id&&_seenIds.has(s.id))return;
+        if(s.id)_seenIds.add(s.id);
         if(!mappa[s.data])mappa[s.data]=[];
         const cat=s.tipo==='evento'?'evento':'allenamento';
         mappa[s.data].push({tipo:s.tipo||'allenamento',cat,...s});

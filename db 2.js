@@ -261,24 +261,9 @@ async function createTables() {
   await query(`ALTER TABLE utenti ADD COLUMN IF NOT EXISTS ruolo_allenatore VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS palestra_id VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE calendario DROP COLUMN IF EXISTS luogo`);
-  await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS formato VARCHAR DEFAULT ''`);
-  await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS responsabile VARCHAR DEFAULT ''`);
-  await query(`ALTER TABLE tornei ADD COLUMN IF NOT EXISTS responsabile VARCHAR DEFAULT ''`);
-  await query(`ALTER TABLE tornei ADD COLUMN IF NOT EXISTS immagine VARCHAR DEFAULT ''`);
-  await query(`ALTER TABLE squadra ADD COLUMN IF NOT EXISTS utente_id VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS addetto_arbitro VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS refertista VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS is_casa BOOLEAN DEFAULT false`);
-  await query(`
-    UPDATE fipav_matches SET is_casa = true
-    WHERE is_casa = false AND luogo IS NOT NULL AND luogo != ''
-      AND (
-        LOWER(luogo) LIKE '%tenda di abramo%' OR
-        LOWER(luogo) LIKE '%tensostruttura%' OR
-        LOWER(luogo) LIKE '%isis a. manzoni%' OR
-        LOWER(luogo) LIKE '%palestra isis%'
-      )
-  `);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS addetto_staff_id VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS refertista_staff_id VARCHAR DEFAULT ''`);
 
@@ -327,40 +312,6 @@ async function createTables() {
       setup_token     VARCHAR,
       setup_token_exp TIMESTAMPTZ,
       created_at      TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
-
-  await query(`
-    CREATE TABLE IF NOT EXISTS tornei (
-      id          VARCHAR PRIMARY KEY,
-      nome        VARCHAR NOT NULL,
-      formato     VARCHAR DEFAULT '4vs4',
-      data_inizio VARCHAR DEFAULT '',
-      data_fine   VARCHAR DEFAULT '',
-      note        TEXT    DEFAULT '',
-      stato       VARCHAR DEFAULT 'bozza',
-      created_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-  `);
-
-  await query(`
-    CREATE TABLE IF NOT EXISTS torneo_partecipanti (
-      id         SERIAL PRIMARY KEY,
-      torneo_id  VARCHAR NOT NULL,
-      utente_id  VARCHAR NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE(torneo_id, utente_id)
-    );
-  `);
-
-  await query(`
-    CREATE TABLE IF NOT EXISTS torneo_squadre (
-      id           VARCHAR PRIMARY KEY,
-      torneo_id    VARCHAR NOT NULL,
-      nome         VARCHAR NOT NULL,
-      colore       VARCHAR DEFAULT '#3b82f6',
-      partecipanti JSONB   DEFAULT '[]',
-      created_at   TIMESTAMPTZ DEFAULT NOW()
     );
   `);
 

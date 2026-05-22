@@ -544,20 +544,6 @@
       background:var(--blu); border-color:var(--blu); color:#fff;
       box-shadow:var(--shadow-sm);
     }
-    .giorno-btn {
-      padding:7px 10px; border-radius:8px; border:1.5px solid var(--bordo);
-      background:var(--surface); font-family:inherit; font-size:12px; font-weight:700;
-      cursor:pointer; color:var(--testo-2); transition:all .12s;
-    }
-    .giorno-btn.on { border-color:#0d2055; background:#0d2055; color:#fff; }
-    .squadra-chip {
-      display:inline-flex; align-items:center; gap:4px; padding:4px 10px;
-      background:#dbeafe; color:#1d4ed8; border-radius:20px; font-size:12px; font-weight:600;
-    }
-    .squadra-chip button {
-      background:none; border:none; cursor:pointer; color:#1d4ed8;
-      font-size:14px; line-height:1; padding:0 2px; font-family:inherit;
-    }
     .stato-select {
       padding:5px 9px; border-radius:var(--radius-sm);
       border:1px solid var(--bordo);
@@ -1118,9 +1104,6 @@
     .sdi-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:8px; flex-shrink:0; }
     .sdi-badge.allenamento { background:#dbeafe; color:#1d4ed8; }
     .sdi-badge.evento { background:#fce7f3; color:#be185d; }
-    .sdi-badge.torneo { background:#ede9fe; color:#7c3aed; }
-    .cal-cell-dot.torneo { background:#7c3aed; }
-    .sdi-dot.torneo { background:#7c3aed; }
     .sdi-vedi { padding:5px 12px; border-radius:7px; border:1px solid #0d2055; background:#fff; color:#0d2055; font-size:12px; font-weight:700; cursor:pointer; flex-shrink:0; }
     @media(max-width:480px) {
       .sess-week-strip { gap:3px; }
@@ -1254,9 +1237,7 @@
         <span>Pianifica</span><span class="nav-grp-chevron"></span>
       </button>
       <div class="nav-grp-items">
-        <button class="tab-btn nav-sub" data-tab="calendario"    onclick="switchTab('calendario')">Allenamenti</button>
-        <button class="tab-btn nav-sub" data-tab="eventi"        onclick="switchTab('eventi')">Eventi</button>
-        <button class="tab-btn nav-sub" data-tab="tornei"        onclick="switchTab('tornei')">Tornei</button>
+        <button class="tab-btn nav-sub" data-tab="calendario"    onclick="switchTab('calendario')">Calendario</button>
         <button class="tab-btn nav-sub" data-tab="sessioni"      onclick="switchTab('sessioni')">Sessioni</button>
         <button class="tab-btn nav-sub" data-tab="palestre"      onclick="switchTab('palestre')">Palestre</button>
         <button class="tab-btn nav-sub" data-tab="partite-casa"  onclick="switchTab('partite-casa')">Partite in casa</button>
@@ -1303,9 +1284,7 @@
       <span>Pianifica</span><span class="nav-grp-chevron"></span>
     </button>
     <div class="nav-grp-items">
-      <button class="tab-btn nav-sub" data-tab="calendario"   onclick="switchTab('calendario')">Allenamenti</button>
-      <button class="tab-btn nav-sub" data-tab="eventi"       onclick="switchTab('eventi')">Eventi</button>
-      <button class="tab-btn nav-sub" data-tab="tornei"       onclick="switchTab('tornei')">Tornei</button>
+      <button class="tab-btn nav-sub" data-tab="calendario"   onclick="switchTab('calendario')">Calendario</button>
       <button class="tab-btn nav-sub" data-tab="sessioni"     onclick="switchTab('sessioni')">Sessioni</button>
       <button class="tab-btn nav-sub" data-tab="palestre"     onclick="switchTab('palestre')">Palestre</button>
       <button class="tab-btn nav-sub" data-tab="partite-casa" onclick="switchTab('partite-casa')">Partite in casa</button>
@@ -1413,7 +1392,7 @@
 <!-- ══ CALENDARIO ══ -->
 <div class="pannello" id="pan-calendario">
   <div class="toolbar">
-    <h2>Allenamenti</h2>
+    <h2>Calendario allenamenti</h2>
   </div>
   <!-- Category cards -->
   <div id="calCatGrid" class="cal-cat-grid"></div>
@@ -1422,7 +1401,7 @@
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
       <button onclick="chiudiCalCat()" class="btn-back-cal">← Categorie</button>
       <h3 id="calCatNome" style="margin:0;font-size:17px;font-weight:800;color:#0d2055;flex:1;"></h3>
-      <button class="btn-aggiungi" onclick="apriModalSessioneConTipo('allenamento')">+ Aggiungi allenamento</button>
+      <button class="btn-aggiungi" onclick="apriModalSessione(null)">+ Aggiungi sessione</button>
     </div>
     <div class="cal-month-nav">
       <button onclick="calMonthShift(-1)" class="cal-nav-btn">&#8249;</button>
@@ -1431,22 +1410,6 @@
     </div>
     <div id="calMonthGrid" class="cal-month-grid"></div>
     <div id="calDayList" style="margin-top:20px;display:none;"></div>
-  </div>
-</div>
-
-<!-- ══ EVENTI ══ -->
-<div class="pannello" id="pan-eventi">
-  <div class="toolbar">
-    <h2>Eventi</h2>
-    <button class="btn-aggiungi" onclick="apriModalSessioneConTipo('evento')">+ Crea evento</button>
-  </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-    <button class="filtro-btn on" id="evFiltroTutti"   onclick="setEventiFiltro('')">Tutti</button>
-    <button class="filtro-btn"    id="evFiltroFuturi"  onclick="setEventiFiltro('futuri')">Prossimi</button>
-    <button class="filtro-btn"    id="evFiltroPassati" onclick="setEventiFiltro('passati')">Passati</button>
-  </div>
-  <div id="eventiPanel">
-    <div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>
   </div>
 </div>
 
@@ -1773,7 +1736,6 @@
       <button class="filtro-btn on" id="sfTutti"       onclick="filtraSessioni('')">Tutti</button>
       <button class="filtro-btn"    id="sfAllenamento" onclick="filtraSessioni('allenamento')">Allenamento</button>
       <button class="filtro-btn"    id="sfEvento"      onclick="filtraSessioni('evento')">Evento</button>
-      <button class="filtro-btn"    id="sfTorneo"      onclick="filtraSessioni('torneo')">Torneo</button>
       <button onclick="svuotaCalendario()" style="padding:6px 14px;border-radius:var(--radius);border:1.5px solid var(--rosso);background:transparent;color:var(--rosso);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;">🗑 Svuota calendario</button>
     </div>
   </div>
@@ -1799,137 +1761,6 @@
     <div id="sessioniPartecipantiList"></div>
   </div>
 
-</div>
-
-<!-- ══ PANNELLO TORNEI ══ -->
-<div class="pannello" id="pan-tornei">
-  <div class="toolbar">
-    <h2>Tornei</h2>
-    <button class="btn-aggiungi" onclick="apriModalTorneo(null)">+ Nuovo torneo</button>
-  </div>
-  <div id="torneiList">
-    <div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>
-  </div>
-</div>
-
-<!-- MODAL TORNEO -->
-<div class="modal-overlay" id="modalTorneo">
-  <div class="modal-box" style="max-width:520px;">
-    <div class="modal-hdr">
-      <h3 id="modalTorneoTitolo">Nuovo torneo</h3>
-      <button class="modal-close" onclick="chiudiModal('modalTorneo')">✕</button>
-    </div>
-    <div class="modal-body" style="gap:14px;">
-      <input type="hidden" id="tId">
-      <div class="mf">
-        <label>Nome torneo *</label>
-        <input type="text" id="tNome" placeholder="Es. Torneo Estivo 2026">
-      </div>
-      <div class="mf" style="gap:8px;">
-        <label>Formato</label>
-        <div style="display:flex;gap:8px;">
-          <button id="tBtn4v4" onclick="setTorneoFormato('4vs4')"
-            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #7c3aed;background:#7c3aed;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-            4vs4
-          </button>
-          <button id="tBtn6v6" onclick="setTorneoFormato('6vs6')"
-            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-            6vs6
-          </button>
-        </div>
-        <input type="hidden" id="tFormato" value="4vs4">
-      </div>
-      <div class="mf-row3">
-        <div class="mf">
-          <label>Data inizio</label>
-          <input type="date" id="tDataInizio">
-        </div>
-        <div class="mf">
-          <label>Data fine</label>
-          <input type="date" id="tDataFine">
-        </div>
-        <div class="mf">
-          <label>Stato</label>
-          <select id="tStato" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
-            <option value="bozza">Bozza</option>
-            <option value="aperto">Aperto</option>
-            <option value="in_corso">In corso</option>
-            <option value="concluso">Concluso</option>
-          </select>
-        </div>
-      </div>
-      <div class="mf">
-        <label>Allenatore/Responsabile</label>
-        <select id="tResponsabile" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
-          <option value="">— Seleziona responsabile —</option>
-        </select>
-      </div>
-      <div class="mf">
-        <label>Immagine</label>
-        <input type="file" id="tImmagineFile" accept="image/*" onchange="anteprima('tImmagineFile','tImmaginePreview')">
-        <img id="tImmaginePreview" class="img-preview">
-        <input type="hidden" id="tImmagineUrl">
-      </div>
-      <div class="mf">
-        <label>Note</label>
-        <textarea id="tNote" placeholder="Informazioni aggiuntive…"></textarea>
-      </div>
-    </div>
-    <div class="modal-ftr">
-      <button class="btn-annulla" onclick="chiudiModal('modalTorneo')">Annulla</button>
-      <button class="btn-salva" id="btnSalvaTorneo" onclick="salvaTorneo()">Salva</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL INVITA PARTECIPANTI TORNEO -->
-<div class="modal-overlay" id="modalInvitaTorneo">
-  <div class="modal-box" style="max-width:520px;">
-    <div class="modal-hdr">
-      <h3>Invita partecipanti</h3>
-      <button class="modal-close" onclick="chiudiModal('modalInvitaTorneo')">✕</button>
-    </div>
-    <div class="modal-body" style="gap:12px;">
-      <div style="font-size:13px;font-weight:700;color:#0d2055;" id="invitaTorneoNome"></div>
-      <input type="text" id="invitaSearch" placeholder="Cerca utente…" oninput="renderInvitaUtenti()"
-        style="width:100%;padding:10px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;">
-      <div id="invitaUtenteList" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
-      <div style="margin-top:12px;border-top:1px solid var(--bordo-2);padding-top:12px;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">Già invitati</div>
-        <div id="invitatiList" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-      </div>
-    </div>
-    <div class="modal-ftr">
-      <button class="btn-annulla" onclick="chiudiModal('modalInvitaTorneo')">Chiudi</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL SQUADRE TORNEO -->
-<div class="modal-overlay" id="modalSquadreTorneo">
-  <div class="modal-box" style="max-width:580px;">
-    <div class="modal-hdr">
-      <h3>Squadre torneo</h3>
-      <button class="modal-close" onclick="chiudiModal('modalSquadreTorneo')">✕</button>
-    </div>
-    <div class="modal-body" style="gap:14px;">
-      <div style="font-size:13px;font-weight:700;color:#0d2055;" id="squadreTorneoNome"></div>
-      <!-- Crea nuova squadra -->
-      <div style="background:var(--surface-2);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px;">
-        <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#6b7280;">Aggiungi squadra</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="nuovaSquadraNome" placeholder="Nome squadra" style="flex:1;padding:9px 12px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;">
-          <input type="color" id="nuovaSquadraColore" value="#3b82f6" style="width:40px;height:38px;border:1.5px solid var(--bordo);border-radius:var(--radius);cursor:pointer;padding:2px;">
-          <button class="btn-aggiungi" style="padding:9px 16px;" onclick="aggiungiSquadraTorneo()">+ Aggiungi</button>
-        </div>
-      </div>
-      <!-- Lista squadre -->
-      <div id="squadreTorneoList" style="display:flex;flex-direction:column;gap:12px;"></div>
-    </div>
-    <div class="modal-ftr">
-      <button class="btn-annulla" onclick="chiudiModal('modalSquadreTorneo')">Chiudi</button>
-    </div>
-  </div>
 </div>
 
 <!-- MODAL STAFF ARBITRALE -->
@@ -2325,7 +2156,7 @@
     </div>
     <div class="modal-body">
       <!-- Tipo toggle -->
-      <div class="mf" id="sTipoWrap" style="gap:8px;">
+      <div class="mf" style="gap:8px;">
         <label>Tipo</label>
         <div style="display:flex;gap:8px;">
           <button id="sTipoAllenamento" onclick="setSessioneTipo('allenamento')"
@@ -2336,27 +2167,8 @@
             style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">
             Evento
           </button>
-          <button id="sTipoTorneo" onclick="setSessioneTipo('torneo')"
-            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-            Torneo
-          </button>
         </div>
         <input type="hidden" id="sTipo" value="allenamento">
-      </div>
-      <!-- Formato torneo -->
-      <div class="mf" id="sFormatoWrap" style="display:none;gap:8px;">
-        <label>Formato torneo</label>
-        <div style="display:flex;gap:8px;">
-          <button id="sFormato4v4" onclick="setFormato('4vs4')"
-            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #7c3aed;background:#7c3aed;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-            4vs4
-          </button>
-          <button id="sFormato6v6" onclick="setFormato('6vs6')"
-            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-            6vs6
-          </button>
-        </div>
-        <input type="hidden" id="sFormato" value="4vs4">
       </div>
       <div class="mf">
         <label>Titolo *</label>
@@ -2387,12 +2199,8 @@
         <div id="sOccupazioneTable" style="border:1px solid var(--bordo);border-radius:var(--radius);overflow:hidden;font-size:13px;"></div>
       </div>
       <div class="mf" id="sCategoriaWrap">
-        <label>Squadre</label>
-        <div id="sSquadreChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-        <div style="position:relative;margin-top:6px;">
-          <button type="button" onclick="toggleSquadreDropdown(event)" style="padding:6px 14px;border-radius:8px;border:1.5px dashed var(--bordo);background:var(--surface);font-size:12px;cursor:pointer;font-weight:600;color:#6b7280;font-family:inherit;">+ Aggiungi squadra</button>
-          <div id="sSquadreDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#fff;border:1.5px solid var(--bordo);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:6px;min-width:200px;max-height:220px;overflow-y:auto;"></div>
-        </div>
+        <label>Categoria</label>
+        <div id="sCategoriaCheckboxes" style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 0;"></div>
       </div>
       <div class="mf">
         <label>Foto (opzionale)</label>
@@ -2401,28 +2209,16 @@
         <input type="hidden" id="sFotoUrl">
       </div>
       <div class="mf">
-        <label>Allenatore/Responsabile</label>
-        <select id="sResponsabile" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
-          <option value="">— Seleziona responsabile —</option>
-        </select>
-      </div>
-      <div class="mf">
         <label>Note</label>
         <textarea id="sNote" placeholder="Informazioni aggiuntive..."></textarea>
       </div>
-      <div class="mf" id="giorniSettWrap" style="display:none;gap:8px;">
-        <label>Ripeti nei giorni</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button type="button" class="giorno-btn" data-g="1" onclick="toggleGiorno(1)">Lun</button>
-          <button type="button" class="giorno-btn" data-g="2" onclick="toggleGiorno(2)">Mar</button>
-          <button type="button" class="giorno-btn" data-g="3" onclick="toggleGiorno(3)">Mer</button>
-          <button type="button" class="giorno-btn" data-g="4" onclick="toggleGiorno(4)">Gio</button>
-          <button type="button" class="giorno-btn" data-g="5" onclick="toggleGiorno(5)">Ven</button>
-          <button type="button" class="giorno-btn" data-g="6" onclick="toggleGiorno(6)">Sab</button>
-          <button type="button" class="giorno-btn" data-g="0" onclick="toggleGiorno(0)">Dom</button>
-        </div>
+      <div class="mf" id="ripetizioneWrap">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--testo);cursor:pointer;">
+          <input type="checkbox" id="sRipetizione" onchange="toggleRipetizione(this)" style="width:16px;height:16px;accent-color:var(--blu);cursor:pointer;">
+          Ripetizione settimanale
+        </label>
       </div>
-      <div class="mf" id="dataFineWrap" style="display:none;">
+      <div class="mf" id="dataFineWrap" style="display:none">
         <label>Data fine ripetizione *</label>
         <input type="date" id="sDataFine">
       </div>
@@ -2525,12 +2321,6 @@
         <img id="gFotoPreview" class="img-preview">
         <input type="hidden" id="gFoto">
       </div>
-      <div class="mf">
-        <label>Collega account utente</label>
-        <select id="gUtenteId" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
-          <option value="">— Nessun account collegato —</option>
-        </select>
-      </div>
       <div class="mf"><label>Bio</label><textarea id="gBio" placeholder="Breve descrizione..."></textarea></div>
       <div class="mf">
         <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;color:var(--testo);font-size:13px;cursor:pointer;">
@@ -2573,12 +2363,6 @@
         <input type="file" id="stFotoFile" accept="image/*" onchange="anteprimaStaff()">
         <img id="stFotoPreview" class="img-preview">
         <input type="hidden" id="stFoto">
-      </div>
-      <div class="mf">
-        <label>Collega account utente</label>
-        <select id="stUtenteId" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
-          <option value="">— Nessun account collegato —</option>
-        </select>
       </div>
       <div class="mf"><label>Bio</label><textarea id="stBio" placeholder="Breve descrizione..."></textarea></div>
       <div class="mf">
@@ -2760,9 +2544,6 @@
   let prodottoInEditing  = null;
   let notiziaInEditing   = null;
   let sessioneInEditing  = null;
-  let _sGiorniSett       = new Set();
-  let _sSquadreSelezionate = [];
-  let _sSquadreAll       = [];
   let giocatriceInEditing = null;
   let sponsorInEditing   = null;
   let risultatoInEditing = null;
@@ -2802,7 +2583,7 @@
   /* ══ TABS ══ */
   const TAB_GROUP = {
     prodotti:'shop', ordini:'shop',
-    calendario:'pianifica', eventi:'pianifica', sessioni:'pianifica', tornei:'pianifica', palestre:'pianifica', 'partite-casa':'pianifica',
+    calendario:'pianifica', sessioni:'pianifica', palestre:'pianifica', 'partite-casa':'pianifica',
     notizie:'aggiungi', staff:'aggiungi', squadra:'aggiungi',
     sponsor:'aggiungi', 'link-squadre':'aggiungi', 'cat-squadre':'aggiungi', 'staff-arbitrale':'aggiungi',
   };
@@ -2844,8 +2625,6 @@
     if (nome === 'palestre')      caricaPalestre();
     if (nome === 'partite-casa')  caricaPartiteInCasa();
     if (nome === 'staff-arbitrale') caricaStaffArbitrale();
-    if (nome === 'tornei')        caricaTornei();
-    if (nome === 'eventi')        caricaEventi();
   }
 
   function toggleDrawer() {
@@ -3154,17 +2933,6 @@
   let _calViewMonth   = null;
   let _calDaySelected = null;
 
-  function _sessHasCat(s, catNome) {
-    const cats = (s.categoria || '').split(',').map(c => c.trim()).filter(Boolean);
-    return cats.includes(catNome) || (s.categorie_collegate || []).includes(catNome);
-  }
-
-  async function _refreshCalSessions() {
-    try {
-      _calAllSessions = await fetch('/api/calendario', { headers: headers() }).then(r => r.json());
-    } catch {}
-  }
-
   async function caricaCalendario() {
     const grid = document.getElementById('calCatGrid');
     grid.innerHTML = '<div style="color:#9ca3af;padding:16px">Caricamento…</div>';
@@ -3186,10 +2954,9 @@
     grid.style.display = 'grid';
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-
     if (!cats.length) { grid.innerHTML = '<div style="color:#9ca3af;padding:16px">Nessuna categoria configurata.</div>'; return; }
     grid.innerHTML = cats.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(cat => {
-      const catSess = _calAllSessions.filter(s => _sessHasCat(s, cat.nome));
+      const catSess = _calAllSessions.filter(s => s.categoria === cat.nome);
       const future  = catSess.filter(s => s.data >= today).sort((a,b) => a.data.localeCompare(b.data));
       const prossLabel = future.length
         ? 'Prossima: ' + new Date(future[0].data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})
@@ -3201,15 +2968,6 @@
         <div class="cat-pross">${prossLabel}</div>
       </div>`;
     }).join('');
-  }
-
-  function apriModalSessioneConTipo(tipo) {
-    apriModalSessione(null).then(() => {
-      setSessioneTipo(tipo);
-      document.getElementById('sTipoWrap').style.display = 'none';
-      const titoli = { allenamento: 'Nuovo allenamento', evento: 'Nuovo evento', torneo: 'Nuovo torneo nel calendario' };
-      document.getElementById('modalSessioneTitolo').textContent = titoli[tipo] || 'Nuova sessione';
-    });
   }
 
   function apriCalCat(nomecat) {
@@ -3243,7 +3001,7 @@
     const DOW     = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
     const _tn = new Date();
     const todayStr = `${_tn.getFullYear()}-${String(_tn.getMonth()+1).padStart(2,'0')}-${String(_tn.getDate()).padStart(2,'0')}`;
-    const catSess  = _calAllSessions.filter(s => _sessHasCat(s, _calCatSelected));
+    const catSess  = _calAllSessions.filter(s => s.categoria === _calCatSelected || (s.categorie_collegate || []).includes(_calCatSelected));
     const mappa    = {};
     catSess.forEach(s => { if (!mappa[s.data]) mappa[s.data] = []; mappa[s.data].push(s); });
     const first = new Date(year, month, 1);
@@ -3259,7 +3017,7 @@
       const isSel = ds === _calDaySelected;
       html += `<div class="cal-cell${ds===todayStr?' today':''}${isSel?' cal-selected':''}" onclick="apriCalDay('${ds}')">
         <div class="cal-day-num">${d}</div>
-        ${evs.length ? `<div class="cal-cell-dots">${evs.slice(0,3).map(e => `<div class="cal-cell-dot${e.tipo==='evento'?' evento':e.tipo==='torneo'?' torneo':''}"></div>`).join('')}</div>` : ''}
+        ${evs.length ? `<div class="cal-cell-dots">${evs.slice(0,3).map(e => `<div class="cal-cell-dot${e.tipo==='evento'?' evento':''}"></div>`).join('')}</div>` : ''}
       </div>`;
     }
     let endDow = last.getDay(); endDow = endDow === 0 ? 6 : endDow - 1;
@@ -3272,7 +3030,7 @@
   function apriCalDay(ds) {
     _calDaySelected = ds;
     renderCalMese();
-    const catSess = _calAllSessions.filter(s => _sessHasCat(s, _calCatSelected) && s.data === ds);
+    const catSess = _calAllSessions.filter(s => (s.categoria === _calCatSelected || (s.categorie_collegate || []).includes(_calCatSelected)) && s.data === ds);
     const list = document.getElementById('calDayList');
     if (!catSess.length) { list.style.display = 'none'; return; }
     const d = new Date(ds+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
@@ -3280,12 +3038,12 @@
     list.innerHTML = `<div style="font-size:13px;font-weight:700;color:#0d2055;margin-bottom:12px;">${d}</div>
       <div class="sess-day-list">${catSess.map(s => `
         <div class="sess-day-item">
-          <div class="sdi-dot${s.tipo==='evento'?' evento':s.tipo==='torneo'?' torneo':''}"></div>
+          <div class="sdi-dot${s.tipo==='evento'?' evento':''}"></div>
           <div class="sdi-info">
             <div class="sdi-titolo">${s.titolo}</div>
-            <div class="sdi-sub">${s.ora||''}${s.formato?' · '+s.formato:''}${s.responsabile?' · '+s.responsabile:''}</div>
+            <div class="sdi-sub">${s.ora||''}</div>
           </div>
-          <span class="sdi-badge ${s.tipo==='evento'?'evento':s.tipo==='torneo'?'torneo':'allenamento'}">${s.tipo==='evento'?'Evento':s.tipo==='torneo'?'Torneo':'Allenamento'}</span>
+          <span class="sdi-badge ${s.tipo==='evento'?'evento':'allenamento'}">${s.tipo==='evento'?'Evento':'Allenamento'}</span>
           <button class="btn-azione btn-link" onclick="apriModalCollega('${s.id}')">Collega</button>
           <button class="btn-azione btn-edit" onclick="apriModalSessione('${s.id}')">Modifica</button>
           <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">Elimina</button>
@@ -3298,108 +3056,41 @@
     const styleOn  = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;';
     const btnA = document.getElementById('sTipoAllenamento');
     const btnE = document.getElementById('sTipoEvento');
-    const btnT = document.getElementById('sTipoTorneo');
-    const off  = styleOn + 'border-color:#d1d5db;background:#fff;color:#374151;';
     if (tipo === 'evento') {
       btnE.style.cssText = styleOn + 'border-color:#e11d48;background:#e11d48;color:#fff;';
-      btnA.style.cssText = off;
-      btnT.style.cssText = off;
-    } else if (tipo === 'torneo') {
-      btnT.style.cssText = styleOn + 'border-color:#7c3aed;background:#7c3aed;color:#fff;';
-      btnA.style.cssText = off;
-      btnE.style.cssText = off;
+      btnA.style.cssText = styleOn + 'border-color:#d1d5db;background:#fff;color:#374151;';
     } else {
       btnA.style.cssText = styleOn + 'border-color:#0d2055;background:#0d2055;color:#fff;';
-      btnE.style.cssText = off;
-      btnT.style.cssText = off;
+      btnE.style.cssText = styleOn + 'border-color:#d1d5db;background:#fff;color:#374151;';
     }
-    document.getElementById('sFormatoWrap').style.display = tipo === 'torneo' ? '' : 'none';
-    const gsw = document.getElementById('giorniSettWrap');
-    if (gsw) gsw.style.display = (tipo === 'allenamento' && !sessioneInEditing) ? '' : 'none';
-    if (tipo !== 'allenamento') { _sGiorniSett = new Set(); document.querySelectorAll('.giorno-btn').forEach(b => b.classList.remove('on')); document.getElementById('dataFineWrap').style.display = 'none'; }
   }
 
-  function setFormato(fmt) {
-    document.getElementById('sFormato').value = fmt;
-    const on = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;border-color:#7c3aed;background:#7c3aed;color:#fff;';
-    const off = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;border-color:#d1d5db;background:#fff;color:#374151;';
-    document.getElementById('sFormato4v4').style.cssText = fmt === '4vs4' ? on : off;
-    document.getElementById('sFormato6v6').style.cssText = fmt === '6vs6' ? on : off;
-  }
-
-  function toggleGiorno(g) {
-    if (_sGiorniSett.has(g)) _sGiorniSett.delete(g);
-    else _sGiorniSett.add(g);
-    document.querySelectorAll('.giorno-btn').forEach(btn => {
-      btn.classList.toggle('on', _sGiorniSett.has(parseInt(btn.dataset.g)));
-    });
-    document.getElementById('dataFineWrap').style.display = _sGiorniSett.size > 0 ? '' : 'none';
-  }
-
-  function toggleSquadreDropdown(e) {
-    const dd = document.getElementById('sSquadreDropdown');
-    if (dd.style.display !== 'none') { dd.style.display = 'none'; return; }
-    const available = _sSquadreAll.filter(n => !_sSquadreSelezionate.includes(n));
-    dd.innerHTML = available.length
-      ? available.map(n => `<div class="_sqopt" onclick="addSquadra('${n.replace(/'/g,"\\'")}')" style="padding:8px 12px;font-size:13px;cursor:pointer;border-radius:6px;color:#374151;font-weight:500;">${n}</div>`).join('')
-      : '<div style="font-size:13px;color:var(--sub);padding:8px;">Nessuna altra squadra</div>';
-    dd.querySelectorAll('._sqopt').forEach(el => {
-      el.addEventListener('mouseenter', () => el.style.background = '#f3f4f6');
-      el.addEventListener('mouseleave', () => el.style.background = '');
-    });
-    dd.style.display = '';
-    if (e) e.stopPropagation();
-    setTimeout(() => {
-      function _close(ev) { if (!dd.contains(ev.target)) { dd.style.display = 'none'; document.removeEventListener('click', _close); } }
-      document.addEventListener('click', _close);
-    }, 0);
-  }
-
-  function addSquadra(nome) {
-    if (!_sSquadreSelezionate.includes(nome)) _sSquadreSelezionate.push(nome);
-    document.getElementById('sSquadreDropdown').style.display = 'none';
-    renderSquadreChips();
-  }
-
-  function removeSquadra(nome) {
-    _sSquadreSelezionate = _sSquadreSelezionate.filter(n => n !== nome);
-    renderSquadreChips();
-  }
-
-  function renderSquadreChips() {
-    const el = document.getElementById('sSquadreChips');
-    if (!el) return;
-    el.innerHTML = _sSquadreSelezionate.map(n =>
-      `<span class="squadra-chip">${n}<button type="button" onclick="removeSquadra('${n.replace(/'/g,"\\'")}')">×</button></span>`
-    ).join('');
+  function toggleRipetizione(cb) {
+    document.getElementById('dataFineWrap').style.display = cb.checked ? 'block' : 'none';
   }
 
   async function apriModalSessione(id) {
     sessioneInEditing = id;
-    document.getElementById('sTitolo').value     = '';
+    document.getElementById('modalSessioneTitolo').textContent = id ? 'Modifica sessione' : 'Nuova sessione';
+    document.getElementById('sTitolo').value    = '';
     const _td = new Date(); document.getElementById('sData').value = `${_td.getFullYear()}-${String(_td.getMonth()+1).padStart(2,'0')}-${String(_td.getDate()).padStart(2,'0')}`;
-    document.getElementById('sOraInizio').value  = '18:00';
-    document.getElementById('sOraFine').value    = '20:00';
-    document.getElementById('sNote').value       = '';
-    document.getElementById('sDataFine').value   = '';
-    document.getElementById('dataFineWrap').style.display   = 'none';
-    document.getElementById('giorniSettWrap').style.display = id ? 'none' : '';
-    document.getElementById('sFotoFile').value   = '';
-    document.getElementById('sFotoUrl').value    = '';
-    document.getElementById('sFotoPreview').style.display   = 'none';
+    document.getElementById('sOraInizio').value = '18:00';
+    document.getElementById('sOraFine').value   = '20:00';
+
+    document.getElementById('sNote').value      = '';
+    document.getElementById('sRipetizione').checked = false;
+    document.getElementById('sDataFine').value  = '';
+    document.getElementById('dataFineWrap').style.display = 'none';
+    document.getElementById('ripetizioneWrap').style.display = id ? 'none' : 'block';
+    document.getElementById('sFotoFile').value  = '';
+    document.getElementById('sFotoUrl').value   = '';
+    document.getElementById('sFotoPreview').style.display = 'none';
     document.getElementById('sOccupazioneWrap').style.display = 'none';
-    document.getElementById('sTipoWrap').style.display      = 'none';
-    document.getElementById('sFormatoWrap').style.display   = 'none';
-    document.getElementById('sFormato').value    = '4vs4';
-    setFormato('4vs4');
     setSessioneTipo('allenamento');
-    _sGiorniSett = new Set();
-    document.querySelectorAll('.giorno-btn').forEach(b => b.classList.remove('on'));
     await aggiornaPalestreSelect();
     document.getElementById('sPalestra').value = '';
 
     let categoriaCorrente = '';
-    let responsabileCorrente = '';
     const catWrap = document.getElementById('sCategoriaWrap');
     if (id) {
       catWrap.style.display = '';
@@ -3410,23 +3101,22 @@
         document.getElementById('sData').value      = s.data || '';
         document.getElementById('sOraInizio').value = parseOraInizio(s.ora);
         document.getElementById('sOraFine').value   = parseOraFine(s.ora);
-        categoriaCorrente    = s.categoria || '';
-        responsabileCorrente = s.responsabile || '';
-        document.getElementById('sNote').value = s.note || '';
+        categoriaCorrente = s.categoria || '';
+        document.getElementById('sNote').value      = s.note || '';
         setSessioneTipo(s.tipo || 'allenamento');
-        const titoliEdit = { allenamento:'Modifica allenamento', evento:'Modifica evento', torneo:'Modifica torneo' };
-        document.getElementById('modalSessioneTitolo').textContent = titoliEdit[s.tipo || 'allenamento'] || 'Modifica sessione';
-        if (s.palestra_id) { document.getElementById('sPalestra').value = s.palestra_id; onPalestraChange(); }
+        if (s.palestra_id) {
+          document.getElementById('sPalestra').value = s.palestra_id;
+          onPalestraChange();
+        }
         if (s.foto) { document.getElementById('sFotoUrl').value = s.foto; document.getElementById('sFotoPreview').src = s.foto; document.getElementById('sFotoPreview').style.display = 'block'; }
-        if (s.formato) { document.getElementById('sFormato').value = s.formato; setFormato(s.formato); }
       }
+    } else if (_calCatSelected) {
+      catWrap.style.display = 'none';
+      categoriaCorrente = _calCatSelected;
     } else {
-      document.getElementById('modalSessioneTitolo').textContent = 'Nuova sessione';
       catWrap.style.display = '';
-      if (_calCatSelected) categoriaCorrente = _calCatSelected;
     }
-    await renderSCategoriaCheckboxes(categoriaCorrente);
-    await _popolaResponsabileSelect('sResponsabile', responsabileCorrente);
+    renderSCategoriaCheckboxes(categoriaCorrente);
     document.getElementById('modalSessione').classList.add('aperto');
   }
 
@@ -3437,26 +3127,23 @@
     const fine   = document.getElementById('sOraFine').value;
     if (!titolo || !data || !inizio) { alert('Titolo, data e orario di inizio sono obbligatori.'); return; }
     const ora = fine ? `${inizio}–${fine}` : inizio;
-    const giorni_settimana = sessioneInEditing ? [] : [..._sGiorniSett];
-    const dataFine = document.getElementById('sDataFine').value;
-    if (!sessioneInEditing && giorni_settimana.length > 0 && !dataFine) { alert('Inserisci la data di fine per la ripetizione.'); return; }
+    const ripetizione = !sessioneInEditing && document.getElementById('sRipetizione').checked;
+    const dataFine    = document.getElementById('sDataFine').value;
+    if (ripetizione && !dataFine) { alert('Inserisci la data di fine per la ripetizione settimanale.'); return; }
     const btn = document.getElementById('btnSalvaSessione');
     btn.disabled = true; btn.textContent = 'Salvataggio...';
     try {
       const fotoUpload = await uploadImmagine('sFotoFile').catch(() => null);
       const foto = fotoUpload || document.getElementById('sFotoUrl').value.trim() || '';
-      const tipoVal = document.getElementById('sTipo').value;
       const body = {
         titolo, data, ora,
-        categoria:    getSCategoriaValue(),
-        note:         document.getElementById('sNote').value.trim(),
-        responsabile: document.getElementById('sResponsabile').value.trim(),
-        tipo:         tipoVal,
-        formato:      tipoVal === 'torneo' ? document.getElementById('sFormato').value : '',
+        categoria:   getSCategoriaValue(),
+        note:        document.getElementById('sNote').value.trim(),
+        tipo:        document.getElementById('sTipo').value,
         foto,
-        palestra_id:  document.getElementById('sPalestra').value || '',
-        giorni_settimana:      giorni_settimana.length ? giorni_settimana : undefined,
-        data_fine_ripetizione: giorni_settimana.length ? dataFine : undefined,
+        palestra_id: document.getElementById('sPalestra').value || '',
+        ripetizione_settimanale: ripetizione,
+        data_fine_ripetizione:   ripetizione ? dataFine : undefined,
       };
       const url    = sessioneInEditing ? `/api/calendario/${sessioneInEditing}` : '/api/calendario';
       const method = sessioneInEditing ? 'PUT' : 'POST';
@@ -3464,7 +3151,7 @@
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       const result = await res.json();
       chiudiModal('modalSessione');
-      if (result.count > 1) alert(`Aggiunte ${result.count} sessioni.`);
+      if (result.count > 1) alert(`Aggiunte ${result.count} sessioni settimanali.`);
       caricaCalendario();
     } catch (err) {
       alert('Errore: ' + err.message);
@@ -3543,8 +3230,8 @@
   function _renderCollegaCat() {
     const s = _sessCorrente();
     const catCollegate = s ? (s.categorie_collegate || []) : [];
-    const catPrimarie  = s ? (s.categoria || '').split(',').map(c => c.trim()).filter(Boolean) : [];
-    const disponibili  = (_catListCache || []).filter(c => !catPrimarie.includes(c.nome) && !catCollegate.includes(c.nome));
+    const catPrimaria  = s ? s.categoria : null;
+    const disponibili  = (_catListCache || []).filter(c => c.nome !== catPrimaria && !catCollegate.includes(c.nome));
     const el = document.getElementById('collegaCatList');
     if (!disponibili.length) {
       el.innerHTML = '<div style="color:var(--sub);font-size:13px;">Nessuna categoria disponibile.</div>';
@@ -3582,17 +3269,15 @@
 
   function _renderCollegaAttuali() {
     const s = _sessCorrente();
-    const catPrimarie     = s ? (s.categoria || '').split(',').map(c => c.trim()).filter(Boolean) : [];
     const catCollegate    = s ? (s.categorie_collegate || []) : [];
-    const tutteCategorie  = [...new Set([...catPrimarie, ...catCollegate])];
     const utentiCollegati = s ? (s.utenti_collegati    || []) : [];
     const el = document.getElementById('collegaAttuali');
-    if (!tutteCategorie.length && !utentiCollegati.length) {
+    if (!catCollegate.length && !utentiCollegati.length) {
       el.innerHTML = '<div style="color:var(--sub);font-size:12px;">Nessun collegamento attivo.</div>';
       return;
     }
     let html = '<div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--sub-2);margin-bottom:8px;">Collegati ora</div>';
-    tutteCategorie.forEach(c => {
+    catCollegate.forEach(c => {
       html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-3);border-radius:8px;margin-bottom:6px;">
         <span style="font-size:13px;">📂 ${c}</span>
         <button class="btn-azione btn-delete" onclick="rimuoviCollegamento('categoria','${c.replace(/'/g,"\\'")}')">Rimuovi</button>
@@ -3622,7 +3307,6 @@
       else s.utenti_collegati = [...(s.utenti_collegati || []), valore];
     }
     _renderCollegaModal();
-    await _refreshCalSessions();
     renderCalMese();
   }
 
@@ -3635,12 +3319,8 @@
     if (!r.ok) { alert('Errore rimozione.'); return; }
     const s = _sessCorrente();
     if (s) {
-      if (tipo === 'categoria') {
-        s.categorie_collegate = (s.categorie_collegate || []).filter(c => c !== valore);
-        s.categoria = (s.categoria || '').split(',').map(c => c.trim()).filter(c => c && c !== valore).join(',');
-      } else {
-        s.utenti_collegati = (s.utenti_collegati || []).filter(u => u != valore);
-      }
+      if (tipo === 'categoria') s.categorie_collegate = (s.categorie_collegate || []).filter(c => c !== valore);
+      else s.utenti_collegati = (s.utenti_collegati || []).filter(u => u != valore);
     }
     _renderCollegaModal();
     renderCalMese();
@@ -3965,7 +3645,7 @@
           <td data-label="Nome" style="align-items:center;gap:10px;">
             ${g.foto ? `<img src="${g.foto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;" loading="lazy">` : ''}
             <div>
-              <div class="prod-nome">${g.nome} ${g.cognome}${g.utente_id ? ' <span title="Account utente collegato" style="font-size:12px;">👤</span>' : ''}</div>
+              <div class="prod-nome">${g.nome} ${g.cognome}</div>
               ${g.numero ? `<div style="font-size:12px;color:var(--sub);">#${g.numero}</div>` : ''}
             </div>
           </td>
@@ -4016,17 +3696,23 @@
   }
 
   async function renderSCategoriaCheckboxes(valoreCorrente) {
-    _sSquadreSelezionate = (valoreCorrente || '').split(',').map(s => s.trim()).filter(Boolean);
+    const selezionate = (valoreCorrente || '').split(',').map(s => s.trim()).filter(Boolean);
     const catList = await fetchSquadreCat();
-    _sSquadreAll = catList.length
+    const opzioni = catList.length
       ? catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s => s.nome)
-      : [...SQUADRE_FISSE];
-    _sSquadreSelezionate.forEach(v => { if (!_sSquadreAll.includes(v)) _sSquadreAll.push(v); });
-    renderSquadreChips();
+      : SQUADRE_FISSE;
+    selezionate.forEach(v => { if (!opzioni.includes(v)) opzioni.push(v); });
+    document.getElementById('sCategoriaCheckboxes').innerHTML = opzioni.map(opt =>
+      `<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;color:#374151">
+        <input type="checkbox" value="${opt}" ${selezionate.includes(opt) ? 'checked' : ''} style="accent-color:var(--blu);width:14px;height:14px">
+        ${opt}
+      </label>`
+    ).join('');
   }
 
   function getSCategoriaValue() {
-    return _sSquadreSelezionate.join(',');
+    return Array.from(document.querySelectorAll('#sCategoriaCheckboxes input[type=checkbox]'))
+      .filter(c => c.checked).map(c => c.value).join(',');
   }
 
   async function apriModalGiocatrice(id) {
@@ -4036,7 +3722,6 @@
     document.getElementById('gAttiva').checked = true;
     document.getElementById('gFotoPreview').style.display = 'none';
     let sessoIniziale = 'Femminile';
-    let utenteIdCorrente = '';
     if (id) {
       const list = await fetch('/api/squadra').then(r => r.json());
       const g = list.find(x => x.id === id);
@@ -4048,12 +3733,10 @@
         document.getElementById('gBio').value     = g.bio || '';
         document.getElementById('gFoto').value    = g.foto || '';
         sessoIniziale = g.sesso || 'Femminile';
-        utenteIdCorrente = g.utente_id || '';
         document.getElementById('gAttiva').checked = g.attiva;
         if (g.foto) { document.getElementById('gFotoPreview').src = g.foto; document.getElementById('gFotoPreview').style.display = 'block'; }
       }
     }
-    await _popolaUtenteSelect('gUtenteId', utenteIdCorrente);
     renderGSessoCheckboxes(sessoIniziale);
     document.getElementById('modalGiocatrice').classList.add('aperto');
   }
@@ -4069,7 +3752,7 @@
       const uploadUrl = await uploadImmagine('gFotoFile');
       if (uploadUrl) foto = uploadUrl;
       const sesso = getGSessoValue() || 'Femminile';
-      const body = { nome, cognome, numero: document.getElementById('gNumero').value || null, ruolo: document.getElementById('gRuolo').value, bio: document.getElementById('gBio').value, foto, attiva: document.getElementById('gAttiva').checked, sesso, utente_id: document.getElementById('gUtenteId').value };
+      const body = { nome, cognome, numero: document.getElementById('gNumero').value || null, ruolo: document.getElementById('gRuolo').value, bio: document.getElementById('gBio').value, foto, attiva: document.getElementById('gAttiva').checked, sesso };
       const url    = giocatriceInEditing ? `/api/admin/squadra/${giocatriceInEditing}` : '/api/admin/squadra';
       const method = giocatriceInEditing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
@@ -4100,7 +3783,7 @@
           <td data-label="Nome" style="align-items:center;gap:10px;">
             ${g.foto ? `<img src="${g.foto}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#f0f4f8;" loading="lazy">` : ''}
             <div>
-              <div class="prod-nome">${g.nome} ${g.cognome}${g.utente_id ? ' <span title="Account utente collegato" style="font-size:12px;">👤</span>' : ''}</div>
+              <div class="prod-nome">${g.nome} ${g.cognome}</div>
               <span class="badge badge-blu" style="font-size:11px;margin-top:3px;">${g.ruolo || 'Staff'}</span>
             </div>
           </td>
@@ -4122,22 +3805,19 @@
     document.getElementById('stRuolo').value = 'Staff';
     document.getElementById('stFotoPreview').style.display = 'none';
     document.getElementById('stFotoFile').value = '';
-    let utenteIdCorrente = '';
     if (id) {
       const list = await fetch('/api/squadra').then(r => r.json());
       const g = list.find(x => x.id === id);
       if (g) {
-        document.getElementById('stNome').value     = g.nome;
-        document.getElementById('stCognome').value  = g.cognome;
-        document.getElementById('stRuolo').value    = g.ruolo || 'Staff';
-        document.getElementById('stBio').value      = g.bio || '';
-        document.getElementById('stFoto').value     = g.foto || '';
+        document.getElementById('stNome').value    = g.nome;
+        document.getElementById('stCognome').value = g.cognome;
+        document.getElementById('stRuolo').value   = g.ruolo || 'Staff';
+        document.getElementById('stBio').value     = g.bio || '';
+        document.getElementById('stFoto').value    = g.foto || '';
         document.getElementById('stAttiva').checked = g.attiva;
-        utenteIdCorrente = g.utente_id || '';
         if (g.foto) { document.getElementById('stFotoPreview').src = g.foto; document.getElementById('stFotoPreview').style.display = 'block'; }
       }
     }
-    await _popolaUtenteSelect('stUtenteId', utenteIdCorrente);
     document.getElementById('modalStaff').classList.add('aperto');
   }
 
@@ -4151,7 +3831,7 @@
       let foto = document.getElementById('stFoto').value;
       const uploadUrl = await uploadImmagine('stFotoFile');
       if (uploadUrl) foto = uploadUrl;
-      const body = { nome, cognome, numero: null, ruolo: document.getElementById('stRuolo').value, bio: document.getElementById('stBio').value, foto, attiva: document.getElementById('stAttiva').checked, sesso: 'Staff', utente_id: document.getElementById('stUtenteId').value };
+      const body = { nome, cognome, numero: null, ruolo: document.getElementById('stRuolo').value, bio: document.getElementById('stBio').value, foto, attiva: document.getElementById('stAttiva').checked, sesso: 'Staff' };
       const url    = staffInEditing ? `/api/admin/squadra/${staffInEditing}` : '/api/admin/squadra';
       const method = staffInEditing ? 'PUT' : 'POST';
       const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
@@ -5414,7 +5094,7 @@
   function filtraSessioni(tipo) {
     _sessioniFiltro = tipo;
     document.querySelectorAll('#pan-sessioni .filtro-btn').forEach(b => b.classList.remove('on'));
-    const ids = {'':"sfTutti",'allenamento':"sfAllenamento",'evento':"sfEvento",'torneo':"sfTorneo"};
+    const ids = {'':"sfTutti",'allenamento':"sfAllenamento",'evento':"sfEvento"};
     if (ids[tipo]) document.getElementById(ids[tipo]).classList.add('on');
     _buildSessWeekData();
     renderSessWeek();
@@ -5439,7 +5119,7 @@
     const s = future[0];
     const d = new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
     el.innerHTML = `<div class="prossima-sess-banner">
-      <div class="psb-ico">${s.tipo==='evento'?'🏆':s.tipo==='torneo'?'🥇':'🏐'}</div>
+      <div class="psb-ico">${s.tipo==='evento'?'🏆':'🏐'}</div>
       <div class="psb-info">
         <div class="psb-label">Prossima sessione</div>
         <div class="psb-titolo">${s.titolo}</div>
@@ -5499,12 +5179,12 @@
     el.innerHTML = `<div style="font-size:13px;font-weight:700;color:#0d2055;margin-bottom:12px;">${d}</div>
       <div class="sess-day-list">${evs.map(s => `
         <div class="sess-day-item">
-          <div class="sdi-dot${s.tipo==='evento'?' evento':s.tipo==='torneo'?' torneo':''}"></div>
+          <div class="sdi-dot${s.tipo==='evento'?' evento':''}"></div>
           <div class="sdi-info">
             <div class="sdi-titolo">${s.titolo}</div>
-            <div class="sdi-sub">${s.categoria||''}${s.ora?' · '+s.ora:''}${s.formato?' · '+s.formato:''}${s.responsabile?' · '+s.responsabile:''}</div>
+            <div class="sdi-sub">${s.categoria||''}${s.ora?' · '+s.ora:''}</div>
           </div>
-          <span class="sdi-badge ${s.tipo==='evento'?'evento':s.tipo==='torneo'?'torneo':'allenamento'}">${s.tipo==='evento'?'Evento':s.tipo==='torneo'?'Torneo':'Allenamento'}</span>
+          <span class="sdi-badge ${s.tipo==='evento'?'evento':'allenamento'}">${s.tipo==='evento'?'Evento':'Allenamento'}</span>
           <span style="color:#16a34a;font-weight:700;font-size:12px;">${s.partecipanti_si} sì</span>
           <button class="sdi-vedi" onclick="apriPartecipanti('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}','${s.data}')">Vedi</button>
         </div>`).join('')}
@@ -5913,447 +5593,6 @@
     } catch {
       tbl.innerHTML = '<div style="padding:12px;color:#dc2626;font-size:13px;">Errore di caricamento</div>';
     }
-  }
-
-  /* ══ EVENTI ══ */
-  let _eventiAll = [];
-  let _eventiFiltro = '';
-
-  async function caricaEventi() {
-    const el = document.getElementById('eventiPanel');
-    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>';
-    try {
-      const all = await fetch('/api/calendario', { headers: headers() }).then(r => r.json());
-      _eventiAll = all.filter(s => s.tipo === 'evento');
-      renderEventiList();
-    } catch {
-      el.innerHTML = '<div style="padding:16px;text-align:center;color:#dc2626;font-size:13px;">Errore caricamento.</div>';
-    }
-  }
-
-  function setEventiFiltro(f) {
-    _eventiFiltro = f;
-    document.querySelectorAll('#pan-eventi .filtro-btn').forEach(b => b.classList.remove('on'));
-    const ids = { '':'evFiltroTutti', 'futuri':'evFiltroFuturi', 'passati':'evFiltroPassati' };
-    if (ids[f]) document.getElementById(ids[f]).classList.add('on');
-    renderEventiList();
-  }
-
-  function renderEventiList() {
-    const el = document.getElementById('eventiPanel');
-    const oggi = _ds(new Date());
-    let lista = _eventiAll.slice().sort((a,b) => (a.data||'').localeCompare(b.data||''));
-    if (_eventiFiltro === 'futuri')  lista = lista.filter(s => s.data >= oggi);
-    if (_eventiFiltro === 'passati') lista = lista.filter(s => s.data < oggi);
-    if (!lista.length) {
-      el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--sub);font-size:14px;">Nessun evento trovato.</div>';
-      return;
-    }
-    el.innerHTML = lista.map(s => {
-      const d = s.data ? new Date(s.data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) : '—';
-      return `<div style="background:#fff;border:1.5px solid var(--bordo);border-radius:14px;padding:16px 18px;margin-bottom:10px;box-shadow:var(--shadow-xs);display:flex;gap:14px;align-items:flex-start;">
-        <div style="font-size:26px;flex-shrink:0;">📅</div>
-        <div style="flex:1;">
-          <div style="font-size:15px;font-weight:800;color:#0d2055;margin-bottom:4px;">${s.titolo}</div>
-          <div style="font-size:12px;color:var(--sub);">${d}${s.ora?' · '+s.ora:''}${s.categoria?' · '+s.categoria:''}${s.responsabile?' · '+s.responsabile:''}</div>
-          ${s.note ? `<div style="font-size:12px;color:#6b7280;margin-top:4px;">${s.note}</div>` : ''}
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-          <button class="btn-azione btn-edit" onclick="apriModalSessione('${s.id}')">Modifica</button>
-          <button class="btn-azione btn-delete" onclick="eliminaSessione('${s.id}','${(s.titolo||'').replace(/'/g,"\\'")}')">Elimina</button>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  /* ══ TORNEI ══ */
-  let _torneiAll   = [];
-  let _torneoEditing = null;
-  let _invitaTorneoId = null;
-  let _squadreTorneoId = null;
-  let _allUtentiCache = [];
-  let _torneoPartecipantiCache = [];
-  let _torneoSquadreCache = [];
-
-  async function caricaTornei() {
-    const el = document.getElementById('torneiList');
-    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>';
-    try {
-      _torneiAll = await fetch('/api/tornei', { headers: headers() }).then(r => r.json());
-      renderTorneiList();
-    } catch {
-      el.innerHTML = '<div style="padding:16px;text-align:center;color:#dc2626;font-size:13px;">Errore caricamento.</div>';
-    }
-  }
-
-  const TORNEO_STATO_LABEL = { bozza:'Bozza', aperto:'Aperto', in_corso:'In corso', concluso:'Concluso' };
-  const TORNEO_STATO_COLOR = { bozza:'#9ca3af', aperto:'#16a34a', in_corso:'#d97706', concluso:'#6b7280' };
-
-  function renderTorneiList() {
-    const el = document.getElementById('torneiList');
-    if (!_torneiAll.length) {
-      el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--sub);font-size:14px;">Nessun torneo. Crea il primo!</div>';
-      return;
-    }
-    el.innerHTML = _torneiAll.map(t => {
-      const stato = TORNEO_STATO_LABEL[t.stato] || t.stato;
-      const coloreStato = TORNEO_STATO_COLOR[t.stato] || '#9ca3af';
-      const dataRange = t.data_inizio ? `${fmtData(t.data_inizio)}${t.data_fine && t.data_fine !== t.data_inizio ? ' → ' + fmtData(t.data_fine) : ''}` : '—';
-      return `<div style="background:#fff;border:1.5px solid var(--bordo);border-radius:14px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow-xs);">
-        <div style="display:flex;align-items:flex-start;gap:14px;">
-          <div style="font-size:28px;">🏆</div>
-          <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
-              <div style="font-size:16px;font-weight:800;color:#0d2055;">${t.nome}</div>
-              <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:${coloreStato}20;color:${coloreStato};">${stato}</span>
-              <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#ede9fe;color:#7c3aed;">${t.formato}</span>
-            </div>
-            <div style="font-size:12px;color:var(--sub);">${dataRange}${t.responsabile ? ' · ' + t.responsabile : ''}</div>
-            ${t.note ? `<div style="font-size:12px;color:#6b7280;margin-top:4px;">${t.note}</div>` : ''}
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
-            <button class="btn-azione btn-link" onclick="apriInvitaTorneo('${t.id}','${(t.nome||'').replace(/'/g,"\\'")}')">Partecipanti</button>
-            <button class="btn-azione btn-link" style="background:#ede9fe;color:#7c3aed;" onclick="apriSquadreTorneo('${t.id}','${(t.nome||'').replace(/'/g,"\\'")}')">Squadre</button>
-            <button class="btn-azione btn-edit" onclick="apriModalTorneo('${t.id}')">Modifica</button>
-            <button class="btn-azione btn-delete" onclick="eliminaTorneo('${t.id}','${(t.nome||'').replace(/'/g,"\\'")}')">Elimina</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function fmtData(ds) {
-    if (!ds) return '';
-    return new Date(ds + 'T00:00:00').toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
-  }
-
-  async function apriModalTorneo(id) {
-    _torneoEditing = id;
-    document.getElementById('modalTorneoTitolo').textContent = id ? 'Modifica torneo' : 'Nuovo torneo';
-    document.getElementById('tId').value = id || '';
-    document.getElementById('tImmagineFile').value  = '';
-    document.getElementById('tImmagineUrl').value   = '';
-    document.getElementById('tImmaginePreview').style.display = 'none';
-    let responsabileCorrente = '';
-    if (id) {
-      const t = _torneiAll.find(x => x.id === id);
-      if (t) {
-        document.getElementById('tNome').value          = t.nome || '';
-        document.getElementById('tDataInizio').value    = t.data_inizio || '';
-        document.getElementById('tDataFine').value      = t.data_fine || '';
-        document.getElementById('tStato').value         = t.stato || 'bozza';
-        document.getElementById('tNote').value          = t.note || '';
-        responsabileCorrente                            = t.responsabile || '';
-        document.getElementById('tFormato').value       = t.formato || '4vs4';
-        setTorneoFormato(t.formato || '4vs4');
-        if (t.immagine) { document.getElementById('tImmagineUrl').value = t.immagine; document.getElementById('tImmaginePreview').src = t.immagine; document.getElementById('tImmaginePreview').style.display = 'block'; }
-      }
-    } else {
-      document.getElementById('tNome').value          = '';
-      document.getElementById('tDataInizio').value    = '';
-      document.getElementById('tDataFine').value      = '';
-      document.getElementById('tStato').value         = 'bozza';
-      document.getElementById('tNote').value          = '';
-      document.getElementById('tFormato').value       = '4vs4';
-      setTorneoFormato('4vs4');
-    }
-    await _popolaResponsabileSelect('tResponsabile', responsabileCorrente);
-    document.getElementById('modalTorneo').classList.add('aperto');
-  }
-
-  function setTorneoFormato(fmt) {
-    document.getElementById('tFormato').value = fmt;
-    const on  = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;border-color:#7c3aed;background:#7c3aed;color:#fff;';
-    const off = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;border-color:#d1d5db;background:#fff;color:#374151;';
-    document.getElementById('tBtn4v4').style.cssText = fmt === '4vs4' ? on : off;
-    document.getElementById('tBtn6v6').style.cssText = fmt === '6vs6' ? on : off;
-  }
-
-  async function salvaTorneo() {
-    const nome = document.getElementById('tNome').value.trim();
-    if (!nome) { alert('Nome obbligatorio.'); return; }
-    let immagine = document.getElementById('tImmagineUrl').value;
-    const uploadUrl = await uploadImmagine('tImmagineFile');
-    if (uploadUrl) immagine = uploadUrl;
-    const body = {
-      nome,
-      formato:      document.getElementById('tFormato').value,
-      data_inizio:  document.getElementById('tDataInizio').value,
-      data_fine:    document.getElementById('tDataFine').value,
-      stato:        document.getElementById('tStato').value,
-      note:         document.getElementById('tNote').value.trim(),
-      responsabile: document.getElementById('tResponsabile').value.trim(),
-      immagine,
-    };
-    const btn = document.getElementById('btnSalvaTorneo');
-    btn.disabled = true; btn.textContent = 'Salvataggio…';
-    try {
-      const url    = _torneoEditing ? `/api/tornei/${_torneoEditing}` : '/api/tornei';
-      const method = _torneoEditing ? 'PUT' : 'POST';
-      const r = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
-      if (!r.ok) { const d = await r.json(); throw new Error(d.error || r.status); }
-      chiudiModal('modalTorneo');
-      caricaTornei();
-    } catch (err) {
-      alert('Errore: ' + err.message);
-    } finally {
-      btn.disabled = false; btn.textContent = 'Salva';
-    }
-  }
-
-  async function eliminaTorneo(id, nome) {
-    if (!confirm(`Eliminare il torneo "${nome}" e tutte le squadre e partecipanti associati?`)) return;
-    try {
-      const r = await fetch(`/api/tornei/${id}`, { method: 'DELETE', headers: headers() });
-      if (!r.ok) throw new Error((await r.json()).error || r.status);
-      caricaTornei();
-    } catch (err) { alert('Errore: ' + err.message); }
-  }
-
-  /* ── Partecipanti torneo ── */
-  async function apriInvitaTorneo(torneoId, torneoNome) {
-    _invitaTorneoId = torneoId;
-    document.getElementById('invitaTorneoNome').textContent = torneoNome;
-    document.getElementById('invitaSearch').value = '';
-    document.getElementById('modalInvitaTorneo').classList.add('aperto');
-    _torneoPartecipantiCache = [];
-    await _loadAllUtenti();
-    await _refreshPartecipanti();
-  }
-
-  async function _loadAllUtenti() {
-    if (_allUtentiCache.length) return;
-    try {
-      _allUtentiCache = await fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json());
-    } catch { _allUtentiCache = []; }
-  }
-
-  async function _popolaResponsabileSelect(selectId, currentValue) {
-    const sel = document.getElementById(selectId);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— Seleziona responsabile —</option>';
-    try {
-      const RUOLI_STAFF_LOC = ['Staff','Allenatore','Vice Allenatore','Preparatore Atletico','Fisioterapista','Team Manager','Dirigente','Accompagnatore','Medico'];
-      const [staffList, utentiList] = await Promise.all([
-        fetch('/api/squadra', { headers: headers() }).then(r => r.json()),
-        fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json()),
-      ]);
-
-      // 1. Utenti registrati (attivi) — prima
-      const utentiAttivi = utentiList.filter(u => u.stato === 'attivo');
-      const utentiNomi = new Set();
-      utentiAttivi.forEach(u => {
-        const nome = `${u.nome} ${u.cognome}`;
-        utentiNomi.add(nome);
-        const opt = document.createElement('option');
-        opt.value = nome;
-        const ruoloLabel = u.is_allenatore ? 'Allenatore' : 'Utente';
-        opt.textContent = `${nome} (${ruoloLabel})`;
-        sel.appendChild(opt);
-      });
-
-      // 2. Staff senza account collegato — dopo
-      const staffVisti = new Set();
-      staffList
-        .filter(g => (g.sesso === 'Staff' || RUOLI_STAFF_LOC.includes(g.ruolo)) && !g.utente_id)
-        .forEach(g => {
-          const nome = `${g.nome} ${g.cognome}`;
-          if (staffVisti.has(nome) || utentiNomi.has(nome)) return;
-          staffVisti.add(nome);
-          const opt = document.createElement('option');
-          opt.value = nome;
-          opt.textContent = `${nome} (${g.ruolo || 'Staff'})`;
-          sel.appendChild(opt);
-        });
-
-      if (currentValue) {
-        sel.value = currentValue;
-        if (!sel.value) {
-          const opt = document.createElement('option');
-          opt.value = currentValue;
-          opt.textContent = currentValue;
-          sel.insertBefore(opt, sel.children[1]);
-          sel.value = currentValue;
-        }
-      }
-    } catch {}
-  }
-
-  async function _popolaUtenteSelect(selectId, currentValue) {
-    const sel = document.getElementById(selectId);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— Nessun account collegato —</option>';
-    try {
-      await _loadAllUtenti();
-      _allUtentiCache.filter(u => u.stato === 'attivo').forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.id;
-        opt.textContent = `${u.nome} ${u.cognome} (${u.email})`;
-        if (u.id === currentValue) opt.selected = true;
-        sel.appendChild(opt);
-      });
-    } catch {}
-  }
-
-  async function _refreshPartecipanti() {
-    try {
-      _torneoPartecipantiCache = await fetch(`/api/tornei/${_invitaTorneoId}/partecipanti`, { headers: headers() }).then(r => r.json());
-    } catch { _torneoPartecipantiCache = []; }
-    renderInvitaUtenti();
-    renderInvitatiList();
-  }
-
-  function renderInvitaUtenti() {
-    const q = (document.getElementById('invitaSearch').value || '').toLowerCase();
-    const idsInvitati = new Set(_torneoPartecipantiCache.map(u => u.id));
-    const tutti = _allUtentiCache.filter(u => u.stato === 'attivo' && !idsInvitati.has(u.id));
-    const filtrati = q ? tutti.filter(u => (u.nome+' '+u.cognome+' '+u.email).toLowerCase().includes(q)) : tutti;
-    const el = document.getElementById('invitaUtenteList');
-    if (!filtrati.length) {
-      el.innerHTML = '<div style="font-size:13px;color:var(--sub);padding:8px;">Nessun utente disponibile.</div>';
-      return;
-    }
-    el.innerHTML = filtrati.slice(0, 20).map(u => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;border:1px solid var(--bordo);background:#f8fafc;">
-        <div>
-          <div style="font-size:13px;font-weight:600;">${u.nome} ${u.cognome}</div>
-          <div style="font-size:11px;color:var(--sub);">${u.email}</div>
-        </div>
-        <button class="btn-aggiungi" style="padding:5px 12px;font-size:12px;" onclick="aggiungiPartecipante('${u.id}')">+ Invita</button>
-      </div>`).join('');
-  }
-
-  function renderInvitatiList() {
-    const el = document.getElementById('invitatiList');
-    if (!_torneoPartecipantiCache.length) {
-      el.innerHTML = '<span style="font-size:12px;color:var(--sub);">Nessuno ancora invitato</span>';
-      return;
-    }
-    el.innerHTML = _torneoPartecipantiCache.map(u =>
-      `<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;background:#ede9fe;color:#7c3aed;border-radius:20px;font-size:12px;font-weight:600;">
-        ${u.nome} ${u.cognome}
-        <button onclick="rimuoviPartecipante('${u.id}')" style="background:none;border:none;color:#7c3aed;cursor:pointer;font-size:14px;line-height:1;padding:0;">✕</button>
-      </span>`
-    ).join('');
-  }
-
-  async function aggiungiPartecipante(utenteId) {
-    try {
-      await fetch(`/api/tornei/${_invitaTorneoId}/partecipanti`, {
-        method: 'POST', headers: headers(), body: JSON.stringify({ utente_id: utenteId })
-      });
-      await _refreshPartecipanti();
-    } catch (err) { alert('Errore: ' + err.message); }
-  }
-
-  async function rimuoviPartecipante(utenteId) {
-    try {
-      await fetch(`/api/tornei/${_invitaTorneoId}/partecipanti/${utenteId}`, { method: 'DELETE', headers: headers() });
-      await _refreshPartecipanti();
-    } catch (err) { alert('Errore: ' + err.message); }
-  }
-
-  /* ── Squadre torneo ── */
-  async function apriSquadreTorneo(torneoId, torneoNome) {
-    _squadreTorneoId = torneoId;
-    document.getElementById('squadreTorneoNome').textContent = torneoNome;
-    document.getElementById('nuovaSquadraNome').value = '';
-    document.getElementById('nuovaSquadraColore').value = '#3b82f6';
-    document.getElementById('modalSquadreTorneo').classList.add('aperto');
-    await _loadAllUtenti();
-    await _refreshSquadre();
-  }
-
-  async function _refreshSquadre() {
-    try {
-      _torneoSquadreCache = await fetch(`/api/tornei/${_squadreTorneoId}/squadre`, { headers: headers() }).then(r => r.json());
-      _torneoPartecipantiCache = await fetch(`/api/tornei/${_squadreTorneoId}/partecipanti`, { headers: headers() }).then(r => r.json());
-    } catch { _torneoSquadreCache = []; _torneoPartecipantiCache = []; }
-    renderSquadreTorneoList();
-  }
-
-  function renderSquadreTorneoList() {
-    const el = document.getElementById('squadreTorneoList');
-    if (!_torneoSquadreCache.length) {
-      el.innerHTML = '<div style="font-size:13px;color:var(--sub);text-align:center;padding:16px;">Nessuna squadra. Creane una sopra.</div>';
-      return;
-    }
-    const assegnatiSet = new Set(_torneoSquadreCache.flatMap(s => Array.isArray(s.partecipanti) ? s.partecipanti : []));
-    el.innerHTML = _torneoSquadreCache.map(sq => {
-      const partList = (Array.isArray(sq.partecipanti) ? sq.partecipanti : []).map(uid => {
-        const u = _torneoPartecipantiCache.find(x => x.id === uid);
-        return u ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:14px;background:${sq.colore}20;color:${sq.colore};font-size:12px;font-weight:600;">
-          ${u.nome} ${u.cognome}
-          <button onclick="rimuoviDaSquadra('${sq.id}','${uid}')" style="background:none;border:none;cursor:pointer;color:${sq.colore};font-size:13px;line-height:1;padding:0;">✕</button>
-        </span>` : '';
-      }).join('');
-      const disponibili = _torneoPartecipantiCache.filter(u => !assegnatiSet.has(u.id) || (Array.isArray(sq.partecipanti) && sq.partecipanti.includes(u.id)));
-      const nonAssegnati = _torneoPartecipantiCache.filter(u => !assegnatiSet.has(u.id));
-      const selectOpts = nonAssegnati.map(u => `<option value="${u.id}">${u.nome} ${u.cognome}</option>`).join('');
-      return `<div style="background:#fff;border:2px solid ${sq.colore};border-radius:12px;padding:14px 16px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="width:14px;height:14px;border-radius:50%;background:${sq.colore};flex-shrink:0;"></div>
-          <div style="font-size:14px;font-weight:800;color:#0d2055;flex:1;">${sq.nome}</div>
-          <span style="font-size:11px;color:var(--sub);">${Array.isArray(sq.partecipanti)?sq.partecipanti.length:0} giocatori</span>
-          <button class="btn-azione btn-delete" onclick="eliminaSquadraTorneo('${sq.id}')">Elimina</button>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:28px;">${partList || '<span style="font-size:12px;color:var(--sub);">Nessun giocatore assegnato</span>'}</div>
-        ${nonAssegnati.length ? `<div style="display:flex;gap:8px;">
-          <select id="sqSel_${sq.id}" style="flex:1;padding:8px 10px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;">
-            <option value="">Aggiungi partecipante…</option>${selectOpts}
-          </select>
-          <button class="btn-aggiungi" style="padding:8px 14px;font-size:12px;" onclick="aggiungiASquadra('${sq.id}')">+ Aggiungi</button>
-        </div>` : ''}
-      </div>`;
-    }).join('');
-  }
-
-  async function aggiungiSquadraTorneo() {
-    const nome = document.getElementById('nuovaSquadraNome').value.trim();
-    const colore = document.getElementById('nuovaSquadraColore').value;
-    if (!nome) { alert('Inserisci il nome della squadra.'); return; }
-    try {
-      await fetch(`/api/tornei/${_squadreTorneoId}/squadre`, {
-        method: 'POST', headers: headers(), body: JSON.stringify({ nome, colore })
-      });
-      document.getElementById('nuovaSquadraNome').value = '';
-      await _refreshSquadre();
-    } catch (err) { alert('Errore: ' + err.message); }
-  }
-
-  async function eliminaSquadraTorneo(squadraId) {
-    if (!confirm('Eliminare questa squadra?')) return;
-    try {
-      await fetch(`/api/tornei/${_squadreTorneoId}/squadre/${squadraId}`, { method: 'DELETE', headers: headers() });
-      await _refreshSquadre();
-    } catch (err) { alert('Errore: ' + err.message); }
-  }
-
-  async function aggiungiASquadra(squadraId) {
-    const sel = document.getElementById('sqSel_' + squadraId);
-    const utenteId = sel ? sel.value : '';
-    if (!utenteId) return;
-    const sq = _torneoSquadreCache.find(s => s.id === squadraId);
-    if (!sq) return;
-    const partecipanti = Array.isArray(sq.partecipanti) ? [...sq.partecipanti, utenteId] : [utenteId];
-    try {
-      await fetch(`/api/tornei/${_squadreTorneoId}/squadre/${squadraId}`, {
-        method: 'PUT', headers: headers(), body: JSON.stringify({ nome: sq.nome, colore: sq.colore, partecipanti })
-      });
-      await _refreshSquadre();
-    } catch (err) { alert('Errore: ' + err.message); }
-  }
-
-  async function rimuoviDaSquadra(squadraId, utenteId) {
-    const sq = _torneoSquadreCache.find(s => s.id === squadraId);
-    if (!sq) return;
-    const partecipanti = (Array.isArray(sq.partecipanti) ? sq.partecipanti : []).filter(id => id !== utenteId);
-    try {
-      await fetch(`/api/tornei/${_squadreTorneoId}/squadre/${squadraId}`, {
-        method: 'PUT', headers: headers(), body: JSON.stringify({ nome: sq.nome, colore: sq.colore, partecipanti })
-      });
-      await _refreshSquadre();
-    } catch (err) { alert('Errore: ' + err.message); }
   }
 
   /* ══ EXPORT CSV ORDINI ══ */

@@ -305,6 +305,7 @@ app.get('/ordine-confermato', sendPage('ordine-confermato.html'));
 app.get('/live',              sendPage('live.html'));
 app.get('/login',             sendPage('login.html'));
 app.get('/utente',            sendPage('utente.html'));
+app.get('/eventi-tornei',     sendPage('eventi-tornei-utente.html'));
 // Vecchi URL rimossi → redirect home
 app.get('/galleria',          (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione',        (_req, res) => res.redirect(301, '/'));
@@ -842,36 +843,56 @@ app.get('/api/prossimi-eventi', async (req, res) => {
 
 /* ─── Calendario: crea sessione ─── */
 app.post('/api/calendario', adminAuth, async (req, res) => {
-  const { titolo, data, ora, categoria, note, ripetizione_settimanale, data_fine_ripetizione, tipo, foto, palestra_id } = req.body;
+  const { titolo, data, ora, categoria, note, ripetizione_settimanale, data_fine_ripetizione, giorni_settimana, tipo, formato, foto, palestra_id, responsabile } = req.body;
   if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
-  const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
+  const tipoVal    = ['evento','torneo'].includes(tipo) ? tipo : 'allenamento';
+  const formatoVal = tipoVal === 'torneo' ? (formato || '4vs4') : '';
   const palestraVal = palestra_id || '';
+  const respVal = responsabile || '';
+  const dataFineEffettiva = data_fine_ripetizione || null;
+  const _fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const _insertCal = (id, dataStr) => db.query(
+    `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, formato, foto, palestra_id, responsabile)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+    [id, titolo, dataStr, ora, categoria || '', note || '', tipoVal, formatoVal, foto || '', palestraVal, respVal]
+  );
   try {
-    if (ripetizione_settimanale && data_fine_ripetizione && data_fine_ripetizione >= data) {
+    const giorniArr = Array.isArray(giorni_settimana) && giorni_settimana.length ? giorni_settimana.map(Number) : null;
+    if (giorniArr && dataFineEffettiva && dataFineEffettiva >= data) {
+      const giorniSet  = new Set(giorniArr);
+      const sessioni   = [];
+      let cur  = new Date(data + 'T00:00:00');
+      const end = new Date(dataFineEffettiva + 'T00:00:00');
+      let i = 0;
+      while (cur <= end) {
+        if (giorniSet.has(cur.getDay())) {
+          const id      = Date.now().toString() + '_' + i;
+          const dataStr = _fmtDate(cur);
+          await _insertCal(id, dataStr);
+          sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal, formato: formatoVal, responsabile: respVal });
+          i++;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return res.status(201).json({ sessioni, count: sessioni.length });
+    }
+    if (ripetizione_settimanale && dataFineEffettiva && dataFineEffettiva >= data) {
       const sessioni = [];
       let currentDate = new Date(data + 'T00:00:00');
-      const endDate   = new Date(data_fine_ripetizione + 'T00:00:00');
+      const endDate   = new Date(dataFineEffettiva + 'T00:00:00');
       let i = 0;
       while (currentDate <= endDate) {
         const id      = Date.now().toString() + '_' + i;
-        const dataStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`;
-        await db.query(
-          `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, foto, palestra_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [id, titolo, dataStr, ora, categoria || '', note || '', tipoVal, foto || '', palestraVal]
-        );
-        sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal });
+        const dataStr = _fmtDate(currentDate);
+        await _insertCal(id, dataStr);
+        sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal, formato: formatoVal, responsabile: respVal });
         currentDate.setDate(currentDate.getDate() + 7);
         i++;
       }
       return res.status(201).json({ sessioni, count: sessioni.length });
     }
     const id = Date.now().toString();
-    await db.query(
-      `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, foto, palestra_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [id, titolo, data, ora, categoria || '', note || '', tipoVal, foto || '', palestraVal]
-    );
+    await _insertCal(id, data);
 
     // Notifica email agli utenti attivi se è un evento (filtrata per categoria)
     if (tipoVal === 'evento') {
@@ -924,7 +945,7 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
       }
     }
 
-    res.status(201).json({ id, titolo, data, ora, categoria: categoria || '', note: note || '', tipo: tipoVal, foto: foto || '' });
+    res.status(201).json({ id, titolo, data, ora, categoria: categoria || '', note: note || '', tipo: tipoVal, formato: formatoVal, foto: foto || '', responsabile: respVal });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -933,16 +954,18 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
 
 /* ─── Calendario: aggiorna sessione ─── */
 app.put('/api/calendario/:id', adminAuth, async (req, res) => {
-  const { titolo, data, ora, categoria, note, tipo, foto, palestra_id } = req.body;
-  const tipoVal = tipo === 'evento' ? 'evento' : 'allenamento';
+  const { titolo, data, ora, categoria, note, tipo, formato, foto, palestra_id, responsabile } = req.body;
+  const tipoVal    = ['evento','torneo'].includes(tipo) ? tipo : 'allenamento';
+  const formatoVal = tipoVal === 'torneo' ? (formato || '4vs4') : '';
   const palestraVal = palestra_id || '';
+  const respVal = responsabile || '';
   try {
     const result = await db.query(
       `UPDATE calendario
-       SET titolo=$1, data_str=$2, ora=$3, categoria=$4, note=$5, tipo=$6, foto=$7, palestra_id=$8
-       WHERE id=$9
+       SET titolo=$1, data_str=$2, ora=$3, categoria=$4, note=$5, tipo=$6, formato=$7, foto=$8, palestra_id=$9, responsabile=$10
+       WHERE id=$11
        RETURNING *`,
-      [titolo, data, ora, categoria || '', note || '', tipoVal, foto || '', palestraVal, req.params.id]
+      [titolo, data, ora, categoria || '', note || '', tipoVal, formatoVal, foto || '', palestraVal, respVal, req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     const r = result.rows[0];
@@ -994,14 +1017,154 @@ app.post('/api/calendario/:id/collega', adminAuth, async (req, res) => {
 app.delete('/api/calendario/:id/collega', adminAuth, async (req, res) => {
   const { tipo, valore } = req.body;
   if (!['categoria', 'utente'].includes(tipo) || !valore) return res.status(400).json({ error: 'Parametri non validi' });
-  const col = tipo === 'categoria' ? 'categorie_collegate' : 'utenti_collegati';
+  try {
+    if (tipo === 'categoria') {
+      const sess = await db.query('SELECT categoria FROM calendario WHERE id=$1', [req.params.id]);
+      if (!sess.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+      const nuovaCategoria = (sess.rows[0].categoria || '')
+        .split(',').map(c => c.trim()).filter(c => c && c !== valore).join(',');
+      const r = await db.query(
+        `UPDATE calendario
+         SET categoria = $1,
+             categorie_collegate = COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements_text(categorie_collegate) AS x WHERE x != $2), '[]'::jsonb)
+         WHERE id=$3 RETURNING id`,
+        [nuovaCategoria, valore, req.params.id]
+      );
+      if (!r.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    } else {
+      const r = await db.query(
+        `UPDATE calendario SET utenti_collegati = COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements_text(utenti_collegati) AS x WHERE x != $1), '[]'::jsonb) WHERE id=$2 RETURNING id`,
+        [valore, req.params.id]
+      );
+      if (!r.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    }
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: lista pubblica (per utenti autenticati) ─── */
+app.get('/api/tornei/pubblici', userAuth, async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT id, nome, formato, data_inizio, data_fine, note, stato FROM tornei WHERE stato != 'bozza' ORDER BY data_inizio DESC, created_at DESC`);
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: CRUD ─── */
+app.get('/api/tornei', async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM tornei ORDER BY data_inizio DESC, created_at DESC');
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/tornei', adminAuth, async (req, res) => {
+  const { nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  const id = Date.now().toString();
   try {
     const r = await db.query(
-      `UPDATE calendario SET ${col} = COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements_text(${col}) AS x WHERE x != $1), '[]'::jsonb) WHERE id=$2 RETURNING id`,
-      [valore, req.params.id]
+      `INSERT INTO tornei (id, nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [id, nome.trim(), formato || '4vs4', data_inizio || '', data_fine || '', note || '', stato || 'bozza', responsabile || '', immagine || '']
     );
-    if (!r.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
-    res.json({ ok: true });
+    res.status(201).json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.put('/api/tornei/:id', adminAuth, async (req, res) => {
+  const { nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  try {
+    const r = await db.query(
+      `UPDATE tornei SET nome=$1, formato=$2, data_inizio=$3, data_fine=$4, note=$5, stato=$6, responsabile=$7, immagine=$8 WHERE id=$9 RETURNING *`,
+      [nome.trim(), formato || '4vs4', data_inizio || '', data_fine || '', note || '', stato || 'bozza', responsabile || '', immagine || '', req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Torneo non trovato' });
+    res.json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/tornei/:id', adminAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM torneo_partecipanti WHERE torneo_id=$1', [req.params.id]);
+    await db.query('DELETE FROM torneo_squadre WHERE torneo_id=$1', [req.params.id]);
+    const r = await db.query('DELETE FROM tornei WHERE id=$1 RETURNING id', [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Torneo non trovato' });
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: partecipanti ─── */
+app.get('/api/tornei/:id/partecipanti', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT u.id, u.nome, u.cognome, u.email FROM torneo_partecipanti tp
+       JOIN utenti u ON u.id = tp.utente_id
+       WHERE tp.torneo_id=$1 ORDER BY u.cognome, u.nome`,
+      [req.params.id]
+    );
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/tornei/:id/partecipanti', adminAuth, async (req, res) => {
+  const { utente_id } = req.body;
+  if (!utente_id) return res.status(400).json({ error: 'utente_id obbligatorio' });
+  try {
+    await db.query(
+      `INSERT INTO torneo_partecipanti (torneo_id, utente_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+      [req.params.id, utente_id]
+    );
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/tornei/:id/partecipanti/:uid', adminAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM torneo_partecipanti WHERE torneo_id=$1 AND utente_id=$2', [req.params.id, req.params.uid]);
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: squadre ─── */
+app.get('/api/tornei/:id/squadre', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM torneo_squadre WHERE torneo_id=$1 ORDER BY created_at', [req.params.id]);
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/tornei/:id/squadre', adminAuth, async (req, res) => {
+  const { nome, colore, partecipanti } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+  try {
+    const r = await db.query(
+      `INSERT INTO torneo_squadre (id, torneo_id, nome, colore, partecipanti) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [id, req.params.id, nome.trim(), colore || '#3b82f6', JSON.stringify(partecipanti || [])]
+    );
+    res.status(201).json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.put('/api/tornei/:id/squadre/:sid', adminAuth, async (req, res) => {
+  const { nome, colore, partecipanti } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  try {
+    const r = await db.query(
+      `UPDATE torneo_squadre SET nome=$1, colore=$2, partecipanti=$3 WHERE id=$4 AND torneo_id=$5 RETURNING *`,
+      [nome.trim(), colore || '#3b82f6', JSON.stringify(partecipanti || []), req.params.sid, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Squadra non trovata' });
+    res.json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/tornei/:id/squadre/:sid', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('DELETE FROM torneo_squadre WHERE id=$1 AND torneo_id=$2 RETURNING id', [req.params.sid, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Squadra non trovata' });
+    res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
@@ -1369,7 +1532,8 @@ app.get('/api/admin/calendario/:id/partecipanti', adminAuth, async (req, res) =>
     const sess = await db.query('SELECT categoria, categorie_collegate, utenti_collegati FROM calendario WHERE id=$1', [sessId]);
     if (!sess.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     const { categoria, categorie_collegate, utenti_collegati } = sess.rows[0];
-    const tutteCategorie = [categoria, ...(categorie_collegate || [])].filter(Boolean);
+    const categorieSplit = (categoria || '').split(',').map(c => c.trim()).filter(Boolean);
+    const tutteCategorie = [...categorieSplit, ...(categorie_collegate || [])].filter(Boolean);
     const utentiDiretti  = (utenti_collegati || []).map(String);
 
     // Build per-category jsonb conditions
@@ -2323,17 +2487,25 @@ function dbMatchToObj(row) {
   };
 }
 
+const HOME_LUOGO_KEYWORDS = ['tenda di abramo', 'tensostruttura', 'isis a. manzoni', 'palestra isis'];
+function isHomeLuogo(luogo) {
+  if (!luogo) return false;
+  const l = luogo.toLowerCase();
+  return HOME_LUOGO_KEYWORDS.some(k => l.includes(k));
+}
+
 // Upsert batch di match nel DB
 async function saveMatchesToDB(matches) {
   if (!matches.length) return;
   for (const m of matches) {
+    const luogoVal = m.luogo || '';
     await db.query(`
       INSERT INTO fipav_matches
         (id,fonte,categoria,cid,tid,giornata,data_ora,casa,ospite,
          risultato,played,postponed,parziali,luogo,logo_home,logo_away,
-         match_url,classifica_url,result_fetched,updated_at)
+         match_url,classifica_url,result_fetched,is_casa,updated_at)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
-        CASE WHEN $11 THEN true ELSE false END, NOW())
+        CASE WHEN $11 THEN true ELSE false END, $19, NOW())
       ON CONFLICT (id) DO UPDATE SET
         data_ora       = COALESCE(EXCLUDED.data_ora, fipav_matches.data_ora),
         risultato      = CASE WHEN EXCLUDED.played THEN EXCLUDED.risultato ELSE fipav_matches.risultato END,
@@ -2341,6 +2513,7 @@ async function saveMatchesToDB(matches) {
         postponed      = EXCLUDED.postponed,
         parziali       = COALESCE(EXCLUDED.parziali, fipav_matches.parziali),
         luogo          = COALESCE(NULLIF(EXCLUDED.luogo,''), fipav_matches.luogo),
+        is_casa        = CASE WHEN EXCLUDED.luogo != '' THEN EXCLUDED.is_casa ELSE fipav_matches.is_casa END,
         logo_home      = COALESCE(NULLIF(EXCLUDED.logo_home,''), fipav_matches.logo_home),
         logo_away      = COALESCE(NULLIF(EXCLUDED.logo_away,''), fipav_matches.logo_away),
         classifica_url = COALESCE(NULLIF(EXCLUDED.classifica_url,''), fipav_matches.classifica_url),
@@ -2353,8 +2526,9 @@ async function saveMatchesToDB(matches) {
       m.casa, m.ospite,
       m.risultato || '', m.played || false, m.postponed || false,
       m.parziali ? JSON.stringify(m.parziali) : null,
-      m.luogo || '', m.logoHome || '', m.logoAway || '',
+      luogoVal, m.logoHome || '', m.logoAway || '',
       m.matchUrl || '', m.classificaUrl || '',
+      isHomeLuogo(luogoVal),
     ]);
   }
 }
@@ -3314,22 +3488,22 @@ app.get('/api/squadra', async (_req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.post('/api/admin/squadra', adminAuth, async (req, res) => {
-  const { nome, cognome, numero, ruolo, foto, bio, sesso } = req.body;
+  const { nome, cognome, numero, ruolo, foto, bio, sesso, utente_id } = req.body;
   if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
   const id = Date.now().toString();
   try {
-    await db.query(`INSERT INTO squadra (id,nome,cognome,numero,ruolo,foto,bio,sesso) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [id, nome, cognome, numero || null, ruolo || '', foto || '', bio || '', sesso || 'Femminile']);
+    await db.query(`INSERT INTO squadra (id,nome,cognome,numero,ruolo,foto,bio,sesso,utente_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [id, nome, cognome, numero || null, ruolo || '', foto || '', bio || '', sesso || 'Femminile', utente_id || '']);
     await logActivity('Giocatrice aggiunta', `${nome} ${cognome}`);
-    res.status(201).json({ id, nome, cognome, numero, ruolo, foto, bio, sesso });
+    res.status(201).json({ id, nome, cognome, numero, ruolo, foto, bio, sesso, utente_id: utente_id || '' });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.put('/api/admin/squadra/:id', adminAuth, async (req, res) => {
-  const { nome, cognome, numero, ruolo, foto, bio, attiva, sesso } = req.body;
+  const { nome, cognome, numero, ruolo, foto, bio, attiva, sesso, utente_id } = req.body;
   try {
     const r = await db.query(
-      `UPDATE squadra SET nome=$1,cognome=$2,numero=$3,ruolo=$4,foto=$5,bio=$6,attiva=$7,sesso=$8 WHERE id=$9 RETURNING *`,
-      [nome, cognome, numero || null, ruolo || '', foto || '', bio || '', attiva !== false, sesso || 'Femminile', req.params.id]);
+      `UPDATE squadra SET nome=$1,cognome=$2,numero=$3,ruolo=$4,foto=$5,bio=$6,attiva=$7,sesso=$8,utente_id=$9 WHERE id=$10 RETURNING *`,
+      [nome, cognome, numero || null, ruolo || '', foto || '', bio || '', attiva !== false, sesso || 'Femminile', utente_id || '', req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Giocatrice non trovata' });
     await logActivity('Giocatrice modificata', `${nome} ${cognome}`);
     res.json(r.rows[0]);
