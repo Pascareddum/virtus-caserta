@@ -1525,7 +1525,7 @@ app.get('/api/admin/calendario/sessioni', adminAuth, async (_req, res) => {
   }
 });
 
-/* ─── Admin: partecipanti singola sessione (include non risposto) ─── */
+/* ─── Admin: partecipanti singola sessione (include non risposto + squadra players) ─── */
 app.get('/api/admin/calendario/:id/partecipanti', adminAuth, async (req, res) => {
   try {
     const sessId = req.params.id;
@@ -1533,7 +1533,7 @@ app.get('/api/admin/calendario/:id/partecipanti', adminAuth, async (req, res) =>
     if (!sess.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
     const { categoria, categorie_collegate, utenti_collegati } = sess.rows[0];
     const categorieSplit = (categoria || '').split(',').map(c => c.trim()).filter(Boolean);
-    const tutteCategorie = [...categorieSplit, ...(categorie_collegate || [])].filter(Boolean);
+    const tutteCategorie = [...new Set([...categorieSplit, ...(categorie_collegate || [])])].filter(Boolean);
     const utentiDiretti  = (utenti_collegati || []).map(String);
 
     // Build per-category jsonb conditions
@@ -1550,7 +1550,7 @@ app.get('/api/admin/calendario/:id/partecipanti', adminAuth, async (req, res) =>
       whereClause = `u.id::text = ANY($2)`;
     }
 
-    const r = await db.query(`
+    const utentiR = await db.query(`
       SELECT u.nome, u.cognome, u.email, p.risposta, p.created_at
       FROM utenti u
       LEFT JOIN partecipazioni p ON p.utente_id = u.id AND p.sessione_id = $1
@@ -1559,7 +1559,28 @@ app.get('/api/admin/calendario/:id/partecipanti', adminAuth, async (req, res) =>
         CASE p.risposta WHEN 'si' THEN 1 WHEN 'no' THEN 2 ELSE 3 END,
         u.cognome, u.nome
     `, params);
-    res.json(r.rows);
+
+    // Include unlinked squadra players (no active utente account)
+    let squadraRows = [];
+    if (tutteCategorie.length > 0) {
+      const sqR = await db.query(`
+        SELECT s.nome, s.cognome,
+          COALESCE(p.risposta, 'si') AS risposta,
+          p.created_at
+        FROM squadra s
+        LEFT JOIN partecipazioni p ON p.utente_id = ('g:' || s.id) AND p.sessione_id = $1
+        WHERE s.attiva = true
+          AND EXISTS (SELECT 1 FROM unnest(string_to_array(s.sesso, ',')) AS cat WHERE trim(cat) = ANY($2::text[]))
+          AND (s.utente_id IS NULL OR s.utente_id = ''
+            OR NOT EXISTS (
+              SELECT 1 FROM utenti u2 WHERE u2.id::text = s.utente_id AND u2.stato = 'attivo'
+            ))
+        ORDER BY s.cognome, s.nome
+      `, [sessId, tutteCategorie]);
+      squadraRows = sqR.rows.map(r => ({ ...r, email: '' }));
+    }
+
+    res.json([...utentiR.rows, ...squadraRows]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -3516,6 +3537,212 @@ app.delete('/api/admin/squadra/:id', adminAuth, async (req, res) => {
     await logActivity('Giocatrice eliminata', `${r.rows[0].nome} ${r.rows[0].cognome}`);
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
+});
+
+/* ─── Allenatore: atleti squadra ─── */
+app.get('/api/squadra/atleti', userAuth, async (req, res) => {
+  try {
+    const u = await db.query('SELECT is_allenatore, squadre_allenatore FROM utenti WHERE id=$1', [req.user.id]);
+    if (!u.rows.length || !u.rows[0].is_allenatore) return res.status(403).json({ error: 'Accesso non autorizzato' });
+    const squadre = u.rows[0].squadre_allenatore || [];
+    if (!squadre.length) return res.json([]);
+    const r = await db.query(
+      `SELECT * FROM squadra WHERE attiva=true AND EXISTS (SELECT 1 FROM unnest(string_to_array(sesso, ',')) AS cat WHERE trim(cat) = ANY($1::text[])) ORDER BY cognome, nome`,
+      [squadre]
+    );
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Allenatore: ultima sessione presenze (stats) ─── */
+app.get('/api/squadra/presenze/ultima', userAuth, async (req, res) => {
+  try {
+    const u = await db.query('SELECT is_allenatore, squadre_allenatore FROM utenti WHERE id=$1', [req.user.id]);
+    if (!u.rows.length || !u.rows[0].is_allenatore) return res.status(403).json({ error: 'Accesso non autorizzato' });
+    const squadre = u.rows[0].squadre_allenatore || [];
+    if (!squadre.length) return res.json(null);
+
+    const today = new Date().toISOString().split('T')[0];
+    const sessR = await db.query(`
+      SELECT id, titolo, data_str, categoria, categorie_collegate
+      FROM calendario
+      WHERE tipo = 'allenamento' AND data_str <= $1
+        AND (
+          EXISTS (SELECT 1 FROM unnest(string_to_array(categoria, ',')) AS cat WHERE trim(cat) = ANY($2::text[]))
+          OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(categorie_collegate,'[]'::jsonb)) AS cat WHERE cat = ANY($2::text[]))
+        )
+      ORDER BY data_str DESC, ora DESC
+      LIMIT 1
+    `, [today, squadre]);
+    if (!sessR.rows.length) return res.json(null);
+    const sess = sessR.rows[0];
+
+    const categorieSplit = (sess.categoria || '').split(',').map(c => c.trim()).filter(Boolean);
+    const tutteCategorie = [...new Set([...categorieSplit, ...(sess.categorie_collegate || [])])].filter(Boolean);
+    const catFiltrate = tutteCategorie.filter(c => squadre.includes(c));
+    if (!catFiltrate.length) return res.json(null);
+
+    const playersR = await db.query(
+      `SELECT id, utente_id FROM squadra WHERE attiva=true AND EXISTS (SELECT 1 FROM unnest(string_to_array(sesso, ',')) AS cat WHERE trim(cat) = ANY($1::text[]))`,
+      [catFiltrate]
+    );
+    const players = playersR.rows;
+    const allKeys = players.map(p => p.utente_id || ('g:' + p.id));
+
+    const partR = await db.query(
+      'SELECT utente_id, risposta FROM partecipazioni WHERE sessione_id=$1 AND utente_id = ANY($2::text[])',
+      [sess.id, allKeys]
+    );
+    const partMap = {};
+    partR.rows.forEach(p => { partMap[p.utente_id] = p.risposta; });
+
+    let presenti = 0, assenti = 0, non_risposto = 0;
+    for (const player of players) {
+      const key = player.utente_id || ('g:' + player.id);
+      const risposta = partMap[key];
+      if (!risposta) {
+        if (player.utente_id) non_risposto++; else presenti++;
+      } else if (risposta === 'si') presenti++;
+      else if (risposta === 'no') assenti++;
+      else non_risposto++;
+    }
+    res.json({ id: sess.id, evento: sess.titolo + ' · ' + sess.data_str, presenti, assenti, non_risposto });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Allenatore: lista sessioni allenamento ─── */
+app.get('/api/allenatore/sessioni', userAuth, async (req, res) => {
+  try {
+    const u = await db.query('SELECT is_allenatore, squadre_allenatore FROM utenti WHERE id=$1', [req.user.id]);
+    if (!u.rows.length || !u.rows[0].is_allenatore) return res.status(403).json({ error: 'Accesso non autorizzato' });
+    const squadre = u.rows[0].squadre_allenatore || [];
+    if (!squadre.length) return res.json([]);
+
+    const r = await db.query(`
+      SELECT c.id, c.titolo, c.data_str, c.ora, c.categoria
+      FROM calendario c
+      WHERE c.tipo = 'allenamento'
+        AND (
+          EXISTS (SELECT 1 FROM unnest(string_to_array(c.categoria, ',')) AS cat WHERE trim(cat) = ANY($1::text[]))
+          OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(c.categorie_collegate,'[]'::jsonb)) AS cat WHERE cat = ANY($1::text[]))
+        )
+      ORDER BY c.data_str DESC, c.ora DESC
+      LIMIT 30
+    `, [squadre]);
+    res.json(r.rows.map(x => ({ id: x.id, titolo: x.titolo, data: x.data_str, ora: x.ora })));
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Allenatore: presenze singola sessione ─── */
+app.get('/api/allenatore/sessioni/:id/presenze', userAuth, async (req, res) => {
+  try {
+    const u = await db.query('SELECT is_allenatore, squadre_allenatore FROM utenti WHERE id=$1', [req.user.id]);
+    if (!u.rows.length || !u.rows[0].is_allenatore) return res.status(403).json({ error: 'Accesso non autorizzato' });
+    const squadre = u.rows[0].squadre_allenatore || [];
+
+    const sessR = await db.query('SELECT id,titolo,data_str,ora,categoria,categorie_collegate FROM calendario WHERE id=$1', [req.params.id]);
+    if (!sessR.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    const sess = sessR.rows[0];
+
+    const categorieSplit = (sess.categoria || '').split(',').map(c => c.trim()).filter(Boolean);
+    const tutteCategorie = [...new Set([...categorieSplit, ...(sess.categorie_collegate || [])])].filter(Boolean);
+    const catFiltrate = tutteCategorie.filter(c => squadre.includes(c));
+    if (!catFiltrate.length) return res.json({ sessione: { id: sess.id, titolo: sess.titolo, data: sess.data_str, ora: sess.ora }, giocatori: [] });
+
+    const playersR = await db.query(
+      `SELECT id, nome, cognome, ruolo, utente_id, sesso FROM squadra WHERE attiva=true AND EXISTS (SELECT 1 FROM unnest(string_to_array(sesso, ',')) AS cat WHERE trim(cat) = ANY($1::text[])) ORDER BY cognome, nome`,
+      [catFiltrate]
+    );
+    const players = playersR.rows;
+    const allKeys = players.map(p => p.utente_id || ('g:' + p.id));
+
+    const partR = await db.query(
+      'SELECT utente_id, risposta FROM partecipazioni WHERE sessione_id=$1 AND utente_id = ANY($2::text[])',
+      [sess.id, allKeys.length ? allKeys : ['__nessuno__']]
+    );
+    const partMap = {};
+    partR.rows.forEach(p => { partMap[p.utente_id] = p.risposta; });
+
+    const giocatori = players.map(p => {
+      const key = p.utente_id || ('g:' + p.id);
+      const risposta = partMap[key];
+      return {
+        id: key,
+        nome: p.nome,
+        cognome: p.cognome,
+        ruolo: p.ruolo,
+        sesso: p.sesso,
+        has_account: !!p.utente_id,
+        risposta: risposta !== undefined ? risposta : (p.utente_id ? null : 'si'),
+      };
+    });
+
+    res.json({ sessione: { id: sess.id, titolo: sess.titolo, data: sess.data_str, ora: sess.ora }, giocatori });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Allenatore: aggiorna presenza ─── */
+app.put('/api/allenatore/sessioni/:id/presenze/:playerId', userAuth, async (req, res) => {
+  try {
+    const u = await db.query('SELECT is_allenatore FROM utenti WHERE id=$1', [req.user.id]);
+    if (!u.rows.length || !u.rows[0].is_allenatore) return res.status(403).json({ error: 'Accesso non autorizzato' });
+    const { risposta } = req.body;
+    if (!['si', 'no'].includes(risposta)) return res.status(400).json({ error: 'Risposta non valida' });
+    const sessR = await db.query('SELECT id FROM calendario WHERE id=$1', [req.params.id]);
+    if (!sessR.rows.length) return res.status(404).json({ error: 'Sessione non trovata' });
+    await db.query(
+      `INSERT INTO partecipazioni (sessione_id, utente_id, risposta)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (sessione_id, utente_id) DO UPDATE SET risposta = $3`,
+      [req.params.id, req.params.playerId, risposta]
+    );
+    res.json({ ok: true, risposta });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Allenatore: crea sessione calendario ─── */
+app.post('/api/allenatore/calendario', userAuth, async (req, res) => {
+  try {
+    const u = await db.query('SELECT is_allenatore, squadre_allenatore FROM utenti WHERE id=$1', [req.user.id]);
+    if (!u.rows.length || !u.rows[0].is_allenatore) return res.status(403).json({ error: 'Accesso non autorizzato' });
+    const squadreAllenatore = u.rows[0].squadre_allenatore || [];
+    const { titolo, data, ora, tipo, categoria, note, palestra_id, giorni_settimana, data_fine_ripetizione, responsabile } = req.body;
+    if (!titolo || !data || !ora) return res.status(400).json({ error: 'Titolo, data e ora obbligatori' });
+    const catList   = (categoria || '').split(',').map(c => c.trim()).filter(Boolean);
+    const catValide = catList.filter(c => squadreAllenatore.includes(c));
+    if (!catValide.length) return res.status(400).json({ error: 'Seleziona almeno una squadra tra quelle assegnate' });
+    const tipoVal      = tipo === 'evento' ? 'evento' : 'allenamento';
+    const categoriaStr = catValide.join(',');
+    const palestraVal  = palestra_id || '';
+    const respVal      = responsabile || '';
+    const dataFineEff  = data_fine_ripetizione || null;
+    const _fmtDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const _ins = (id, dataStr) => db.query(
+      `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, palestra_id, responsabile) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [id, titolo.trim(), dataStr, ora, categoriaStr, note || '', tipoVal, palestraVal, respVal]
+    );
+    const giorniArr = Array.isArray(giorni_settimana) && giorni_settimana.length ? giorni_settimana.map(Number) : null;
+    if (giorniArr && dataFineEff && dataFineEff >= data) {
+      const giorniSet = new Set(giorniArr);
+      const sessioni = [];
+      let cur = new Date(data + 'T00:00:00');
+      const end = new Date(dataFineEff + 'T00:00:00');
+      let i = 0;
+      while (cur <= end) {
+        if (giorniSet.has(cur.getDay())) {
+          const id = Date.now().toString() + '_' + i;
+          await _ins(id, _fmtDate(cur));
+          sessioni.push({ id, titolo: titolo.trim(), data: _fmtDate(cur), ora, tipo: tipoVal });
+          i++;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return res.status(201).json({ sessioni, count: sessioni.length });
+    }
+    const id = Date.now().toString();
+    await _ins(id, data);
+    res.status(201).json({ id, titolo: titolo.trim(), data_str: data, ora, tipo: tipoVal, categoria: categoriaStr, count: 1 });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
 /* ─── Galleria ─── */

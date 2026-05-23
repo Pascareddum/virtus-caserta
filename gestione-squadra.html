@@ -119,7 +119,7 @@
       .action-grid { grid-template-columns: 1fr; }
     }
 
-    /* ── Compose modal ── */
+    /* ── Modals ── */
     .compose-bg{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.45);
       backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;}
     .compose-bg.open{display:flex;}
@@ -135,13 +135,53 @@
       padding:10px 13px;border:1.5px solid #e9ecf0;border-radius:10px;
       font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;width:100%;}
     .cfield input:focus,.cfield select:focus,.cfield textarea:focus{border-color:#0d2055;}
-    .cfield textarea{resize:vertical;min-height:100px;}
+    .cfield textarea{resize:vertical;min-height:80px;}
     .compose-ftr{display:flex;gap:10px;margin-top:4px;}
     .btn-cancel{flex:1;padding:12px;border:1.5px solid #e9ecf0;background:none;border-radius:50px;
       font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;font-family:inherit;}
     .btn-send{flex:2;padding:12px;border:none;background:#0d2055;color:#fff;border-radius:50px;
       font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
     .btn-send:disabled{opacity:.5;cursor:not-allowed;}
+
+    /* ── Session form ── */
+    .sf-tipo-btn{flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+    .sf-tipo-btn.on{border-color:#0d2055;background:#0d2055;color:#fff;}
+    .sf-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+    .sf-giorno-btn{padding:6px 9px;border-radius:8px;border:1.5px solid #e9ecf0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#6b7280;transition:all .12s;}
+    .sf-giorno-btn.on{border-color:#0d2055;background:#0d2055;color:#fff;}
+    .sf-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#dbeafe;color:#1d4ed8;border-radius:20px;font-size:12px;font-weight:600;}
+    .sf-chip button{background:none;border:none;cursor:pointer;color:#1d4ed8;font-size:14px;line-height:1;padding:0 2px;font-family:inherit;}
+    .sf-occ-row-ok{padding:8px 12px;font-weight:600;color:#15803d;font-size:13px;}
+    .sf-occ-row-ko{padding:8px 12px;font-weight:600;color:#b91c1c;font-size:13px;}
+    @media(max-width:480px){.sf-row3{grid-template-columns:1fr 1fr;}}
+
+    /* ── Presenze ── */
+    .sessione-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+      transition: background .15s;
+    }
+    .sessione-row:last-child { border-bottom: none; }
+    .sessione-row:hover { background: #f8fafc; }
+    .sessione-row.attiva { background: #eff6ff; }
+    .sessione-titolo { font-size: 13px; font-weight: 700; color: #0d2055; }
+    .sessione-data { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+    .giocatore-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px; border-bottom: 1px solid #f1f5f9;
+    }
+    .giocatore-row:last-child { border-bottom: none; }
+    .giocatore-nome { font-size: 13px; font-weight: 700; color: #111827; }
+    .giocatore-sub { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+    .p-toggle { display: flex; border-radius: 8px; overflow: hidden; border: 1.5px solid #e9ecf0; }
+    .p-btn {
+      padding: 6px 12px; border: none; background: none; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit; color: #9ca3af; transition: all .12s;
+    }
+    .p-btn.si.on { background: #dcfce7; color: #16a34a; }
+    .p-btn.no.on { background: #fee2e2; color: #dc2626; }
+    .p-btn:not(.on):hover { background: #f1f5f9; }
+    .empty-presenze { padding: 24px; text-align: center; color: #9ca3af; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -193,6 +233,15 @@
         <span class="action-arrow">›</span>
       </a>
 
+      <button class="action-card" onclick="apriNuovaSessione()" style="border:none;text-align:left;width:100%;">
+        <div class="action-ico">📅</div>
+        <div class="action-body">
+          <div class="action-name">Nuova sessione</div>
+          <div class="action-desc">Crea un allenamento o evento per le tue squadre</div>
+        </div>
+        <span class="action-arrow">›</span>
+      </button>
+
       <button class="action-card full" onclick="apriComposeComm()" style="border:none;text-align:left;width:100%;">
         <div class="action-ico">💬</div>
         <div class="action-body">
@@ -217,6 +266,108 @@
       </div>
     </div>
 
+    <!-- Gestione presenze -->
+    <div class="section-label" style="margin-top:28px;">Gestione presenze</div>
+    <div class="stats-card">
+      <div class="stats-header">
+        <span class="stats-title">Allenamenti</span>
+        <span class="spin" id="presenzeSpin" style="display:none;"></span>
+      </div>
+      <div id="presenzeSessioniList"><div class="empty-presenze">Caricamento…</div></div>
+    </div>
+
+    <div id="presenzeDetailWrap" style="display:none; margin-top:14px;">
+      <div class="stats-card">
+        <div class="stats-header">
+          <div>
+            <div class="stats-title" id="presenzeDetailTitolo">—</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:2px;" id="presenzeDetailData">—</div>
+          </div>
+          <button onclick="chiudiPresenzeDetail()" style="font-size:12px;color:#6b7280;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:600;">Chiudi ✕</button>
+        </div>
+        <div id="presenzeGiocatoriList"><div class="empty-presenze">—</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Nuova sessione modal -->
+  <div class="compose-bg" id="nuovaSessioneModal" onclick="if(event.target===this)chiudiNuovaSessione()">
+    <div class="compose-box" style="max-height:90vh;overflow-y:auto;max-width:520px;">
+      <div class="compose-hdr">
+        <h3>Nuova sessione</h3>
+        <button class="compose-close" onclick="chiudiNuovaSessione()">✕</button>
+      </div>
+
+      <!-- Tipo -->
+      <div class="cfield">
+        <label>Tipo</label>
+        <div style="display:flex;gap:8px;">
+          <button class="sf-tipo-btn on" id="sfTipoAllenamento" onclick="sfSetTipo('allenamento')">Allenamento</button>
+          <button class="sf-tipo-btn" id="sfTipoEvento" onclick="sfSetTipo('evento')">Evento</button>
+        </div>
+        <input type="hidden" id="sfTipo" value="allenamento">
+      </div>
+
+      <!-- Titolo -->
+      <div class="cfield"><label>Titolo *</label><input type="text" id="sfTitolo" placeholder="Es. Allenamento Under 13"></div>
+
+      <!-- Data / Inizio / Fine -->
+      <div class="sf-row3">
+        <div class="cfield" style="margin-bottom:0;"><label>Data *</label><input type="date" id="sfData" onchange="sfOnPalestraChange()"></div>
+        <div class="cfield" style="margin-bottom:0;"><label>Inizio *</label><input type="time" id="sfOraInizio" value="18:00"></div>
+        <div class="cfield" style="margin-bottom:0;"><label>Fine</label><input type="time" id="sfOraFine" value="20:00"></div>
+      </div>
+      <div style="margin-bottom:14px;"></div>
+
+      <!-- Palestra -->
+      <div class="cfield">
+        <label>Palestra</label>
+        <select id="sfPalestra" onchange="sfOnPalestraChange()" style="padding:10px 13px;border:1.5px solid #e9ecf0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;width:100%;">
+          <option value="">— Nessuna palestra —</option>
+        </select>
+      </div>
+      <div id="sfOccupazioneWrap" style="display:none;" class="cfield">
+        <label>Disponibilità palestra</label>
+        <div id="sfOccupazioneTable" style="border:1px solid #e9ecf0;border-radius:10px;overflow:hidden;"></div>
+      </div>
+
+      <!-- Squadre chips -->
+      <div class="cfield">
+        <label>Squadre</label>
+        <div id="sfSquadreChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;"></div>
+        <div style="position:relative;margin-top:6px;">
+          <button type="button" onclick="sfToggleSquadreDD(event)" style="padding:6px 14px;border-radius:8px;border:1.5px dashed #e9ecf0;background:#f9fafb;font-size:12px;cursor:pointer;font-weight:600;color:#6b7280;font-family:inherit;">+ Aggiungi squadra</button>
+          <div id="sfSquadreDD" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:400;background:#fff;border:1.5px solid #e9ecf0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:6px;min-width:180px;max-height:200px;overflow-y:auto;"></div>
+        </div>
+      </div>
+
+      <!-- Giorni settimana (allenamento only) -->
+      <div class="cfield" id="sfGiorniWrap">
+        <label>Ripeti nei giorni</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="sf-giorno-btn" data-g="1" onclick="sfToggleGiorno(1)">Lun</button>
+          <button type="button" class="sf-giorno-btn" data-g="2" onclick="sfToggleGiorno(2)">Mar</button>
+          <button type="button" class="sf-giorno-btn" data-g="3" onclick="sfToggleGiorno(3)">Mer</button>
+          <button type="button" class="sf-giorno-btn" data-g="4" onclick="sfToggleGiorno(4)">Gio</button>
+          <button type="button" class="sf-giorno-btn" data-g="5" onclick="sfToggleGiorno(5)">Ven</button>
+          <button type="button" class="sf-giorno-btn" data-g="6" onclick="sfToggleGiorno(6)">Sab</button>
+          <button type="button" class="sf-giorno-btn" data-g="0" onclick="sfToggleGiorno(0)">Dom</button>
+        </div>
+      </div>
+      <div class="cfield" id="sfDataFineWrap" style="display:none;">
+        <label>Data fine ripetizione *</label>
+        <input type="date" id="sfDataFine">
+      </div>
+
+      <!-- Note -->
+      <div class="cfield"><label>Note</label><textarea id="sfNote" placeholder="Informazioni aggiuntive…"></textarea></div>
+
+      <div class="compose-ftr">
+        <button class="btn-cancel" onclick="chiudiNuovaSessione()">Annulla</button>
+        <button class="btn-send" id="btnNuovaSessione" onclick="salvaNuovaSessione()">Crea</button>
+      </div>
+    </div>
   </div>
 
   <!-- Compose modal -->
@@ -280,15 +431,159 @@
       } catch {}
 
       // Last session attendance
+      caricaUltimaPresenze();
+    }
+
+    let _squadreAllenatore = [];
+    let _sfPalestreCache  = [];
+    let _sfSquadreSelezionate = [];
+    let _sfGiorniSett = new Set();
+
+    /* ── Tipo ── */
+    function sfSetTipo(tipo) {
+      document.getElementById('sfTipo').value = tipo;
+      document.getElementById('sfTipoAllenamento').className = 'sf-tipo-btn' + (tipo === 'allenamento' ? ' on' : '');
+      document.getElementById('sfTipoEvento').className      = 'sf-tipo-btn' + (tipo === 'evento'      ? ' on' : '');
+      const gw = document.getElementById('sfGiorniWrap');
+      gw.style.display = tipo === 'allenamento' ? '' : 'none';
+      if (tipo !== 'allenamento') { _sfGiorniSett = new Set(); sfSyncGiorniBtns(); document.getElementById('sfDataFineWrap').style.display = 'none'; }
+    }
+
+    /* ── Giorni ── */
+    function sfToggleGiorno(g) {
+      if (_sfGiorniSett.has(g)) _sfGiorniSett.delete(g); else _sfGiorniSett.add(g);
+      sfSyncGiorniBtns();
+      document.getElementById('sfDataFineWrap').style.display = _sfGiorniSett.size > 0 ? '' : 'none';
+    }
+    function sfSyncGiorniBtns() {
+      document.querySelectorAll('.sf-giorno-btn').forEach(b => b.classList.toggle('on', _sfGiorniSett.has(parseInt(b.dataset.g))));
+    }
+
+    /* ── Palestra ── */
+    async function sfCaricaPalestre() {
+      if (_sfPalestreCache.length) return;
       try {
-        const sess = await fetch('/api/squadra/presenze/ultima', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
-        if (sess && sess.evento) {
-          document.getElementById('lastEvLabel').textContent = sess.evento;
-          document.getElementById('statPresenti').textContent = sess.presenti ?? '—';
-          document.getElementById('statAssenti').textContent  = sess.assenti  ?? '—';
-          document.getElementById('statNonRisp').textContent  = sess.non_risposto ?? '—';
-        }
+        _sfPalestreCache = await fetch('/api/palestre').then(r => r.json());
+        const sel = document.getElementById('sfPalestra');
+        _sfPalestreCache.forEach(p => {
+          const o = document.createElement('option');
+          o.value = p.id; o.textContent = p.nome; sel.appendChild(o);
+        });
       } catch {}
+    }
+
+    async function sfOnPalestraChange() {
+      const pid  = document.getElementById('sfPalestra').value;
+      const data = document.getElementById('sfData').value;
+      const wrap = document.getElementById('sfOccupazioneWrap');
+      if (!pid || !data) { wrap.style.display = 'none'; return; }
+      wrap.style.display = '';
+      const tbl = document.getElementById('sfOccupazioneTable');
+      tbl.innerHTML = '<div style="padding:10px 12px;color:#9ca3af;font-size:13px;">Caricamento…</div>';
+      try {
+        const { disponibili = [], occupati = [] } = await fetch(`/api/palestre/${pid}/occupazione?data=${data}`).then(r => r.json());
+        if (!disponibili.length && !occupati.length) {
+          tbl.innerHTML = '<div style="padding:10px 12px;color:#9ca3af;font-size:13px;">Nessuna fascia configurata per questo giorno.</div>';
+          return;
+        }
+        tbl.innerHTML = '<table style="width:100%;border-collapse:collapse;">' +
+          disponibili.map(s => `<tr><td class="sf-occ-row-ok">🟢 ${s.inizio}–${s.fine}</td><td style="padding:8px 12px;color:#9ca3af;font-size:12px;">Disponibile</td></tr>`).join('') +
+          occupati.map(s   => `<tr><td class="sf-occ-row-ko">🔴 ${s.inizio}–${s.fine}</td><td style="padding:8px 12px;color:#9ca3af;font-size:12px;">Occupata: ${s.titolo}</td></tr>`).join('') +
+          '</table>';
+      } catch { tbl.innerHTML = '<div style="padding:10px 12px;color:#dc2626;font-size:13px;">Errore caricamento</div>'; }
+    }
+
+    /* ── Squadre chips ── */
+    function sfRenderChips() {
+      document.getElementById('sfSquadreChips').innerHTML = _sfSquadreSelezionate.map(n =>
+        `<span class="sf-chip">${n}<button onclick="sfRemoveSquadra('${n}')">×</button></span>`).join('');
+    }
+    function sfToggleSquadreDD(e) {
+      const dd = document.getElementById('sfSquadreDD');
+      const available = _squadreAllenatore.filter(n => !_sfSquadreSelezionate.includes(n));
+      if (!available.length) { dd.style.display = 'none'; return; }
+      dd.innerHTML = available.map(n =>
+        `<div onclick="sfAddSquadra('${n}')" style="padding:8px 12px;cursor:pointer;border-radius:7px;font-size:13px;font-weight:600;color:#111827;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='';">${n}</div>`
+      ).join('');
+      dd.style.display = dd.style.display === 'none' ? '' : 'none';
+      e.stopPropagation();
+    }
+    function sfAddSquadra(nome) {
+      if (!_sfSquadreSelezionate.includes(nome)) _sfSquadreSelezionate.push(nome);
+      document.getElementById('sfSquadreDD').style.display = 'none';
+      sfRenderChips();
+    }
+    function sfRemoveSquadra(nome) {
+      _sfSquadreSelezionate = _sfSquadreSelezionate.filter(n => n !== nome);
+      sfRenderChips();
+    }
+    document.addEventListener('click', () => { const dd = document.getElementById('sfSquadreDD'); if (dd) dd.style.display = 'none'; });
+
+    /* ── Open / close ── */
+    async function apriNuovaSessione() {
+      // Load squadre if not yet
+      if (!_squadreAllenatore.length) {
+        try {
+          const prof = await fetch('/api/profilo', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+          _squadreAllenatore = Array.isArray(prof.squadre_allenatore) ? prof.squadre_allenatore : [];
+        } catch {}
+      }
+      // Reset form
+      document.getElementById('sfTitolo').value    = '';
+      document.getElementById('sfData').value      = new Date().toISOString().split('T')[0];
+      document.getElementById('sfOraInizio').value = '18:00';
+      document.getElementById('sfOraFine').value   = '20:00';
+      document.getElementById('sfNote').value      = '';
+      document.getElementById('sfDataFine').value  = '';
+      document.getElementById('sfDataFineWrap').style.display   = 'none';
+      document.getElementById('sfOccupazioneWrap').style.display = 'none';
+      document.getElementById('sfPalestra').value  = '';
+      _sfGiorniSett = new Set(); sfSyncGiorniBtns();
+      _sfSquadreSelezionate = [..._squadreAllenatore]; // all pre-selected
+      sfRenderChips();
+      sfSetTipo('allenamento');
+      await sfCaricaPalestre();
+      document.getElementById('nuovaSessioneModal').classList.add('open');
+    }
+
+    function chiudiNuovaSessione() {
+      document.getElementById('nuovaSessioneModal').classList.remove('open');
+    }
+
+    async function salvaNuovaSessione() {
+      const titolo = document.getElementById('sfTitolo').value.trim();
+      const data   = document.getElementById('sfData').value;
+      const inizio = document.getElementById('sfOraInizio').value;
+      const fine   = document.getElementById('sfOraFine').value;
+      const tipo   = document.getElementById('sfTipo').value;
+      const note   = document.getElementById('sfNote').value.trim();
+      const palestra_id = document.getElementById('sfPalestra').value;
+      const giorni_settimana = [..._sfGiorniSett];
+      const data_fine_ripetizione = document.getElementById('sfDataFine').value;
+      if (!titolo)  { alert('Titolo obbligatorio'); return; }
+      if (!data)    { alert('Data obbligatoria'); return; }
+      if (!inizio)  { alert('Ora di inizio obbligatoria'); return; }
+      if (!_sfSquadreSelezionate.length) { alert('Seleziona almeno una squadra'); return; }
+      if (giorni_settimana.length > 0 && !data_fine_ripetizione) { alert('Inserisci la data di fine per la ripetizione.'); return; }
+      const ora = fine ? `${inizio}–${fine}` : inizio;
+      const btn = document.getElementById('btnNuovaSessione');
+      btn.disabled = true; btn.textContent = 'Salvataggio…';
+      try {
+        const r = await fetch('/api/allenatore/calendario', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+          body: JSON.stringify({ titolo, data, ora, tipo, categoria: _sfSquadreSelezionate.join(','), note, palestra_id, giorni_settimana: giorni_settimana.length ? giorni_settimana : undefined, data_fine_ripetizione: giorni_settimana.length ? data_fine_ripetizione : undefined }),
+        });
+        if (!r.ok) { const e = await r.json(); throw new Error(e.error || 'Errore'); }
+        const result = await r.json();
+        chiudiNuovaSessione();
+        caricaPresenzeSessioni();
+        if (result.count > 1) alert(`Create ${result.count} sessioni.`); else alert('Sessione creata.');
+      } catch (e) {
+        alert('Errore: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = 'Crea';
+      }
     }
 
     function apriComposeComm() { document.getElementById('composeModal').classList.add('open'); }
@@ -319,7 +614,120 @@
       }
     }
 
+    let _presenzeSessioneAttiva = null;
+
+    function _fmtData(d) {
+      if (!d) return '';
+      const [y, m, g] = d.split('-');
+      return `${g}/${m}/${y}`;
+    }
+
+    async function caricaPresenzeSessioni() {
+      const spin = document.getElementById('presenzeSpin');
+      spin.style.display = 'inline-block';
+      try {
+        const sessioni = await fetch('/api/allenatore/sessioni', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        const el = document.getElementById('presenzeSessioniList');
+        if (!Array.isArray(sessioni) || !sessioni.length) {
+          el.innerHTML = '<div class="empty-presenze">Nessun allenamento trovato.</div>';
+          return;
+        }
+        el.innerHTML = sessioni.map(s => `
+          <div class="sessione-row" id="sr_${s.id}" onclick="caricaPresenzeDetail('${s.id}', this)">
+            <div>
+              <div class="sessione-titolo">${s.titolo}</div>
+              <div class="sessione-data">${_fmtData(s.data)} · ${s.ora || ''}</div>
+            </div>
+            <span style="color:#d1d5db;font-size:16px;">›</span>
+          </div>`).join('');
+      } catch {
+        document.getElementById('presenzeSessioniList').innerHTML = '<div class="empty-presenze">Errore di caricamento.</div>';
+      } finally {
+        spin.style.display = 'none';
+      }
+    }
+
+    async function caricaPresenzeDetail(sessId, rowEl) {
+      _presenzeSessioneAttiva = sessId;
+      document.querySelectorAll('.sessione-row').forEach(r => r.classList.remove('attiva'));
+      if (rowEl) rowEl.classList.add('attiva');
+
+      const wrap = document.getElementById('presenzeDetailWrap');
+      const list = document.getElementById('presenzeGiocatoriList');
+      wrap.style.display = 'block';
+      list.innerHTML = '<div class="empty-presenze">Caricamento…</div>';
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      try {
+        const data = await fetch(`/api/allenatore/sessioni/${sessId}/presenze`, { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        document.getElementById('presenzeDetailTitolo').textContent = data.sessione?.titolo || '—';
+        document.getElementById('presenzeDetailData').textContent = _fmtData(data.sessione?.data) + (data.sessione?.ora ? ' · ' + data.sessione.ora : '');
+
+        const giocatori = data.giocatori || [];
+        if (!giocatori.length) {
+          list.innerHTML = '<div class="empty-presenze">Nessun giocatore per questo allenamento.</div>';
+          return;
+        }
+        list.innerHTML = giocatori.map(g => {
+          const siOn = g.risposta === 'si' ? 'on' : '';
+          const noOn = g.risposta === 'no' ? 'on' : '';
+          const sub  = [g.sesso, g.ruolo, g.has_account ? null : 'solo squadra'].filter(Boolean).join(' · ');
+          return `
+            <div class="giocatore-row" id="gr_${g.id.replace(/[^a-zA-Z0-9]/g,'_')}">
+              <div>
+                <div class="giocatore-nome">${g.cognome} ${g.nome}</div>
+                <div class="giocatore-sub">${sub}</div>
+              </div>
+              <div class="p-toggle">
+                <button class="p-btn si ${siOn}" onclick="setPresenza('${sessId}','${g.id}','si',this)">✓</button>
+                <button class="p-btn no ${noOn}" onclick="setPresenza('${sessId}','${g.id}','no',this)">✗</button>
+              </div>
+            </div>`;
+        }).join('');
+      } catch {
+        list.innerHTML = '<div class="empty-presenze">Errore di caricamento.</div>';
+      }
+    }
+
+    async function setPresenza(sessId, playerId, risposta, btn) {
+      const toggle = btn.closest('.p-toggle');
+      toggle.querySelectorAll('.p-btn').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      try {
+        const encodedId = encodeURIComponent(playerId);
+        await fetch(`/api/allenatore/sessioni/${sessId}/presenze/${encodedId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+          body: JSON.stringify({ risposta }),
+        });
+        // Refresh last session stats
+        caricaUltimaPresenze();
+      } catch {
+        // Rollback UI optimistic update on error
+        toggle.querySelectorAll('.p-btn').forEach(b => b.classList.remove('on'));
+      }
+    }
+
+    async function caricaUltimaPresenze() {
+      try {
+        const sess = await fetch('/api/squadra/presenze/ultima', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        if (sess && sess.evento) {
+          document.getElementById('lastEvLabel').textContent = sess.evento;
+          document.getElementById('statPresenti').textContent = sess.presenti ?? '—';
+          document.getElementById('statAssenti').textContent  = sess.assenti  ?? '—';
+          document.getElementById('statNonRisp').textContent  = sess.non_risposto ?? '—';
+        }
+      } catch {}
+    }
+
+    function chiudiPresenzeDetail() {
+      document.getElementById('presenzeDetailWrap').style.display = 'none';
+      document.querySelectorAll('.sessione-row').forEach(r => r.classList.remove('attiva'));
+      _presenzeSessioneAttiva = null;
+    }
+
     carica();
+    caricaPresenzeSessioni();
   </script>
 </body>
 </html>

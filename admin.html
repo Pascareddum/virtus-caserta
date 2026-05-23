@@ -1859,10 +1859,12 @@
         </div>
       </div>
       <div class="mf">
-        <label>Allenatore/Responsabile</label>
-        <select id="tResponsabile" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
-          <option value="">— Seleziona responsabile —</option>
-        </select>
+        <label>Allenatori/Responsabili</label>
+        <div id="tRespChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;"></div>
+        <div style="position:relative;margin-top:6px;">
+          <button type="button" onclick="respToggleDD('t',event)" style="padding:6px 14px;border-radius:8px;border:1.5px dashed var(--bordo);background:var(--surface);font-size:12px;cursor:pointer;font-weight:600;color:#6b7280;font-family:inherit;">+ Aggiungi responsabile</button>
+          <div id="tRespDD" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#fff;border:1.5px solid var(--bordo);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:6px;min-width:220px;max-height:220px;overflow-y:auto;"></div>
+        </div>
       </div>
       <div class="mf">
         <label>Immagine</label>
@@ -2401,10 +2403,12 @@
         <input type="hidden" id="sFotoUrl">
       </div>
       <div class="mf">
-        <label>Allenatore/Responsabile</label>
-        <select id="sResponsabile" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
-          <option value="">— Seleziona responsabile —</option>
-        </select>
+        <label>Allenatori/Responsabili</label>
+        <div id="sRespChips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;"></div>
+        <div style="position:relative;margin-top:6px;">
+          <button type="button" onclick="respToggleDD('s',event)" style="padding:6px 14px;border-radius:8px;border:1.5px dashed var(--bordo);background:var(--surface);font-size:12px;cursor:pointer;font-weight:600;color:#6b7280;font-family:inherit;">+ Aggiungi responsabile</button>
+          <div id="sRespDD" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:#fff;border:1.5px solid var(--bordo);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15);padding:6px;min-width:220px;max-height:220px;overflow-y:auto;"></div>
+        </div>
       </div>
       <div class="mf">
         <label>Note</label>
@@ -3426,7 +3430,7 @@
       if (_calCatSelected) categoriaCorrente = _calCatSelected;
     }
     await renderSCategoriaCheckboxes(categoriaCorrente);
-    await _popolaResponsabileSelect('sResponsabile', responsabileCorrente);
+    await respInitWidget('s', responsabileCorrente);
     document.getElementById('modalSessione').classList.add('aperto');
   }
 
@@ -3450,7 +3454,7 @@
         titolo, data, ora,
         categoria:    getSCategoriaValue(),
         note:         document.getElementById('sNote').value.trim(),
-        responsabile: document.getElementById('sResponsabile').value.trim(),
+        responsabile: respGetValue('s'),
         tipo:         tipoVal,
         formato:      tipoVal === 'torneo' ? document.getElementById('sFormato').value : '',
         foto,
@@ -6057,7 +6061,7 @@
       document.getElementById('tFormato').value       = '4vs4';
       setTorneoFormato('4vs4');
     }
-    await _popolaResponsabileSelect('tResponsabile', responsabileCorrente);
+    await respInitWidget('t', responsabileCorrente);
     document.getElementById('modalTorneo').classList.add('aperto');
   }
 
@@ -6082,7 +6086,7 @@
       data_fine:    document.getElementById('tDataFine').value,
       stato:        document.getElementById('tStato').value,
       note:         document.getElementById('tNote').value.trim(),
-      responsabile: document.getElementById('tResponsabile').value.trim(),
+      responsabile: respGetValue('t'),
       immagine,
     };
     const btn = document.getElementById('btnSalvaTorneo');
@@ -6128,56 +6132,80 @@
     } catch { _allUtentiCache = []; }
   }
 
-  async function _popolaResponsabileSelect(selectId, currentValue) {
-    const sel = document.getElementById(selectId);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— Seleziona responsabile —</option>';
+  /* ─── Multi-responsabile widget ─── */
+  const _respState = {};
+  function _respGetState(p) { if (!_respState[p]) _respState[p] = { selected: [], options: [] }; return _respState[p]; }
+
+  function respRenderChips(p) {
+    const el = document.getElementById(p + 'RespChips');
+    if (!el) return;
+    const state = _respGetState(p);
+    el.innerHTML = state.selected.map(n =>
+      `<span class="squadra-chip">${n}<button type="button" onclick="respRemove('${p}','${n.replace(/'/g,"\\'")}')" style="line-height:1;">×</button></span>`
+    ).join('') || '<span style="font-size:12px;color:#9ca3af;">Nessun responsabile</span>';
+  }
+
+  function respToggleDD(p, ev) {
+    if (ev) ev.stopPropagation();
+    const dd = document.getElementById(p + 'RespDD');
+    if (!dd) return;
+    const state = _respGetState(p);
+    const available = state.options.filter(o => !state.selected.includes(o.value));
+    if (!available.length) { dd.style.display = 'none'; return; }
+    dd.innerHTML = available.map(o =>
+      `<div onclick="respAdd('${p}','${o.value.replace(/'/g,"\\'")}');event.stopPropagation();" style="padding:8px 12px;cursor:pointer;border-radius:7px;font-size:13px;font-weight:600;color:#111827;transition:background .1s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='';">${o.label}</div>`
+    ).join('');
+    dd.style.display = dd.style.display === 'none' || !dd.style.display ? '' : 'none';
+  }
+
+  function respAdd(p, value) {
+    const state = _respGetState(p);
+    if (!state.selected.includes(value)) state.selected.push(value);
+    const dd = document.getElementById(p + 'RespDD');
+    if (dd) dd.style.display = 'none';
+    respRenderChips(p);
+  }
+
+  function respRemove(p, name) {
+    const state = _respGetState(p);
+    state.selected = state.selected.filter(n => n !== name);
+    respRenderChips(p);
+  }
+
+  function respGetValue(p) { return _respGetState(p).selected.join(','); }
+
+  async function respInitWidget(p, currentValue) {
+    const state = _respGetState(p);
+    state.selected = (currentValue || '').split(',').map(s => s.trim()).filter(Boolean);
+    state.options  = [];
     try {
       const RUOLI_STAFF_LOC = ['Staff','Allenatore','Vice Allenatore','Preparatore Atletico','Fisioterapista','Team Manager','Dirigente','Accompagnatore','Medico'];
       const [staffList, utentiList] = await Promise.all([
         fetch('/api/squadra', { headers: headers() }).then(r => r.json()),
         fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json()),
       ]);
-
-      // 1. Utenti registrati (attivi) — prima
-      const utentiAttivi = utentiList.filter(u => u.stato === 'attivo');
       const utentiNomi = new Set();
-      utentiAttivi.forEach(u => {
+      utentiList.filter(u => u.stato === 'attivo').forEach(u => {
         const nome = `${u.nome} ${u.cognome}`;
         utentiNomi.add(nome);
-        const opt = document.createElement('option');
-        opt.value = nome;
-        const ruoloLabel = u.is_allenatore ? 'Allenatore' : 'Utente';
-        opt.textContent = `${nome} (${ruoloLabel})`;
-        sel.appendChild(opt);
+        state.options.push({ value: nome, label: `${nome} (${u.is_allenatore ? 'Allenatore' : 'Utente'})` });
       });
-
-      // 2. Staff senza account collegato — dopo
       const staffVisti = new Set();
-      staffList
-        .filter(g => (g.sesso === 'Staff' || RUOLI_STAFF_LOC.includes(g.ruolo)) && !g.utente_id)
-        .forEach(g => {
-          const nome = `${g.nome} ${g.cognome}`;
-          if (staffVisti.has(nome) || utentiNomi.has(nome)) return;
-          staffVisti.add(nome);
-          const opt = document.createElement('option');
-          opt.value = nome;
-          opt.textContent = `${nome} (${g.ruolo || 'Staff'})`;
-          sel.appendChild(opt);
-        });
-
-      if (currentValue) {
-        sel.value = currentValue;
-        if (!sel.value) {
-          const opt = document.createElement('option');
-          opt.value = currentValue;
-          opt.textContent = currentValue;
-          sel.insertBefore(opt, sel.children[1]);
-          sel.value = currentValue;
-        }
-      }
+      staffList.filter(g => (g.sesso === 'Staff' || RUOLI_STAFF_LOC.includes(g.ruolo)) && !g.utente_id).forEach(g => {
+        const nome = `${g.nome} ${g.cognome}`;
+        if (staffVisti.has(nome) || utentiNomi.has(nome)) return;
+        staffVisti.add(nome);
+        state.options.push({ value: nome, label: `${nome} (${g.ruolo || 'Staff'})` });
+      });
+      // Add any currentValue entries not in the list
+      state.selected.forEach(v => { if (!state.options.find(o => o.value === v)) state.options.push({ value: v, label: v }); });
     } catch {}
+    respRenderChips(p);
   }
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('#sRespDD,#tRespDD').forEach(dd => { if (dd) dd.style.display = 'none'; });
+  });
 
   async function _popolaUtenteSelect(selectId, currentValue) {
     const sel = document.getElementById(selectId);

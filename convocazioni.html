@@ -85,6 +85,13 @@
 
     .section-label{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#9ca3af;margin-bottom:14px;}
 
+    /* ── Presence toggle ── */
+    .p-toggle{display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #e9ecf0;}
+    .p-btn{padding:5px 11px;border:none;background:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:#9ca3af;transition:all .12s;}
+    .p-btn.si.on{background:#dcfce7;color:#16a34a;}
+    .p-btn.no.on{background:#fee2e2;color:#dc2626;}
+    .p-btn:not(.on):hover{background:#f1f5f9;}
+
     @media(max-width:480px){
       .page-wrap{padding:20px 14px 60px;}
       .event-stats{gap:10px;}
@@ -116,8 +123,8 @@
     const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
     const GG   = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
 
-    let atletiRosa = []; // roster from /api/squadra/atleti
-    let convMap    = {}; // eventId → { atletaId → 'si'|'no'|null }
+    // sessId → { players: [], convMap: { key → risposta } }
+    let sessionsData = {};
 
     function toast(msg, err = false) {
       const t = document.getElementById('toast');
@@ -131,89 +138,82 @@
       return `${GG[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}`;
     }
 
-    function fmtOra(iso) {
-      if (!iso) return '';
-      const d = new Date(iso);
-      return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-    }
-
-    function initials(p) { return [p.nome, p.cognome].filter(Boolean).map(s => s[0].toUpperCase()).join('') || '?'; }
-
     function rsvpLabel(val) {
-      if (val === 'si') return '<span class="rsvp-indicator rsvp-si"><span class="rsvp-dot"></span>Partecipa</span>';
-      if (val === 'no') return '<span class="rsvp-indicator rsvp-no"><span class="rsvp-dot"></span>Non partecipa</span>';
+      if (val === 'si') return '<span class="rsvp-indicator rsvp-si"><span class="rsvp-dot"></span>Presente</span>';
+      if (val === 'no') return '<span class="rsvp-indicator rsvp-no"><span class="rsvp-dot"></span>Assente</span>';
       return '<span class="rsvp-indicator rsvp-nd"><span class="rsvp-dot"></span>Non risposto</span>';
     }
 
-    function buildEventCard(ev) {
-      const typeColor = ev.tipo === 'partita' ? '#059669' : ev.tipo === 'evento' ? '#e11d48' : '#0d2055';
-      const badgeCls  = ev.tipo === 'partita' ? 'badge-partita' : ev.tipo === 'evento' ? 'badge-evento' : 'badge-allenamento';
-      const badgeTxt  = ev.tipo === 'partita' ? 'Partita' : ev.tipo === 'evento' ? 'Evento' : 'Allenamento';
-      const dateStr   = ev.tipo === 'partita' ? fmtDate(ev.data_ora) : fmtDate(ev.data);
-      const oraStr    = ev.tipo === 'partita' ? fmtOra(ev.data_ora) : (ev.ora || '');
-      const titolo    = ev.tipo === 'partita'
-        ? (ev.casa || '') + ' vs ' + (ev.ospite || '')
-        : (ev.titolo || ev.categoria || (ev.tipo === 'evento' ? 'Evento' : 'Allenamento'));
+    function buildConvRows(evId) {
+      const sd = sessionsData[evId];
+      if (!sd) return '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;"><div class="spin"></div> Caricamento…</div>';
+      const { players, convMap } = sd;
+      if (!players.length) return '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Nessun giocatore per questo allenamento</div>';
+      return players.map(g => {
+        const rsvp = convMap[g.id] ?? null;
+        const siOn = rsvp === 'si' ? 'on' : '';
+        const noOn = rsvp === 'no' ? 'on' : '';
+        const ini  = (g.cognome?.[0] || '') + (g.nome?.[0] || '');
+        const sub  = [g.sesso, g.ruolo, g.has_account ? null : 'solo rosa'].filter(Boolean).join(' · ');
+        return `<div class="atleta-conv-row">
+          <div class="av">${ini.toUpperCase() || '?'}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="conv-name">${g.cognome || ''} ${g.nome || ''}</div>
+            <div class="conv-sub">${sub}</div>
+          </div>
+          ${rsvpLabel(rsvp)}
+          <div class="p-toggle">
+            <button class="p-btn si ${siOn}" onclick="setPresenzaConv('${evId}','${g.id}','si',this)" title="Presente">✓</button>
+            <button class="p-btn no ${noOn}" onclick="setPresenzaConv('${evId}','${g.id}','no',this)" title="Assente">✗</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
 
+    function refreshStats(card, evId) {
+      const sd = sessionsData[evId];
+      if (!sd) return;
+      const { players, convMap } = sd;
+      const si = Object.values(convMap).filter(v => v === 'si').length;
+      const no = Object.values(convMap).filter(v => v === 'no').length;
+      const nd = players.length - si - no;
+      const nums = card.querySelectorAll('.ev-stat-n');
+      if (nums[0]) nums[0].textContent = si;
+      if (nums[1]) nums[1].textContent = no;
+      if (nums[2]) nums[2].textContent = nd;
+    }
+
+    function buildEventCard(ev) {
       const card = document.createElement('div');
       card.className = 'event-card';
       card.dataset.id = ev.id;
-
-      // Convocations for this event
-      const conv = convMap[ev.id] || {};
-      const si  = Object.values(conv).filter(v => v === 'si').length;
-      const no  = Object.values(conv).filter(v => v === 'no').length;
-      const nd  = atletiRosa.length - si - no;
-
       card.innerHTML = `
         <div class="event-header">
-          <div class="event-type-dot" style="background:${typeColor}"></div>
+          <div class="event-type-dot" style="background:#0d2055"></div>
           <div class="event-info">
-            <div class="event-title">${titolo}</div>
+            <div class="event-title">${ev.titolo}</div>
             <div class="event-meta">
-              <span class="event-badge ${badgeCls}">${badgeTxt}</span>
-              <span>${dateStr}${oraStr ? ' · ' + oraStr : ''}</span>
+              <span class="event-badge badge-allenamento">Allenamento</span>
+              <span>${fmtDate(ev.data)}${ev.ora ? ' · ' + ev.ora : ''}</span>
             </div>
           </div>
           <div class="event-stats">
-            <div class="ev-stat"><div class="ev-stat-n si">${si}</div><div class="ev-stat-l">Sì</div></div>
-            <div class="ev-stat"><div class="ev-stat-n no">${no}</div><div class="ev-stat-l">No</div></div>
-            <div class="ev-stat"><div class="ev-stat-n nd">${nd}</div><div class="ev-stat-l">N/R</div></div>
+            <div class="ev-stat"><div class="ev-stat-n si" id="si-${ev.id}">—</div><div class="ev-stat-l">Sì</div></div>
+            <div class="ev-stat"><div class="ev-stat-n no" id="no-${ev.id}">—</div><div class="ev-stat-l">No</div></div>
+            <div class="ev-stat"><div class="ev-stat-n nd" id="nd-${ev.id}">—</div><div class="ev-stat-l">N/R</div></div>
           </div>
           <span class="expand-ico">›</span>
         </div>
         <div class="event-body">
           <div class="convoca-toolbar">
             <div class="convoca-toolbar-left">
-              <button class="btn-convoca-all" onclick="convocaTutti('${ev.id}')">Convoca tutti</button>
-              <button class="btn-remind" onclick="inviaSollecito('${ev.id}')">📣 Sollecita N/R</button>
+              <button class="btn-convoca-all" onclick="convocaTutti('${ev.id}')">Tutti presenti</button>
             </div>
-            <span style="font-size:11px;color:#9ca3af;">${atletiRosa.length} in rosa</span>
           </div>
-          <div id="convList-${ev.id}">${buildConvRows(ev.id)}</div>
+          <div id="convList-${ev.id}"><div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;"><div class="spin"></div></div></div>
         </div>`;
-
       card.querySelector('.event-header').addEventListener('click', () => toggleCard(card, ev.id));
       return card;
-    }
-
-    function buildConvRows(evId) {
-      if (!atletiRosa.length) return '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;">Nessun atleta in rosa</div>';
-      const conv = convMap[evId] || {};
-      return atletiRosa.map(a => {
-        const rsvp = conv[a.id] ?? null;
-        const isConv = rsvp !== null;
-        return `<div class="atleta-conv-row">
-          <div class="av">${initials(a)}</div>
-          <div style="flex:1;min-width:0;">
-            <div class="conv-name">${a.nome || ''} ${a.cognome || ''}</div>
-            <div class="conv-sub">${a.categoria || ''} ${a.ruolo ? '· ' + a.ruolo : ''}</div>
-          </div>
-          ${rsvpLabel(rsvp)}
-          <button class="btn-toggle-conv ${isConv ? 'on' : 'off'}"
-            onclick="toggleConvocazione('${evId}','${a.id}',this)">${isConv ? 'Convocato' : 'Convoca'}</button>
-        </div>`;
-      }).join('');
     }
 
     function toggleCard(card, evId) {
@@ -221,102 +221,92 @@
       document.querySelectorAll('.event-card.open').forEach(c => c.classList.remove('open'));
       if (!isOpen) {
         card.classList.add('open');
-        // refresh list
-        const listEl = document.getElementById('convList-' + evId);
-        if (listEl) listEl.innerHTML = buildConvRows(evId);
-        // load RSVP data if not cached
-        if (!convMap[evId]) loadPresenze(evId, card);
+        if (!sessionsData[evId]) {
+          loadPresenze(evId, card);
+        } else {
+          document.getElementById('convList-' + evId).innerHTML = buildConvRows(evId);
+        }
       }
     }
 
     async function loadPresenze(evId, card) {
       try {
-        const data = await fetch(`/api/calendario/${evId}/presenze`, { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
-        convMap[evId] = {};
-        (data.risposte || data || []).forEach(r => { if (r.utente_id) convMap[evId][r.utente_id] = r.risposta; });
+        const data = await fetch(`/api/allenatore/sessioni/${evId}/presenze`, { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        const convMap = {};
+        (data.giocatori || []).forEach(g => { convMap[g.id] = g.risposta; });
+        sessionsData[evId] = { players: data.giocatori || [], convMap };
         const listEl = document.getElementById('convList-' + evId);
         if (listEl) listEl.innerHTML = buildConvRows(evId);
-        // refresh stats in header
         refreshStats(card, evId);
-      } catch {}
-    }
-
-    function refreshStats(card, evId) {
-      const conv = convMap[evId] || {};
-      const si   = Object.values(conv).filter(v => v === 'si').length;
-      const no   = Object.values(conv).filter(v => v === 'no').length;
-      const nd   = atletiRosa.length - si - no;
-      const nums = card.querySelectorAll('.ev-stat-n');
-      if (nums[0]) nums[0].textContent = si;
-      if (nums[1]) nums[1].textContent = no;
-      if (nums[2]) nums[2].textContent = nd;
-    }
-
-    window.toggleConvocazione = async function(evId, atletaId, btn) {
-      const conv    = convMap[evId] = convMap[evId] || {};
-      const current = conv[atletaId];
-      const newVal  = current ? null : 'si';
-      try {
-        await fetch(`/api/calendario/${evId}/convoca`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
-          body: JSON.stringify({ atleta_id: atletaId, convocato: !current })
-        });
-        if (newVal === null) delete conv[atletaId]; else conv[atletaId] = newVal;
-        // Re-render row
+      } catch {
         const listEl = document.getElementById('convList-' + evId);
-        if (listEl) listEl.innerHTML = buildConvRows(evId);
+        if (listEl) listEl.innerHTML = '<div style="padding:16px;text-align:center;color:#dc2626;font-size:13px;">Errore caricamento</div>';
+      }
+    }
+
+    window.setPresenzaConv = async function(evId, playerId, risposta, btn) {
+      const sd = sessionsData[evId];
+      if (!sd) return;
+      const toggle = btn.closest('.p-toggle');
+      toggle.querySelectorAll('.p-btn').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      try {
+        await fetch(`/api/allenatore/sessioni/${evId}/presenze/${encodeURIComponent(playerId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+          body: JSON.stringify({ risposta }),
+        });
+        sd.convMap[playerId] = risposta;
+        // update rsvp label inline
+        const row = btn.closest('.atleta-conv-row');
+        if (row) {
+          const labelEl = row.querySelector('.rsvp-indicator');
+          if (labelEl) labelEl.outerHTML = rsvpLabel(risposta);
+        }
         const card = document.querySelector(`.event-card[data-id="${evId}"]`);
         if (card) refreshStats(card, evId);
-      } catch { toast('Errore salvataggio', true); }
+      } catch {
+        toggle.querySelectorAll('.p-btn').forEach(b => b.classList.remove('on'));
+        const cur = sd.convMap[playerId];
+        if (cur) toggle.querySelector('.p-btn.' + cur)?.classList.add('on');
+        toast('Errore salvataggio', true);
+      }
     };
 
     window.convocaTutti = async function(evId) {
+      const sd = sessionsData[evId];
+      if (!sd || !sd.players.length) return;
       try {
-        await fetch(`/api/calendario/${evId}/convoca-tutti`, { method: 'POST', headers: { Authorization: `Bearer ${_tok}` } });
-        convMap[evId] = {};
-        atletiRosa.forEach(a => convMap[evId][a.id] = 'si');
+        await Promise.all(sd.players.map(g =>
+          fetch(`/api/allenatore/sessioni/${evId}/presenze/${encodeURIComponent(g.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${_tok}` },
+            body: JSON.stringify({ risposta: 'si' }),
+          })
+        ));
+        sd.players.forEach(g => { sd.convMap[g.id] = 'si'; });
         const listEl = document.getElementById('convList-' + evId);
         if (listEl) listEl.innerHTML = buildConvRows(evId);
         const card = document.querySelector(`.event-card[data-id="${evId}"]`);
         if (card) refreshStats(card, evId);
-        toast('Tutti convocati');
+        toast('Tutti segnati presenti');
       } catch { toast('Errore', true); }
-    };
-
-    window.inviaSollecito = async function(evId) {
-      try {
-        const r = await fetch(`/api/calendario/${evId}/sollecita`, { method: 'POST', headers: { Authorization: `Bearer ${_tok}` } });
-        const d = await r.json();
-        toast(`Sollecito inviato a ${d.count ?? 'N'} atleti`);
-      } catch { toast('Errore invio sollecito', true); }
     };
 
     async function carica() {
       const container = document.getElementById('eventiList');
       try {
-        // Load roster
-        const [atletiRes, calRes] = await Promise.all([
-          fetch('/api/squadra/atleti',   { headers: { Authorization: `Bearer ${_tok}` } }),
-          fetch('/api/calendario',       { headers: { Authorization: `Bearer ${_tok}` } }),
-        ]);
-        atletiRosa = atletiRes.ok ? await atletiRes.json() : [];
-        const sessioni = calRes.ok ? await calRes.json() : [];
-
-        // Filter future + today
-        const oggi = new Date(); oggi.setHours(0,0,0,0);
-        const futuri = sessioni
-          .filter(s => s.data && new Date(s.data + 'T00:00') >= oggi)
-          .sort((a, b) => new Date(a.data) - new Date(b.data));
-
-        if (!futuri.length) {
-          container.innerHTML = '<div class="page-empty">Nessun evento programmato</div>';
+        const sessioni = await fetch('/api/allenatore/sessioni', { headers: { Authorization: `Bearer ${_tok}` } }).then(r => r.json());
+        if (!Array.isArray(sessioni) || !sessioni.length) {
+          container.innerHTML = '<div class="page-empty">Nessun allenamento programmato</div>';
           return;
         }
+        // Show all (already ordered desc from server; reverse for asc display)
+        const ordinati = [...sessioni].reverse();
         container.innerHTML = '';
-        futuri.forEach(ev => container.appendChild(buildEventCard(ev)));
+        ordinati.forEach(ev => container.appendChild(buildEventCard(ev)));
       } catch {
-        container.innerHTML = '<div class="page-empty">Impossibile caricare gli eventi</div>';
+        container.innerHTML = '<div class="page-empty">Impossibile caricare gli allenamenti</div>';
       }
     }
 
