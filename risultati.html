@@ -121,8 +121,15 @@
     .card-cl-row{text-align:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f4f8;}
     .btn-cl-card{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--blu);text-decoration:none;padding:5px 12px;border-radius:8px;background:#eef2ff;letter-spacing:.3px;transition:background .15s;}
     .btn-cl-card:hover{background:#c7d9ff;}
-    footer{background:var(--blu);color:rgba(255,255,255,.5);text-align:center;padding:24px;font-size:13px;}
-    footer a{color:rgba(255,255,255,.4);text-decoration:none;}
+    .nav-login-btn{background:var(--arancio);color:#fff;border:none;border-radius:50px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:background .2s;white-space:nowrap;}
+    .nav-login-btn:hover{background:#d4520a;}
+    #navAuthBar{position:fixed;top:0;right:40px;height:76px;display:flex;align-items:center;gap:10px;z-index:1001;}
+    @media(max-width:768px){#navAuthBar{display:none !important;}}
+    #navLoggedArea,#navUtenteLink,#navAdminLink{display:none;}
+    .nav-auth-icon{display:none;width:44px;height:44px;border-radius:50%;align-items:center;justify-content:center;color:#fff;text-decoration:none;transition:background .2s;flex-shrink:0;}
+    .nav-auth-icon:hover{background:rgba(255,255,255,.12);}
+    .nav-auth-icon svg{display:block;width:24px;height:24px;}
+    .nav-auth-icon[data-role="admin"]{color:var(--arancio);}
     @media(max-width:600px){
       nav{padding:0 16px;}
       .nav-menu a{font-size:11px;}
@@ -178,7 +185,8 @@
   </style>
 </head>
 <body>
-<nav>
+  
+<nav class="nav-std">
   <ul class="nav-menu">
     <li class="nav-hashtag"><span>#noisiamolasquadra</span></li>
     <li><a href="/chi-siamo">Chi siamo</a></li>
@@ -191,7 +199,7 @@
       </ul>
     </li>
   </ul>
-  <a href="/" class="nav-brand"><img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy"><span class="nav-brand-label">Virtus Caserta</span></a>
+  <a href="/" class="nav-brand"><img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy"><span class="nav-hashtag-m">#noisiamolasquadra</span></a>
   <div class="nav-actions">
     <ul class="nav-menu" style="justify-content:flex-start;">
       <li><a href="/risultati" class="attivo">Risultati</a></li>
@@ -202,10 +210,47 @@
       <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
       <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
       <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
-      <a href="/live" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+      <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" title="Twitch Live"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
     </div>
   </div>
-</nav>
+  <a class="nav-auth-icon" id="navAuthIcon" href="/login" aria-label="Accedi" title="Accedi">
+    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z"/></svg>
+  </a>
+  <button class="nav-hamburger" id="navHamburger" onclick="toggleDrawer()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>  
+<!-- AUTH BAR — solo desktop -->
+<div id="navAuthBar">
+  <div id="navLoginArea">
+    <a href="/login" class="nav-login-btn">Accedi</a>
+  </div>
+  <div id="navLoggedArea" style="display:none; align-items:center; gap:10px;">
+    <a href="/utente" class="nav-login-btn" id="navUtenteLink" style="display:none">Area Utente</a>
+    <a href="/admin" class="nav-login-btn" id="navAdminLink" style="display:none">Amministratore</a>
+  </div>
+</div> 
+<!-- HAMBURGER DRAWER -->
+<div class="nav-drawer" id="navDrawer">
+  <div class="drawer-logo">
+    <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+  </div>
+  <a href="/" class="drawer-link" onclick="chiudiDrawer()">Home</a>
+  <a href="/chi-siamo" class="drawer-link" onclick="chiudiDrawer()">Chi siamo</a>
+  <a href="/notizie" class="drawer-link" onclick="chiudiDrawer()">Notizie</a>
+  <a href="/squadra" class="drawer-link" onclick="chiudiDrawer()">Squadra</a>
+  <a href="/staff" class="drawer-link" onclick="chiudiDrawer()">Staff</a>
+  <a href="/risultati" class="drawer-link attivo" onclick="chiudiDrawer()">Risultati</a>
+  <a href="/shop" class="drawer-link" onclick="chiudiDrawer()">Shop</a>
+  <a href="/live" class="drawer-link" onclick="chiudiDrawer()">Live</a>
+  <div class="drawer-hashtag">#noisiamolasquadra</div>
+  <div class="drawer-social">
+    <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+    <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+    <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+    <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+  </div>
+</div> 
 
 <div class="hero"><h1>Risultati</h1><p>Il riepilogo delle nostre partite stagione per stagione.</p></div>
 
@@ -308,53 +353,65 @@
 
 <script>
 
-   /* ─── AUTH ─── */
-    function aggiornaNavbar() {
-      const token      = localStorage.getItem('vc_token');
-      const adminToken = localStorage.getItem('vc_admin_token');
-      const isLoggedIn = !!(token || adminToken);
-      const role       = localStorage.getItem('vc_role');
-      const isAdmin    = !!(adminToken || role === 'admin' || role === 'dirigente');
-
+    /* ─── AUTH ─── */
+    async function aggiornaNavbar() {
+      let isLoggedIn = false, isAdmin = false;
+      try {
+        const d = await fetch('/api/me').then(r => r.json());
+        isLoggedIn = !!d.auth;
+        isAdmin    = isLoggedIn && (d.role === 'admin' || d.role === 'dirigente');
+      } catch {}
+      const showAccedi = !isLoggedIn;
+      const showUtente = isLoggedIn && !isAdmin;
+      const showAdmin  = isAdmin;
+      const navLoginArea  = document.getElementById('navLoginArea');
+      const navLoggedArea = document.getElementById('navLoggedArea');
+      const navUtenteLink = document.getElementById('navUtenteLink');
+      const navAdminLink  = document.getElementById('navAdminLink');
+      if (navLoginArea)  navLoginArea.style.display  = showAccedi ? '' : 'none';
+      if (navLoggedArea) navLoggedArea.style.display = isLoggedIn ? 'flex' : 'none';
+      if (navUtenteLink) navUtenteLink.style.display = showUtente ? 'inline-flex' : 'none';
+      if (navAdminLink)  navAdminLink.style.display  = showAdmin  ? 'inline-flex' : 'none';
+      const navAuthIcon = document.getElementById('navAuthIcon');
+      if (navAuthIcon) {
+        if (showAdmin) {
+          navAuthIcon.href = '/admin'; navAuthIcon.title = 'Amministratore';
+          navAuthIcon.setAttribute('aria-label','Amministratore');
+          navAuthIcon.setAttribute('data-role','admin');
+        } else if (showUtente) {
+          navAuthIcon.href = '/utente'; navAuthIcon.title = 'Area Utente';
+          navAuthIcon.setAttribute('aria-label','Area Utente');
+          navAuthIcon.setAttribute('data-role','utente');
+        } else {
+          navAuthIcon.href = '/login'; navAuthIcon.title = 'Accedi';
+          navAuthIcon.setAttribute('aria-label','Accedi');
+          navAuthIcon.removeAttribute('data-role');
+        }
+      }
       const loginDiv  = document.querySelector('.footer-auth-login');
       const loggedDiv = document.querySelector('.footer-auth-logged');
       const adminLink = document.getElementById('footerAdminLink');
-
       if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
       if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
       if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
     }
 
-    function apriModal() {
-      document.getElementById('modalLogin').classList.add('aperta');
-      document.getElementById('loginError').textContent = '';
+    function toggleDrawer() {
+      document.getElementById('navHamburger').classList.toggle('aperto');
+      document.getElementById('navDrawer').classList.toggle('aperto');
+      document.body.classList.toggle('nav-aperta');
     }
 
-    function chiudiModal() {
-      document.getElementById('modalLogin').classList.remove('aperta');
+    function chiudiDrawer() {
+      document.getElementById('navHamburger').classList.remove('aperto');
+      document.getElementById('navDrawer').classList.remove('aperto');
+      document.body.classList.remove('nav-aperta');
     }
 
-    function chiudiModalSeOverlay(e) {
-      if (e.target === document.getElementById('modalLogin')) chiudiModal();
+    async function logout() {
+      try { await fetch('/api/logout', { method: 'POST' }); } catch {}
+      location.reload();
     }
-
-    function switchTab(tab) {
-      const isAccedi = tab === 'accedi';
-      document.getElementById('tabAccedi').classList.toggle('attiva', isAccedi);
-      document.getElementById('tabRegistrati').classList.toggle('attiva', !isAccedi);
-      document.getElementById('panelAccedi').classList.toggle('attivo', isAccedi);
-      document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
-    }
-    
-     function logout() {
-      localStorage.removeItem('vc_token');
-      localStorage.removeItem('vc_admin_token');
-      localStorage.removeItem('vc_role');
-      localStorage.removeItem('vc_nome');
-      localStorage.removeItem('vc_user');
-      aggiornaNavbar();
-    }
-
 
     aggiornaNavbar();
 

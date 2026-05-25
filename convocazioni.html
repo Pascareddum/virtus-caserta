@@ -117,8 +117,8 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const _tok = localStorage.getItem('vc_token');
-    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+    fetch('/api/me').then(r=>r.json()).then(d=>{ if(!d.auth) location.replace('/login'); }).catch(()=>location.replace('/login'));
+    const _tok = '';
 
     const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
     const GG   = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
@@ -173,14 +173,12 @@
     function refreshStats(card, evId) {
       const sd = sessionsData[evId];
       if (!sd) return;
-      const { players, convMap } = sd;
+      const { convMap } = sd;
       const si = Object.values(convMap).filter(v => v === 'si').length;
       const no = Object.values(convMap).filter(v => v === 'no').length;
-      const nd = players.length - si - no;
       const nums = card.querySelectorAll('.ev-stat-n');
       if (nums[0]) nums[0].textContent = si;
       if (nums[1]) nums[1].textContent = no;
-      if (nums[2]) nums[2].textContent = nd;
     }
 
     function buildEventCard(ev) {
@@ -200,7 +198,6 @@
           <div class="event-stats">
             <div class="ev-stat"><div class="ev-stat-n si" id="si-${ev.id}">—</div><div class="ev-stat-l">Sì</div></div>
             <div class="ev-stat"><div class="ev-stat-n no" id="no-${ev.id}">—</div><div class="ev-stat-l">No</div></div>
-            <div class="ev-stat"><div class="ev-stat-n nd" id="nd-${ev.id}">—</div><div class="ev-stat-l">N/R</div></div>
           </div>
           <span class="expand-ico">›</span>
         </div>

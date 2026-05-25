@@ -378,6 +378,12 @@ const uploadDoc = multer({
 
 /* ─── Auth middleware ─── */
 function verifyToken(req) {
+  // httpOnly cookie first (XSS-safe, SameSite=Strict → CSRF-safe)
+  const cookieToken = req.cookies.vc_admin_session || req.cookies.vc_user_session;
+  if (cookieToken) {
+    try { return jwt.verify(cookieToken, JWT_SECRET); } catch {}
+  }
+  // Bearer fallback for backwards compat
   const auth  = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!token) return null;
@@ -427,7 +433,7 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
       maxAge: 8 * 60 * 60 * 1000, // 8 ore
       secure: process.env.NODE_ENV === 'production',
     });
-    return res.json({ token });
+    return res.json({ success: true });
   }
   res.status(401).json({ error: 'Credenziali non valide' });
 });
@@ -436,6 +442,19 @@ app.post('/api/admin/login', loginLimiter, async (req, res) => {
 app.post('/api/admin/logout', (_req, res) => {
   res.clearCookie('vc_admin_session');
   res.json({ success: true });
+});
+
+/* ─── Logout utente ─── */
+app.post('/api/logout', (_req, res) => {
+  res.clearCookie('vc_user_session');
+  res.json({ success: true });
+});
+
+/* ─── Auth status (per redirect su login page) ─── */
+app.get('/api/me', (req, res) => {
+  const payload = verifyToken(req);
+  if (!payload) return res.json({ auth: false });
+  res.json({ auth: true, role: payload.role });
 });
 
 /* ─── Utenti: registrazione (pubblico) ─── */
@@ -477,7 +496,13 @@ app.post('/api/login', loginLimiter, async (req, res) => {
     const ok = await bcrypt.compare(password, u.password_hash);
     if (!ok) return res.status(401).json({ error: 'Credenziali non valide.' });
     const token = jwt.sign({ id: u.id, email: u.email, nome: u.nome, role: 'utente' }, JWT_SECRET, { expiresIn: '24h' });
-    res.json({ token, user: { id: u.id, nome: u.nome, cognome: u.cognome, email: u.email } });
+    res.cookie('vc_user_session', token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === 'production',
+    });
+    res.json({ user: { id: u.id, nome: u.nome, cognome: u.cognome, email: u.email } });
   } catch (err) {
     console.error('[Login]', err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -686,6 +711,7 @@ app.post('/api/admin/utenti/:id/approva', adminAuth, async (req, res) => {
 app.put('/api/admin/utenti/:id/tipo', adminAuth, async (req, res) => {
   try {
     const { is_atleta, is_allenatore, squadre_atleta, squadre_allenatore, ruolo_atleta, ruolo_allenatore } = req.body;
+    const userId = req.params.id;
     const r = await db.query(
       `UPDATE utenti SET is_atleta=$1, is_allenatore=$2, squadre_atleta=$3, squadre_allenatore=$4, ruolo_atleta=$5, ruolo_allenatore=$6 WHERE id=$7 RETURNING nome,cognome`,
       [
@@ -694,11 +720,71 @@ app.put('/api/admin/utenti/:id/tipo', adminAuth, async (req, res) => {
         JSON.stringify(Array.isArray(squadre_allenatore) ? squadre_allenatore : []),
         ruolo_atleta || '',
         ruolo_allenatore || '',
-        req.params.id,
+        userId,
       ]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Utente non trovato.' });
-    await logActivity('Tipo utente aggiornato', `${r.rows[0].nome} ${r.rows[0].cognome}`);
+    const { nome, cognome } = r.rows[0];
+
+    // ── Sync squadra table ──
+    let ruoloAllenMap = {}, ruoloAtletaMap = {};
+    try { ruoloAllenMap = JSON.parse(ruolo_allenatore || '{}'); } catch {}
+    try { ruoloAtletaMap = JSON.parse(ruolo_atleta    || '{}'); } catch {}
+
+    const sqAllen  = is_allenatore && Array.isArray(squadre_allenatore) ? squadre_allenatore : [];
+    const sqAtleta = is_atleta     && Array.isArray(squadre_atleta)     ? squadre_atleta     : [];
+    const COACH_ROLES = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
+
+    const existing = await db.query(`SELECT id, sesso, ruolo FROM squadra WHERE utente_id=$1`, [userId]);
+    // Exclude sesso='Staff' records — those are manually managed and must not be touched by sync
+    const syncable = existing.rows.filter(g => g.sesso !== 'Staff');
+    const exCoach  = syncable.filter(g => COACH_ROLES.includes(g.ruolo));
+    const exAtleta = syncable.filter(g => !COACH_ROLES.includes(g.ruolo) && g.ruolo !== 'Staff');
+
+    // Helper: first team in sesso field
+    const firstTeam = g => (g.sesso || '').split(',')[0].trim();
+
+    // Sync coach records (one record per team)
+    const handledCoach = new Set();
+    for (const team of sqAllen) {
+      const desRuolo = ruoloAllenMap[team] || 'Allenatore';
+      const found = exCoach.find(g => firstTeam(g) === team);
+      if (found) {
+        handledCoach.add(found.id);
+        if (found.ruolo !== desRuolo) await db.query(`UPDATE squadra SET ruolo=$1 WHERE id=$2`, [desRuolo, found.id]);
+      } else {
+        const nid = crypto.randomUUID();
+        await db.query(
+          `INSERT INTO squadra (id,nome,cognome,ruolo,sesso,attiva,utente_id,foto,bio) VALUES ($1,$2,$3,$4,$5,true,$6,'','')`,
+          [nid, nome, cognome, desRuolo, team, userId]
+        );
+      }
+    }
+    for (const g of exCoach) {
+      if (!handledCoach.has(g.id)) await db.query(`DELETE FROM squadra WHERE id=$1`, [g.id]);
+    }
+
+    // Sync athlete records (one record per team)
+    const handledAtleta = new Set();
+    for (const team of sqAtleta) {
+      const desRuolo = ruoloAtletaMap[team] || '';
+      const found = exAtleta.find(g => (g.sesso || '').split(',').map(s=>s.trim()).includes(team));
+      if (found) {
+        handledAtleta.add(found.id);
+        if (found.ruolo !== desRuolo) await db.query(`UPDATE squadra SET ruolo=$1 WHERE id=$2`, [desRuolo, found.id]);
+      } else {
+        const nid = crypto.randomUUID();
+        await db.query(
+          `INSERT INTO squadra (id,nome,cognome,ruolo,sesso,attiva,utente_id,foto,bio) VALUES ($1,$2,$3,$4,$5,true,$6,'','')`,
+          [nid, nome, cognome, desRuolo, team, userId]
+        );
+      }
+    }
+    for (const g of exAtleta) {
+      if (!handledAtleta.has(g.id)) await db.query(`DELETE FROM squadra WHERE id=$1`, [g.id]);
+    }
+
+    await logActivity('Tipo utente aggiornato', `${nome} ${cognome}`);
     res.json({ success: true });
   } catch (err) {
     console.error('[Tipo utente]', err);
@@ -866,7 +952,7 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
       let i = 0;
       while (cur <= end) {
         if (giorniSet.has(cur.getDay())) {
-          const id      = Date.now().toString() + '_' + i;
+          const id      = crypto.randomUUID();
           const dataStr = _fmtDate(cur);
           await _insertCal(id, dataStr);
           sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal, formato: formatoVal, responsabile: respVal });
@@ -882,7 +968,7 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
       const endDate   = new Date(dataFineEffettiva + 'T00:00:00');
       let i = 0;
       while (currentDate <= endDate) {
-        const id      = Date.now().toString() + '_' + i;
+        const id      = crypto.randomUUID();
         const dataStr = _fmtDate(currentDate);
         await _insertCal(id, dataStr);
         sessioni.push({ id, titolo, data: dataStr, ora, tipo: tipoVal, formato: formatoVal, responsabile: respVal });
@@ -891,7 +977,7 @@ app.post('/api/calendario', adminAuth, async (req, res) => {
       }
       return res.status(201).json({ sessioni, count: sessioni.length });
     }
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     await _insertCal(id, data);
 
     // Notifica email agli utenti attivi se è un evento (filtrata per categoria)
@@ -1061,7 +1147,7 @@ app.get('/api/tornei', async (_req, res) => {
 app.post('/api/tornei', adminAuth, async (req, res) => {
   const { nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   try {
     const r = await db.query(
       `INSERT INTO tornei (id, nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
@@ -1137,7 +1223,7 @@ app.get('/api/tornei/:id/squadre', adminAuth, async (req, res) => {
 app.post('/api/tornei/:id/squadre', adminAuth, async (req, res) => {
   const { nome, colore, partecipanti } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
-  const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
+  const id = crypto.randomUUID();
   try {
     const r = await db.query(
       `INSERT INTO torneo_squadre (id, torneo_id, nome, colore, partecipanti) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
@@ -1179,7 +1265,7 @@ app.get('/api/palestre', async (_req, res) => {
 app.post('/api/admin/palestre', adminAuth, async (req, res) => {
   const { nome, indirizzo, orari } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   try {
     const r = await db.query(
       `INSERT INTO palestres (id, nome, indirizzo, orari) VALUES ($1,$2,$3,$4) RETURNING *`,
@@ -1304,9 +1390,9 @@ app.get('/api/comunicazioni', userAuth, async (req, res) => {
   try {
     const uid = String(req.user.id);
     // Fetch user's squadre for squad-broadcast visibility
-    const sqRes = await db.query(`SELECT sesso FROM squadra WHERE id IN (SELECT squadra_id FROM squadra_atleta WHERE utente_id=$1 AND attiva=true)`, [uid]);
+    const uInfo = await db.query(`SELECT squadre_atleta FROM utenti WHERE id=$1`, [uid]);
     const userSquadre = new Set();
-    sqRes.rows.forEach(r => r.sesso && r.sesso.split(',').map(s => s.trim()).filter(Boolean).forEach(s => userSquadre.add(s)));
+    ((uInfo.rows[0]?.squadre_atleta) || []).forEach(s => s && userSquadre.add(s.trim()));
     const squadreArr = [...userSquadre];
     const r = await db.query(
       `SELECT * FROM comunicazioni
@@ -1337,7 +1423,7 @@ app.post('/api/comunicazioni', userAuth, async (req, res) => {
     const mittente_nome = uRes.rows.length ? `${uRes.rows[0].nome} ${uRes.rows[0].cognome || ''}`.trim() : 'Utente';
     const DEST_LABEL = { staff: 'Staff', admin: 'Amministrazione', dirigenza: 'Dirigenza', squadra: destinatario_label || 'Squadra' };
     const destLabel = DEST_LABEL[destinatario];
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     await db.query(
       `INSERT INTO comunicazioni (id,mittente_id,mittente_nome,destinatario_tipo,destinatario_label,oggetto,testo) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [id, uid, mittente_nome, destinatario, destLabel, oggetto, testo]
@@ -1380,7 +1466,7 @@ app.post('/api/documenti', userAuth, uploadDoc.single('file'), async (req, res) 
       fs.writeFileSync(localPath, req.file.buffer);
       url = '/uploads/' + storagePath;
     }
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     await db.query(
       'INSERT INTO documenti_utente (id,utente_id,nome,url,dimensione) VALUES ($1,$2,$3,$4,$5)',
       [id, uid, req.file.originalname, url, req.file.size]
@@ -1404,7 +1490,7 @@ app.post('/api/partite/proposta', userAuth, async (req, res) => {
   if (!data || !ora) return res.status(400).json({ error: 'Data e orario obbligatori' });
   try {
     const uid = String(req.user.id);
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     await db.query(
       `INSERT INTO partite_proposte (id,mittente_id,data,ora,ora_fine,luogo,note,invitati_categorie,invitati_persone)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
@@ -1452,7 +1538,7 @@ app.post('/api/admin/utenti/:id/documenti', adminAuth, uploadDoc.single('file'),
       fs.writeFileSync(path.join(dir, storagePath), req.file.buffer);
       url = '/uploads/' + storagePath;
     }
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     await db.query('INSERT INTO documenti_utente (id,utente_id,nome,url,dimensione) VALUES ($1,$2,$3,$4,$5)', [id, uid, req.file.originalname, url, req.file.size]);
     res.status(201).json({ id, nome: req.file.originalname, url, dimensione: req.file.size, creato_il: new Date().toISOString() });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore upload' }); }
@@ -1614,7 +1700,7 @@ app.get('/api/products', async (_req, res) => {
 app.post('/api/admin/products', adminAuth, async (req, res) => {
   const { nome, descrizione, prezzo, emoji, taglie, disponibile, immagine, sconto, quantita } = req.body;
   if (!nome || !prezzo) return res.status(400).json({ error: 'Nome e prezzo obbligatori' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   const scontoVal   = Math.min(100, Math.max(0, parseInt(sconto) || 0));
   const quantitaVal = parseInt(quantita) !== undefined ? parseInt(quantita) : -1;
   try {
@@ -1724,7 +1810,7 @@ app.get('/api/notizie', async (_req, res) => {
 app.post('/api/admin/notizie', adminAuth, async (req, res) => {
   const { titolo, testo, data, colore, immagine } = req.body;
   if (!titolo || !testo) return res.status(400).json({ error: 'Titolo e testo obbligatori' });
-  const id      = Date.now().toString();
+  const id      = crypto.randomUUID();
   const dataStr = data || new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
   try {
     await db.query(
@@ -1865,6 +1951,38 @@ app.put('/api/admin/squadre-links', adminAuth, async (req, res) => {
   }
 });
 
+/* ─── Squadre cat-links (per-category ris/cla links) ─── */
+app.get('/api/squadre-cat-links', async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_links'`);
+    res.json(JSON.parse(r.rows[0]?.valore || '{}'));
+  } catch { res.json({}); }
+});
+app.put('/api/admin/squadre-cat-links', adminAuth, async (req, res) => {
+  try {
+    if (typeof req.body !== 'object' || Array.isArray(req.body)) return res.status(400).json({ error: 'Oggetto richiesto' });
+    const safe = {};
+    for (const [nome, v] of Object.entries(req.body)) {
+      if (typeof nome !== 'string' || nome.length > 200) continue;
+      const orari = Array.isArray(v?.orari)
+        ? v.orari.map(o => ({ giorno: String(o.giorno||'').slice(0,20), ora: String(o.ora||'').slice(0,10), ora_fine: String(o.ora_fine||'').slice(0,10) }))
+        : [];
+      safe[nome] = {
+        ris:         String(v?.ris         || '').slice(0, 500),
+        cla:         String(v?.cla         || '').slice(0, 500),
+        palestra_id: String(v?.palestra_id || '').slice(0, 100),
+        orari,
+      };
+    }
+    await db.query(
+      `INSERT INTO impostazioni (chiave, valore, updated_at) VALUES ('squadre_cat_links',$1,NOW())
+       ON CONFLICT (chiave) DO UPDATE SET valore=$1, updated_at=NOW()`,
+      [JSON.stringify(safe)]
+    );
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
+});
+
 /* ─── Categorie Squadre ─── */
 const SESSO_ESCLUDI = new Set(['Maschile', 'Femminile', 'Staff', '']);
 
@@ -1955,7 +2073,12 @@ app.put('/api/admin/squadre-categorie', adminAuth, async (req, res) => {
 
     const CAT_VALIDE  = new Set(['Seniores','Giovanili','']);
     const CAMP_VALIDE = new Set(['FIPAV','OPES','']);
-    const safe = {};
+
+    // Merge into existing map instead of overwriting
+    const existingCatR = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_mappa'`);
+    let existingCat = {};
+    try { existingCat = JSON.parse(existingCatR.rows[0]?.valore || '{}'); } catch {}
+    const safe = { ...existingCat };
     for (const [nome, cat] of Object.entries(rawCat)) {
       if (String(nome).length > 100 || nome === 'cat_mappa' || nome === 'campionato_mappa') continue;
       safe[nome] = CAT_VALIDE.has(cat) ? cat : '';
@@ -1967,7 +2090,10 @@ app.put('/api/admin/squadre-categorie', adminAuth, async (req, res) => {
     );
 
     if (rawCamp) {
-      const safeCamp = {};
+      const existingCampR = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_campionato_mappa'`);
+      let existingCamp = {};
+      try { existingCamp = JSON.parse(existingCampR.rows[0]?.valore || '{}'); } catch {}
+      const safeCamp = { ...existingCamp };
       for (const [nome, camp] of Object.entries(rawCamp)) {
         if (String(nome).length > 100) continue;
         safeCamp[nome] = CAMP_VALIDE.has(camp) ? camp : '';
@@ -3140,7 +3266,7 @@ app.post('/api/admin/staff-arbitrale', adminAuth, async (req, res) => {
   if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
   const ruoloVal = ['addetto','refertista','entrambi'].includes(ruolo) ? ruolo : 'entrambi';
   try {
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     const r = await db.query(
       `INSERT INTO staff_arbitrale (id, utente_id, nome, cognome, ruolo) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
       [id, utente_id || '', nome.trim(), cognome.trim(), ruoloVal]
@@ -3248,7 +3374,7 @@ app.put('/api/admin/partite/:id/staff-arbitrale', adminAuth, async (req, res) =>
       const staff = sRes.rows[0];
       const nomeDisplay = `${staff.cognome} ${staff.nome}`;
       if (staff.utente_id) {
-        const assegId = Date.now().toString() + '_' + ruolo;
+        const assegId = crypto.randomUUID();
         await db.query(`
           INSERT INTO assegnazioni_partita (id, partita_id, utente_id, ruolo, stato)
           VALUES ($1,$2,$3,$4,'attesa')
@@ -3511,7 +3637,7 @@ app.get('/api/squadra', async (_req, res) => {
 app.post('/api/admin/squadra', adminAuth, async (req, res) => {
   const { nome, cognome, numero, ruolo, foto, bio, sesso, utente_id } = req.body;
   if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   try {
     await db.query(`INSERT INTO squadra (id,nome,cognome,numero,ruolo,foto,bio,sesso,utente_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [id, nome, cognome, numero || null, ruolo || '', foto || '', bio || '', sesso || 'Femminile', utente_id || '']);
@@ -3596,17 +3722,14 @@ app.get('/api/squadra/presenze/ultima', userAuth, async (req, res) => {
     const partMap = {};
     partR.rows.forEach(p => { partMap[p.utente_id] = p.risposta; });
 
-    let presenti = 0, assenti = 0, non_risposto = 0;
+    let presenti = 0, assenti = 0;
     for (const player of players) {
       const key = player.utente_id || ('g:' + player.id);
       const risposta = partMap[key];
-      if (!risposta) {
-        if (player.utente_id) non_risposto++; else presenti++;
-      } else if (risposta === 'si') presenti++;
+      if (!risposta || risposta === 'si') presenti++;
       else if (risposta === 'no') assenti++;
-      else non_risposto++;
     }
-    res.json({ id: sess.id, evento: sess.titolo + ' · ' + sess.data_str, presenti, assenti, non_risposto });
+    res.json({ id: sess.id, evento: sess.titolo + ' · ' + sess.data_str, presenti, assenti });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
@@ -3673,7 +3796,7 @@ app.get('/api/allenatore/sessioni/:id/presenze', userAuth, async (req, res) => {
         ruolo: p.ruolo,
         sesso: p.sesso,
         has_account: !!p.utente_id,
-        risposta: risposta !== undefined ? risposta : (p.utente_id ? null : 'si'),
+        risposta: risposta !== undefined ? risposta : 'si',
       };
     });
 
@@ -3730,7 +3853,7 @@ app.post('/api/allenatore/calendario', userAuth, async (req, res) => {
       let i = 0;
       while (cur <= end) {
         if (giorniSet.has(cur.getDay())) {
-          const id = Date.now().toString() + '_' + i;
+          const id = crypto.randomUUID();
           await _ins(id, _fmtDate(cur));
           sessioni.push({ id, titolo: titolo.trim(), data: _fmtDate(cur), ora, tipo: tipoVal });
           i++;
@@ -3739,7 +3862,7 @@ app.post('/api/allenatore/calendario', userAuth, async (req, res) => {
       }
       return res.status(201).json({ sessioni, count: sessioni.length });
     }
-    const id = Date.now().toString();
+    const id = crypto.randomUUID();
     await _ins(id, data);
     res.status(201).json({ id, titolo: titolo.trim(), data_str: data, ora, tipo: tipoVal, categoria: categoriaStr, count: 1 });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
@@ -3764,7 +3887,7 @@ app.get('/api/galleria/albums', async (_req, res) => {
 app.post('/api/admin/galleria', adminAuth, async (req, res) => {
   const { album, titolo, immagine } = req.body;
   if (!immagine) return res.status(400).json({ error: 'Immagine obbligatoria' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   try {
     await db.query(`INSERT INTO galleria (id,album,titolo,immagine) VALUES ($1,$2,$3,$4)`,
       [id, album || 'Generale', titolo || '', immagine]);
@@ -3786,7 +3909,7 @@ const iscrizioniLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message:
 app.post('/api/iscrizioni', iscrizioniLimiter, async (req, res) => {
   const { nome, cognome, email, telefono, eta, categoria, messaggio } = req.body;
   if (!nome || !cognome || !email) return res.status(400).json({ error: 'Nome, cognome ed email obbligatori' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   try {
     await db.query(`INSERT INTO iscrizioni (id,nome,cognome,email,telefono,eta,categoria,messaggio) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
       [id, nome, cognome, email, telefono || '', eta || null, categoria || '', messaggio || '']);
@@ -3833,7 +3956,7 @@ app.get('/api/admin/sponsor', adminAuth, async (_req, res) => {
 app.post('/api/admin/sponsor', adminAuth, async (req, res) => {
   const { nome, logo, url, livello, attivo } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   try {
     await db.query(`INSERT INTO sponsor (id,nome,logo,url,livello,attivo) VALUES ($1,$2,$3,$4,$5,$6)`,
       [id, nome, logo || '', url || '', Number(livello) || 1, attivo !== false]);
@@ -3861,6 +3984,54 @@ app.delete('/api/admin/sponsor/:id', adminAuth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
+/* ─── Card squadre homepage ─── */
+app.get('/api/squadre-homepage', async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM squadre_homepage ORDER BY ordine, created_at');
+    res.json(r.rows);
+  } catch { res.json([]); }
+});
+app.get('/api/admin/squadre-homepage', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM squadre_homepage ORDER BY ordine, created_at');
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+app.post('/api/admin/squadre-homepage', adminAuth, async (req, res) => {
+  const { nome, badge, sottotitolo, immagine, accent_color, link_risultati, link_classifica, link_squadra, ordine, featured, categorie, bg_position } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  const id = crypto.randomUUID();
+  try {
+    await db.query(
+      `INSERT INTO squadre_homepage (id,nome,badge,sottotitolo,immagine,accent_color,link_risultati,link_classifica,link_squadra,ordine,featured,categorie,bg_position)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+      [id, nome, badge||'', sottotitolo||'', immagine||'', accent_color||'#f57c00',
+       link_risultati||'', link_classifica||'', link_squadra||'', parseInt(ordine)||0, !!featured,
+       JSON.stringify(Array.isArray(categorie) ? categorie : []), bg_position||'50% 50%']
+    );
+    res.status(201).json({ id });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+app.put('/api/admin/squadre-homepage/:id', adminAuth, async (req, res) => {
+  const { nome, badge, sottotitolo, immagine, accent_color, link_risultati, link_classifica, link_squadra, ordine, featured, categorie, bg_position } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  try {
+    await db.query(
+      `UPDATE squadre_homepage SET nome=$1,badge=$2,sottotitolo=$3,immagine=$4,accent_color=$5,link_risultati=$6,link_classifica=$7,link_squadra=$8,ordine=$9,featured=$10,categorie=$11,bg_position=$12 WHERE id=$13`,
+      [nome, badge||'', sottotitolo||'', immagine||'', accent_color||'#f57c00',
+       link_risultati||'', link_classifica||'', link_squadra||'', parseInt(ordine)||0, !!featured,
+       JSON.stringify(Array.isArray(categorie) ? categorie : []), bg_position||'50% 50%', req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+app.delete('/api/admin/squadre-homepage/:id', adminAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM squadre_homepage WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
 /* ─── Risultati ─── */
 app.get('/api/risultati', async (_req, res) => {
   try {
@@ -3871,7 +4042,7 @@ app.get('/api/risultati', async (_req, res) => {
 app.post('/api/admin/risultati', adminAuth, async (req, res) => {
   const { data, avversario, set_noi, set_loro, categoria, tipo } = req.body;
   if (!data || !avversario || set_noi == null || set_loro == null) return res.status(400).json({ error: 'Campi obbligatori mancanti' });
-  const id = Date.now().toString();
+  const id = crypto.randomUUID();
   try {
     await db.query(`INSERT INTO risultati (id,data_str,avversario,set_noi,set_loro,categoria,tipo) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [id, data, avversario, parseInt(set_noi), parseInt(set_loro), categoria || '', tipo || 'campionato']);

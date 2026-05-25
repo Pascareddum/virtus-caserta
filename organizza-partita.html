@@ -69,16 +69,6 @@
     .orario-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:16px;}
     .orario-sep{font-size:16px;color:#9ca3af;text-align:center;font-weight:700;}
 
-    /* ── Availability toggle ── */
-    .avail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
-    .avail-card{padding:12px 14px;border-radius:12px;border:1.5px solid #e9ecf0;background:#f9fafb;
-      cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .18s;font-family:inherit;}
-    .avail-card.on{border-color:#16a34a;background:#f0fdf4;}
-    .avail-dot{width:10px;height:10px;border-radius:50%;border:2px solid #d1d5db;flex-shrink:0;transition:all .18s;}
-    .avail-card.on .avail-dot{background:#16a34a;border-color:#16a34a;}
-    .avail-name{font-size:13px;font-weight:600;color:#374151;}
-    .avail-card.on .avail-name{color:#15803d;}
-
     /* ── Pending list ── */
     .list-card{background:#fff;border-radius:20px;border:1.5px solid #e9ecf0;overflow:hidden;
       box-shadow:0 2px 16px rgba(13,32,85,.05);}
@@ -156,10 +146,6 @@
       .match-info{overflow:hidden;}
       .match-vs{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       .match-status{margin-left:calc(42px + 8px);font-size:11px;}
-      /* availability: 3 cols */
-      .avail-grid{grid-template-columns:repeat(3,1fr);}
-      .avail-card{padding:10px;}
-      .avail-name{font-size:12px;}
       /* selezione card */
       .selezione-card{flex-wrap:wrap;}
       .selezione-nome{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -168,7 +154,6 @@
       .slot-btn{font-size:11px;padding:6px 10px;}
     }
     @media(max-width:360px){
-      .avail-grid{grid-template-columns:1fr;}
       .orario-row{grid-template-columns:1fr;gap:6px;}
       .orario-sep{display:none;}
       .match-item{padding:10px 12px;}
@@ -245,23 +230,6 @@
       <input type="hidden" id="fPalestra">
     </div>
 
-    <!-- Disponibilità propria -->
-    <div class="form-card" id="disponibilitaCard">
-      <div class="form-section-title">La tua disponibilità</div>
-      <div class="avail-grid">
-        <button class="avail-card on" id="availSi" onclick="setAvail('si')">
-          <span class="avail-dot"></span><span class="avail-name">Disponibile</span>
-        </button>
-        <button class="avail-card" id="availForse" onclick="setAvail('forse')">
-          <span class="avail-dot" style="border-color:#f59e0b"></span><span class="avail-name">Forse</span>
-        </button>
-        <button class="avail-card" id="availNo" onclick="setAvail('no')">
-          <span class="avail-dot" style="border-color:#dc2626"></span><span class="avail-name">Non disponibile</span>
-        </button>
-      </div>
-      <input type="hidden" id="availVal" value="si">
-    </div>
-
     <!-- Inviti: solo per persona -->
     <div class="form-card">
       <div class="form-section-title">Invita partecipanti</div>
@@ -292,8 +260,8 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    const _tok = localStorage.getItem('vc_token');
-    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+    fetch('/api/me').then(r=>r.json()).then(d=>{ if(!d.auth) location.replace('/login'); }).catch(()=>location.replace('/login'));
+    const _tok = '';
 
     document.getElementById('fData').valueAsDate = new Date();
 
@@ -410,32 +378,25 @@
       document.querySelectorAll('.slot-btn.selected').forEach(b => b.classList.remove('selected'));
     }
 
-    // ── Disponibilità ──
-    let availSel = 'si';
-    function setAvail(val) {
-      availSel = val;
-      document.getElementById('availVal').value = val;
-      ['si','forse','no'].forEach(v => document.getElementById('avail'+v.charAt(0).toUpperCase()+v.slice(1)).classList.toggle('on', v === val));
-      const forse = document.getElementById('availForse');
-      const no    = document.getElementById('availNo');
-      forse.querySelector('.avail-dot').style.background   = val === 'forse' ? '#f59e0b' : '';
-      forse.querySelector('.avail-dot').style.borderColor  = '#f59e0b';
-      no.querySelector('.avail-dot').style.background      = val === 'no' ? '#dc2626' : '';
-      no.querySelector('.avail-dot').style.borderColor     = '#dc2626';
-    }
-
     // ── Persone ──
     let invitatiPers = new Map();
     let allPeople    = [];
     let peopleLoaded = false;
+    let _myId = '';
+
+    function getMyUserId() {
+      try { return String(JSON.parse(atob(_tok.split('.')[1])).id || ''); } catch { return ''; }
+    }
 
     async function caricaPersone() {
+      _myId = getMyUserId();
       const res = document.getElementById('peopleResults');
       res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;"><div class="spin"></div> Caricamento…</div>';
       try {
         const r = await fetch('/api/utenti', { headers: { Authorization: `Bearer ${_tok}` } });
         if (!r.ok) throw new Error('Status ' + r.status);
-        allPeople = await r.json();
+        const all = await r.json();
+        allPeople = all.filter(p => String(p.id) !== _myId);
         peopleLoaded = true;
         filterPeople('');
       } catch (e) {
@@ -514,7 +475,7 @@
             note:        document.getElementById('fNote').value.trim(),
             palestra_id: document.getElementById('fPalestra').value || null,
             invitati_categorie: [],
-            invitati_persone:   [...invitatiPers.keys()]
+            invitati_persone:   [...invitatiPers.keys()],
           })
         });
         if (!r.ok) throw new Error('Errore ' + r.status);

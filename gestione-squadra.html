@@ -262,7 +262,6 @@
       <div class="stats-row" id="statsRow">
         <div class="stat-cell"><div class="stat-num green" id="statPresenti">—</div><div class="stat-lbl">Presenti</div></div>
         <div class="stat-cell"><div class="stat-num red" id="statAssenti">—</div><div class="stat-lbl">Assenti</div></div>
-        <div class="stat-cell"><div class="stat-num orange" id="statNonRisp">—</div><div class="stat-lbl">Non risposto</div></div>
       </div>
     </div>
 
@@ -395,8 +394,8 @@
   </div>
 
   <script>
-    const _tok = localStorage.getItem('vc_token');
-    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+    fetch('/api/me').then(r=>r.json()).then(d=>{ if(!d.auth) location.replace('/login'); }).catch(()=>location.replace('/login'));
+    const _tok = '';
 
     async function carica() {
       try {
@@ -715,7 +714,6 @@
           document.getElementById('lastEvLabel').textContent = sess.evento;
           document.getElementById('statPresenti').textContent = sess.presenti ?? '—';
           document.getElementById('statAssenti').textContent  = sess.assenti  ?? '—';
-          document.getElementById('statNonRisp').textContent  = sess.non_risposto ?? '—';
         }
       } catch {}
     }

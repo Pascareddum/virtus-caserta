@@ -594,10 +594,6 @@
   </div>
 
   <script>
-    const token = localStorage.getItem('vc_token');
-    const adminToken = localStorage.getItem('vc_admin_token');
-    if (!token && !adminToken) { location.replace('/login'); }
-
     async function loadProfile() {
       const cached = localStorage.getItem('vc_user');
       if (cached) {
@@ -606,13 +602,13 @@
           renderName(u.nome, u.cognome);
         } catch (_) {}
       }
-      if (!token) return;
       try {
         const [profRes, evRes] = await Promise.all([
-          fetch('/api/profilo',          { headers: { Authorization: 'Bearer ' + token } }),
-          fetch('/api/profilo/prossimi', { headers: { Authorization: 'Bearer ' + token } }),
+          fetch('/api/profilo'),
+          fetch('/api/profilo/prossimi'),
         ]);
-        if (profRes.ok) {
+        if (!profRes.ok) { location.replace('/login'); return; }
+        if (true) {
           const u = await profRes.json();
           renderName(u.nome, u.cognome);
           renderRoles(u);
@@ -780,13 +776,13 @@
       body.innerHTML = `<div class="ev-modal-info">${fields.map(f=>`<div class="ev-field"><div class="ev-field-lbl">${f.lbl}</div><div class="ev-field-val">${f.val}</div></div>`).join('')}</div>`;
 
       // RSVP for allenamenti/eventi
-      if ((ev.tipo === 'allenamento' || ev.tipo === 'evento') && ev.id && token) {
+      if ((ev.tipo === 'allenamento' || ev.tipo === 'evento') && ev.id) {
         const rsvpDiv = document.createElement('div');
         rsvpDiv.className = 'ev-rsvp';
         rsvpDiv.id = 'evRsvpSection';
         rsvpDiv.innerHTML = '<div class="ev-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento…</div>';
         body.appendChild(rsvpDiv);
-        fetch(`/api/calendario/${ev.id}/mia-risposta`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`/api/calendario/${ev.id}/mia-risposta`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
           .then(r => r.json())
           .then(d => { const el = document.getElementById('evRsvpSection'); if (el) _renderRsvp(el, ev.id, d.risposta); })
           .catch(() => {});
@@ -807,11 +803,10 @@
     }
 
     window.submitRsvp = async function(id, risposta) {
-      if (!token) return;
       try {
         const r = await fetch(`/api/calendario/${id}/partecipa`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
           body: JSON.stringify({ risposta })
         });
         const data = await r.json();
@@ -880,15 +875,15 @@
       container.appendChild(table);
     }
 
-    function doLogout() {
+    async function doLogout() {
       ['vc_token','vc_admin_token','vc_role','vc_nome','vc_user'].forEach(k => localStorage.removeItem(k));
+      await fetch('/api/logout', { method: 'POST' }).catch(() => {});
       location.replace('/');
     }
 
     async function loadStaffArbitrale() {
-      if (!token) return;
       try {
-        const r = await fetch('/api/utente/staff-arbitrale', { headers: { Authorization: 'Bearer ' + token } });
+        const r = await fetch('/api/utente/staff-arbitrale', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         if (!r.ok) return;
         const data = await r.json();
         renderStaffArbitrale(data);
@@ -937,11 +932,10 @@
     }
 
     window.rispondiStaff = async function(id, stato) {
-      if (!token) return;
       try {
         const r = await fetch(`/api/utente/staff-arbitrale/${id}/risposta`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
           body: JSON.stringify({ stato })
         });
         if (r.ok) loadStaffArbitrale();

@@ -281,6 +281,8 @@ async function createTables() {
   `);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS addetto_staff_id VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS refertista_staff_id VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE squadre_homepage ADD COLUMN IF NOT EXISTS categorie JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE squadre_homepage ADD COLUMN IF NOT EXISTS bg_position VARCHAR DEFAULT '50% 50%'`);
 
   await query(`
     CREATE TABLE IF NOT EXISTS assegnazioni_partita (
@@ -312,6 +314,23 @@ async function createTables() {
       indirizzo  VARCHAR DEFAULT '',
       orari      JSONB   DEFAULT '[]',
       created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS squadre_homepage (
+      id              VARCHAR PRIMARY KEY,
+      nome            VARCHAR NOT NULL,
+      badge           VARCHAR DEFAULT '',
+      sottotitolo     VARCHAR DEFAULT '',
+      immagine        VARCHAR DEFAULT '',
+      accent_color    VARCHAR DEFAULT '#f57c00',
+      link_risultati  VARCHAR DEFAULT '',
+      link_classifica VARCHAR DEFAULT '',
+      link_squadra    VARCHAR DEFAULT '',
+      ordine          INTEGER DEFAULT 0,
+      featured        BOOLEAN DEFAULT false,
+      created_at      TIMESTAMPTZ DEFAULT NOW()
     );
   `);
 

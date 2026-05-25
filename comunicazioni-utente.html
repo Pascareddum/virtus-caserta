@@ -113,8 +113,8 @@
 
 
   <script>
-    const _tok = localStorage.getItem('vc_token');
-    if (!_tok && !localStorage.getItem('vc_admin_token')) { location.replace('/login'); }
+    fetch('/api/me').then(r=>r.json()).then(d=>{ if(!d.auth) location.replace('/login'); }).catch(()=>location.replace('/login'));
+    const _tok = '';
 
     let msgs = [];
 

@@ -169,9 +169,7 @@
 </div>
 
 <script>
-  const _tok = localStorage.getItem('vc_token');
-  const _atk = localStorage.getItem('vc_admin_token');
-  if (!_tok && !_atk) { location.replace('/login'); }
+  // Auth check via cookie - redirect handled on first 401 from API
 
   const MESI_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
   const MESI_FULL  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
@@ -317,7 +315,7 @@
       rsvpDiv.className='dm-rsvp';rsvpDiv.id='rsvpSec';
       rsvpDiv.innerHTML='<div class="dm-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento…</div>';
       body.appendChild(rsvpDiv);
-      fetch(`/api/calendario/${e.id}/mia-risposta`,{headers:{Authorization:`Bearer ${_tok}`}})
+      fetch(`/api/calendario/${e.id}/mia-risposta`)
         .then(r=>r.json()).then(d=>{const el=document.getElementById('rsvpSec');if(el)_renderRsvp(el,e.id,d.risposta);}).catch(()=>{});
     }
     document.getElementById('detailModal').classList.add('open');
@@ -330,9 +328,8 @@
       </div>`;
   }
   window.submitRsvp=async function(id,risposta){
-    if(!_tok)return;
     try{
-      const r=await fetch(`/api/calendario/${id}/partecipa`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${_tok}`},body:JSON.stringify({risposta})});
+      const r=await fetch(`/api/calendario/${id}/partecipa`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({risposta})});
       const data=await r.json();if(r.ok){const el=document.getElementById('rsvpSec');if(el)_renderRsvp(el,id,data.risposta);}
     }catch{}
   };
@@ -342,19 +339,17 @@
     render();
     // Load user profile for category filter
     try{
-      if(_tok){
-        const prof=await fetch('/api/profilo',{headers:{Authorization:`Bearer ${_tok}`}}).then(r=>r.json());
+      const prof=await fetch('/api/profilo').then(r=>r.ok?r.json():null);
+      if(prof){
         const parseMap=v=>v?(typeof v==='string'?JSON.parse(v):v):{};
         const atletaCats=Object.keys(parseMap(prof.ruolo_atleta));
         const allenatoreCats=Object.keys(parseMap(prof.ruolo_allenatore));
         userCats=[...new Set([...atletaCats,...allenatoreCats])];
-        if(userCats.length){/* legenda fissa, categorie usate solo per filtrare */}
       }
     }catch{}
 
     try{
-      const calTok=_tok||_atk;
-      const sessioni=await fetch('/api/calendario',{headers:calTok?{Authorization:`Bearer ${calTok}`}:{}}).then(r=>r.json());
+      const sessioni=await fetch('/api/calendario').then(r=>r.json());
       const _seenIds=new Set();
       sessioni.forEach(s=>{
         if(!s.data)return;

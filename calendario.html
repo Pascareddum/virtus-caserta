@@ -1025,18 +1025,15 @@
     body.innerHTML = photoHtml + `<div class="dm-info">${infoHtml}</div>`;
 
     if ((e.tipo === 'allenamento' || e.tipo === 'evento') && e.id) {
-      const token = localStorage.getItem('vc_token');
-      if (token) {
-        const rsvpDiv = document.createElement('div');
-        rsvpDiv.id = 'rsvpSection';
-        rsvpDiv.className = 'dm-rsvp';
-        rsvpDiv.innerHTML = '<div class="dm-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento...</div>';
-        body.appendChild(rsvpDiv);
-        fetch(`/api/calendario/${e.id}/mia-risposta`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.json())
-          .then(d => { if (document.getElementById('rsvpSection')) _renderRsvp(rsvpDiv, e.id, d.risposta); })
-          .catch(() => { if (document.getElementById('rsvpSection')) rsvpDiv.innerHTML = ''; });
-      }
+      const rsvpDiv = document.createElement('div');
+      rsvpDiv.id = 'rsvpSection';
+      rsvpDiv.className = 'dm-rsvp';
+      rsvpDiv.innerHTML = '<div class="dm-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento...</div>';
+      body.appendChild(rsvpDiv);
+      fetch(`/api/calendario/${e.id}/mia-risposta`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (document.getElementById('rsvpSection')) { if (d) _renderRsvp(rsvpDiv, e.id, d.risposta); else rsvpDiv.innerHTML = ''; } })
+        .catch(() => { if (document.getElementById('rsvpSection')) rsvpDiv.innerHTML = ''; });
     }
 
     document.getElementById('detailModal').classList.add('open');
@@ -1056,12 +1053,10 @@
   }
 
   window.submitRsvp = async function(sessioneId, risposta) {
-    const token = localStorage.getItem('vc_token');
-    if (!token) return;
     try {
       const r = await fetch(`/api/calendario/${sessioneId}/partecipa`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ risposta })
       });
       const data = await r.json();
@@ -1120,11 +1115,10 @@
     const btn=document.getElementById('btnSalva');
     btn.disabled=true;btn.textContent='Salvataggio…';
     try {
-      const token=localStorage.getItem('vc_admin_token')||localStorage.getItem('vc_token');
       const tipo=document.getElementById('mTipo').value;
       const foto=document.getElementById('mFoto').value.trim();
       const res=await fetch('/api/calendario',{method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        headers:{'Content-Type':'application/json'},
         body:JSON.stringify({titolo,data,ora,tipo,foto,
           categoria:document.getElementById('mCategoria').value,
           note:document.getElementById('mNote').value.trim()})});
@@ -1142,11 +1136,9 @@
   }
 
   /* ── FAB visibilità ── */
-  (function(){
-    const r=localStorage.getItem('vc_role');
-    const t=localStorage.getItem('vc_token')||localStorage.getItem('vc_admin_token');
-    if (t&&(r==='admin'||r==='dirigente')) document.getElementById('fabAggiungi').style.display='flex';
-  })();
+  fetch('/api/me').then(r=>r.json()).then(d=>{
+    if(d.auth&&(d.role==='admin'||d.role==='dirigente')) document.getElementById('fabAggiungi').style.display='flex';
+  }).catch(()=>{});
 
   /* ── CARICA DATI ── */
   async function carica() {
@@ -1158,8 +1150,7 @@
     } catch(e){console.warn('[Palestre]',e.message);}
 
     try {
-      const _calTok=localStorage.getItem('vc_token')||localStorage.getItem('vc_admin_token');
-      const sessioni=await fetch('/api/calendario',{headers:_calTok?{Authorization:`Bearer ${_calTok}`}:{}}).then(r=>r.json());
+      const sessioni=await fetch('/api/calendario').then(r=>r.json());
       sessioni.forEach(s=>{
         if (!s.data) return;
         if (!mappa[s.data]) mappa[s.data]=[];

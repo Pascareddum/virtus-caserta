@@ -180,23 +180,12 @@
   </div>
 
   <script>
-    // Redirect se già loggato (solo con token non scaduto)
-    (function() {
-      function jwtExp(t) {
-        try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp || 0; }
-        catch { return 0; }
-      }
-      const now = Date.now() / 1000;
-      const at = localStorage.getItem('vc_admin_token');
-      if (at) {
-        if (jwtExp(at) > now) { location.replace('/admin'); return; }
-        localStorage.removeItem('vc_admin_token');
-      }
-      const ut = localStorage.getItem('vc_token');
-      if (ut) {
-        if (jwtExp(ut) > now) { location.replace('/utente'); return; }
-        ['vc_token','vc_role','vc_nome','vc_user'].forEach(k => localStorage.removeItem(k));
-      }
+    // Redirect se già loggato (via cookie httpOnly)
+    (async function() {
+      try {
+        const r = await fetch('/api/me').then(r => r.json());
+        if (r.auth) location.replace(r.role === 'admin' ? '/admin.html' : '/utente');
+      } catch {}
     })();
 
     const panels = ['utente', 'registrati', 'admin'];
@@ -252,9 +241,8 @@
         });
         const data = await res.json();
         if (!res.ok) { errEl.textContent = data.error || 'Credenziali non valide.'; return; }
-        localStorage.setItem('vc_token', data.token);
         if (data.user) localStorage.setItem('vc_user', JSON.stringify(data.user));
-        location.href = '/index.html';
+        location.href = '/utente';
       } catch {
         errEl.textContent = 'Errore di rete. Riprova.';
       }
@@ -275,7 +263,6 @@
         });
         const data = await res.json();
         if (!res.ok) { errEl.textContent = data.error || 'Credenziali non valide.'; return; }
-        localStorage.setItem('vc_admin_token', data.token);
         location.href = '/admin.html';
       } catch {
         errEl.textContent = 'Errore di rete. Riprova.';

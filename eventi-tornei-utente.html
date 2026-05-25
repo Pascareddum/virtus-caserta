@@ -78,12 +78,8 @@
   </div>
 
   <script>
-    const token = localStorage.getItem('vc_token');
-    const adminToken = localStorage.getItem('vc_admin_token');
-    if (!token && !adminToken) { location.replace('/login'); }
-
-    const authToken = token || adminToken;
-    function headers() { return { 'Content-Type':'application/json', 'Authorization':'Bearer '+authToken }; }
+    fetch('/api/me').then(r=>r.json()).then(d=>{ if(!d.auth) location.replace('/login'); }).catch(()=>location.replace('/login'));
+    function headers() { return { 'Content-Type':'application/json' }; }
 
     let _currentView = 'eventi';
 

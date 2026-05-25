@@ -1,273 +1,370 @@
-# Report Analisi Settimanale — Virtus Caserta
+# 📊 Report Analisi Settimanale – Virtus Caserta
 
-**Data analisi:** 11 maggio 2026  
-**Analizzato da:** Claude (automazione settimanale)  
-**Progetto:** Virtus Caserta ASD — sito web istituzionale con shop, calendario, risultati FIPAV
-
----
-
-## Riepilogo Esecutivo
-
-I 5 punti critici principali emersi dall'analisi di questa settimana:
-
-1. 🔴 **Credenziali hardcoded non risolte** — `JWT_SECRET` e `ADMIN_PASSWORD` hanno ancora valori di default insicuri (`'virtus_secret_2026_dev'` e `'virtus2026'`). Il problema era già segnalato nel report del 4 maggio e **non è ancora stato corretto**.
-2. 🔴 **Vulnerabilità SSRF in `/api/proxy-image`** — L'endpoint accetta qualsiasi URL arbitrario senza whitelist e lo richiede dal server. Un attaccante può usarlo per interrogare servizi interni, metadati cloud, o scansionare la rete interna.
-3. 🔴 **HTML injection non corretta nelle email di iscrizione** — `POST /api/iscrizioni` costruisce il body HTML dell'email interpolando direttamente `${nome}`, `${cognome}`, `${email}`, `${messaggio}` senza chiamare `esc()`, a differenza di tutti gli altri endpoint email. Problema già segnalato il 4 maggio, **non corretto**.
-4. 🟡 **Nessun indice DB sulle colonne più interrogate** — Le tabelle `utenti`, `ordini` e `calendario` non hanno indici su `email`, `stato` e `data_str`. Con la crescita dei dati le query di ricerca degraderanno significativamente.
-5. 🟡 **Date calendario memorizzate come `VARCHAR`** — La colonna `data_str` nella tabella `calendario` è di tipo `VARCHAR` invece di `DATE`, rendendo impossibili ordinamenti e filtri corretti per intervallo senza conversioni runtime.
+**Data analisi:** 25 Maggio 2026  
+**Progetto:** Virtus Caserta ASD – Sito web pallavolo  
+**File analizzati:** server.js (4380 righe), db.js, common.js, common.css, tutti i file .html, package.json, railway.json, sw.js
 
 ---
 
-## Stato correzioni dalla settimana precedente (4 maggio 2026)
+## 🔎 Riepilogo Esecutivo
 
-| # | Problema segnalato | Stato |
-|---|---|---|
-| 1 | Credenziali hardcoded (JWT_SECRET, ADMIN_PASSWORD) | ❌ Non corretto |
-| 2 | `err.message` esposto nelle risposte HTTP | ✅ Quasi risolto (rimane solo riga 2974 in `/api/admin/test-email`) |
-| 3 | HTML injection email iscrizioni | ❌ Non corretto |
-| 4 | CSS massivamente duplicato tra pagine | ❌ Non corretto |
-| 5 | Service Worker incompleto (PWA) | ❌ Non corretto |
+I cinque punti critici principali identificati questa settimana:
+
+1. **🔴 Token JWT utente memorizzati in `localStorage`** — esposti ad attacchi XSS. Il token admin è anch'esso in `localStorage`. Dovrebbero essere usati cookie `httpOnly`.
+2. **🔴 Nessuna protezione CSRF** — tutte le API che mutano stato (POST/PUT/DELETE) sono vulnerabili a Cross-Site Request Forgery.
+3. **🔴 6 vulnerabilità moderate nelle dipendenze** — `express`, `express-rate-limit`, `ws`, `qs` segnalati da `npm audit`. Risolvibili con `npm audit fix`.
+4. **🔴 ID generati con `Date.now().toString()`** — usato in 22+ punti, con rischio di collisione in scenari concorrenti. `crypto.randomUUID()` è già usato in alcuni punti e dovrebbe essere standardizzato.
+5. **🟡 `server.js` monolitico da 4380 righe e `admin.html` da 7129 righe** — manutenibilità critica, impossibile fare debug o test in modo efficace.
 
 ---
 
-## 1. Sicurezza
+## 1. 🔒 Sicurezza
 
-### 1.1 Credenziali hardcoded — fallback insicuri (RIPETUTO)
-**🔴 Alta priorità — `server.js` righe 29 e 397**
-
-I valori di default sono presenti nel codice sorgente e pubblicamente visibili:
+### 1.1 Token JWT in `localStorage` — rischio XSS
+**File:** `common.js` righe 292, 317, 345–354; `admin.html` riga ~2950  
+**Problema:** I token JWT (sia utente che admin) vengono salvati in `localStorage`, accessibile da qualsiasi script JavaScript sulla pagina. Un attacco XSS anche minore permetterebbe di rubare la sessione.
 
 ```js
-// riga 29
-const JWT_SECRET = process.env.JWT_SECRET || 'virtus_secret_2026_dev';
-
-// riga 397
-const adminPassword = process.env.ADMIN_PASSWORD || 'virtus2026';
+// ATTUALE (insicuro)
+localStorage.setItem('vc_token', data.token);
+localStorage.setItem('vc_admin_token', TOKEN);
 ```
 
-Il blocco di verifica all'avvio (righe 23-27) logga un errore ma **non termina il processo** (`process.exit(1)` manca). Il server si avvia comunque con le credenziali di default.
+**Soluzione consigliata:** Usare cookie `httpOnly` per i token utente, come già fatto per la sessione admin lato server (`vc_admin_session`). Il server emette il cookie sul login, il client non accede mai al token direttamente.
 
-**Soluzione:**
 ```js
-// In cima al file, dopo dotenv.config():
-if (process.env.NODE_ENV === 'production') {
-  const mancanti = ['JWT_SECRET','ADMIN_PASSWORD','ADMIN_USERNAME'].filter(k => !process.env[k]);
-  if (mancanti.length) { console.error('[FATALE] Variabili mancanti:', mancanti); process.exit(1); }
+// SERVER: al login utente
+res.cookie('vc_session', token, {
+  httpOnly: true,
+  sameSite: 'strict',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 24 * 60 * 60 * 1000,
+});
+```
+
+**Priorità:** 🔴 Alta
+
+---
+
+### 1.2 Nessuna protezione CSRF
+**File:** `server.js` — tutti gli endpoint POST/PUT/DELETE  
+**Problema:** Nessun middleware CSRF è presente. Qualsiasi sito esterno potrebbe inviare richieste autenticate per conto di un utente loggato. Il `sameSite: 'strict'` sui cookie mitiga parzialmente, ma solo se si migra ai cookie httpOnly (punto 1.1).
+
+**Soluzione consigliata:** Implementare il Double Submit Cookie pattern:
+
+```js
+// Genera un token CSRF al login e invialo in un cookie leggibile dal JS
+res.cookie('csrf_token', crypto.randomUUID(), { sameSite: 'strict', secure: true });
+
+// Middleware di verifica
+function csrfCheck(req, res, next) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const header = req.headers['x-csrf-token'];
+  const cookie = req.cookies['csrf_token'];
+  if (!header || header !== cookie) return res.status(403).json({ error: 'CSRF token non valido' });
+  next();
 }
-const JWT_SECRET = process.env.JWT_SECRET; // rimuovere || 'fallback'
+app.use('/api/', csrfCheck);
 ```
+
+**Priorità:** 🔴 Alta
 
 ---
 
-### 1.2 SSRF (Server-Side Request Forgery) in `/api/proxy-image`
-**🔴 Alta priorità — `server.js` righe 2542-2571**
-
-L'endpoint accetta un parametro `url` arbitrario e lo richiede direttamente dal server senza validare il dominio di destinazione:
-
-```js
-app.get('/api/proxy-image', async (req, res) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).send('Missing url');
-  // ❌ Nessuna whitelist: qualsiasi URL viene fetchato
-  const imgRes = await fetch(url, { headers: { ... } });
-```
-
-Un attaccante può passare `url=http://169.254.169.254/latest/meta-data/` (AWS metadata), `url=http://localhost:3000/api/admin/utenti`, o URL di servizi interni. L'endpoint non ha rate limiting né autenticazione.
-
-**Soluzione:**
-```js
-const PROXY_ALLOWED_HOSTS = [
-  'portalefipav.net',
-  'fipavcampania.it',
-  'opespallavolo.it',
-  'instagram.com',
-  'cdninstagram.com',
-];
-
-app.get('/api/proxy-image', proxyLimiter, async (req, res) => {
-  const { url } = req.query;
-  if (!url) return res.status(400).send('Missing url');
-  let parsed;
-  try { parsed = new URL(url); } catch { return res.status(400).send('URL non valido'); }
-  const allowed = PROXY_ALLOWED_HOSTS.some(h => parsed.hostname.endsWith(h));
-  if (!allowed) return res.status(403).send('Host non autorizzato');
-  // ...fetch continua normalmente
-```
-
-Aggiungere anche un rate limiter (es. 30 req/min per IP) su questo endpoint.
-
----
-
-### 1.3 HTML injection nelle email di iscrizione (RIPETUTO)
-**🔴 Alta priorità — `server.js` riga 2655**
+### 1.3 Password minima troppo corta
+**File:** `server.js` riga 807  
+**Problema:** La password minima è di soli 6 caratteri. Le linee guida OWASP e NIST raccomandano almeno 8 caratteri.
 
 ```js
-html: `<p><b>Nome:</b> ${nome} ${cognome}<br><b>Email:</b> ${email}<br>
-       <b>Tel:</b> ${telefono || '—'}<br><b>Messaggio:</b> ${messaggio || '—'}</p>`,
-```
-
-I campi sono interpolati senza `esc()`. Un utente malintenzionato può iniettare HTML arbitrario nel corpo dell'email ricevuta dall'admin (phishing interno, link malevoli, contenuti fuorvianti).
-
-**Soluzione:** sostituire con `esc(nome)`, `esc(cognome)`, `esc(email)`, `esc(messaggio)` — la funzione `esc()` è già definita nel file a riga 345.
-
----
-
-### 1.4 Nessun rate limiting su `/api/push/subscribe` e `/api/imposta-password`
-**🟡 Media priorità — `server.js` righe 2789 e 600**
-
-- `/api/push/subscribe`: accetta qualsiasi endpoint senza autenticazione o rate limiting. Può essere usato per riempire la tabella `push_subscriptions` con dati arbitrari (DoS sul DB).
-- `/api/imposta-password`: consente tentativi illimitati di indovinare token di setup (i token sono da 32 byte hex casuali, il rischio è basso ma la difesa dovrebbe esserci).
-
-**Soluzione:**
-```js
-const pushLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Troppe sottoscrizioni.' } });
-app.post('/api/push/subscribe', pushLimiter, async (req, res) => { ...
-
-const impostaPasswordLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Troppi tentativi.' } });
-app.post('/api/imposta-password', impostaPasswordLimiter, async (req, res) => { ...
-```
-
----
-
-### 1.5 CSP con `unsafe-inline` per gli script
-**🟡 Media priorità — `server.js` righe 181-182**
-
-```js
-scriptSrc:     ["'self'", "'unsafe-inline'", ...],
-scriptSrcAttr: ["'unsafe-inline'"],
-```
-
-`unsafe-inline` annulla gran parte della protezione XSS offerta dalla Content Security Policy. Se un attaccante riesce a iniettare anche solo un frammento HTML in una pagina, può eseguire JavaScript arbitrario.
-
-**Soluzione a lungo termine:** estrarre tutti gli script inline (in ogni file HTML) in file `.js` separati e serviti staticamente, quindi rimuovere `unsafe-inline`. Alternativa rapida: usare nonces CSP generati per ogni request.
-
----
-
-### 1.6 Password minima troppo corta
-**🟢 Bassa priorità — `server.js` riga 604**
-
-La password minima richiesta è di soli 6 caratteri:
-```js
+// ATTUALE
 if (password.length < 6) return res.status(400).json({ error: 'Password minimo 6 caratteri.' });
 ```
 
-Per un'applicazione con dati di atleti, ordini e calendario privato, il minimo raccomandato è 8 caratteri con verifica di complessità di base.
+**Soluzione consigliata:**
 
-**Soluzione:**
 ```js
 if (password.length < 8) return res.status(400).json({ error: 'Password minimo 8 caratteri.' });
-// Opzionale: verifica presenza di almeno una cifra o carattere speciale
 ```
+
+**Priorità:** 🟡 Media
 
 ---
 
-## 2. Qualità del codice
+### 1.4 CSP con `'unsafe-inline'` per script
+**File:** `server.js` righe 181–191  
+**Problema:** La direttiva `scriptSrc` include `'unsafe-inline'` e `scriptSrcAttr: ["'unsafe-inline'"]`, il che neutralizza gran parte della protezione XSS offerta dal Content Security Policy.
 
-### 2.1 `Date.now().toString()` come chiave primaria
-**🟡 Media priorità — multipli endpoint in `server.js`**
+**Soluzione consigliata:** Sostituire `unsafe-inline` con nonce generati per richiesta. Richiede di passare il nonce alle pagine server-side rendered:
 
-La generazione dell'ID con `const id = Date.now().toString()` è usata per prodotti, notizie, calendario, sponsor, risultati, galleria, iscrizioni. Questo crea rischi di collisione sotto carico concorrente (due inserimenti nello stesso millisecondo producono lo stesso ID) e comporta ID prevedibili e ordinabili (espone timing delle operazioni).
-
-La tabella `utenti` usa correttamente `crypto.randomUUID()`. Portare lo stesso pattern a tutte le entità:
 ```js
-const id = crypto.randomUUID(); // invece di Date.now().toString()
+app.use((req, res, next) => {
+  res.locals.nonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
+// Nel CSP: scriptSrc: ["'self'", `'nonce-${res.locals.nonce}'`]
 ```
 
----
-
-### 2.2 Email template HTML inline nel server
-**🟡 Media priorità — `server.js`**
-
-Il file contiene circa 500+ righe di HTML per template email direttamente nel codice server (email ordini, setup password, annullamenti, notifiche eventi, ecc.). Questo rende difficile la manutenzione e la modifica grafica delle email senza toccare la logica del server.
-
-**Soluzione:** creare una cartella `templates/` con file `.html` per ogni tipo di email, caricarli con `fs.readFileSync` all'avvio e usare sostituzione di variabili con placeholder (es. `{{nome}}`).
+**Priorità:** 🟡 Media
 
 ---
 
-### 2.3 `data_str` come `VARCHAR` invece di tipo `DATE`
-**🟡 Media priorità — `db.js` righe 87 e 96**
+### 1.5 Nessun rate limit sulle API generali
+**File:** `server.js`  
+**Problema:** Solo login, registrazione, pagamenti e contatti hanno rate limiting. Endpoint pubblici come `/api/calendario`, `/api/notizie`, `/api/squadra` sono senza limiti e potrebbero essere usati per DDoS o scraping aggressivo.
 
-Le tabelle `notizie`, `calendario` e `risultati` usano `data_str VARCHAR` per memorizzare date. Questo causa:
-- Ordinamenti per data basati su ordinamento alfabetico (errato)
-- Impossibilità di filtrare per intervallo con operatori `>` e `<` nativi
-- Mancanza di validazione automatica del formato
+**Soluzione consigliata:**
 
-**Soluzione:** migrare a `DATE NOT NULL`:
-```sql
-ALTER TABLE calendario ALTER COLUMN data_str TYPE DATE USING data_str::date;
-ALTER TABLE notizie ALTER COLUMN data_str TYPE DATE USING data_str::date;
-ALTER TABLE risultati ALTER COLUMN data_str TYPE DATE USING data_str::date;
-```
-Aggiornare le query in `server.js` di conseguenza (`.toISOString().slice(0,10)` per i valori inseriti).
-
----
-
-### 2.4 Monolite: file troppo grandi
-**🟢 Bassa priorità**
-
-| File | Righe |
-|------|-------|
-| `server.js` | 3.064 |
-| `admin.html` | 3.894 |
-| `index.html` | 3.095 |
-
-`server.js` mescola configurazione, middleware, route, business logic, parsing HTML di terze parti (FIPAV/OPES), scheduler e template email. È difficile da navigare, testare e modificare in modo sicuro.
-
-**Soluzione a medio termine:** suddividere `server.js` in moduli separati:
-- `routes/auth.js`, `routes/shop.js`, `routes/calendario.js`, ecc.
-- `services/fipav.js`, `services/email.js`
-- `schedulers/fipav.js`
-
----
-
-## 3. Performance
-
-### 3.1 Nessun indice DB sulle colonne più interrogate
-**🟡 Media priorità — `db.js`**
-
-Le seguenti colonne vengono filtrate frequentemente ma non hanno indici:
-
-| Tabella | Colonna | Utilizzata in |
-|---------|---------|---------------|
-| `utenti` | `email` | login, register, reset password |
-| `utenti` | `stato` | filtro utenti attivi per notifiche eventi |
-| `ordini` | `stato` | reminder ordini non letti, export |
-| `ordini` | `mail_letta` | reminder giornaliero |
-| `calendario` | `data_str` | prossimi eventi, filtri frontend |
-| `fipav_matches` | `fonte` | query aggregate per fonte |
-
-**Soluzione:** aggiungere in `createTables()` di `db.js`:
 ```js
-await query(`CREATE INDEX IF NOT EXISTS idx_utenti_email ON utenti (email)`);
-await query(`CREATE INDEX IF NOT EXISTS idx_utenti_stato ON utenti (stato)`);
-await query(`CREATE INDEX IF NOT EXISTS idx_ordini_stato ON ordini (stato)`);
-await query(`CREATE INDEX IF NOT EXISTS idx_ordini_mail_letta ON ordini (mail_letta) WHERE mail_letta = false`);
-await query(`CREATE INDEX IF NOT EXISTS idx_calendario_data ON calendario (data_str)`);
-await query(`CREATE INDEX IF NOT EXISTS idx_fipav_fonte ON fipav_matches (fonte)`);
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppe richieste. Riprova più tardi.' },
+});
+app.use('/api/', globalLimiter);
 ```
 
----
-
-### 3.2 Immagini senza lazy loading
-**🟡 Media priorità — pagine HTML**
-
-Su `index.html` ci sono 23 tag `<img>` ma solo 5 usano `loading="lazy"`. Sulle pagine shop, squadra e notizie il rapporto è simile (1-2 lazy su 13-14 img). Le immagini above-the-fold bloccano il rendering iniziale.
-
-**Soluzione:** aggiungere `loading="lazy"` a tutti i tag `<img>` che non sono visibili above-the-fold (es. foto squadra, gallery items, immagini notizie, loghi sponsor). Le immagini hero e logo di testata possono restare senza.
+**Priorità:** 🟡 Media
 
 ---
 
-### 3.3 Service Worker incompleto — nessuna cache offline
-**🟡 Media priorità — `sw.js`**
+### 1.6 Nessun refresh token JWT per utenti
+**File:** `server.js` riga 479  
+**Problema:** I token utente durano 24 ore senza meccanismo di refresh. Non esiste un endpoint di revoca. Se un token viene compromesso, è valido per tutta la sua durata.
 
-`sw.js` gestisce solo le notifiche push. Non è implementata nessuna strategia di caching (Cache-First, Stale-While-Revalidate, ecc.), quindi:
-- Il sito non funziona offline nonostante sia registrato come PWA
-- I file statici (CSS, JS, immagini) vengono richiesti al server ad ogni visita
+**Soluzione consigliata:** Implementare token di refresh separati, o almeno ridurre la durata dell'access token a 1–2 ore.
 
-**Soluzione:** estendere `sw.js` con una strategia base:
+**Priorità:** 🟡 Media
+
+---
+
+## 2. 🏗️ Qualità del Codice
+
+### 2.1 ID generati con `Date.now().toString()` — rischio collisione
+**File:** `server.js` — 22 occorrenze  
+**Problema:** `Date.now().toString()` produce ID identici se due richieste arrivano nello stesso millisecondo. In ambienti concorrenti (es. più ordini simultanei) si rischiano conflitti di PRIMARY KEY nel database. In alcuni punti viene aggiunto `Math.random()` come patch, ma non è una soluzione robusta.
+
 ```js
-const CACHE_NAME = 'vc-static-v1';
-const STATIC_ASSETS = ['/common.css', '/common.js', '/images/logo.png', '/images/negativo@4x.png'];
+// ATTUALE (a rischio)
+const id = Date.now().toString();
+
+// GIÀ USATO in alcuni punti — da standardizzare ovunque
+const id = crypto.randomUUID();
+```
+
+**Soluzione consigliata:** Sostituire tutti gli usi di `Date.now().toString()` con `crypto.randomUUID()`, già importato e disponibile nel file.
+
+**Priorità:** 🔴 Alta
+
+---
+
+### 2.2 File monolitici difficili da manutenere
+**Problema:** `server.js` è 4380 righe e `admin.html` è 7129 righe. Qualsiasi modifica rischia di introdurre regressioni. È impossibile fare unit testing.
+
+**Soluzione consigliata:** Dividere `server.js` in moduli Express separati:
+
+```
+routes/
+  auth.js          ← login, logout, register, imposta-password
+  calendario.js    ← CRUD calendario, tornei, palestre
+  shop.js          ← prodotti, ordini, email ordini
+  utenti.js        ← gestione utenti admin
+  fipav.js         ← integrazione FIPAV/OPES
+  notizie.js       ← CRUD notizie
+  ...
+server.js          ← solo bootstrap, middleware globali, app.listen
+```
+
+**Priorità:** 🟡 Media
+
+---
+
+### 2.3 File `admin 2.html` — duplicato legacy non servito
+**File:** `admin 2.html` (con spazio nel nome)  
+**Problema:** Esiste una copia legacy del pannello admin accessibile come file statico (il blocco `BLOCKED_FILES` non lo esclude). Potrebbe esporre funzionalità obsolete.
+
+**Soluzione consigliata:**
+
+```bash
+git rm "admin 2.html"
+```
+
+**Priorità:** 🟡 Media
+
+---
+
+### 2.4 Schema migrations inline all'avvio del server
+**File:** `db.js` — funzione `createTables()`  
+**Problema:** Le migrazioni schema vengono eseguite ad ogni avvio con decine di `ALTER TABLE ADD COLUMN IF NOT EXISTS`. Su database con molte righe, questo rallenta il boot. Non c'è storico delle migrazioni né possibilità di rollback.
+
+**Soluzione consigliata:** Adottare un tool di migrazione come `node-pg-migrate`:
+
+```bash
+npm install node-pg-migrate
+```
+
+**Priorità:** 🟡 Media
+
+---
+
+### 2.5 Variabili d'ambiente non documentate
+**File:** `.env.example`  
+**Problema:** Mancano nel file di esempio:
+- `BREVO_API_KEY` — essenziale per invio email via API Brevo
+- `SUPABASE_REGION` — usata in `db.js` per costruire l'URL del pooler
+- `DATABASE_URL` — presente ma senza esempio del formato
+
+**Soluzione consigliata:** Aggiungere al `.env.example`:
+
+```env
+# Brevo HTTP API (alternativa preferita a SMTP per email transazionali)
+BREVO_API_KEY=xkeysib-...
+
+# Regione Supabase per connessione pooler
+SUPABASE_REGION=eu-central-1
+```
+
+**Priorità:** 🟢 Bassa
+
+---
+
+## 3. ⚡ Performance
+
+### 3.1 CSS inline in ogni pagina HTML (no caching browser)
+**File:** Tutti i file `.html`  
+**Problema:** Ogni pagina contiene centinaia di righe di CSS inline nel tag `<style>`. Questo CSS non viene cachato dal browser tra le navigazioni. `index.html` ha circa 700 righe di CSS inline, `admin.html` oltre 1000.
+
+**Soluzione consigliata:** Estrarre il CSS page-specific in file separati linkati nell'`<head>`. `common.css` già esiste come pattern — estenderlo.
+
+**Priorità:** 🟡 Media
+
+---
+
+### 3.2 Query N+1 in `/api/profilo/prossimi`
+**File:** `server.js` righe 547–580  
+**Problema:** Per ogni squadra dell'utente viene eseguita una query DB separata dentro un ciclo `for`. Con 5 squadre → 5 query sequenziali invece di 1.
+
+```js
+// ATTUALE — N query nel loop
+for (const nome of nomiSquadre) {
+  const calRes = await db.query(`... WHERE categoria ILIKE $1 ...`, [nome, ...]);
+}
+```
+
+**Soluzione consigliata:**
+
+```js
+// UNA sola query con array
+const calRes = await db.query(
+  `SELECT * FROM calendario
+   WHERE (categoria = ANY($1) OR categorie_collegate ?| $1)
+     AND data_str >= $2 AND data_str <= $3
+   ORDER BY data_str, ora`,
+  [nomiSquadre, lunStr, domStr]
+);
+```
+
+**Priorità:** 🟡 Media
+
+---
+
+### 3.3 Lazy loading parziale sulle immagini
+**File:** `index.html` e pagine con immagini dinamiche  
+**Problema:** Solo 5 immagini usano `loading="lazy"`. Le immagini generate dinamicamente tramite `innerHTML` non hanno mai il lazy loading.
+
+**Soluzione consigliata:** Aggiungere `loading="lazy"` in tutti i template HTML generati via JavaScript:
+
+```js
+`<img src="${sq.immagine}" loading="lazy" alt="${esc(sq.nome)}">`
+```
+
+**Priorità:** 🟢 Bassa
+
+---
+
+### 3.4 Nessun cache-busting per asset statici
+**File:** `server.js` (configurazione `express.static`), file HTML  
+**Problema:** `common.css` e `common.js` vengono serviti senza versioning. Dopo un aggiornamento, gli utenti potrebbero vedere la versione vecchia in cache.
+
+**Soluzione consigliata:** Aggiungere un query string versione nei link HTML:
+
+```html
+<link rel="stylesheet" href="/common.css?v=20260525">
+<script src="/common.js?v=20260525"></script>
+```
+
+**Priorità:** 🟢 Bassa
+
+---
+
+## 4. 🔍 SEO e Accessibilità
+
+### 4.1 Meta tag mancanti su pagine utente-facing
+**Problema:** Diverse pagine mancano di `<meta name="description">` e tag Open Graph:
+
+| Pagina | description | OG tags | Note |
+|--------|-------------|---------|------|
+| `login.html` | ❌ | ❌ | Aggiungere `noindex` |
+| `live.html` | ✅ | ❌ | Manca OG |
+| `utente.html` | ❌ | ❌ | Aggiungere `noindex` |
+| `imposta-password.html` | ❌ | ❌ | Aggiungere `noindex` |
+| `ordine-confermato.html` | ❌ | ❌ | Aggiungere `noindex` |
+
+**Priorità:** 🟡 Media
+
+---
+
+### 4.2 Discrepanza URL in `og:url` di `index.html`
+**File:** `index.html` riga ~12  
+**Problema:** Il tag `og:url` punta a `https://virtuscaserta.it/` ma il dominio effettivo è `https://www.virtuscaserta.com`.
+
+```html
+<!-- ATTUALE (errato) -->
+<meta property="og:url" content="https://virtuscaserta.it/">
+
+<!-- CORRETTO -->
+<meta property="og:url" content="https://www.virtuscaserta.com/">
+```
+
+**Priorità:** 🟢 Bassa
+
+---
+
+### 4.3 Nessun tag `<link rel="canonical">`
+**Problema:** Nessuna pagina ha il tag canonical. Con i redirect da `.html` a URL puliti, i crawler potrebbero indicizzare entrambe le versioni duplicando il contenuto.
+
+**Soluzione consigliata:** Aggiungere in ogni pagina pubblica:
+
+```html
+<link rel="canonical" href="https://www.virtuscaserta.com/notizie">
+```
+
+**Priorità:** 🟢 Bassa
+
+---
+
+## 5. 🖥️ Funzionalità e UX
+
+### 5.1 Stripe in `.env.example` ma non implementato
+**File:** `.env.example`, `server.js`  
+**Problema:** Il file `.env.example` documenta `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` e `STRIPE_WEBHOOK_SECRET`, ma non c'è nessuna implementazione Stripe nel backend. Il pagamento avviene solo tramite PayPal. Questo crea confusione nell'onboarding.
+
+**Soluzione consigliata:** Rimuovere le variabili Stripe da `.env.example` se l'integrazione non è pianificata a breve, oppure implementare il checkout Stripe con verifica webhook.
+
+**Priorità:** 🟡 Media
+
+---
+
+### 5.2 `sw.js` minimale — nessuna cache offline
+**File:** `sw.js`  
+**Problema:** Il service worker gestisce solo notifiche push. Non implementa nessuna strategia di caching. Il sito non funziona offline e non beneficia delle ottimizzazioni PWA.
+
+**Soluzione consigliata:** Aggiungere una strategia Cache First per gli asset statici:
+
+```js
+const CACHE_NAME = 'virtus-v1';
+const STATIC_ASSETS = ['/', '/common.css', '/common.js', '/images/logo.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)));
@@ -275,183 +372,147 @@ self.addEventListener('install', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  // Cache-First per assets statici, Network-First per API
-  if (e.request.url.includes('/api/')) return; // lascia passare le API
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
 });
 ```
 
----
-
-## 4. SEO e Accessibilità
-
-### 4.1 URL nel sitemap.xml divergente dal dominio reale
-**🟡 Media priorità — `robots.txt` e `sitemap.xml`**
-
-`robots.txt` referenzia `https://virtus-caserta.it/sitemap.xml` ma il dominio produzione usato nelle email e nei link è `https://www.virtuscaserta.com`. Verificare e uniformare: il Google Search Console considererà il sitemap non valido se il dominio non corrisponde.
+**Priorità:** 🟢 Bassa
 
 ---
 
-### 4.2 Mancano `og:description` su alcune pagine
-**🟢 Bassa priorità**
+### 5.3 Email iscrizioni usa Gmail SMTP legacy invece di Brevo
+**File:** `server.js` riga ~3876  
+**Problema:** L'endpoint `/api/iscrizioni` usa `creaTransporter()` (Gmail SMTP) invece di Brevo. Questo è inconsistente con il resto del sistema e Gmail SMTP è meno affidabile per email transazionali.
 
-Le pagine `calendario.html` e `risultati.html` hanno il meta `og:title` ma non `og:description`. Quando condivise su social, appariranno senza testo descrittivo.
+**Soluzione consigliata:** Sostituire `creaTransporter()` con `sendBrevoEmail()` o `creaTransporterBrevo()` per unificare tutti gli invii email su Brevo.
 
-**Soluzione:**
-```html
-<!-- in calendario.html -->
-<meta property="og:description" content="Allenamenti, eventi e gare di Virtus Caserta ASD.">
+**Priorità:** 🟡 Media
 
-<!-- in risultati.html -->
-<meta property="og:description" content="Risultati, classifiche FIPAV e OPES di Virtus Caserta ASD.">
+---
+
+## 6. 📦 Dipendenze
+
+### 6.1 6 vulnerabilità moderate — risolvibili con `npm audit fix`
+**File:** `package.json`  
+**Problema:** `npm audit` rileva 6 vulnerabilità moderate:
+- `ip-address ≤10.1.0` → XSS in metodi HTML (via `express-rate-limit`)
+- `qs 6.11.1–6.15.1` → DoS con `qs.stringify` (via `express`, `body-parser`)
+- `ws 8.0.0–8.20.0` → uninitialized memory disclosure (via `@supabase/supabase-js`)
+
+**Soluzione consigliata:**
+
+```bash
+npm audit fix
+# Testare che tutto funzioni ancora correttamente dopo l'aggiornamento
 ```
 
+**Priorità:** 🔴 Alta
+
 ---
 
-### 4.3 Nessun structured data (JSON-LD) per l'organizzazione
-**🟢 Bassa priorità — `index.html`**
+### 6.2 Aggiornamenti disponibili
 
-Google può mostrare rich results (pannello knowledge graph, breadcrumb, eventi) se il sito espone dati strutturati. Per una società sportiva il markup minimo sarebbe:
+| Pacchetto | Versione attuale | Ultima disponibile | Tipo |
+|-----------|-----------------|-------------------|------|
+| `express` | 4.22.1 | 4.22.2 | Patch |
+| `express-rate-limit` | 8.3.2 | 8.5.2 | Minor |
+| `helmet` | 8.1.0 | 8.2.0 | Minor |
+| `nodemailer` | 8.0.5 | 8.0.8 | Patch |
+| `pg` | 8.20.0 | 8.21.0 | Patch |
+| `@supabase/supabase-js` | 2.104.0 | 2.106.1 | Minor |
+| `stripe` | 21.0.1 | 22.1.1 | **Major** |
+| `dotenv` | 16.x | 17.x | **Major** |
 
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SportsOrganization",
-  "name": "Virtus Caserta ASD",
-  "url": "https://www.virtuscaserta.com",
-  "sport": "Volleyball",
-  "address": { "@type": "PostalAddress", "addressLocality": "Caserta", "addressCountry": "IT" }
-}
-</script>
+**Soluzione consigliata:**
+
+```bash
+# Aggiornamenti sicuri (patch/minor)
+npm update express express-rate-limit helmet nodemailer pg @supabase/supabase-js
+# Major: leggere changelog prima di aggiornare stripe e dotenv
 ```
 
----
-
-## 5. Funzionalità e UX
-
-### 5.1 Pulsante WhatsApp disabilitato
-**🟢 Bassa priorità — `common.js` riga (IIFE WhatsApp)**
-
-Il numero WhatsApp è una stringa vuota `const WA_NUMBER = '';`, quindi il pulsante floating non viene mai renderizzato. Se è intenzionale documentarlo, altrimenti impostare il numero della società.
+**Priorità:** 🟡 Media
 
 ---
 
-### 5.2 Nessun meccanismo di revoca dei JWT utente
-**🟡 Media priorità — `server.js`**
+## 7. 🚀 Infrastruttura e Deploy
 
-I token JWT degli utenti scadono dopo 24h ma non esistono meccanismi per revocarli anticipatamente (es. cambio password, logout forzato da admin). Se un account viene compromesso, il token resta valido fino alla scadenza naturale.
+### 7.1 Nessun sistema di error monitoring
+**File:** `server.js` — usa solo `console.log`/`console.error`  
+**Problema:** In produzione su Railway non c'è nessun sistema di alerting. Gli errori vengono loggati ma non aggregati. Non c'è visibility su errori ricorrenti o degradation delle performance.
 
-**Soluzione minima:** aggiungere alla tabella `utenti` una colonna `token_invalidato_at TIMESTAMPTZ` e verificarla in `userAuth`:
+**Soluzione consigliata:** Integrare Sentry (piano gratuito disponibile):
+
+```bash
+npm install @sentry/node
+```
+
 ```js
-// In userAuth, dopo jwt.verify:
-const u = await db.query('SELECT token_invalidato_at FROM utenti WHERE id=$1', [payload.id]);
-if (u.rows[0]?.token_invalidato_at && new Date(u.rows[0].token_invalidato_at) > new Date(payload.iat * 1000)) {
-  return res.status(401).json({ error: 'Sessione scaduta. Effettua di nuovo il login.' });
+const Sentry = require('@sentry/node');
+Sentry.init({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV });
+app.use(Sentry.Handlers.requestHandler());
+// ... tutte le route ...
+app.use(Sentry.Handlers.errorHandler());
+```
+
+**Priorità:** 🟡 Media
+
+---
+
+### 7.2 Check variabili d'ambiente incomplete all'avvio
+**File:** `server.js` righe 22–27  
+**Problema:** Il check di avvio verifica solo `JWT_SECRET`, `ADMIN_PASSWORD` e `ADMIN_USERNAME`, ma mancano `DATABASE_URL` (il server avvia comunque senza DB) e `BREVO_API_KEY`.
+
+**Soluzione consigliata:**
+
+```js
+const REQUIRED_ENV = ['JWT_SECRET', 'ADMIN_PASSWORD', 'ADMIN_USERNAME', 'DATABASE_URL'];
+if (process.env.NODE_ENV === 'production') {
+  const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+  if (missing.length) {
+    console.error(`[CRITICO] Variabili mancanti: ${missing.join(', ')}`);
+    process.exit(1);
+  }
 }
 ```
 
----
-
-## 6. Dipendenze
-
-Dipendenze generalmente aggiornate e sane. Nessuna vulnerabilità critica nota identificata nelle versioni dichiarate.
-
-| Pacchetto | Versione dichiarata | Note |
-|-----------|-------------------|------|
-| `express` | ^4.18.2 | Express 5 stabile da fine 2024 — migrazione non urgente ma consigliata |
-| `jsonwebtoken` | ^9.0.3 | OK — versione corrente |
-| `helmet` | ^8.1.0 | OK |
-| `stripe` | ^21.0.1 | OK — aggiornato |
-| `multer` | ^2.1.1 | OK |
-| `bcryptjs` | ^3.0.3 | OK |
+**Priorità:** 🟢 Bassa
 
 ---
 
-## 7. Infrastruttura e Deploy
-
-### 7.1 Mancanza di file `.env.example`
-**🟡 Media priorità**
-
-Non esiste un file `.env.example` nel repository. Le variabili d'ambiente richieste sono disperse nel codice (`server.js` e `db.js`) e non sono documentate in un unico posto. In caso di deploy su un nuovo ambiente o onboarding di un nuovo sviluppatore, è necessario leggere l'intero `server.js` per capire quali variabili configurare.
-
-**Variabili identificate nel codice:**
-
-```
-# Obbligatorie in produzione
-JWT_SECRET=
-ADMIN_PASSWORD=
-ADMIN_USERNAME=
-DATABASE_URL=
-
-# Email (Brevo)
-BREVO_API_KEY=
-BREVO_FROM_EMAIL=
-BREVO_SMTP_LOGIN=
-BREVO_SMTP_KEY=
-EMAIL_ADMIN=
-
-# Storage
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-SUPABASE_REGION=eu-central-1
-
-# Push Notifications
-VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
-
-# Opzionali
-INSTAGRAM_ACCESS_TOKEN=
-BASE_URL=https://www.virtuscaserta.com
-PORT=3000
-NODE_ENV=production
-```
-
-**Soluzione:** creare un file `.env.example` con queste chiavi e valori placeholder da mantenere nel repository.
-
----
-
-### 7.2 Nessun logging strutturato o monitoring
-**🟢 Bassa priorità**
-
-Tutto il logging avviene via `console.log`/`console.error`. In produzione su Railway i log sono disponibili solo nel pannello web e non sono ricercabili o aggregabili. Non esiste alerting automatico in caso di errori 5xx ripetuti.
-
-**Soluzione a lungo termine:** integrare un logger strutturato come `pino` (leggero, compatibile con Node):
-```js
-const pino = require('pino');
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
-// Sostituire console.log con logger.info, console.error con logger.error
-```
-
----
-
-## Tabella riepilogativa
+## 📋 Tabella Riepilogativa
 
 | # | Area | Problema | File | Priorità |
 |---|------|----------|------|----------|
-| 1.1 | Sicurezza | Credenziali hardcoded JWT/Admin (NON CORRETTO dalla settimana scorsa) | `server.js:29,397` | 🔴 Alta |
-| 1.2 | Sicurezza | SSRF in `/api/proxy-image` — nessuna whitelist URL | `server.js:2542` | 🔴 Alta |
-| 1.3 | Sicurezza | HTML injection email iscrizioni (NON CORRETTO dalla settimana scorsa) | `server.js:2655` | 🔴 Alta |
-| 1.4 | Sicurezza | Nessun rate limiting su `/api/push/subscribe` e `/api/imposta-password` | `server.js:2789,600` | 🟡 Media |
-| 1.5 | Sicurezza | CSP con `unsafe-inline` per script | `server.js:181` | 🟡 Media |
-| 1.6 | Sicurezza | Password minima 6 caratteri | `server.js:604` | 🟢 Bassa |
-| 2.1 | Qualità | `Date.now()` come PK — rischio collisioni | `server.js` (multipli) | 🟡 Media |
-| 2.2 | Qualità | Template email HTML hardcoded nel server | `server.js` | 🟡 Media |
-| 2.3 | Qualità | `data_str` come `VARCHAR` invece di `DATE` | `db.js:87,96` | 🟡 Media |
-| 2.4 | Qualità | File monolitici troppo grandi | `server.js`, `admin.html` | 🟢 Bassa |
-| 3.1 | Performance | Nessun indice DB su email, stato, data_str | `db.js` | 🟡 Media |
-| 3.2 | Performance | Immagini senza `loading="lazy"` | Tutti gli HTML | 🟡 Media |
-| 3.3 | Performance | SW.js senza caching — PWA incompleta | `sw.js` | 🟡 Media |
-| 4.1 | SEO | URL sitemap divergente dal dominio reale | `robots.txt`, `sitemap.xml` | 🟡 Media |
-| 4.2 | SEO | `og:description` mancante su calendario e risultati | `calendario.html`, `risultati.html` | 🟢 Bassa |
-| 4.3 | SEO | Nessun JSON-LD structured data | `index.html` | 🟢 Bassa |
-| 5.1 | UX | Pulsante WhatsApp disabilitato (`WA_NUMBER = ''`) | `common.js` | 🟢 Bassa |
-| 5.2 | UX/Sicurezza | Nessuna revoca JWT utente | `server.js` | 🟡 Media |
-| 7.1 | Infrastruttura | Nessun file `.env.example` | — | 🟡 Media |
-| 7.2 | Infrastruttura | Logging solo via `console.log` | `server.js` | 🟢 Bassa |
+| 1 | Sicurezza | JWT token in `localStorage` — vulnerabilità XSS | `common.js`, `admin.html` | 🔴 Alta |
+| 2 | Sicurezza | Nessuna protezione CSRF sulle API | `server.js` | 🔴 Alta |
+| 3 | Dipendenze | 6 vulnerabilità moderate (`npm audit`) | `package.json` | 🔴 Alta |
+| 4 | Qualità | ID con `Date.now()` — rischio collisione DB | `server.js` (22 punti) | 🔴 Alta |
+| 5 | Sicurezza | Password minima 6 caratteri (troppo corta) | `server.js` riga 807 | 🟡 Media |
+| 6 | Sicurezza | CSP con `unsafe-inline` per script | `server.js` righe 181–191 | 🟡 Media |
+| 7 | Sicurezza | Nessun rate limit globale sulle API | `server.js` | 🟡 Media |
+| 8 | Sicurezza | Nessun refresh token JWT per utenti | `server.js` riga 479 | 🟡 Media |
+| 9 | Qualità | `server.js` monolitico (4380 righe) | `server.js` | 🟡 Media |
+| 10 | Qualità | `admin.html` monolitico (7129 righe) | `admin.html` | 🟡 Media |
+| 11 | Qualità | File `admin 2.html` — duplicato legacy non rimosso | `admin 2.html` | 🟡 Media |
+| 12 | Qualità | Migrazioni schema inline all'avvio | `db.js` | 🟡 Media |
+| 13 | Performance | CSS inline in ogni pagina (nessun caching browser) | tutti gli `.html` | 🟡 Media |
+| 14 | Performance | Query N+1 in `/api/profilo/prossimi` | `server.js` righe 547–580 | 🟡 Media |
+| 15 | SEO | Meta description e OG mancanti su più pagine | `login.html`, `utente.html`, ecc. | 🟡 Media |
+| 16 | Funzionalità | Stripe nel `.env.example` ma non implementato | `.env.example`, `server.js` | 🟡 Media |
+| 17 | Funzionalità | Email iscrizioni usa Gmail SMTP invece di Brevo | `server.js` riga ~3876 | 🟡 Media |
+| 18 | Infrastruttura | Nessun error monitoring (Sentry o simili) | `server.js` | 🟡 Media |
+| 19 | Dipendenze | Aggiornamenti disponibili per 6+ pacchetti | `package.json` | 🟡 Media |
+| 20 | Qualità | `BREVO_API_KEY` e `SUPABASE_REGION` non documentati | `.env.example` | 🟢 Bassa |
+| 21 | Performance | Lazy loading parziale sulle immagini | vari `.html` | 🟢 Bassa |
+| 22 | Performance | Nessun cache-busting per asset statici | `server.js`, file HTML | 🟢 Bassa |
+| 23 | SEO | `og:url` punta a dominio errato (`virtuscaserta.it`) | `index.html` | 🟢 Bassa |
+| 24 | SEO | Nessun tag `<link rel="canonical">` | tutti gli `.html` | 🟢 Bassa |
+| 25 | Funzionalità | Service worker senza strategia di caching offline | `sw.js` | 🟢 Bassa |
+| 26 | Infrastruttura | Check variabili obbligatorie incompleto all'avvio | `server.js` | 🟢 Bassa |
 
 ---
 
-*Report generato automaticamente — Analisi settimanale Virtus Caserta ASD*
+*Report generato automaticamente dall'analisi settimanale del 25 Maggio 2026.*

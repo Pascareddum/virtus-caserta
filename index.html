@@ -687,6 +687,20 @@
       .squadra-arrow { display: none; }
     }
 
+    /* ===== SQUADRE HP DINAMICHE ===== */
+    #sqHpGrid .sq-hp-featured { grid-column: span 3; height: 300px; }
+    #sqHpGrid .sq-hp-wide     { grid-column: span 3; }
+    @media (max-width: 900px) {
+      #sqHpGrid .sq-hp-featured,
+      #sqHpGrid .sq-hp-wide { grid-column: span 1; height: 220px; }
+      #sqHpGrid .sq-hp-featured:first-child { grid-column: span 2; height: 260px; }
+    }
+    @media (max-width: 540px) {
+      #sqHpGrid .sq-hp-featured,
+      #sqHpGrid .sq-hp-wide { grid-column: span 1; height: 180px; }
+      #sqHpGrid .sq-hp-featured:first-child { grid-column: span 1; }
+    }
+
     /* ===== SQUADRA PANEL ===== */
     .sq-panel-overlay {
       position: fixed;
@@ -1793,7 +1807,7 @@
         </div>
         <div id="sqSubteamsContainer" style="display:none"></div>
         <hr class="sq-divider">
-        <div class="sq-links">
+        <div class="sq-links" id="sqLinksBar">
           <a class="sq-link-btn" id="sqLinkRisultati" href="#">
             <span class="sq-link-icon">📊</span>Risultati
           </a>
@@ -1978,6 +1992,18 @@
           <div class="squadra-arrow">→</div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- SQUADRE DINAMICHE (gestite da admin) -->
+  <section id="squadre-hp" style="display:none;background:var(--grigio-chiaro);">
+    <div class="container">
+      <div class="sezione-titolo">
+        <div class="etichetta">I nostri team</div>
+        <h2 id="sqHpTitolo">Le squadre</h2>
+        <p id="sqHpSottotitolo">Dalla Serie D al VolleyS3</p>
+      </div>
+      <div class="squadre-grid" id="sqHpGrid"></div>
     </div>
   </section>
 
@@ -2218,6 +2244,194 @@
       if (diff < 3600)  return Math.floor(diff / 60) + ' min fa';
       if (diff < 86400) return Math.floor(diff / 3600) + ' ore fa';
       return Math.floor(diff / 86400) + ' giorni fa';
+    }
+
+    /* ── SQUADRE HOMEPAGE DINAMICHE ── */
+    async function loadSquadreHp() {
+      try {
+        const [list, catLinks, palestre] = await Promise.all([
+          fetch('/api/squadre-homepage').then(r => r.json()),
+          fetch('/api/squadre-cat-links').then(r => r.json()).catch(() => ({})),
+          fetch('/api/palestre').then(r => r.json()).catch(() => []),
+        ]);
+        if (!list || !list.length) return;
+        const palestraMap = Object.fromEntries((palestre || []).map(p => [p.id, p]));
+        // Enrich cards: fill missing links + palestra + orari from squadre_cat_links
+        list.forEach(sq => {
+          const cats = Array.isArray(sq.categorie) ? sq.categorie : [];
+          for (const cat of cats) {
+            const info = catLinks[cat] || {};
+            if (!sq.link_risultati && info.ris)  sq.link_risultati  = info.ris;
+            if (!sq.link_classifica && info.cla) sq.link_classifica = info.cla;
+            if (!sq._palestra && info.palestra_id && palestraMap[info.palestra_id]) sq._palestra = palestraMap[info.palestra_id];
+            if (!sq._orari && (info.orari || []).length) sq._orari = info.orari;
+            if (sq.link_risultati && sq.link_classifica && sq._palestra && sq._orari) break;
+          }
+          if (!sq.link_squadra && cats.length) {
+            sq.link_squadra = `/squadra?cat=${encodeURIComponent(cats[0])}`;
+          }
+        });
+        const section = document.getElementById('squadre-hp');
+        const grid    = document.getElementById('sqHpGrid');
+        grid.innerHTML = '';
+        list.forEach((sq, i) => {
+          const card = document.createElement('div');
+          // First 2 or explicitly featured → large; last pair when total >= 6 → wide
+          const isFeatured = sq.featured || i < 2;
+          const isLastWide = list.length >= 6 && (i === list.length - 2 || i === list.length - 1) && !isFeatured;
+          card.className = 'squadra-card';
+          if (isFeatured) card.classList.add('sq-hp-featured');
+          if (isLastWide)  card.classList.add('sq-hp-wide');
+          const bg = sq.immagine
+            ? `url('${sq.immagine}'), linear-gradient(135deg,#0d1f5c,#1a3a8f)`
+            : 'linear-gradient(135deg,#0d1f5c,#1a3a8f)';
+          card.style.cssText = `background-image:${bg};background-size:cover;background-position:${sq.bg_position||'50% 50%'};--card-accent:${sq.accent_color||'#f57c00'};`;
+
+          const cats = Array.isArray(sq.categorie) ? sq.categorie : [];
+          card.innerHTML = `
+            ${sq.badge ? `<span class="squadra-badge">${sq.badge}</span>` : ''}
+            <div class="squadra-overlay">
+              <h3>${sq.nome}</h3>
+              ${sq.sottotitolo ? `<span>${sq.sottotitolo}</span>` : ''}
+              ${cats.length > 1 ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">${cats.map(t=>`<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.2);color:#fff;padding:2px 8px;border-radius:20px;backdrop-filter:blur(4px);">${t}</span>`).join('')}</div>` : ''}
+            </div>
+            <div class="squadra-arrow">→</div>`;
+
+          card.style.cursor = 'pointer';
+          card.addEventListener('click', () => apriSquadraHp(sq));
+          grid.appendChild(card);
+        });
+
+        // Entrance animation
+        if ('IntersectionObserver' in window) {
+          const obs = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+          }, { threshold: 0.1 });
+          grid.querySelectorAll('.squadra-card').forEach(c => obs.observe(c));
+        } else {
+          grid.querySelectorAll('.squadra-card').forEach(c => c.classList.add('visible'));
+        }
+
+        section.style.display = '';
+      } catch { /* silently hide section if API fails */ }
+    }
+
+    async function apriSquadraHp(sq) {
+      const overlay = document.getElementById('sqPanelOverlay');
+      const header  = document.getElementById('sqPanelHeader');
+      if (sq.immagine) header.style.backgroundImage = `url('${sq.immagine}')`;
+      else header.style.backgroundImage = '';
+      document.getElementById('sqPanelBadge').textContent     = sq.badge || '';
+      document.getElementById('sqPanelTitolo').textContent    = sq.nome || '';
+      document.getElementById('sqPanelCategoria').textContent = sq.sottotitolo || '';
+      const cats = Array.isArray(sq.categorie) ? sq.categorie : [];
+      document.getElementById('sqPanelCategoriaInfo').textContent = sq.sottotitolo || cats.join(', ') || '';
+      // Reset dynamic rows
+      document.getElementById('sqAllenatoreRow').style.display = 'none';
+      document.getElementById('sqLuogoRow').style.display      = 'none';
+      document.getElementById('sqOrariSimple').style.display   = 'none';
+      document.getElementById('sqSubteamsContainer').style.display = 'none';
+      document.getElementById('sqLinksBar').style.display           = '';
+      document.getElementById('sqPanelAllenatore').textContent = '';
+      document.getElementById('sqPanelLuogo').textContent      = '';
+      document.getElementById('sqPanelOrari').innerHTML        = '';
+      // Links
+      const lRis = document.getElementById('sqLinkRisultati');
+      const lCla = document.getElementById('sqLinkClassifica');
+      const lSq  = document.getElementById('sqLinkSquadra');
+      lRis.href = sq.link_risultati || '#';
+      lCla.href = sq.link_classifica || '#';
+      lSq.href  = sq.link_squadra || '#';
+      [lRis, lCla, lSq].forEach(l => l.classList.toggle('disabilitato', !l.href || l.href === '#' || l.href === location.href + '#'));
+      document.body.style.overflow = 'hidden';
+      overlay.classList.add('attivo');
+      if (!cats.length) return;
+      // Fetch coach + static schedule/palestra from cat-links
+      try {
+        const [squadra, catLinks, palestre] = await Promise.all([
+          fetch('/api/squadra').then(r => r.json()),
+          fetch('/api/squadre-cat-links').then(r => r.json()).catch(() => ({})),
+          fetch('/api/palestre').then(r => r.json()).catch(() => []),
+        ]);
+        const COACH_ROLES = ['Allenatore', 'Primo allenatore'];
+        const palestraMap = Object.fromEntries((palestre || []).map(p => [p.id, p]));
+
+        if (cats.length > 1) {
+          // Multi-category card → subteam grid, one panel per category
+          const subteams = cats.map(cat => {
+            const info = catLinks[cat] || {};
+            const coach = squadra.find(g =>
+              COACH_ROLES.includes(g.ruolo) &&
+              (g.sesso || '').split(',').map(s => s.trim()).some(s => s === cat)
+            );
+            const palestra = info.palestra_id && palestraMap[info.palestra_id];
+            return {
+              nome:           cat,
+              allenatore:     coach ? `${coach.nome} ${coach.cognome}` : '–',
+              luogo:          palestra ? palestra.nome : '–',
+              orari:          info.orari || [],
+              linkRisultati:  info.ris  || '',
+              linkClassifica: info.cla  || '',
+              linkSquadra:    `/squadra?cat=${encodeURIComponent(cat)}`,
+            };
+          });
+          document.getElementById('sqAllenatoreRow').style.display = 'none';
+          document.getElementById('sqLuogoRow').style.display      = 'none';
+          document.getElementById('sqOrariSimple').style.display   = 'none';
+          document.getElementById('sqLinksBar').style.display      = 'none';
+          const mkStBtn = (href, icon, label, extraClass) => {
+            if (!href) return '';
+            const cls = 'sq-subteam-link' + (extraClass ? ' ' + extraClass : '');
+            const ext = href.startsWith('http') ? ' target="_blank" rel="noopener"' : '';
+            return `<a href="${href}"${ext} class="${cls}"><span class="sq-link-icon">${icon}</span>${label}</a>`;
+          };
+          const container = document.getElementById('sqSubteamsContainer');
+          container.style.display = '';
+          container.innerHTML = '<div class="sq-subteams-grid">' + subteams.map(st => {
+            const btnR = mkStBtn(st.linkRisultati,  '📋', 'Risultati');
+            const btnS = mkStBtn(st.linkSquadra,    '👥', 'Squadra');
+            const btnC = mkStBtn(st.linkClassifica, '🏆', 'Classifica', 'sq-subteam-link-full');
+            const row1 = (btnR || btnS) ? `<div class="sq-subteam-links-row">${btnR}${btnS}</div>` : '';
+            const row2 = btnC ? `<div class="sq-subteam-links-row">${btnC}</div>` : '';
+            const linksHtml = (row1 || row2) ? `<div class="sq-subteam-links">${row1}${row2}</div>` : '';
+            return `
+            <div class="sq-subteam">
+              <div class="sq-subteam-title">${st.nome}</div>
+              <div class="sq-subteam-meta">
+                <span>Allenatore: ${st.allenatore}</span>
+                <span>Palestra: ${st.luogo}</span>
+              </div>
+              ${st.orari.length ? `<table class="sq-subteam-table">
+                <thead><tr><th>Giorno</th><th>Orario</th></tr></thead>
+                <tbody>${st.orari.map(o => `<tr><td>${o.giorno}</td><td>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</td></tr>`).join('')}</tbody>
+              </table>` : ''}
+              ${linksHtml}
+            </div>`;
+          }).join('') + '</div>';
+        } else {
+          // Single category → simple coach/palestra/orari rows
+          const coach = squadra.find(g =>
+            COACH_ROLES.includes(g.ruolo) &&
+            (g.sesso || '').split(',').map(s => s.trim()).some(s => cats.includes(s))
+          );
+          if (coach) {
+            document.getElementById('sqPanelAllenatore').textContent = `${coach.nome} ${coach.cognome}`;
+            document.getElementById('sqAllenatoreRow').style.display = '';
+          }
+          const info = cats.map(c => catLinks[c] || {}).find(v => v.palestra_id || (v.orari || []).length) || {};
+          if (info.palestra_id && palestraMap[info.palestra_id]) {
+            const p = palestraMap[info.palestra_id];
+            document.getElementById('sqPanelLuogo').textContent = p.nome + (p.indirizzo ? ` — ${p.indirizzo}` : '');
+            document.getElementById('sqLuogoRow').style.display = '';
+          }
+          if ((info.orari || []).length) {
+            document.getElementById('sqPanelOrari').innerHTML = info.orari.map(o =>
+              `<li>${o.giorno} <span>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</span></li>`
+            ).join('');
+            document.getElementById('sqOrariSimple').style.display = '';
+          }
+        }
+      } catch {}
     }
 
     /* ── NOTIZIE CAROUSEL ── */
@@ -2572,12 +2786,13 @@
     }*/
 
     /* ─── AUTH ─── */
-    function aggiornaNavbar() {
-      const token      = localStorage.getItem('vc_token');
-      const adminToken = localStorage.getItem('vc_admin_token');
-      const isLoggedIn = !!(token || adminToken);
-      const role       = localStorage.getItem('vc_role');
-      const isAdmin    = isLoggedIn && !!(adminToken || role === 'admin' || role === 'dirigente');
+    async function aggiornaNavbar() {
+      let isLoggedIn = false, isAdmin = false;
+      try {
+        const d = await fetch('/api/me').then(r => r.json());
+        isLoggedIn = !!d.auth;
+        isAdmin    = isLoggedIn && (d.role === 'admin' || d.role === 'dirigente');
+      } catch {}
 
       // Booleani condivisi navbar + drawer
       const showAccedi = !isLoggedIn;
@@ -2666,8 +2881,8 @@
     }
 
 
-    function logout() {
-      ['vc_token','vc_role','vc_nome','vc_user','vc_admin_token'].forEach(k => localStorage.removeItem(k));
+    async function logout() {
+      try { await fetch('/api/logout', { method: 'POST' }); } catch {}
       location.reload();
     }
 
@@ -2709,6 +2924,7 @@
 
     loadNotizie();
     loadPartite();
+    loadSquadreHp();
     //loadInstagram();
 
     aggiornaNavbar();
@@ -3167,8 +3383,7 @@
   /* ── Prossimi eventi ── */
   (async function caricaEventi() {
     try {
-      const _vcTok = localStorage.getItem('vc_token');
-      const eventi = await fetch('/api/prossimi-eventi', _vcTok ? { headers: { Authorization: 'Bearer ' + _vcTok } } : {}).then(r => r.json());
+      const eventi = await fetch('/api/prossimi-eventi').then(r => r.json());
       if (!eventi.length) return;
       const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
       const fmt = s => { const d = new Date(s+'T00:00:00'); return `${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}`; };
