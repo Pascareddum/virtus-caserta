@@ -10,6 +10,7 @@
   <meta property="og:image" content="/images/logo.png">
   <meta property="og:type" content="website">
   <link rel="stylesheet" href="common.css">
+  <script src="/shared.js"></script>
   <style>
     :root { --blu:#0d2055; --arancio:#f57c00; --grigio:#f1f5f9; }
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -169,58 +170,6 @@
   </div>
 </footer>
 
-<script src="common.js">
-
-    /* ─── AUTH ─── */
-    function aggiornaNavbar() {
-      const token      = localStorage.getItem('vc_token');
-      const adminToken = localStorage.getItem('vc_admin_token');
-      const isLoggedIn = !!(token || adminToken);
-      const role       = localStorage.getItem('vc_role');
-      const isAdmin    = !!(adminToken || role === 'admin' || role === 'dirigente');
-
-      const loginDiv  = document.querySelector('.footer-auth-login');
-      const loggedDiv = document.querySelector('.footer-auth-logged');
-      const adminLink = document.getElementById('footerAdminLink');
-
-      if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
-      if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
-      if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
-    }
-
-    function apriModal() {
-      document.getElementById('modalLogin').classList.add('aperta');
-      document.getElementById('loginError').textContent = '';
-    }
-
-    function chiudiModal() {
-      document.getElementById('modalLogin').classList.remove('aperta');
-    }
-
-    function chiudiModalSeOverlay(e) {
-      if (e.target === document.getElementById('modalLogin')) chiudiModal();
-    }
-
-    function switchTab(tab) {
-      const isAccedi = tab === 'accedi';
-      document.getElementById('tabAccedi').classList.toggle('attiva', isAccedi);
-      document.getElementById('tabRegistrati').classList.toggle('attiva', !isAccedi);
-      document.getElementById('panelAccedi').classList.toggle('attivo', isAccedi);
-      document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
-    }
-    
-     function logout() {
-      localStorage.removeItem('vc_token');
-      localStorage.removeItem('vc_admin_token');
-      localStorage.removeItem('vc_role');
-      localStorage.removeItem('vc_nome');
-      localStorage.removeItem('vc_user');
-      aggiornaNavbar();
-    }
-
-
-    aggiornaNavbar();
-
-</script>
+<script src="common.js"></script>
 </body>
 </html>

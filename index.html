@@ -12,6 +12,7 @@
   <meta property="og:url" content="https://virtuscaserta.it/">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="common.css">
+  <script src="/shared.js"></script>
   <style>
     :root {
       --blu-scuro: #0d2055;
@@ -957,6 +958,18 @@
       box-shadow:0 1px 4px rgba(13,32,85,.06);
     }
     .sq-subteam-link:hover { background:var(--grigio-chiaro); border-color:var(--blu-scuro); transform:translateY(-2px); box-shadow:0 4px 12px rgba(13,32,85,.12); }
+    .sq-subteam { cursor: pointer; user-select: none; }
+    .sq-subteam-title { margin-bottom: 0 !important; }
+    .sq-subteam-title::after { content: '›'; margin-left: auto; font-size: 16px; color: var(--blu-medio); line-height: 1; transition: transform .2s; }
+    .sq-subteam.aperto .sq-subteam-title { margin-bottom: 9px !important; }
+    .sq-subteam.aperto .sq-subteam-title::after { transform: rotate(90deg); }
+    .sq-subteam-body { display: none; }
+    .sq-subteam.aperto .sq-subteam-body { display: block; }
+    @keyframes sqFadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #sqSubteamsContainer.animato { animation: sqFadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
 
     @media (max-width: 540px) {
       .sq-panel { border-radius: 20px; max-height: 95vh; }
@@ -1927,6 +1940,7 @@
   </section>
 
   <!-- SQUADRE -->
+   <!-- 
   <section id="squadre">
     <div class="container">
       <div class="sezione-titolo">
@@ -1993,7 +2007,7 @@
         </div>
       </div>
     </div>
-  </section>
+  </section> -->
 
   <!-- SQUADRE DINAMICHE (gestite da admin) -->
   <section id="squadre-hp" style="display:none;background:var(--grigio-chiaro);">
@@ -2293,7 +2307,6 @@
             <div class="squadra-overlay">
               <h3>${sq.nome}</h3>
               ${sq.sottotitolo ? `<span>${sq.sottotitolo}</span>` : ''}
-              ${cats.length > 1 ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;">${cats.map(t=>`<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.2);color:#fff;padding:2px 8px;border-radius:20px;backdrop-filter:blur(4px);">${t}</span>`).join('')}</div>` : ''}
             </div>
             <div class="squadra-arrow">→</div>`;
 
@@ -2330,7 +2343,9 @@
       document.getElementById('sqAllenatoreRow').style.display = 'none';
       document.getElementById('sqLuogoRow').style.display      = 'none';
       document.getElementById('sqOrariSimple').style.display   = 'none';
-      document.getElementById('sqSubteamsContainer').style.display = 'none';
+      const _stC = document.getElementById('sqSubteamsContainer');
+      _stC.style.display = 'none';
+      _stC.classList.remove('animato');
       document.getElementById('sqLinksBar').style.display           = '';
       document.getElementById('sqPanelAllenatore').textContent = '';
       document.getElementById('sqPanelLuogo').textContent      = '';
@@ -2386,7 +2401,7 @@
             return `<a href="${href}"${ext} class="${cls}"><span class="sq-link-icon">${icon}</span>${label}</a>`;
           };
           const container = document.getElementById('sqSubteamsContainer');
-          container.style.display = '';
+          container.classList.remove('animato');
           container.innerHTML = '<div class="sq-subteams-grid">' + subteams.map(st => {
             const btnR = mkStBtn(st.linkRisultati,  '📋', 'Risultati');
             const btnS = mkStBtn(st.linkSquadra,    '👥', 'Squadra');
@@ -2395,19 +2410,23 @@
             const row2 = btnC ? `<div class="sq-subteam-links-row">${btnC}</div>` : '';
             const linksHtml = (row1 || row2) ? `<div class="sq-subteam-links">${row1}${row2}</div>` : '';
             return `
-            <div class="sq-subteam">
+            <div class="sq-subteam" onclick="this.classList.toggle('aperto')">
               <div class="sq-subteam-title">${st.nome}</div>
-              <div class="sq-subteam-meta">
-                <span>Allenatore: ${st.allenatore}</span>
-                <span>Palestra: ${st.luogo}</span>
+              <div class="sq-subteam-body">
+                <div class="sq-subteam-meta">
+                  <span>Allenatore: ${st.allenatore}</span>
+                  <span>Palestra: ${st.luogo}</span>
+                </div>
+                ${st.orari.length ? `<table class="sq-subteam-table">
+                  <thead><tr><th>Giorno</th><th>Orario</th></tr></thead>
+                  <tbody>${st.orari.map(o => `<tr><td>${o.giorno}</td><td>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</td></tr>`).join('')}</tbody>
+                </table>` : ''}
+                <div onclick="event.stopPropagation()">${linksHtml}</div>
               </div>
-              ${st.orari.length ? `<table class="sq-subteam-table">
-                <thead><tr><th>Giorno</th><th>Orario</th></tr></thead>
-                <tbody>${st.orari.map(o => `<tr><td>${o.giorno}</td><td>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</td></tr>`).join('')}</tbody>
-              </table>` : ''}
-              ${linksHtml}
             </div>`;
           }).join('') + '</div>';
+          container.style.display = '';
+          requestAnimationFrame(() => requestAnimationFrame(() => container.classList.add('animato')));
         } else {
           // Single category → simple coach/palestra/orari rows
           const coach = squadra.find(g =>
@@ -2785,80 +2804,6 @@
       }
     }*/
 
-    /* ─── AUTH ─── */
-    async function aggiornaNavbar() {
-      let isLoggedIn = false, isAdmin = false;
-      try {
-        const d = await fetch('/api/me').then(r => r.json());
-        isLoggedIn = !!d.auth;
-        isAdmin    = isLoggedIn && (d.role === 'admin' || d.role === 'dirigente');
-      } catch {}
-
-      // Booleani condivisi navbar + drawer
-      const showAccedi = !isLoggedIn;
-      const showUtente = isLoggedIn && !isAdmin;
-      const showAdmin  = isAdmin;
-
-      // Navbar auth
-      const navLoginArea  = document.getElementById('navLoginArea');
-      const navLoggedArea = document.getElementById('navLoggedArea');
-      const navUtenteLink = document.getElementById('navUtenteLink');
-      const navAdminLink  = document.getElementById('navAdminLink');
-      if (navLoginArea)  navLoginArea.style.display  = showAccedi ? '' : 'none';
-      if (navLoggedArea) navLoggedArea.style.display = isLoggedIn ? 'flex' : 'none';
-      if (navUtenteLink) navUtenteLink.style.display = showUtente ? 'inline-flex' : 'none';
-      if (navAdminLink)  navAdminLink.style.display  = showAdmin  ? 'inline-flex' : 'none';
-
-      // Mobile auth icon (accanto all'hamburger)
-      const navAuthIcon = document.getElementById('navAuthIcon');
-      if (navAuthIcon) {
-        if (showAdmin) {
-          navAuthIcon.href = '/admin';
-          navAuthIcon.title = 'Amministratore';
-          navAuthIcon.setAttribute('aria-label', 'Amministratore');
-          navAuthIcon.setAttribute('data-role', 'admin');
-        } else if (showUtente) {
-          navAuthIcon.href = '/utente';
-          navAuthIcon.title = 'Area Utente';
-          navAuthIcon.setAttribute('aria-label', 'Area Utente');
-          navAuthIcon.setAttribute('data-role', 'utente');
-        } else {
-          navAuthIcon.href = 'login.html';
-          navAuthIcon.title = 'Accedi';
-          navAuthIcon.setAttribute('aria-label', 'Accedi');
-          navAuthIcon.removeAttribute('data-role');
-        }
-      }
-
-      // Drawer auth: rimosso dal markup. Nascondi eventuali residui da cache HTML vecchio.
-      document.querySelectorAll('.nav-drawer a.drawer-link').forEach(a => {
-        const href = a.getAttribute('href');
-        if (href === 'login.html' || href === '/utente' || href === '/admin') {
-          a.style.display = 'none';
-        }
-      });
-      ['drawerGroupNoLogin','drawerGroupUtente','drawerGroupAdmin','drawerLoggedArea'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-      });
-    }
-
-    function toggleDrawer() {
-      const btn    = document.getElementById('navHamburger');
-      const drawer = document.getElementById('navDrawer');
-      btn.classList.toggle('aperto');
-      drawer.classList.toggle('aperto');
-      document.body.classList.toggle('nav-aperta');
-    }
-
-    function chiudiDrawer() {
-      const btn    = document.getElementById('navHamburger');
-      const drawer = document.getElementById('navDrawer');
-      btn.classList.remove('aperto');
-      drawer.classList.remove('aperto');
-      document.body.classList.remove('nav-aperta');
-    }
-
     function apriModal() {
       document.getElementById('modalLogin').classList.add('aperta');
       document.getElementById('loginError').textContent = '';
@@ -2880,11 +2825,6 @@
       document.getElementById('panelRegistrati').classList.toggle('attivo', !isAccedi);
     }
 
-
-    async function logout() {
-      try { await fetch('/api/logout', { method: 'POST' }); } catch {}
-      location.reload();
-    }
 
     // Invio con Enter nei campi login
     ['loginEmail','loginPassword'].forEach(id => {

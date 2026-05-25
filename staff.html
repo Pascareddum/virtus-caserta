@@ -8,6 +8,7 @@
   <meta property="og:title" content="Staff – Virtus Caserta">
   <meta property="og:image" content="/images/logo.png">
   <link rel="stylesheet" href="common.css">
+  <script src="/shared.js"></script>
   <style>
     :root{--blu:#0d2055;--blu-m:#1535a8;--arancio:#f57c00;--grigio:#f1f5f9;}
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -265,67 +266,7 @@
 
 <script>
 
-    /* ─── AUTH ─── */
-    async function aggiornaNavbar() {
-      let isLoggedIn = false, isAdmin = false;
-      try {
-        const d = await fetch('/api/me').then(r => r.json());
-        isLoggedIn = !!d.auth;
-        isAdmin    = isLoggedIn && (d.role === 'admin' || d.role === 'dirigente');
-      } catch {}
-      const showAccedi = !isLoggedIn;
-      const showUtente = isLoggedIn && !isAdmin;
-      const showAdmin  = isAdmin;
-      const navLoginArea  = document.getElementById('navLoginArea');
-      const navLoggedArea = document.getElementById('navLoggedArea');
-      const navUtenteLink = document.getElementById('navUtenteLink');
-      const navAdminLink  = document.getElementById('navAdminLink');
-      if (navLoginArea)  navLoginArea.style.display  = showAccedi ? '' : 'none';
-      if (navLoggedArea) navLoggedArea.style.display = isLoggedIn ? 'flex' : 'none';
-      if (navUtenteLink) navUtenteLink.style.display = showUtente ? 'inline-flex' : 'none';
-      if (navAdminLink)  navAdminLink.style.display  = showAdmin  ? 'inline-flex' : 'none';
-      const navAuthIcon = document.getElementById('navAuthIcon');
-      if (navAuthIcon) {
-        if (showAdmin) {
-          navAuthIcon.href = '/admin'; navAuthIcon.title = 'Amministratore';
-          navAuthIcon.setAttribute('aria-label','Amministratore');
-          navAuthIcon.setAttribute('data-role','admin');
-        } else if (showUtente) {
-          navAuthIcon.href = '/utente'; navAuthIcon.title = 'Area Utente';
-          navAuthIcon.setAttribute('aria-label','Area Utente');
-          navAuthIcon.setAttribute('data-role','utente');
-        } else {
-          navAuthIcon.href = '/login'; navAuthIcon.title = 'Accedi';
-          navAuthIcon.setAttribute('aria-label','Accedi');
-          navAuthIcon.removeAttribute('data-role');
-        }
-      }
-      const loginDiv  = document.querySelector('.footer-auth-login');
-      const loggedDiv = document.querySelector('.footer-auth-logged');
-      const adminLink = document.getElementById('footerAdminLink');
-      if (loginDiv)  loginDiv.style.display  = isLoggedIn ? 'none' : '';
-      if (loggedDiv) loggedDiv.style.display  = isLoggedIn ? 'flex' : 'none';
-      if (adminLink) adminLink.style.display  = isAdmin    ? 'inline-flex' : 'none';
-    }
 
-    function toggleDrawer() {
-      document.getElementById('navHamburger').classList.toggle('aperto');
-      document.getElementById('navDrawer').classList.toggle('aperto');
-      document.body.classList.toggle('nav-aperta');
-    }
-
-    function chiudiDrawer() {
-      document.getElementById('navHamburger').classList.remove('aperto');
-      document.getElementById('navDrawer').classList.remove('aperto');
-      document.body.classList.remove('nav-aperta');
-    }
-
-    async function logout() {
-      try { await fetch('/api/logout', { method: 'POST' }); } catch {}
-      location.reload();
-    }
-
-    aggiornaNavbar();
 
 
   /* ── PROFILO ── */
