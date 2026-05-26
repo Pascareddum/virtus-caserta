@@ -383,13 +383,43 @@ async function createTables() {
     );
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS torneo_gironi (
+      id         VARCHAR PRIMARY KEY,
+      torneo_id  VARCHAR NOT NULL,
+      nome       VARCHAR NOT NULL,
+      ordine     INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS torneo_partite (
+      id                VARCHAR PRIMARY KEY,
+      torneo_id         VARCHAR NOT NULL,
+      girone_id         VARCHAR DEFAULT '',
+      squadra_casa_id   VARCHAR NOT NULL,
+      squadra_ospite_id VARCHAR NOT NULL,
+      data_str          VARCHAR DEFAULT '',
+      ora               VARCHAR DEFAULT '',
+      luogo             VARCHAR DEFAULT '',
+      risultato_casa    INTEGER,
+      risultato_ospite  INTEGER,
+      stato             VARCHAR DEFAULT 'programmata',
+      in_calendario     BOOLEAN DEFAULT false,
+      calendario_id     VARCHAR DEFAULT '',
+      note              TEXT    DEFAULT '',
+      created_at        TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
   // RLS — block direct PostgREST/anon-key access; postgres role bypasses automatically
   for (const t of [
     'products', 'ordini', 'notizie', 'calendario', 'squadra', 'galleria',
     'iscrizioni', 'sponsor', 'risultati', 'partecipazioni', 'push_subscriptions',
     'impostazioni', 'log_attivita', 'fipav_matches', 'fipav_classifica_cache',
     'assegnazioni_partita', 'staff_arbitrale', 'palestres', 'squadre_homepage',
-    'utenti', 'tornei', 'torneo_partecipanti', 'torneo_squadre',
+    'utenti', 'tornei', 'torneo_partecipanti', 'torneo_squadre', 'torneo_gironi', 'torneo_partite',
     'partite_proposte', 'comunicazioni', 'documenti_utente',
   ]) {
     try { await query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`); } catch (_) {}

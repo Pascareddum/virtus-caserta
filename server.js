@@ -1214,6 +1214,8 @@ app.put('/api/tornei/:id', adminAuth, async (req, res) => {
 
 app.delete('/api/tornei/:id', adminAuth, async (req, res) => {
   try {
+    await db.query('DELETE FROM torneo_partite WHERE torneo_id=$1', [req.params.id]);
+    await db.query('DELETE FROM torneo_gironi WHERE torneo_id=$1', [req.params.id]);
     await db.query('DELETE FROM torneo_partecipanti WHERE torneo_id=$1', [req.params.id]);
     await db.query('DELETE FROM torneo_squadre WHERE torneo_id=$1', [req.params.id]);
     const r = await db.query('DELETE FROM tornei WHERE id=$1 RETURNING id', [req.params.id]);
@@ -1293,6 +1295,182 @@ app.delete('/api/tornei/:id/squadre/:sid', adminAuth, async (req, res) => {
     const r = await db.query('DELETE FROM torneo_squadre WHERE id=$1 AND torneo_id=$2 RETURNING id', [req.params.sid, req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Squadra non trovata' });
     res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: gironi ─── */
+app.get('/api/tornei/:id/gironi', userAuth, async (req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM torneo_gironi WHERE torneo_id=$1 ORDER BY ordine, nome', [req.params.id]);
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/tornei/:id/gironi', adminAuth, async (req, res) => {
+  const { nome, ordine } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  const id = crypto.randomUUID();
+  try {
+    const r = await db.query(
+      `INSERT INTO torneo_gironi (id, torneo_id, nome, ordine) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [id, req.params.id, nome.trim(), ordine || 0]
+    );
+    res.status(201).json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.put('/api/tornei/:id/gironi/:gid', adminAuth, async (req, res) => {
+  const { nome, ordine } = req.body;
+  if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
+  try {
+    const r = await db.query(
+      `UPDATE torneo_gironi SET nome=$1, ordine=$2 WHERE id=$3 AND torneo_id=$4 RETURNING *`,
+      [nome.trim(), ordine ?? 0, req.params.gid, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Girone non trovato' });
+    res.json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/tornei/:id/gironi/:gid', adminAuth, async (req, res) => {
+  try {
+    await db.query(`UPDATE torneo_partite SET girone_id='' WHERE girone_id=$1`, [req.params.gid]);
+    const r = await db.query('DELETE FROM torneo_gironi WHERE id=$1 AND torneo_id=$2 RETURNING id', [req.params.gid, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Girone non trovato' });
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: partite ─── */
+app.get('/api/tornei/:id/partite', userAuth, async (req, res) => {
+  try {
+    const [partite, squadre, gironi] = await Promise.all([
+      db.query('SELECT * FROM torneo_partite WHERE torneo_id=$1 ORDER BY data_str, ora, created_at', [req.params.id]),
+      db.query('SELECT id, nome, colore FROM torneo_squadre WHERE torneo_id=$1', [req.params.id]),
+      db.query('SELECT * FROM torneo_gironi WHERE torneo_id=$1 ORDER BY ordine, nome', [req.params.id]),
+    ]);
+    const sqMap = Object.fromEntries(squadre.rows.map(s => [s.id, s]));
+    const enriched = partite.rows.map(p => ({
+      ...p,
+      squadra_casa:   sqMap[p.squadra_casa_id]   || null,
+      squadra_ospite: sqMap[p.squadra_ospite_id] || null,
+    }));
+    res.json({ partite: enriched, squadre: squadre.rows, gironi: gironi.rows });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/tornei/:id/partite', adminAuth, async (req, res) => {
+  const { girone_id, squadra_casa_id, squadra_ospite_id, data_str, ora, luogo, note } = req.body;
+  if (!squadra_casa_id || !squadra_ospite_id) return res.status(400).json({ error: 'Squadre obbligatorie' });
+  const id = crypto.randomUUID();
+  try {
+    const r = await db.query(
+      `INSERT INTO torneo_partite (id, torneo_id, girone_id, squadra_casa_id, squadra_ospite_id, data_str, ora, luogo, note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [id, req.params.id, girone_id || '', squadra_casa_id, squadra_ospite_id, data_str || '', ora || '', luogo || '', note || '']
+    );
+    res.status(201).json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.put('/api/tornei/:id/partite/:pid', adminAuth, async (req, res) => {
+  const { girone_id, squadra_casa_id, squadra_ospite_id, data_str, ora, luogo, risultato_casa, risultato_ospite, stato, note } = req.body;
+  try {
+    const r = await db.query(
+      `UPDATE torneo_partite SET girone_id=$1, squadra_casa_id=$2, squadra_ospite_id=$3,
+         data_str=$4, ora=$5, luogo=$6, risultato_casa=$7, risultato_ospite=$8, stato=$9, note=$10
+       WHERE id=$11 AND torneo_id=$12 RETURNING *`,
+      [girone_id || '', squadra_casa_id, squadra_ospite_id, data_str || '', ora || '', luogo || '',
+       risultato_casa ?? null, risultato_ospite ?? null, stato || 'programmata', note || '',
+       req.params.pid, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Partita non trovata' });
+    res.json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/tornei/:id/partite/:pid', adminAuth, async (req, res) => {
+  try {
+    const p = await db.query('SELECT calendario_id FROM torneo_partite WHERE id=$1 AND torneo_id=$2', [req.params.pid, req.params.id]);
+    if (p.rows[0]?.calendario_id) {
+      await db.query('DELETE FROM calendario WHERE id=$1', [p.rows[0].calendario_id]).catch(() => {});
+    }
+    const r = await db.query('DELETE FROM torneo_partite WHERE id=$1 AND torneo_id=$2 RETURNING id', [req.params.pid, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Partita non trovata' });
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.post('/api/tornei/:id/partite/:pid/calendario', adminAuth, async (req, res) => {
+  try {
+    const [torneoRes, partitaRes] = await Promise.all([
+      db.query('SELECT * FROM tornei WHERE id=$1', [req.params.id]),
+      db.query(`SELECT tp.*, ts1.nome as nome_casa, ts2.nome as nome_ospite
+                FROM torneo_partite tp
+                LEFT JOIN torneo_squadre ts1 ON ts1.id = tp.squadra_casa_id
+                LEFT JOIN torneo_squadre ts2 ON ts2.id = tp.squadra_ospite_id
+                WHERE tp.id=$1 AND tp.torneo_id=$2`, [req.params.pid, req.params.id]),
+    ]);
+    if (!torneoRes.rows.length || !partitaRes.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    const torneo = torneoRes.rows[0];
+    const partita = partitaRes.rows[0];
+    const partecipanti = await db.query(
+      'SELECT utente_id FROM torneo_partecipanti WHERE torneo_id=$1', [req.params.id]
+    );
+    const utenti_collegati = partecipanti.rows.map(r => r.utente_id);
+    const titolo = `${partita.nome_casa || '?'} vs ${partita.nome_ospite || '?'}`;
+    const note = torneo.nome + (partita.girone_id ? '' : '');
+
+    if (partita.in_calendario && partita.calendario_id) {
+      const noteAggiornata = [note, partita.luogo].filter(Boolean).join(' · ');
+      await db.query(
+        `UPDATE calendario SET titolo=$1, data_str=$2, ora=$3, note=$4, utenti_collegati=$5 WHERE id=$6`,
+        [titolo, partita.data_str || '', partita.ora || '', noteAggiornata, JSON.stringify(utenti_collegati), partita.calendario_id]
+      );
+      return res.json({ success: true, calendario_id: partita.calendario_id, updated: true });
+    }
+
+    const calId = crypto.randomUUID();
+    const noteInserita = [note, partita.luogo].filter(Boolean).join(' · ');
+    await db.query(
+      `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, utenti_collegati)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [calId, titolo, partita.data_str || '', partita.ora || '', '', noteInserita, 'evento', JSON.stringify(utenti_collegati)]
+    );
+    await db.query(
+      `UPDATE torneo_partite SET in_calendario=true, calendario_id=$1 WHERE id=$2`,
+      [calId, req.params.pid]
+    );
+    res.json({ success: true, calendario_id: calId, updated: false });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: vista utente (miei tornei con gironi+partite) ─── */
+app.get('/api/tornei/miei', userAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const torneiRes = await db.query(
+      `SELECT t.* FROM tornei t
+       JOIN torneo_partecipanti tp ON tp.torneo_id = t.id
+       WHERE tp.utente_id=$1
+       ORDER BY t.data_inizio DESC, t.created_at DESC`,
+      [userId]
+    );
+    const result = await Promise.all(torneiRes.rows.map(async t => {
+      const [gironi, squadre, partite] = await Promise.all([
+        db.query('SELECT * FROM torneo_gironi WHERE torneo_id=$1 ORDER BY ordine, nome', [t.id]),
+        db.query('SELECT id, nome, colore FROM torneo_squadre WHERE torneo_id=$1', [t.id]),
+        db.query('SELECT * FROM torneo_partite WHERE torneo_id=$1 ORDER BY data_str, ora', [t.id]),
+      ]);
+      const sqMap = Object.fromEntries(squadre.rows.map(s => [s.id, s]));
+      const partiteEnriched = partite.rows.map(p => ({
+        ...p,
+        squadra_casa:   sqMap[p.squadra_casa_id]   || null,
+        squadra_ospite: sqMap[p.squadra_ospite_id] || null,
+      }));
+      return { ...t, gironi: gironi.rows, squadre: squadre.rows, partite: partiteEnriched };
+    }));
+    res.json(result);
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
