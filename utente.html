@@ -624,9 +624,10 @@
     const GIORNI_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
     const MESI_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
     const EV_COLORS = {
-      partita: { color: '#0d2055', badge: '#eef4ff', badgeText: '#1d4ed8', label: 'Partita' },
+      partita:     { color: '#0d2055', badge: '#eef4ff', badgeText: '#1d4ed8', label: 'Partita' },
       allenamento: { color: '#16a34a', badge: '#f0fdf4', badgeText: '#15803d', label: 'Allenamento' },
-      evento: { color: '#e11d48', badge: '#fff0f3', badgeText: '#be123c', label: 'Evento' },
+      evento:      { color: '#e11d48', badge: '#fff0f3', badgeText: '#be123c', label: 'Evento' },
+      torneo:      { color: '#7c3aed', badge: '#f5f3ff', badgeText: '#6d28d9', label: 'Torneo' },
     };
 
     let agendaMappa = {};    // date string → [events]
@@ -731,7 +732,7 @@
           titolo = (ev.casa || '') + ' vs ' + (ev.ospite || '');
         } else {
           oraStr = ev.ora || '';
-          titolo = ev.titolo || (ev.tipo === 'evento' ? 'Evento' : 'Allenamento');
+          titolo = ev.titolo || (ev.tipo === 'evento' ? 'Evento' : ev.tipo === 'torneo' ? 'Torneo' : 'Allenamento');
         }
         const card = document.createElement('div');
         card.className = 'agenda-ev-card';
@@ -765,18 +766,21 @@
         if (ev.luogo) fields.push({ lbl: 'Luogo', val: ev.luogo });
         if (ev.categoria) fields.push({ lbl: 'Categoria', val: ev.categoria });
       } else {
-        titolo = ev.titolo || (ev.tipo === 'evento' ? 'Evento' : 'Allenamento');
+        titolo = ev.titolo || (ev.tipo === 'evento' ? 'Evento' : ev.tipo === 'torneo' ? 'Torneo' : 'Allenamento');
         if (ev.ora) fields.push({ lbl: 'Orario', val: ev.ora });
-        if (ev.luogo) fields.push({ lbl: 'Luogo', val: ev.luogo });
+        if (ev.palestra_nome) fields.push({ lbl: 'Palestra', val: ev.palestra_nome });
+        else if (ev.luogo) fields.push({ lbl: 'Luogo', val: ev.luogo });
         if (ev.categoria) fields.push({ lbl: 'Categoria', val: ev.categoria });
-        if (ev.note) fields.push({ lbl: 'Note', val: ev.note });
+
+        if (ev.note && ev.tipo === 'torneo') fields.push({ lbl: 'Torneo', val: ev.note });
+        else if (ev.note) fields.push({ lbl: 'Note', val: ev.note });
       }
       document.getElementById('evModalTitle').textContent = titolo;
       const body = document.getElementById('evModalBody');
       body.innerHTML = `<div class="ev-modal-info">${fields.map(f=>`<div class="ev-field"><div class="ev-field-lbl">${f.lbl}</div><div class="ev-field-val">${f.val}</div></div>`).join('')}</div>`;
 
-      // RSVP for allenamenti/eventi
-      if ((ev.tipo === 'allenamento' || ev.tipo === 'evento') && ev.id) {
+      // RSVP for allenamenti/eventi/tornei
+      if ((ev.tipo === 'allenamento' || ev.tipo === 'evento' || ev.tipo === 'torneo') && ev.id) {
         const rsvpDiv = document.createElement('div');
         rsvpDiv.className = 'ev-rsvp';
         rsvpDiv.id = 'evRsvpSection';

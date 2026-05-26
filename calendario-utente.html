@@ -193,6 +193,7 @@
   let userCats = [];
   let catLinks = {};
   let _userId = null;
+  let _palestreMap = {}; // id → nome
 
   function lunedi(d){ const c=new Date(d);c.setHours(0,0,0,0);const dw=c.getDay();c.setDate(c.getDate()-(dw===0?6:dw-1));return c; }
   function addDays(d,n){ const c=new Date(d);c.setDate(c.getDate()+n);return c; }
@@ -290,11 +291,11 @@
     evs.forEach(e=>{
       const ci=CAT_MAP[e.cat||e.tipo]||CAT_MAP.allenamento;
       let timeStr='',titleStr='',subStr='';
-      if(e.tipo==='allenamento'||e.tipo==='evento'){
+      if(e.tipo==='allenamento'||e.tipo==='evento'||e.tipo==='torneo'){
         const{inizio,fine}=parseOra(e.ora);
         timeStr=inizio+(fine?' – '+fine:'');
-        titleStr=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
-        subStr='';
+        titleStr=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':e.tipo==='torneo'?'Torneo':'Allenamento');
+        subStr=e.note?e.note:'';
       } else {
         timeStr=e.timestamp?oraDaTs(e.timestamp):'—';
         titleStr='vs '+avversario(e);
@@ -321,12 +322,17 @@
     document.getElementById('dmTag').textContent=ci.label;
     let fields=[];
     let titleHtml='';
-    if(e.tipo==='allenamento'||e.tipo==='evento'){
-      titleHtml=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':'Allenamento');
-      if(e.categoria)fields.push({lbl:'Categoria',val:e.categoria});
+    if(e.tipo==='allenamento'||e.tipo==='evento'||e.tipo==='torneo'){
+      titleHtml=e.titolo||e.categoria||(e.tipo==='evento'?'Evento':e.tipo==='torneo'?'Torneo':'Allenamento');
       const{inizio,fine}=parseOra(e.ora);
       fields.push({lbl:'Orario',val:fine?`${inizio} – ${fine}`:inizio});
-      if(e.note)fields.push({lbl:'Note',val:e.note});
+      const palestraNome=e.palestra_id?(_palestreMap[e.palestra_id]||''):''
+      if(palestraNome)fields.push({lbl:'Palestra',val:palestraNome});
+      else if(e.luogo)fields.push({lbl:'Luogo',val:e.luogo});
+      if(e.categoria)fields.push({lbl:'Categoria',val:e.categoria});
+
+      if(e.note&&e.tipo==='torneo')fields.push({lbl:'Torneo',val:e.note});
+      else if(e.note)fields.push({lbl:'Note',val:e.note});
     } else {
       titleHtml=`<span style="font-weight:400;font-size:14px;color:#64748b">vs</span><br>${avversario(e)}`;
       if(e.categoria)fields.push({lbl:'Categoria',val:e.categoria});
@@ -338,7 +344,7 @@
     document.getElementById('dmTitle').innerHTML=titleHtml;
     const body=document.getElementById('dmBody');
     body.innerHTML=`<div class="dm-info">${fields.map(f=>`<div class="dm-field"><div class="dm-lbl">${f.lbl}</div><div class="dm-val">${f.val}</div></div>`).join('')}</div>`;
-    if((e.tipo==='allenamento'||e.tipo==='evento')&&e.id&&_tok){
+    if((e.tipo==='allenamento'||e.tipo==='evento'||e.tipo==='torneo')&&e.id){
       const rsvpDiv=document.createElement('div');
       rsvpDiv.className='dm-rsvp';rsvpDiv.id='rsvpSec';
       rsvpDiv.innerHTML='<div class="dm-rsvp-lbl">La tua partecipazione</div><div style="font-size:13px;color:#9ca3af;">Caricamento…</div>';
@@ -365,6 +371,11 @@
 
   async function carica(){
     render();
+    // Load palestres for name lookup in detail modal
+    try{
+      const pl=await fetch('/api/palestre').then(r=>r.ok?r.json():[]);
+      pl.forEach(p=>{ _palestreMap[p.id]=p.nome; });
+    }catch{}
     // Load user profile for category filter
     try{
       const prof=await fetch('/api/profilo').then(r=>r.ok?r.json():null);
@@ -378,6 +389,7 @@
       }
     }catch{}
 
+    const _calTorneoKeys=new Set();
     try{
       const sessioni=await fetch('/api/calendario').then(r=>r.json());
       const _seenIds=new Set();
@@ -385,8 +397,9 @@
         if(!s.data)return;
         if(s.id&&_seenIds.has(s.id))return;
         if(s.id)_seenIds.add(s.id);
+        if(s.tipo==='torneo')_calTorneoKeys.add(`${s.titolo}|${s.data}|${s.ora}`);
         if(!mappa[s.data])mappa[s.data]=[];
-        const cat=s.tipo==='evento'?'evento':'allenamento';
+        const cat=s.tipo==='evento'?'evento':s.tipo==='torneo'?'torneo':'allenamento';
         mappa[s.data].push({tipo:s.tipo||'allenamento',cat,...s});
       });
     }catch{}
@@ -398,6 +411,32 @@
           const key=tsToKey(m.timestamp);if(!key)return;
           if(!mappa[key])mappa[key]=[];
           mappa[key].push({tipo:'partita',cat:gruppoPartita(m),...m});
+        });
+      });
+    }catch{}
+    try{
+      const tornei=await fetch('/api/tornei/miei').then(r=>r.ok?r.json():[]);
+      const _seenTorneo=new Set();
+      tornei.forEach(t=>{
+        (t.partite||[]).forEach(p=>{
+          if(!p.data_str)return;
+          const nomeCasa=p.squadra_casa?.nome||'?';
+          const nomeOspite=p.squadra_ospite?.nome||'?';
+          const dedup=`${nomeCasa}|${nomeOspite}|${p.data_str}|${p.ora}`;
+          if(_seenTorneo.has(dedup))return;
+          _seenTorneo.add(dedup);
+          const titolo=`${nomeCasa} vs ${nomeOspite}`;
+          if(_calTorneoKeys.has(`${titolo}|${p.data_str}|${p.ora||''}`))return;
+          if(!mappa[p.data_str])mappa[p.data_str]=[];
+          mappa[p.data_str].push({
+            tipo:'torneo',cat:'torneo',
+            titolo,
+            data:p.data_str,
+            ora:p.ora||'',
+            luogo:p.luogo||'',
+            note:t.nome,
+            id:p.calendario_id||null,
+          });
         });
       });
     }catch{}

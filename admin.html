@@ -1728,6 +1728,20 @@
         </div>
         <input type="hidden" id="tFormato" value="4vs4">
       </div>
+      <div class="mf" style="gap:8px;">
+        <label>Set (formato partita)</label>
+        <div style="display:flex;gap:8px;">
+          <button id="tBtnBo3" onclick="setTorneoBestOf(3)"
+            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #0d2055;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+            Al meglio di 3
+          </button>
+          <button id="tBtnBo5" onclick="setTorneoBestOf(5)"
+            style="flex:1;padding:10px 8px;border-radius:9px;border:2px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+            Al meglio di 5
+          </button>
+        </div>
+        <input type="hidden" id="tBestOf" value="3">
+      </div>
       <div class="mf-row3">
         <div class="mf">
           <label>Data inizio</label>
@@ -1760,6 +1774,11 @@
         <input type="file" id="tImmagineFile" accept="image/*" onchange="anteprima('tImmagineFile','tImmaginePreview')">
         <img id="tImmaginePreview" class="img-preview">
         <input type="hidden" id="tImmagineUrl">
+      </div>
+      <div class="mf">
+        <label>Orari partite</label>
+        <div id="tOrariList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+        <button type="button" onclick="aggiungiOrarioTorneo(null)" style="padding:6px 14px;border-radius:8px;border:1.5px dashed var(--bordo);background:var(--surface);font-size:12px;cursor:pointer;font-weight:600;color:#6b7280;font-family:inherit;">+ Aggiungi orario</button>
       </div>
       <div class="mf">
         <label>Note</label>
@@ -1852,58 +1871,92 @@
       <h3 id="modalPartitaTorneoTitolo">Partita</h3>
       <button class="modal-close" onclick="chiudiModal('modalPartitaTorneo')">✕</button>
     </div>
-    <div class="modal-body" style="gap:12px;">
+    <div class="modal-body" style="gap:14px;">
       <input type="hidden" id="ptId">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="mf">
-          <label>Casa *</label>
-          <select id="ptCasa" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;"></select>
-        </div>
-        <div class="mf">
-          <label>Ospite *</label>
-          <select id="ptOspite" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;"></select>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="mf">
-          <label>Data</label>
-          <input type="date" id="ptData" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;">
-        </div>
-        <div class="mf">
-          <label>Ora</label>
-          <input type="time" id="ptOra" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;">
-        </div>
-      </div>
+
+      <!-- Step 1: palestra -->
       <div class="mf">
-        <label>Luogo</label>
-        <input type="text" id="ptLuogo" placeholder="Campo / palestra" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;font-family:inherit;">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="ptRisultatiRow">
-        <div class="mf">
-          <label>Punteggio casa</label>
-          <input type="number" id="ptRisCasa" min="0" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;">
-        </div>
-        <div class="mf">
-          <label>Punteggio ospite</label>
-          <input type="number" id="ptRisOspite" min="0" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;">
-        </div>
-      </div>
-      <div class="mf">
-        <label>Stato</label>
-        <select id="ptStato" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;">
-          <option value="programmata">Programmata</option>
-          <option value="completata">Completata</option>
+        <label style="font-size:12px;font-weight:700;color:#0d2055;">1. Palestra / Campo</label>
+        <select id="ptPalestra" onchange="onPtPalestraChange()" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;font-family:inherit;">
+          <option value="">— seleziona palestra —</option>
         </select>
       </div>
-      <div class="mf">
-        <label>Note</label>
-        <input type="text" id="ptNote" style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;font-family:inherit;">
+
+      <!-- Step 2: slot giorno+ora (shown after palestra selected) -->
+      <div id="ptSlotSection" style="display:none;">
+        <label style="font-size:12px;font-weight:700;color:#0d2055;display:block;margin-bottom:8px;">2. Giorno &amp; orario</label>
+        <div id="ptSlotList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
+        <div id="ptOraCustomRow" style="display:none;">
+          <input type="time" id="ptOraCustom" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;">
+        </div>
       </div>
+
+      <!-- Step 3: data (auto-filled, override allowed) -->
+      <div class="mf" id="ptDataSection" style="display:none;">
+        <label style="font-size:12px;font-weight:700;color:#0d2055;">3. Data <span style="font-weight:400;color:#9ca3af;">(auto-calcolata, modificabile)</span></label>
+        <input type="date" id="ptData" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;">
+      </div>
+
+      <!-- Step 4: squadre -->
+      <div id="ptSquadreSection" style="display:none;">
+        <label style="font-size:12px;font-weight:700;color:#0d2055;display:block;margin-bottom:8px;">4. Squadre</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="mf">
+            <label>Casa</label>
+            <select id="ptCasa" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;"></select>
+          </div>
+          <div class="mf">
+            <label>Ospite</label>
+            <select id="ptOspite" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;"></select>
+          </div>
+        </div>
+      </div>
+
       <div id="ptLog" style="display:none;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
     </div>
     <div class="modal-footer" style="padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;">
       <button onclick="chiudiModal('modalPartitaTorneo')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">Annulla</button>
       <button onclick="salvaPartitaTorneo()" style="padding:9px 22px;border-radius:9px;border:none;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GENERA PARTITE AUTO -->
+<div class="modal-overlay" id="modalGeneraPartite">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr">
+      <h3>⚡ Genera partite automaticamente</h3>
+      <button class="modal-close" onclick="chiudiModal('modalGeneraPartite')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:12px;">
+      <div id="genInfo" style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:10px 14px;font-size:12px;color:#15803d;font-weight:600;"></div>
+      <div id="genScheduleInfo" style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:9px;padding:10px 14px;font-size:12px;color:#374151;line-height:1.7;"></div>
+      <div id="genLog" style="display:none;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:600;"></div>
+    </div>
+    <div class="modal-footer" style="padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="chiudiModal('modalGeneraPartite')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">Annulla</button>
+      <button id="genBtn" onclick="generaPartiteAuto()" style="padding:9px 22px;border-radius:9px;border:none;background:#065f46;color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:none;">⚡ Genera</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RISULTATI GIRONE -->
+<div class="modal-overlay" id="modalRisultati">
+  <div class="modal-box" style="max-width:600px;">
+    <div class="modal-hdr">
+      <h3 id="risGironeTitle">📊 Risultati</h3>
+      <button class="modal-close" onclick="chiudiModal('modalRisultati')">✕</button>
+    </div>
+    <div style="display:flex;border-bottom:1.5px solid #e9ecf0;padding:0 24px;">
+      <button id="risTabPartite" onclick="risSetTab('partite')" style="padding:10px 16px;border:none;background:none;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2.5px solid #7c3aed;color:#7c3aed;">Partite</button>
+      <button id="risTabClassifica" onclick="risSetTab('classifica')" style="padding:10px 16px;border:none;background:none;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2.5px solid transparent;color:#6b7280;">Classifica</button>
+    </div>
+    <div class="modal-body" style="padding:0;max-height:65vh;overflow-y:auto;">
+      <div id="risPartitePane"></div>
+      <div id="risClassificaPane" style="display:none;"></div>
+    </div>
+    <div class="modal-footer" style="padding:12px 24px;display:flex;justify-content:flex-end;">
+      <button onclick="chiudiModal('modalRisultati')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #d1d5db;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">Chiudi</button>
     </div>
   </div>
 </div>
@@ -6775,6 +6828,7 @@
   /* ══ TORNEI ══ */
   let _torneiAll   = [];
   let _torneoEditing = null;
+
   let _invitaTorneoId = null;
   let _squadreTorneoId = null;
   let _allUtentiCache = [];
@@ -6805,9 +6859,12 @@
       const stato = TORNEO_STATO_LABEL[t.stato] || t.stato;
       const coloreStato = TORNEO_STATO_COLOR[t.stato] || '#9ca3af';
       const dataRange = t.data_inizio ? `${fmtData(t.data_inizio)}${t.data_fine && t.data_fine !== t.data_inizio ? ' → ' + fmtData(t.data_fine) : ''}` : '—';
+      const torneoIco = t.immagine
+        ? `<img src="${t.immagine}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0;">`
+        : `<div style="font-size:28px;flex-shrink:0;">🏆</div>`;
       return `<div class="torneo-card">
         <div class="torneo-top">
-          <div style="font-size:28px;flex-shrink:0;">🏆</div>
+          ${torneoIco}
           <div class="torneo-info">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
               <div style="font-size:15px;font-weight:800;color:#0d2055;">${t.nome}</div>
@@ -6841,31 +6898,82 @@
     document.getElementById('tImmagineFile').value  = '';
     document.getElementById('tImmagineUrl').value   = '';
     document.getElementById('tImmaginePreview').style.display = 'none';
+    document.getElementById('tOrariList').innerHTML = '';
     let responsabileCorrente = '';
+    await _ensurePalestre();
     if (id) {
       const t = _torneiAll.find(x => x.id === id);
       if (t) {
-        document.getElementById('tNome').value          = t.nome || '';
-        document.getElementById('tDataInizio').value    = t.data_inizio || '';
-        document.getElementById('tDataFine').value      = t.data_fine || '';
-        document.getElementById('tStato').value         = t.stato || 'bozza';
-        document.getElementById('tNote').value          = t.note || '';
-        responsabileCorrente                            = t.responsabile || '';
-        document.getElementById('tFormato').value       = t.formato || '4vs4';
+        document.getElementById('tNome').value       = t.nome || '';
+        document.getElementById('tDataInizio').value = t.data_inizio || '';
+        document.getElementById('tDataFine').value   = t.data_fine || '';
+        document.getElementById('tStato').value      = t.stato || 'bozza';
+        document.getElementById('tNote').value       = t.note || '';
+        responsabileCorrente                         = t.responsabile || '';
+        document.getElementById('tFormato').value    = t.formato || '4vs4';
         setTorneoFormato(t.formato || '4vs4');
+        setTorneoBestOf(t.best_of || 3);
         if (t.immagine) { document.getElementById('tImmagineUrl').value = t.immagine; document.getElementById('tImmaginePreview').src = t.immagine; document.getElementById('tImmaginePreview').style.display = 'block'; }
+        (Array.isArray(t.palestra_slots) ? t.palestra_slots : []).forEach(o => aggiungiOrarioTorneo(o));
       }
     } else {
-      document.getElementById('tNome').value          = '';
-      document.getElementById('tDataInizio').value    = '';
-      document.getElementById('tDataFine').value      = '';
-      document.getElementById('tStato').value         = 'bozza';
-      document.getElementById('tNote').value          = '';
-      document.getElementById('tFormato').value       = '4vs4';
+      document.getElementById('tNome').value       = '';
+      document.getElementById('tDataInizio').value = '';
+      document.getElementById('tDataFine').value   = '';
+      document.getElementById('tStato').value      = 'bozza';
+      document.getElementById('tNote').value       = '';
+      document.getElementById('tFormato').value    = '4vs4';
       setTorneoFormato('4vs4');
+      setTorneoBestOf(3);
     }
     await respInitWidget('t', responsabileCorrente);
     document.getElementById('modalTorneo').classList.add('aperto');
+  }
+
+  async function _ensurePalestre() {
+    if (!_palestreCache.length) {
+      try { _palestreCache = await fetch('/api/palestre', { headers: headers() }).then(r => r.json()); } catch {}
+    }
+  }
+
+  function _buildPalestreOptsTorneo(selNome) {
+    return `<option value="">— palestra —</option>` +
+      (_palestreCache || []).map(p => `<option value="${p.nome}" ${p.nome === selNome ? 'selected' : ''}>${p.nome}</option>`).join('');
+  }
+
+  function aggiungiOrarioTorneo(val) {
+    const c = document.getElementById('tOrariList');
+    const row = document.createElement('div');
+    row.className = 'torneo-orario-row';
+    row.style.cssText = 'display:grid;grid-template-columns:90px 80px 80px 1fr 30px;gap:6px;align-items:center;';
+    const GIORNI_OPT = [[1,'Lun'],[2,'Mar'],[3,'Mer'],[4,'Gio'],[5,'Ven'],[6,'Sab'],[0,'Dom']];
+    const gg  = val?.giorno ?? 1;
+    const ini = val?.inizio || '19:00';
+    const fin = val?.fine   || '21:00';
+    const pal = val?.palestra_nome || '';
+    row.innerHTML = `
+      <select style="padding:7px 8px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);">
+        ${GIORNI_OPT.map(([v,g])=>`<option value="${v}"${v===gg?' selected':''}>${g}</option>`).join('')}
+      </select>
+      <input type="time" value="${ini}" style="padding:7px 8px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;width:100%;">
+      <input type="time" value="${fin}" style="padding:7px 8px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;width:100%;">
+      <select style="padding:7px 8px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:13px;font-family:inherit;outline:none;background:var(--surface);">${_buildPalestreOptsTorneo(pal)}</select>
+      <button type="button" onclick="this.closest('.torneo-orario-row').remove()"
+        style="width:28px;height:28px;border-radius:6px;border:1px solid var(--bordo);background:var(--surface-3);font-size:14px;cursor:pointer;color:var(--rosso);line-height:1;">✕</button>`;
+    c.appendChild(row);
+  }
+
+  function _getTOrari() {
+    return Array.from(document.querySelectorAll('#tOrariList .torneo-orario-row')).map(row => {
+      const sels   = row.querySelectorAll('select');
+      const inputs = row.querySelectorAll('input[type="time"]');
+      return {
+        giorno:        parseInt(sels[0].value),
+        inizio:        inputs[0].value,
+        fine:          inputs[1].value,
+        palestra_nome: sels[1].value || '',
+      };
+    }).filter(o => o.inizio && o.fine);
   }
 
   function setTorneoFormato(fmt) {
@@ -6876,6 +6984,14 @@
     document.getElementById('tBtn6v6').style.cssText = fmt === '6vs6' ? on : off;
   }
 
+  function setTorneoBestOf(n) {
+    document.getElementById('tBestOf').value = n;
+    const on  = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;border-color:#0d2055;background:#0d2055;color:#fff;';
+    const off = 'flex:1;padding:10px 8px;border-radius:9px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;border-color:#d1d5db;background:#fff;color:#374151;';
+    document.getElementById('tBtnBo3').style.cssText = n === 3 ? on : off;
+    document.getElementById('tBtnBo5').style.cssText = n === 5 ? on : off;
+  }
+
   async function salvaTorneo() {
     const nome = document.getElementById('tNome').value.trim();
     if (!nome) { alert('Nome obbligatorio.'); return; }
@@ -6884,13 +7000,16 @@
     if (uploadUrl) immagine = uploadUrl;
     const body = {
       nome,
-      formato:      document.getElementById('tFormato').value,
-      data_inizio:  document.getElementById('tDataInizio').value,
-      data_fine:    document.getElementById('tDataFine').value,
-      stato:        document.getElementById('tStato').value,
-      note:         document.getElementById('tNote').value.trim(),
-      responsabile: respGetValue('t'),
+      formato:        document.getElementById('tFormato').value,
+      best_of:        parseInt(document.getElementById('tBestOf').value) || 3,
+      data_inizio:    document.getElementById('tDataInizio').value,
+      data_fine:      document.getElementById('tDataFine').value,
+      stato:          document.getElementById('tStato').value,
+      note:           document.getElementById('tNote').value.trim(),
+      responsabile:   respGetValue('t'),
       immagine,
+      palestra_nome:  '',
+      palestra_slots: _getTOrari(),
     };
     const btn = document.getElementById('btnSalvaTorneo');
     btn.disabled = true; btn.textContent = 'Salvataggio…';
@@ -7192,14 +7311,18 @@
   let _gironiCache = [];
   let _partiteCache = [];
   let _squadreGironiCache = [];
-  let _ptGironeId = '';   // girone context for new match
+  let _ptGironeId = '';
   let _ptEditId = null;
+  let _ptSelectedOra = '';
 
   async function apriGironiTorneo(torneoId, torneoNome) {
     _gironiTorneoId = torneoId;
     document.getElementById('modalGironiTorneoTitolo').textContent = 'Gironi & Partite — ' + torneoNome;
     document.getElementById('nuovoGironeNome').value = '';
     document.getElementById('modalGironiTorneo').classList.add('aperto');
+    if (!_palestreCache.length) {
+      try { _palestreCache = await fetch('/api/palestre', { headers: headers() }).then(r => r.json()); } catch {}
+    }
     await _refreshGironi();
   }
 
@@ -7209,43 +7332,115 @@
         fetch(`/api/tornei/${_gironiTorneoId}/gironi`, { headers: headers() }).then(r => r.json()),
         fetch(`/api/tornei/${_gironiTorneoId}/partite`, { headers: headers() }).then(r => r.json()),
       ]);
-      _gironiCache = gRes || [];
-      _partiteCache = pRes.partite || [];
-      _squadreGironiCache = pRes.squadre || [];
+      _gironiCache = Array.isArray(gRes) ? gRes : [];
+      _partiteCache = Array.isArray(pRes?.partite) ? pRes.partite : [];
+      _squadreGironiCache = Array.isArray(pRes?.squadre) ? pRes.squadre : [];
     } catch { _gironiCache = []; _partiteCache = []; _squadreGironiCache = []; }
     renderGironiList();
   }
 
   function renderGironiList() {
     const el = document.getElementById('gironiPartiteList');
-    const allSections = [..._gironiCache.map(g => ({ type: 'girone', g })), { type: 'libere' }];
-    el.innerHTML = allSections.map(sec => {
-      if (sec.type === 'girone') {
-        const g = sec.g;
-        const partite = _partiteCache.filter(p => p.girone_id === g.id);
-        return `<div style="border-bottom:1.5px solid #f1f5f9;">
-          <div style="display:flex;align-items:center;gap:8px;padding:12px 20px 8px;background:#f8fafc;">
-            <div style="font-size:13px;font-weight:800;color:#0d2055;flex:1;">📋 ${g.nome}</div>
-            <button class="btn-azione btn-edit" onclick="rinominaGirone('${g.id}','${(g.nome||'').replace(/'/g,"\\'")}')">Rinomina</button>
-            <button class="btn-azione btn-delete" onclick="eliminaGirone('${g.id}')">Elimina</button>
-          </div>
-          ${renderPartiteGirone(partite)}
-          <div style="padding:8px 20px 12px;">
-            <button class="btn-azione btn-link" style="font-size:12px;padding:6px 12px;" onclick="apriNuovaPartita('${g.id}')">+ Aggiungi partita</button>
-          </div>
+    const gironiNormali = (_gironiCache || []).filter(g => g.tipo !== 'knockout');
+    const gironiKO      = (_gironiCache || []).filter(g => g.tipo === 'knockout');
+    const libere        = _partiteCache.filter(p => !p.girone_id);
+
+    let html = '';
+
+    // Gironi normali
+    gironiNormali.forEach(g => {
+      const squadreGirone = Array.isArray(g.squadre) ? g.squadre : [];
+      const partite = _partiteCache.filter(p => p.girone_id === g.id);
+      const sqBadges = squadreGirone.map(sid => {
+        const sq = _squadreGironiCache.find(s => s.id === sid);
+        if (!sq) return '';
+        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:12px;background:${sq.colore}20;color:${sq.colore};font-size:11px;font-weight:700;">
+          ${sq.nome}
+          <button onclick="rimuoviSquadraGirone('${g.id}','${sid}')" style="background:none;border:none;cursor:pointer;font-size:12px;line-height:1;padding:0;color:inherit;">✕</button>
+        </span>`;
+      }).join('');
+      const sqLibere = _squadreGironiCache.filter(s => !squadreGirone.includes(s.id));
+      const sqOpts = sqLibere.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
+
+      html += `<div style="border-bottom:1.5px solid #f1f5f9;">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px 8px;background:#f8fafc;">
+          <div style="font-size:13px;font-weight:800;color:#0d2055;flex:1;">📋 ${g.nome}</div>
+          <button class="btn-azione btn-edit" onclick="rinominaGirone('${g.id}','${(g.nome||'').replace(/'/g,"\\'")}')">Rinomina</button>
+          <button class="btn-azione btn-delete" onclick="eliminaGirone('${g.id}')">Elimina</button>
+        </div>
+        <div style="padding:6px 20px 8px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;">
+          ${sqBadges || '<span style="font-size:11px;color:var(--sub);">Nessuna squadra assegnata</span>'}
+          ${sqLibere.length ? `<select id="sqGironeAdd_${g.id}" style="padding:4px 8px;border:1.5px solid #d1d5db;border-radius:7px;font-size:12px;font-family:inherit;">
+            <option value="">+ Aggiungi squadra</option>${sqOpts}
+          </select>
+          <button class="btn-azione btn-link" style="padding:4px 10px;font-size:11px;" onclick="aggiungiSquadraGirone('${g.id}')">Aggiungi</button>` : ''}
+        </div>
+        ${renderPartiteGirone(partite)}
+        <div style="padding:8px 20px 12px;display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="btn-azione btn-link" style="font-size:12px;padding:6px 12px;" onclick="apriNuovaPartita('${g.id}')">+ Aggiungi partita</button>
+          <button class="btn-azione" style="font-size:12px;padding:6px 12px;background:#d1fae5;color:#065f46;border-color:#a7f3d0;" onclick="apriGeneraPartite('${g.id}')">⚡ Genera</button>
+          <button class="btn-azione" style="font-size:12px;padding:6px 12px;background:#ede9fe;color:#7c3aed;border-color:#c4b5fd;" onclick="apriRisultati('${g.id}')">📊 Risultati</button>
+        </div>
+      </div>`;
+    });
+
+    // Partite libere
+    if (libere.length || !gironiNormali.length) {
+      html += `<div style="border-bottom:1.5px solid #f1f5f9;">
+        ${gironiNormali.length ? `<div style="padding:12px 20px 8px;background:#f8fafc;font-size:13px;font-weight:800;color:#0d2055;">Partite senza girone</div>` : ''}
+        ${renderPartiteGirone(libere)}
+        <div style="padding:8px 20px 12px;">
+          <button class="btn-azione btn-link" style="font-size:12px;padding:6px 12px;" onclick="apriNuovaPartita('')">+ Aggiungi partita</button>
+        </div>
+      </div>`;
+    }
+
+    // Gironi knockout
+    gironiKO.forEach(g => {
+      const partite = _partiteCache.filter(p => p.girone_id === g.id);
+      const rounds = [...new Set(partite.map(p => p.round))];
+      const roundOrder = ['Finale','Semifinale','Quarto di finale','Ottavo di finale','Sedicesimo di finale'];
+      rounds.sort((a, b) => (roundOrder.indexOf(a) - roundOrder.indexOf(b)));
+      const bracketHtml = rounds.map(rnd => {
+        const rPartite = partite.filter(p => p.round === rnd);
+        return `<div style="padding:6px 20px 4px;">
+          <div style="font-size:11px;font-weight:800;color:#d97706;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">${rnd}</div>
+          ${rPartite.map(p => {
+            const cn = p.squadra_casa?.nome   || (p.squadra_casa_id   ? '?' : 'TBD');
+            const on = p.squadra_ospite?.nome || (p.squadra_ospite_id ? '?' : 'TBD');
+            const cc = p.squadra_casa?.colore   || '#9ca3af';
+            const co = p.squadra_ospite?.colore || '#9ca3af';
+            const score = (p.risultato_casa != null && p.risultato_ospite != null)
+              ? `<strong>${p.risultato_casa}–${p.risultato_ospite}</strong>` : '–';
+            return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 0;border-top:1px solid #f1f5f9;">
+              <div style="flex:1;min-width:0;font-size:13px;font-weight:700;">
+                <span style="color:${cc};">${cn}</span>
+                <span style="color:#9ca3af;font-weight:400;margin:0 5px;">vs</span>
+                <span style="color:${co};">${on}</span>
+                <span style="margin-left:8px;color:#111;">${score}</span>
+              </div>
+              <div style="display:flex;gap:5px;">
+                ${p.in_calendario ? `<span style="font-size:11px;color:#16a34a;font-weight:700;">📅</span>` : `<button class="btn-azione" style="font-size:11px;background:#e0f2fe;color:#0369a1;border-color:#bae6fd;" onclick="pushCalendario('${p.id}')">📅</button>`}
+                <button class="btn-azione btn-edit" onclick="apriModificaPartita('${p.id}')">Modifica</button>
+                <button class="btn-azione btn-delete" onclick="eliminaPartitaTorneo('${p.id}')">Elimina</button>
+              </div>
+            </div>`;
+          }).join('')}
         </div>`;
-      } else {
-        const libere = _partiteCache.filter(p => !p.girone_id);
-        if (!libere.length && _gironiCache.length) return '';
-        return `<div style="border-bottom:1.5px solid #f1f5f9;">
-          ${_gironiCache.length ? `<div style="padding:12px 20px 8px;background:#f8fafc;font-size:13px;font-weight:800;color:#0d2055;">Partite senza girone</div>` : ''}
-          ${renderPartiteGirone(libere)}
-          <div style="padding:8px 20px 12px;">
-            <button class="btn-azione btn-link" style="font-size:12px;padding:6px 12px;" onclick="apriNuovaPartita('')">+ Aggiungi partita</button>
-          </div>
-        </div>`;
-      }
-    }).join('');
+      }).join('');
+      html += `<div style="border-bottom:1.5px solid #f1f5f9;">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px 8px;background:#fef9e7;">
+          <div style="font-size:13px;font-weight:800;color:#d97706;flex:1;">🏆 ${g.nome}</div>
+          <button class="btn-azione btn-delete" onclick="eliminaGirone('${g.id}')">Elimina</button>
+        </div>
+        ${bracketHtml || '<div style="padding:8px 20px;font-size:12px;color:var(--sub);">Nessuna partita.</div>'}
+      </div>`;
+    });
+
+    // Genera fase finale section
+    html += renderGeneraKoSection();
+
+    el.innerHTML = html;
   }
 
   function renderPartiteGirone(partite) {
@@ -7289,9 +7484,10 @@
     const nome = document.getElementById('nuovoGironeNome').value.trim();
     if (!nome) return;
     try {
-      await fetch(`/api/tornei/${_gironiTorneoId}/gironi`, {
+      const r = await fetch(`/api/tornei/${_gironiTorneoId}/gironi`, {
         method: 'POST', headers: headers(), body: JSON.stringify({ nome, ordine: _gironiCache.length })
       });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'Errore ' + r.status); return; }
       document.getElementById('nuovoGironeNome').value = '';
       await _refreshGironi();
     } catch (err) { alert('Errore: ' + err.message); }
@@ -7308,6 +7504,207 @@
     } catch (err) { alert('Errore: ' + err.message); }
   }
 
+  async function aggiungiSquadraGirone(gironeId) {
+    const sel = document.getElementById('sqGironeAdd_' + gironeId);
+    const sqId = sel?.value;
+    if (!sqId) return;
+    const g = _gironiCache.find(x => x.id === gironeId);
+    if (!g) return;
+    const squadre = [...(Array.isArray(g.squadre) ? g.squadre : []), sqId];
+    try {
+      await fetch(`/api/tornei/${_gironiTorneoId}/gironi/${gironeId}`, {
+        method: 'PUT', headers: headers(), body: JSON.stringify({ nome: g.nome, ordine: g.ordine ?? 0, squadre })
+      });
+      await _refreshGironi();
+    } catch (err) { alert('Errore: ' + err.message); }
+  }
+
+  async function rimuoviSquadraGirone(gironeId, sqId) {
+    const g = _gironiCache.find(x => x.id === gironeId);
+    if (!g) return;
+    const squadre = (Array.isArray(g.squadre) ? g.squadre : []).filter(id => id !== sqId);
+    try {
+      await fetch(`/api/tornei/${_gironiTorneoId}/gironi/${gironeId}`, {
+        method: 'PUT', headers: headers(), body: JSON.stringify({ nome: g.nome, ordine: g.ordine ?? 0, squadre })
+      });
+      await _refreshGironi();
+    } catch (err) { alert('Errore: ' + err.message); }
+  }
+
+  let _koMode = 'manuale'; // 'manuale' | 'auto'
+
+  function renderGeneraKoSection() {
+    const sqAll = _squadreGironiCache;
+    const gironiNorm = (_gironiCache || []).filter(g => g.tipo !== 'knockout');
+    if (!sqAll.length) return '';
+
+    const btnBase = 'padding:7px 14px;border-radius:8px;border:1.5px solid;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;';
+    const btnAct  = btnBase + 'background:#d97706;color:#fff;border-color:#d97706;';
+    const btnInact= btnBase + 'background:#fff;color:#d97706;border-color:#fde68a;';
+
+    const manualeSection = `
+      <div id="koManualeSection" style="display:${_koMode==='manuale'?'':'none'};">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">Seleziona squadre in ordine di classifica:</div>
+        <div id="koSquadreOrder" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">
+          ${sqAll.map(s => `<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" value="${s.id}" id="koSq_${s.id}" style="width:14px;height:14px;">
+            <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${s.colore};flex-shrink:0;"></span>
+            ${s.nome}
+          </label>`).join('')}
+        </div>
+      </div>`;
+
+    const gOpts = [1,2,3,4].map(n => `<option value="${n}">${n}</option>`).join('');
+    const autoSection = `
+      <div id="koAutoSection" style="display:${_koMode==='auto'?'':'none'};">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:8px;">Quante squadre passano per girone:</div>
+        ${gironiNorm.length ? gironiNorm.map(g => `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;">
+            <span style="flex:1;font-weight:700;color:#0d2055;">📋 ${g.nome}</span>
+            <select id="koPass_${g.id}" style="padding:5px 8px;border:1.5px solid #d1d5db;border-radius:7px;font-size:12px;font-family:inherit;">${gOpts}</select>
+            <span style="color:#6b7280;">qualificate</span>
+          </div>`).join('') : '<div style="font-size:12px;color:#9ca3af;">Nessun girone configurato.</div>'}
+        <button onclick="calcolaAutoKo()" style="${btnBase}background:#e0f2fe;color:#0369a1;border-color:#bae6fd;margin-top:4px;">📊 Calcola classifica</button>
+        <div id="koAutoPreview" style="margin-top:10px;"></div>
+      </div>`;
+
+    return `<div style="padding:14px 20px;background:#fffbeb;border-top:2px solid #fde68a;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:800;color:#d97706;">⚡ Genera fase finale</div>
+        <div style="display:flex;gap:6px;">
+          <button style="${_koMode==='manuale'?btnAct:btnInact}" onclick="setKoMode('manuale')">✋ Manuale</button>
+          <button style="${_koMode==='auto'?btnAct:btnInact}" onclick="setKoMode('auto')">📊 Da gironi</button>
+        </div>
+      </div>
+      ${manualeSection}
+      ${autoSection}
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+        <input type="text" id="koNome" placeholder="Nome fase" value="Fase Finale"
+          style="flex:1;min-width:140px;padding:8px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;font-family:inherit;">
+        <button class="btn-aggiungi" style="padding:9px 16px;font-size:12px;background:#d97706;border:none;" onclick="generaFaseFinale()">⚡ Genera bracket</button>
+      </div>
+      <div id="koInfo" style="margin-top:6px;font-size:11px;color:#9ca3af;"></div>
+    </div>`;
+  }
+
+  function setKoMode(mode) {
+    _koMode = mode;
+    _autoKoTeams = [];
+    renderGironiList();
+  }
+
+  function calcolaClassificaGirone(gironeId) {
+    const g = _gironiCache.find(x => x.id === gironeId);
+    const best_of = (_getTorneoCorrente()?.best_of) || 3;
+    const squadreIds = Array.isArray(g?.squadre) ? g.squadre : [];
+    const pts = {};
+    squadreIds.forEach(sid => { pts[sid] = { punti: 0, vinte: 0, perse: 0, setVinti: 0, setPersi: 0, giocate: 0 }; });
+
+    const partite = _partiteCache.filter(p =>
+      p.girone_id === gironeId && p.stato === 'completata' &&
+      p.risultato_casa != null && p.risultato_ospite != null
+    );
+    for (const p of partite) {
+      const rc = Number(p.risultato_casa), ro = Number(p.risultato_ospite);
+      if (rc === ro) continue; // pareggio non valido in volley
+      for (const sid of [p.squadra_casa_id, p.squadra_ospite_id]) {
+        if (!pts[sid]) pts[sid] = { punti: 0, vinte: 0, perse: 0, setVinti: 0, setPersi: 0, giocate: 0 };
+        pts[sid].giocate++;
+      }
+      const decisivo = (rc + ro) === best_of; // es. 2-1 in bo3, 3-2 in bo5
+      const [winnerId, loserId, ws, ls] = rc > ro
+        ? [p.squadra_casa_id, p.squadra_ospite_id, rc, ro]
+        : [p.squadra_ospite_id, p.squadra_casa_id, ro, rc];
+      pts[winnerId].vinte++;
+      pts[loserId].perse++;
+      pts[winnerId].punti += decisivo ? 2 : 3;
+      pts[loserId].punti  += decisivo ? 1 : 0;
+      pts[winnerId].setVinti  += ws; pts[winnerId].setPersi  += ls;
+      pts[loserId].setVinti   += ls; pts[loserId].setPersi   += ws;
+    }
+
+    return Object.entries(pts)
+      .map(([sid, p]) => ({ sid, ...p, setRatio: p.setPersi ? p.setVinti / p.setPersi : p.setVinti }))
+      .sort((a, b) => b.punti - a.punti || b.setRatio - a.setRatio || b.vinte - a.vinte);
+  }
+
+  let _autoKoTeams = []; // ordered qualifying teams computed by calcolaAutoKo
+
+  function calcolaAutoKo() {
+    const gironiNorm = (_gironiCache || []).filter(g => g.tipo !== 'knockout');
+    const preview = document.getElementById('koAutoPreview');
+    if (!gironiNorm.length) { preview.innerHTML = '<div style="font-size:12px;color:#9ca3af;">Nessun girone.</div>'; return; }
+
+    // Per round (1° di ogni girone, poi 2° di ogni girone, etc.) per seeding bilanciato
+    const maxPass = Math.max(...gironiNorm.map(g => {
+      const sel = document.getElementById('koPass_' + g.id);
+      return sel ? parseInt(sel.value) : 1;
+    }));
+
+    const classifiche = {}; // gironeId → sorted array
+    gironiNorm.forEach(g => { classifiche[g.id] = calcolaClassificaGirone(g.id); });
+
+    _autoKoTeams = [];
+    for (let round = 0; round < maxPass; round++) {
+      gironiNorm.forEach(g => {
+        const sel = document.getElementById('koPass_' + g.id);
+        const n = sel ? parseInt(sel.value) : 1;
+        if (round < n) {
+          const cl = classifiche[g.id];
+          if (cl[round]) _autoKoTeams.push({ sid: cl[round].sid, girone: g.nome, pos: round + 1 });
+        }
+      });
+    }
+
+    // Remove duplicates
+    const seen = new Set();
+    _autoKoTeams = _autoKoTeams.filter(t => { if (seen.has(t.sid)) return false; seen.add(t.sid); return true; });
+
+    // Render preview
+    preview.innerHTML = `<div style="font-size:12px;font-weight:700;color:#0d2055;margin-bottom:6px;">${_autoKoTeams.length} qualificate:</div>` +
+      _autoKoTeams.map((t, i) => {
+        const sq = _squadreGironiCache.find(s => s.id === t.sid);
+        return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0;">
+          <span style="color:#9ca3af;min-width:16px;">${i+1}.</span>
+          <span style="width:10px;height:10px;border-radius:50%;background:${sq?.colore||'#9ca3af'};display:inline-block;flex-shrink:0;"></span>
+          <span style="font-weight:600;">${sq?.nome||t.sid}</span>
+          <span style="color:#9ca3af;">— ${t.girone} (${t.pos}°)</span>
+        </div>`;
+      }).join('');
+  }
+
+  async function generaFaseFinale() {
+    let checked;
+    if (_koMode === 'auto') {
+      if (!_autoKoTeams.length) { alert('Prima clicca "Calcola classifica".'); return; }
+      checked = _autoKoTeams.map(t => t.sid);
+    } else {
+      checked = Array.from(document.querySelectorAll('#koSquadreOrder input[type=checkbox]:checked')).map(el => el.value);
+    }
+    if (checked.length < 2) { alert('Seleziona almeno 2 squadre.'); return; }
+    const nome = document.getElementById('koNome').value.trim() || 'Fase Finale';
+    const n = checked.length;
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(n, 2))));
+    const byes = bracketSize - n;
+    const roundNames = { 2:'Finale', 4:'Semifinale', 8:'Quarti di finale', 16:'Ottavi di finale' };
+    const topRound = roundNames[bracketSize] || `Round di ${bracketSize}`;
+    const infoEl = document.getElementById('koInfo');
+    infoEl.textContent = `${n} squadre → bracket da ${bracketSize} (${byes} bye${byes !== 1 ? 's' : ''}) → ${topRound} → Finale`;
+    if (!confirm(`Genera: ${infoEl.textContent}?\n\nNota: eventuali gironi knockout esistenti saranno sostituiti.`)) return;
+    try {
+      const r = await fetch(`/api/tornei/${_gironiTorneoId}/genera-knockout`, {
+        method: 'POST', headers: headers(), body: JSON.stringify({ squadre_ids: checked, nome })
+      });
+      const text = await r.text();
+      if (!r.ok) {
+        let msg = `HTTP ${r.status}`;
+        try { msg = JSON.parse(text).error || msg; } catch { msg += ': ' + text.slice(0, 200); }
+        alert(msg); return;
+      }
+      await _refreshGironi();
+    } catch (err) { alert('Errore fetch: ' + err.message); }
+  }
+
   async function eliminaGirone(id) {
     if (!confirm('Eliminare il girone? Le partite rimarranno senza girone.')) return;
     try {
@@ -7316,10 +7713,237 @@
     } catch (err) { alert('Errore: ' + err.message); }
   }
 
-  function _buildSquadreOpts(selCasa, selOspite) {
-    return _squadreGironiCache.map(s =>
-      `<option value="${s.id}" ${s.id === selCasa ? 'selected' : ''}>${s.nome}</option>`
-    ).join('');
+  function _buildSquadreOptsGirone(gironeId, selVal) {
+    const g = _gironiCache.find(x => x.id === gironeId);
+    const sqIds = Array.isArray(g?.squadre) && g.squadre.length ? g.squadre : null;
+    const sq = sqIds
+      ? _squadreGironiCache.filter(s => sqIds.includes(s.id))
+      : _squadreGironiCache;
+    return `<option value="">— TBD —</option>` +
+      sq.map(s => `<option value="${s.id}" ${s.id === selVal ? 'selected' : ''}>${s.nome}</option>`).join('');
+  }
+
+  function _buildPalestreOpts(selLuogo) {
+    return `<option value="">— nessuna —</option>` +
+      (_palestreCache || []).map(p => {
+        const label = p.indirizzo ? `${p.nome} – ${p.indirizzo}` : p.nome;
+        return `<option value="${p.nome}" ${p.nome === selLuogo ? 'selected' : ''}>${label}</option>`;
+      }).join('') +
+      `<option value="__altro__" ${selLuogo && !(_palestreCache||[]).find(p=>p.nome===selLuogo) && selLuogo!=='' ? 'selected' : ''}>Altro (manuale)…</option>`;
+  }
+
+  const _GIORNO_NOMI = {0:'Dom',1:'Lun',2:'Mar',3:'Mer',4:'Gio',5:'Ven',6:'Sab'};
+
+  function _nextOccurrenzaGiorno(gg) { // gg = int 0-6 (0=Dom, 1=Lun, ...)
+    const today = new Date(); today.setHours(0,0,0,0);
+    let diff = gg - today.getDay();
+    if (diff <= 0) diff += 7;
+    const next = new Date(today); next.setDate(today.getDate() + diff);
+    return _localDateStr(next);
+  }
+
+  function _renderSlotCards(palestraNome, selInizio, allowedSlots) {
+    const pal = (_palestreCache || []).find(p => p.nome === palestraNome);
+    let orari = Array.isArray(pal?.orari) ? pal.orari : [];
+    if (allowedSlots && allowedSlots.length) orari = orari.filter(o => allowedSlots.some(s => s.giorno === o.giorno && s.inizio === o.inizio));
+    const cards = orari.map(o => {
+      const isSel = o.inizio === selInizio;
+      const lbl2 = o.fine ? `${o.inizio}–${o.fine}` : o.inizio;
+      const gName = _GIORNO_NOMI[o.giorno] || String(o.giorno);
+      return `<div onclick="selectPtSlot(${o.giorno},'${o.inizio}')" data-inizio="${o.inizio}"
+        style="cursor:pointer;padding:10px 12px;border:1.5px solid ${isSel?'#0d2055':'#e5e7eb'};border-radius:10px;background:${isSel?'#eef4ff':'#fff'};min-width:80px;text-align:center;transition:all .15s;flex:0 0 auto;">
+        <div style="font-size:12px;font-weight:700;color:${isSel?'#0d2055':'#111827'};">${gName}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">${lbl2}</div>
+      </div>`;
+    }).join('');
+    const isCustomSel = selInizio === '__custom__' || (selInizio && !orari.find(o => o.inizio === selInizio));
+    const customCard = `<div onclick="selectPtSlot(-1,'')" data-inizio="__custom__"
+      style="cursor:pointer;padding:10px 12px;border:1.5px solid ${isCustomSel?'#0d2055':'#e5e7eb'};border-radius:10px;background:${isCustomSel?'#eef4ff':'#fff'};min-width:80px;text-align:center;transition:all .15s;flex:0 0 auto;">
+      <div style="font-size:12px;font-weight:700;color:#6b7280;">Altro</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:2px;">Personalizzato</div>
+    </div>`;
+    return cards + customCard;
+  }
+
+  function _initPtModal(gironeId, luogo, ora) {
+    _ptSelectedOra = ora || '';
+    document.getElementById('ptPalestra').innerHTML = _buildPalestreOpts(luogo || '');
+    document.getElementById('ptCasa').innerHTML   = _buildSquadreOptsGirone(gironeId, '');
+    document.getElementById('ptOspite').innerHTML = _buildSquadreOptsGirone(gironeId, '');
+    document.getElementById('ptSlotSection').style.display = 'none';
+    document.getElementById('ptDataSection').style.display = 'none';
+    document.getElementById('ptSquadreSection').style.display = 'none';
+    document.getElementById('ptOraCustomRow').style.display = 'none';
+    document.getElementById('ptOraCustom').value = '';
+    document.getElementById('ptSlotList').innerHTML = '';
+  }
+
+  function onPtPalestraChange() {
+    _ptSelectedOra = '';
+    const luogo = document.getElementById('ptPalestra').value;
+    const slotSec = document.getElementById('ptSlotSection');
+    if (!luogo) { slotSec.style.display = 'none'; return; }
+    slotSec.style.display = '';
+    const t = _getTorneoCorrente();
+    const torneoSlots = (Array.isArray(t?.palestra_slots) ? t.palestra_slots : [])
+      .filter(s => s.palestra_nome === luogo);
+    document.getElementById('ptSlotList').innerHTML = _renderSlotCards(luogo, '', torneoSlots.length ? torneoSlots : null);
+    document.getElementById('ptOraCustomRow').style.display = luogo === '__altro__' ? '' : 'none';
+    document.getElementById('ptDataSection').style.display = 'none';
+    document.getElementById('ptSquadreSection').style.display = 'none';
+  }
+
+  function selectPtSlot(giorno, inizio) {
+    const luogo = document.getElementById('ptPalestra').value;
+    const isCustom = (giorno === -1);
+    _ptSelectedOra = isCustom ? '' : inizio;
+    const t = _getTorneoCorrente();
+    const torneoSlots = (Array.isArray(t?.palestra_slots) ? t.palestra_slots : []).filter(s => s.palestra_nome === luogo);
+    document.getElementById('ptSlotList').innerHTML = _renderSlotCards(luogo, isCustom ? '__custom__' : inizio, torneoSlots.length ? torneoSlots : null);
+    document.getElementById('ptOraCustomRow').style.display = isCustom ? '' : 'none';
+    if (!isCustom) {
+      const nextDate = _nextOccurrenzaGiorno(giorno);
+      if (nextDate) document.getElementById('ptData').value = nextDate;
+    }
+    document.getElementById('ptDataSection').style.display = '';
+    document.getElementById('ptSquadreSection').style.display = '';
+  }
+
+  function _getTorneoCorrente() {
+    return (_torneiAll || []).find(x => x.id === _gironiTorneoId) || null;
+  }
+
+  let _risGironeId = null;
+
+  function risSetTab(tab) {
+    const isPartite = tab === 'partite';
+    document.getElementById('risPartitePane').style.display    = isPartite ? '' : 'none';
+    document.getElementById('risClassificaPane').style.display = isPartite ? 'none' : '';
+    document.getElementById('risTabPartite').style.cssText    = `padding:10px 16px;border:none;background:none;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2.5px solid ${isPartite ? '#7c3aed' : 'transparent'};color:${isPartite ? '#7c3aed' : '#6b7280'};`;
+    document.getElementById('risTabClassifica').style.cssText = `padding:10px 16px;border:none;background:none;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2.5px solid ${isPartite ? 'transparent' : '#7c3aed'};color:${isPartite ? '#6b7280' : '#7c3aed'};`;
+    if (!isPartite) _renderClassificaPane();
+  }
+
+  function _renderClassificaPane() {
+    if (!_risGironeId) return;
+    const classifica = calcolaClassificaGirone(_risGironeId);
+    const best_of = (_getTorneoCorrente()?.best_of) || 3;
+    if (!classifica.length) {
+      document.getElementById('risClassificaPane').innerHTML = '<div style="padding:28px 24px;text-align:center;color:#9ca3af;font-size:13px;">Nessuna partita completata</div>';
+      return;
+    }
+    const rows = classifica.map((sq, i) => {
+      const nome = (_squadreGironiCache.find(s => s.id === sq.sid)?.nome) || sq.sid;
+      const colore = (_squadreGironiCache.find(s => s.id === sq.sid)?.colore) || '#9ca3af';
+      const pos = i + 1;
+      const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `${pos}.`;
+      return `<tr>
+        <td style="padding:9px 12px;font-size:13px;font-weight:700;color:#374151;">${medal}</td>
+        <td style="padding:9px 12px;font-size:13px;font-weight:700;"><span style="color:${colore};">● </span>${nome}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:13px;">${sq.giocate}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:13px;color:#16a34a;">${sq.vinte}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:13px;color:#dc2626;">${sq.perse}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:13px;">${sq.setVinti}–${sq.setPersi}</td>
+        <td style="padding:9px 12px;text-align:center;font-size:14px;font-weight:800;color:#0d2055;">${sq.punti}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('risClassificaPane').innerHTML = `
+      <div style="padding:12px 24px 6px;font-size:11px;color:#9ca3af;font-weight:600;">Best of ${best_of} · 3-0/3-1 = 3pt/0pt · ${best_of === 3 ? '2-1' : '3-2'} = 2pt/1pt</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:1.5px solid #f1f5f9;">
+          <th style="padding:6px 12px;text-align:left;font-size:11px;color:#9ca3af;font-weight:700;">#</th>
+          <th style="padding:6px 12px;text-align:left;font-size:11px;color:#9ca3af;font-weight:700;">Squadra</th>
+          <th style="padding:6px 12px;text-align:center;font-size:11px;color:#9ca3af;font-weight:700;">G</th>
+          <th style="padding:6px 12px;text-align:center;font-size:11px;color:#9ca3af;font-weight:700;">V</th>
+          <th style="padding:6px 12px;text-align:center;font-size:11px;color:#9ca3af;font-weight:700;">P</th>
+          <th style="padding:6px 12px;text-align:center;font-size:11px;color:#9ca3af;font-weight:700;">Set</th>
+          <th style="padding:6px 12px;text-align:center;font-size:11px;color:#9ca3af;font-weight:700;">Pt</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function apriRisultati(gironeId) {
+    _risGironeId = gironeId;
+    const g = _gironiCache.find(x => x.id === gironeId);
+    document.getElementById('risGironeTitle').textContent = `📊 ${g?.nome || 'Risultati'}`;
+    risSetTab('partite');
+    _renderRisultatiPartite();
+    document.getElementById('modalRisultati').classList.add('aperto');
+  }
+
+  function _renderRisultatiPartite() {
+    const partite = _partiteCache.filter(p => p.girone_id === _risGironeId);
+    const best_of = (_getTorneoCorrente()?.best_of) || 3;
+    const toWin = Math.ceil(best_of / 2);
+    if (!partite.length) {
+      document.getElementById('risPartitePane').innerHTML = '<div style="padding:28px 24px;text-align:center;color:#9ca3af;font-size:13px;">Nessuna partita nel girone</div>';
+      return;
+    }
+    const rows = partite.map(p => {
+      const cn = p.squadra_casa?.nome   || '?';
+      const on = p.squadra_ospite?.nome || '?';
+      const cc = p.squadra_casa?.colore   || '#3b82f6';
+      const co = p.squadra_ospite?.colore || '#ef4444';
+      const rc = p.risultato_casa   != null ? p.risultato_casa   : '';
+      const ro = p.risultato_ospite != null ? p.risultato_ospite : '';
+      const completata = p.stato === 'completata';
+      const statoStyle = completata
+        ? 'background:#dcfce7;color:#16a34a;'
+        : 'background:#fef3c7;color:#d97706;';
+      const statoLabel = completata ? '✓ Completata' : 'Programmata';
+      return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid #f1f5f9;" id="risRow_${p.id}">
+        <div style="flex:1;min-width:140px;">
+          <div style="font-size:13px;font-weight:700;">
+            <span style="color:${cc};">${cn}</span>
+            <span style="color:#9ca3af;font-weight:400;margin:0 5px;">vs</span>
+            <span style="color:${co};">${on}</span>
+          </div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:2px;">${p.data_str ? fmtData(p.data_str) : '—'}${p.ora ? ' · ' + p.ora : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="risCasa_${p.id}" value="${rc}" min="0" max="${toWin}"
+            style="width:44px;padding:5px 6px;border:1.5px solid #d1d5db;border-radius:7px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;"
+            placeholder="0">
+          <span style="font-size:14px;color:#9ca3af;">–</span>
+          <input type="number" id="risOspite_${p.id}" value="${ro}" min="0" max="${toWin}"
+            style="width:44px;padding:5px 6px;border:1.5px solid #d1d5db;border-radius:7px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;"
+            placeholder="0">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;${statoStyle}" id="risStato_${p.id}">${statoLabel}</span>
+          <button onclick="salvaRisultatoPartita('${p.id}',${toWin})"
+            style="padding:5px 12px;border-radius:7px;border:none;background:#7c3aed;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+            Salva
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('risPartitePane').innerHTML = rows;
+  }
+
+  async function salvaRisultatoPartita(pid, toWin) {
+    const rc = parseInt(document.getElementById(`risCasa_${pid}`).value);
+    const ro = parseInt(document.getElementById(`risOspite_${pid}`).value);
+    if (isNaN(rc) || isNaN(ro)) { alert('Inserisci entrambi i risultati'); return; }
+    if (rc !== toWin && ro !== toWin) { alert(`Uno dei due punteggi deve essere ${toWin}`); return; }
+    if (rc === ro) { alert('Pareggio non valido in volley'); return; }
+    const p = _partiteCache.find(x => x.id === pid);
+    if (!p) { alert('Partita non trovata'); return; }
+    const body = {
+      girone_id: p.girone_id || '', squadra_casa_id: p.squadra_casa_id, squadra_ospite_id: p.squadra_ospite_id,
+      data_str: p.data_str || '', ora: p.ora || '', luogo: p.luogo || '', note: p.note || '',
+      risultato_casa: rc, risultato_ospite: ro, stato: 'completata'
+    };
+    try {
+      const r = await fetch(`/api/tornei/${_gironiTorneoId}/partite/${pid}`, {
+        method: 'PUT', headers: headers(), body: JSON.stringify(body)
+      });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'Errore ' + r.status); return; }
+      p.risultato_casa = rc; p.risultato_ospite = ro; p.stato = 'completata';
+      const statoEl = document.getElementById(`risStato_${pid}`);
+      if (statoEl) { statoEl.textContent = '✓ Completata'; statoEl.style.cssText = 'background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;'; }
+    } catch (err) { alert('Errore: ' + err.message); }
   }
 
   function apriNuovaPartita(gironeId) {
@@ -7327,17 +7951,8 @@
     _ptEditId = null;
     document.getElementById('modalPartitaTorneoTitolo').textContent = 'Nuova partita';
     document.getElementById('ptId').value = '';
-    document.getElementById('ptData').value = '';
-    document.getElementById('ptOra').value = '';
-    document.getElementById('ptLuogo').value = '';
-    document.getElementById('ptRisCasa').value = '';
-    document.getElementById('ptRisOspite').value = '';
-    document.getElementById('ptStato').value = 'programmata';
-    document.getElementById('ptNote').value = '';
     document.getElementById('ptLog').style.display = 'none';
-    const opts = `<option value="">— squadra —</option>` + _buildSquadreOpts();
-    document.getElementById('ptCasa').innerHTML = opts;
-    document.getElementById('ptOspite').innerHTML = opts;
+    _initPtModal(gironeId, '', '');
     document.getElementById('modalPartitaTorneo').classList.add('aperto');
   }
 
@@ -7348,40 +7963,50 @@
     _ptEditId = partitaId;
     document.getElementById('modalPartitaTorneoTitolo').textContent = 'Modifica partita';
     document.getElementById('ptId').value = partitaId;
-    document.getElementById('ptData').value = p.data_str || '';
-    document.getElementById('ptOra').value = p.ora || '';
-    document.getElementById('ptLuogo').value = p.luogo || '';
-    document.getElementById('ptRisCasa').value = p.risultato_casa ?? '';
-    document.getElementById('ptRisOspite').value = p.risultato_ospite ?? '';
-    document.getElementById('ptStato').value = p.stato || 'programmata';
-    document.getElementById('ptNote').value = p.note || '';
     document.getElementById('ptLog').style.display = 'none';
-    const opts = `<option value="">— squadra —</option>` + _buildSquadreOpts();
-    document.getElementById('ptCasa').innerHTML = opts;
-    document.getElementById('ptOspite').innerHTML = opts;
-    document.getElementById('ptCasa').value = p.squadra_casa_id || '';
-    document.getElementById('ptOspite').value = p.squadra_ospite_id || '';
+    _initPtModal(_ptGironeId, p.luogo || '', p.ora || '');
+    if (p.luogo) {
+      const t = _getTorneoCorrente();
+      const allowedSlots = (Array.isArray(t?.palestra_slots) ? t.palestra_slots : []).filter(s => s.palestra_nome === p.luogo);
+      document.getElementById('ptSlotSection').style.display = '';
+      document.getElementById('ptSlotList').innerHTML = _renderSlotCards(p.luogo, p.ora || '', allowedSlots);
+      const pal = (_palestreCache || []).find(pl => pl.nome === p.luogo);
+      const orari = Array.isArray(pal?.orari) ? pal.orari : [];
+      const isCustom = p.ora && !orari.find(o => o.inizio === p.ora);
+      if (isCustom || p.luogo === '__altro__') {
+        document.getElementById('ptOraCustomRow').style.display = '';
+        document.getElementById('ptOraCustom').value = p.ora || '';
+      }
+    }
+    document.getElementById('ptData').value = p.data_str || '';
+    if (p.luogo || p.ora || p.data_str) {
+      document.getElementById('ptDataSection').style.display = '';
+      document.getElementById('ptSquadreSection').style.display = '';
+    }
+    document.getElementById('ptCasa').innerHTML   = _buildSquadreOptsGirone(_ptGironeId, p.squadra_casa_id   || '');
+    document.getElementById('ptOspite').innerHTML = _buildSquadreOptsGirone(_ptGironeId, p.squadra_ospite_id || '');
     document.getElementById('modalPartitaTorneo').classList.add('aperto');
   }
 
   async function salvaPartitaTorneo() {
     const casa   = document.getElementById('ptCasa').value;
     const ospite = document.getElementById('ptOspite').value;
-    if (!casa || !ospite) { _ptLog('Seleziona entrambe le squadre.', false); return; }
-    if (casa === ospite)  { _ptLog('Casa e ospite devono essere diverse.', false); return; }
-    const risCasa   = document.getElementById('ptRisCasa').value;
-    const risOspite = document.getElementById('ptRisOspite').value;
+    if (casa && ospite && casa === ospite) { _ptLog('Casa e ospite devono essere diverse.', false); return; }
+    const palSel = document.getElementById('ptPalestra').value;
+    const luogo  = (palSel === '__altro__' || !palSel) ? '' : palSel;
+    const customOra = document.getElementById('ptOraCustom').value;
+    const ora = _ptSelectedOra || customOra || '';
     const body = {
       girone_id:         _ptGironeId,
       squadra_casa_id:   casa,
       squadra_ospite_id: ospite,
       data_str:          document.getElementById('ptData').value,
-      ora:               document.getElementById('ptOra').value,
-      luogo:             document.getElementById('ptLuogo').value,
-      risultato_casa:    risCasa   !== '' ? parseInt(risCasa)   : null,
-      risultato_ospite:  risOspite !== '' ? parseInt(risOspite) : null,
-      stato:             document.getElementById('ptStato').value,
-      note:              document.getElementById('ptNote').value,
+      ora,
+      luogo,
+      risultato_casa:    null,
+      risultato_ospite:  null,
+      stato:             'programmata',
+      note:              '',
     };
     try {
       const url  = _ptEditId ? `/api/tornei/${_gironiTorneoId}/partite/${_ptEditId}` : `/api/tornei/${_gironiTorneoId}/partite`;
@@ -7411,6 +8036,228 @@
 
   function _ptLog(msg, ok) {
     const el = document.getElementById('ptLog');
+    el.style.display = '';
+    el.textContent = msg;
+    el.style.background = ok ? '#dcfce7' : '#fee2e2';
+    el.style.color = ok ? '#15803d' : '#dc2626';
+  }
+
+  /* ══ GENERA PARTITE AUTO ══ */
+  let _genGironeId = '';
+  let _genSelectedSlot = null; // { giorno: int, inizio: string }
+
+  function _localDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function _buildSessions(schedule, dataInizio, dataFine) {
+    const sessions = [];
+    const d0 = new Date(dataInizio + 'T00:00:00');
+    const d1 = new Date(dataFine   + 'T00:00:00');
+    for (let d = new Date(d0); d <= d1; d.setDate(d.getDate() + 1)) {
+      const dow = d.getDay();
+      for (const slot of schedule) {
+        if (slot.giorno === dow) {
+          let luogo = slot.palestra_nome || '';
+          if (!luogo) {
+            const match = (_palestreCache || []).find(p =>
+              Array.isArray(p.orari) && p.orari.some(o => o.giorno === dow && o.inizio === slot.inizio)
+            );
+            luogo = match?.nome || '';
+          }
+          sessions.push({ data_str: _localDateStr(d), ora: slot.inizio || '', fine: slot.fine || '', luogo });
+        }
+      }
+    }
+    return sessions;
+  }
+
+  function apriGeneraPartite(gironeId) {
+    _genGironeId = gironeId;
+    const g = (_gironiCache || []).find(x => x.id === gironeId);
+    const squadreIds = Array.isArray(g?.squadre) ? g.squadre : [];
+    const n = (_squadreGironiCache || []).filter(s => squadreIds.includes(s.id)).length;
+    const nMatch = n * (n - 1) / 2;
+    const t = _getTorneoCorrente();
+    const schedule = Array.isArray(t?.palestra_slots) ? t.palestra_slots : [];
+
+    const info = document.getElementById('genInfo');
+    if (n < 2) {
+      info.style.background = '#fef2f2'; info.style.borderColor = '#fecaca'; info.style.color = '#dc2626';
+      info.textContent = `Girone "${g?.nome}": ${n} squadr${n===1?'a':'e'}. Servono almeno 2 squadre.`;
+    } else {
+      info.style.background = '#f0fdf4'; info.style.borderColor = '#bbf7d0'; info.style.color = '#15803d';
+      info.textContent = `${n} squadre → ${nMatch} partite (round-robin, ordine casuale).`;
+    }
+
+    const schEl = document.getElementById('genScheduleInfo');
+    if (!schedule.length) {
+      schEl.innerHTML = `<strong style="color:#dc2626;">⚠ Nessun programma configurato.</strong><br>Modifica il torneo e seleziona palestre e orari.`;
+      document.getElementById('genBtn').style.display = 'none';
+    } else if (!t?.data_inizio || !t?.data_fine) {
+      schEl.innerHTML = `<strong style="color:#dc2626;">⚠ Data inizio/fine non impostate nel torneo.</strong>`;
+      document.getElementById('genBtn').style.display = 'none';
+    } else {
+      const sessions = _buildSessions(schedule, t.data_inizio, t.data_fine);
+      const schLines = schedule.map(s => `<span style="background:#eef4ff;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;color:#0d2055;">${_GIORNO_NOMI[s.giorno]||s.giorno} ${s.inizio}${s.fine?' – '+s.fine:''} @ ${s.palestra_nome}</span>`).join('  ');
+      schEl.innerHTML = `<div style="margin-bottom:6px;font-weight:700;color:#374151;">Programma:</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${schLines}</div>
+        <div style="margin-top:8px;color:#6b7280;">${sessions.length} sessioni disponibili · ${t.data_inizio} → ${t.data_fine}</div>`;
+      document.getElementById('genBtn').style.display = n >= 2 ? '' : 'none';
+      document.getElementById('genBtn').textContent = `⚡ Genera ${nMatch} partite`;
+    }
+
+    document.getElementById('genLog').style.display = 'none';
+    document.getElementById('modalGeneraPartite').classList.add('aperto');
+  }
+
+  async function generaPartiteAuto() {
+    const t = _getTorneoCorrente();
+    const schedule = Array.isArray(t?.palestra_slots) ? t.palestra_slots : [];
+    if (!schedule.length) { _genLog('Configura il programma nel torneo.', false); return; }
+    if (!t?.data_inizio || !t?.data_fine) { _genLog('Imposta data inizio e fine nel torneo.', false); return; }
+
+    const g = (_gironiCache || []).find(x => x.id === _genGironeId);
+    const squadreIds = Array.isArray(g?.squadre) ? g.squadre : [];
+    const teams = (_squadreGironiCache || []).filter(s => squadreIds.includes(s.id));
+    if (teams.length < 2) { _genLog('Servono almeno 2 squadre nel girone.', false); return; }
+
+    const allSessions = _buildSessions(schedule, t.data_inizio, t.data_fine);
+    if (!allSessions.length) { _genLog('Nessuna sessione nel periodo. Verifica programma e date.', false); return; }
+
+    // Fetch existing data to detect conflicts
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true; btn.textContent = 'Controllo sessioni…';
+    let existingPartite = [];
+    try {
+      const er = await fetch(`/api/tornei/${_gironiTorneoId}/partite`, { headers: headers() });
+      if (er.ok) { const d = await er.json(); existingPartite = Array.isArray(d.partite) ? d.partite : []; }
+    } catch {}
+
+    // Fetch occupied intervals from calendario + ALL torneo_partite for these palestres
+    let externalOcc = [];
+    try {
+      const palestreNomi = [...new Set(schedule.map(s => s.palestra_nome).filter(Boolean))];
+      if (palestreNomi.length) {
+        const url = `/api/admin/palestre-occupate?da=${t.data_inizio}&a=${t.data_fine}&palestre=${encodeURIComponent(palestreNomi.join(','))}`;
+        const er = await fetch(url, { headers: headers() });
+        if (er.ok) externalOcc = await er.json();
+      }
+    } catch {}
+    // Overlap helper: HH:MM string comparison
+    function timesOverlap(as, ae, bs, be) {
+      const eA = ae || '99:99', eB = be || '99:99';
+      return as < eB && eA > bs;
+    }
+
+    // Build occupied intervals from existing matches
+    // fine: prefer allSessions lookup (most reliable), fallback scheduleSlots, fallback point
+    const scheduleSlots = Array.isArray(t?.palestra_slots) ? t.palestra_slots : [];
+    function resolveFinе(m) {
+      const sess = allSessions.find(s => s.data_str === m.data_str && s.ora === m.ora && s.luogo === m.luogo);
+      if (sess?.fine) return sess.fine;
+      const dow = new Date(m.data_str + 'T00:00:00').getDay();
+      const slot = scheduleSlots.find(s => s.giorno === dow && s.inizio === m.ora);
+      return slot?.fine || m.ora;
+    }
+
+    // palestraOcc: {data_str, luogo, inizio, fine} — palestra must be free
+    // teamOcc: Map<teamId, [{data_str, inizio, fine}]> — each team must be free
+    const palestraOcc = [];
+    const teamOcc = new Map();
+    function addOcc(data_str, inizio, fine, luogo, casaId, ospiteId) {
+      if (luogo) palestraOcc.push({ data_str, luogo, inizio, fine });
+      for (const tid of [casaId, ospiteId]) {
+        if (!tid) continue;
+        if (!teamOcc.has(tid)) teamOcc.set(tid, []);
+        teamOcc.get(tid).push({ data_str, inizio, fine });
+      }
+    }
+    for (const m of existingPartite) {
+      if (!m.data_str || !m.ora) continue;
+      addOcc(m.data_str, m.ora, resolveFinе(m), m.luogo || '', m.squadra_casa_id, m.squadra_ospite_id);
+    }
+    // External occupied intervals: calendario (allenamenti/eventi/tornei) + other torneo partite
+    for (const occ of externalOcc) {
+      if (occ.data_str && occ.luogo && occ.inizio) {
+        palestraOcc.push({ data_str: occ.data_str, luogo: occ.luogo, inizio: occ.inizio, fine: occ.fine || occ.inizio });
+      }
+    }
+
+    function sessionFree(s, casaId, ospiteId) {
+      // 1. Palestra conflict
+      if (s.luogo && palestraOcc.some(occ =>
+          occ.data_str === s.data_str && occ.luogo === s.luogo &&
+          timesOverlap(s.ora, s.fine, occ.inizio, occ.fine))) return false;
+      // 2. Team conflict
+      for (const tid of [casaId, ospiteId]) {
+        if (!tid) continue;
+        if ((teamOcc.get(tid) || []).some(occ =>
+            occ.data_str === s.data_str && timesOverlap(s.ora, s.fine, occ.inizio, occ.fine))) return false;
+      }
+      return true;
+    }
+
+    // Round-robin pairs, shuffled
+    const pairs = [];
+    for (let i = 0; i < teams.length; i++)
+      for (let j = i+1; j < teams.length; j++)
+        pairs.push([teams[i], teams[j]]);
+    for (let i = pairs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+    }
+
+    // Assign: for each pair find first free session; fall back to first available if none free
+    const matchBodies = [];
+    let skipped = 0;
+    for (const pair of pairs) {
+      const [casa, ospite] = pair;
+      const free = allSessions.find(s => sessionFree(s, casa.id, ospite.id));
+      const s = free || null;
+      if (!s) { skipped++; continue; }
+      matchBodies.push({
+        girone_id:         _genGironeId,
+        squadra_casa_id:   casa.id,
+        squadra_ospite_id: ospite.id,
+        data_str: s.data_str,
+        ora:      s.ora,
+        luogo:    s.luogo,
+        stato:    'programmata',
+        note:     '',
+      });
+      // Mark occupied so subsequent pairs respect it
+      addOcc(s.data_str, s.ora, s.fine, s.luogo, casa.id, ospite.id);
+    }
+
+    btn.textContent = 'Generazione…';
+    let ok = 0, fail = 0, calOk = 0;
+    for (const body of matchBodies) {
+      try {
+        const r = await fetch(`/api/tornei/${_gironiTorneoId}/partite`, { method:'POST', headers: headers(), body: JSON.stringify(body) });
+        if (r.ok) {
+          ok++;
+          const partita = await r.json();
+          // Auto-add to calendario
+          const cr = await fetch(`/api/tornei/${_gironiTorneoId}/partite/${partita.id}/calendario`, { method:'POST', headers: headers() });
+          if (cr.ok) calOk++;
+        } else { fail++; }
+      } catch { fail++; }
+    }
+    btn.disabled = false; btn.textContent = `⚡ Genera ${pairs.length} partite`;
+    const skipMsg = skipped > 0 ? ` · ${skipped} coppie saltate (nessuna sessione libera).` : '';
+    if (fail === 0 && ok > 0) {
+      _genLog(`${ok} partite create · ${calOk} sul calendario${skipMsg}`, skipped === 0);
+      setTimeout(() => { chiudiModal('modalGeneraPartite'); _refreshGironi(); }, 1200);
+    } else if (ok === 0 && skipped > 0) {
+      _genLog(`Nessuna sessione libera trovata. ${skipped} coppie saltate.`, false);
+    } else {
+      _genLog(`${ok} create (${calOk} calendario), ${fail} errori${skipMsg}`, false);
+      await _refreshGironi();
+    }
+  }
+
+  function _genLog(msg, ok) {
+    const el = document.getElementById('genLog');
     el.style.display = '';
     el.textContent = msg;
     el.style.background = ok ? '#dcfce7' : '#fee2e2';

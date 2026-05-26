@@ -579,22 +579,29 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
     // Allenamenti/eventi da calendario per ogni squadra (primaria + collegate)
     for (const nome of nomiSquadre) {
       const calRes = await db.query(
-        `SELECT id,titolo,data_str,ora,tipo FROM calendario
-         WHERE (categoria ILIKE $1 OR categorie_collegate @> $2::jsonb)
-           AND data_str >= $3 AND data_str <= $4
-         ORDER BY data_str, ora`,
+        `SELECT c.id, c.titolo, c.data_str, c.ora, c.tipo, c.note, c.responsabile,
+                c.categoria, c.palestra_id, p.nome as palestra_nome
+         FROM calendario c
+         LEFT JOIN palestres p ON p.id = c.palestra_id
+         WHERE (c.categoria ILIKE $1 OR c.categorie_collegate @> $2::jsonb)
+           AND c.data_str >= $3 AND c.data_str <= $4
+         ORDER BY c.data_str, c.ora`,
         [nome, JSON.stringify([nome]), lunStr, domStr]
       );
       for (const r of calRes.rows) {
         eventi.push({
-          tipo: r.tipo || 'allenamento',
-          id: r.id,
-          titolo: r.titolo,
-          data: r.data_str,
-          ora: r.ora,
-          squadra: nome,
-          ruolo: squadraRuolo[nome],
-          ts: safeTs(r.data_str, r.ora),
+          tipo:          r.tipo || 'allenamento',
+          id:            r.id,
+          titolo:        r.titolo,
+          data:          r.data_str,
+          ora:           r.ora,
+          note:          r.note || '',
+          responsabile:  r.responsabile || '',
+          categoria:     r.categoria || '',
+          palestra_nome: r.palestra_nome || '',
+          squadra:       nome,
+          ruolo:         squadraRuolo[nome],
+          ts:            safeTs(r.data_str, r.ora),
         });
       }
     }
@@ -667,10 +674,39 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
       }
     }
 
+    // Partite torneo (utente partecipante)
+    const torneoPartiteRes = await db.query(
+      `SELECT tp.id, tp.data_str, tp.ora, tp.luogo,
+              ts1.nome as nome_casa, ts2.nome as nome_ospite, t.nome as torneo_nome
+       FROM torneo_partite tp
+       JOIN torneo_partecipanti tpart ON tpart.torneo_id = tp.torneo_id AND tpart.utente_id = $1
+       JOIN tornei t ON t.id = tp.torneo_id
+       LEFT JOIN torneo_squadre ts1 ON ts1.id = tp.squadra_casa_id
+       LEFT JOIN torneo_squadre ts2 ON ts2.id = tp.squadra_ospite_id
+       WHERE tp.data_str >= $2 AND tp.data_str <= $3 AND tp.data_str != ''
+       ORDER BY tp.data_str, tp.ora`,
+      [req.user.id, lunStr, domStr]
+    );
+    for (const p of torneoPartiteRes.rows) {
+      const nomeCasa   = p.nome_casa   || '?';
+      const nomeOspite = p.nome_ospite || '?';
+      eventi.push({
+        tipo:   'torneo',
+        titolo: `${nomeCasa} vs ${nomeOspite}`,
+        data:   p.data_str,
+        ora:    p.ora || '',
+        luogo:  p.luogo || '',
+        note:   p.torneo_nome,
+        ts:     safeTs(p.data_str, p.ora),
+      });
+    }
+
     // Deduplicazione partite (stessa partita può apparire da più sorgenti)
     const seen = new Set();
     const unici = eventi.filter(e => {
-      const key = e.tipo === 'partita' ? `${e.casa}|${e.ospite}|${e.ts}` : `${e.titolo}|${e.data}|${e.ora}|${e.squadra}`;
+      const key = e.tipo === 'partita' ? `${e.casa}|${e.ospite}|${e.ts}`
+                : e.tipo === 'torneo'  ? `${e.titolo}|${e.data}|${e.ora}`
+                : `${e.titolo}|${e.data}|${e.ora}|${e.squadra}`;
       if (seen.has(key)) return false;
       seen.add(key); return true;
     });
@@ -1187,25 +1223,25 @@ app.get('/api/tornei', async (_req, res) => {
 });
 
 app.post('/api/tornei', adminAuth, async (req, res) => {
-  const { nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine } = req.body;
+  const { nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine, palestra_nome, palestra_slots, best_of } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
   const id = crypto.randomUUID();
   try {
     const r = await db.query(
-      `INSERT INTO tornei (id, nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [id, nome.trim(), formato || '4vs4', data_inizio || '', data_fine || '', note || '', stato || 'bozza', responsabile || '', immagine || '']
+      `INSERT INTO tornei (id, nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine, palestra_nome, palestra_slots, best_of) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [id, nome.trim(), formato || '4vs4', data_inizio || '', data_fine || '', note || '', stato || 'bozza', responsabile || '', immagine || '', palestra_nome || '', JSON.stringify(palestra_slots || []), best_of === 5 ? 5 : 3]
     );
     res.status(201).json(r.rows[0]);
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
 app.put('/api/tornei/:id', adminAuth, async (req, res) => {
-  const { nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine } = req.body;
+  const { nome, formato, data_inizio, data_fine, note, stato, responsabile, immagine, palestra_nome, palestra_slots, best_of } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
     const r = await db.query(
-      `UPDATE tornei SET nome=$1, formato=$2, data_inizio=$3, data_fine=$4, note=$5, stato=$6, responsabile=$7, immagine=$8 WHERE id=$9 RETURNING *`,
-      [nome.trim(), formato || '4vs4', data_inizio || '', data_fine || '', note || '', stato || 'bozza', responsabile || '', immagine || '', req.params.id]
+      `UPDATE tornei SET nome=$1, formato=$2, data_inizio=$3, data_fine=$4, note=$5, stato=$6, responsabile=$7, immagine=$8, palestra_nome=$9, palestra_slots=$10, best_of=$11 WHERE id=$12 RETURNING *`,
+      [nome.trim(), formato || '4vs4', data_inizio || '', data_fine || '', note || '', stato || 'bozza', responsabile || '', immagine || '', palestra_nome || '', JSON.stringify(palestra_slots || []), best_of === 5 ? 5 : 3, req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Torneo non trovato' });
     res.json(r.rows[0]);
@@ -1299,7 +1335,7 @@ app.delete('/api/tornei/:id/squadre/:sid', adminAuth, async (req, res) => {
 });
 
 /* ─── Tornei: gironi ─── */
-app.get('/api/tornei/:id/gironi', userAuth, async (req, res) => {
+app.get('/api/tornei/:id/gironi', adminAuth, async (req, res) => {
   try {
     const r = await db.query('SELECT * FROM torneo_gironi WHERE torneo_id=$1 ORDER BY ordine, nome', [req.params.id]);
     res.json(r.rows);
@@ -1320,12 +1356,12 @@ app.post('/api/tornei/:id/gironi', adminAuth, async (req, res) => {
 });
 
 app.put('/api/tornei/:id/gironi/:gid', adminAuth, async (req, res) => {
-  const { nome, ordine } = req.body;
+  const { nome, ordine, squadre } = req.body;
   if (!nome) return res.status(400).json({ error: 'Nome obbligatorio' });
   try {
     const r = await db.query(
-      `UPDATE torneo_gironi SET nome=$1, ordine=$2 WHERE id=$3 AND torneo_id=$4 RETURNING *`,
-      [nome.trim(), ordine ?? 0, req.params.gid, req.params.id]
+      `UPDATE torneo_gironi SET nome=$1, ordine=$2, squadre=$3 WHERE id=$4 AND torneo_id=$5 RETURNING *`,
+      [nome.trim(), ordine ?? 0, JSON.stringify(Array.isArray(squadre) ? squadre : []), req.params.gid, req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Girone non trovato' });
     res.json(r.rows[0]);
@@ -1342,7 +1378,7 @@ app.delete('/api/tornei/:id/gironi/:gid', adminAuth, async (req, res) => {
 });
 
 /* ─── Tornei: partite ─── */
-app.get('/api/tornei/:id/partite', userAuth, async (req, res) => {
+app.get('/api/tornei/:id/partite', adminAuth, async (req, res) => {
   try {
     const [partite, squadre, gironi] = await Promise.all([
       db.query('SELECT * FROM torneo_partite WHERE torneo_id=$1 ORDER BY data_str, ora, created_at', [req.params.id]),
@@ -1435,13 +1471,66 @@ app.post('/api/tornei/:id/partite/:pid/calendario', adminAuth, async (req, res) 
     await db.query(
       `INSERT INTO calendario (id, titolo, data_str, ora, categoria, note, tipo, utenti_collegati)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [calId, titolo, partita.data_str || '', partita.ora || '', '', noteInserita, 'evento', JSON.stringify(utenti_collegati)]
+      [calId, titolo, partita.data_str || '', partita.ora || '', '', noteInserita, 'torneo', JSON.stringify(utenti_collegati)]
     );
     await db.query(
       `UPDATE torneo_partite SET in_calendario=true, calendario_id=$1 WHERE id=$2`,
       [calId, req.params.pid]
     );
     res.json({ success: true, calendario_id: calId, updated: false });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Tornei: genera fase finale knockout ─── */
+app.post('/api/tornei/:id/genera-knockout', adminAuth, async (req, res) => {
+  try {
+    const { squadre_ids, nome } = req.body;
+    if (!Array.isArray(squadre_ids) || squadre_ids.length < 2)
+      return res.status(400).json({ error: 'Minimo 2 squadre' });
+
+    const n = squadre_ids.length;
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(Math.max(n, 2))));
+
+    const ROUND_NAMES = { 2:'Finale', 4:'Semifinale', 8:'Quarto di finale', 16:'Ottavo di finale', 32:'Sedicesimo di finale' };
+
+    // Delete existing knockout girone for this torneo (replace if re-generated)
+    const existingKO = await db.query(
+      `SELECT id FROM torneo_gironi WHERE torneo_id=$1 AND tipo='knockout'`, [req.params.id]
+    );
+    for (const ko of existingKO.rows) {
+      await db.query('DELETE FROM torneo_partite WHERE girone_id=$1', [ko.id]);
+      await db.query('DELETE FROM torneo_gironi WHERE id=$1', [ko.id]);
+    }
+
+    const gironeId = crypto.randomUUID();
+    await db.query(
+      `INSERT INTO torneo_gironi (id, torneo_id, nome, ordine, tipo, squadre) VALUES ($1,$2,$3,999,'knockout',$4)`,
+      [gironeId, req.params.id, nome || 'Fase Finale', JSON.stringify(squadre_ids)]
+    );
+
+    // Seed: pad to bracketSize with '' for byes
+    const seeded = [...squadre_ids];
+    while (seeded.length < bracketSize) seeded.push('');
+
+    // Generate all rounds top-down
+    let roundSize = bracketSize;
+    let pos = 0;
+    while (roundSize >= 2) {
+      const roundName = ROUND_NAMES[roundSize] || `Round ${roundSize}`;
+      const matches = roundSize / 2;
+      for (let i = 0; i < matches; i++) {
+        const casaId   = roundSize === bracketSize ? (seeded[i * 2]     || '') : '';
+        const ospiteId = roundSize === bracketSize ? (seeded[i * 2 + 1] || '') : '';
+        await db.query(
+          `INSERT INTO torneo_partite (id, torneo_id, girone_id, squadra_casa_id, squadra_ospite_id, round, bracket_pos, stato)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,'programmata')`,
+          [crypto.randomUUID(), req.params.id, gironeId, casaId, ospiteId, roundName, pos++]
+        );
+      }
+      roundSize /= 2;
+    }
+
+    res.json({ success: true, girone_id: gironeId, bracket_size: bracketSize, byes: bracketSize - n });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
@@ -1459,7 +1548,7 @@ app.get('/api/tornei/miei', userAuth, async (req, res) => {
     const result = await Promise.all(torneiRes.rows.map(async t => {
       const [gironi, squadre, partite] = await Promise.all([
         db.query('SELECT * FROM torneo_gironi WHERE torneo_id=$1 ORDER BY ordine, nome', [t.id]),
-        db.query('SELECT id, nome, colore FROM torneo_squadre WHERE torneo_id=$1', [t.id]),
+        db.query('SELECT id, nome, colore, partecipanti FROM torneo_squadre WHERE torneo_id=$1', [t.id]),
         db.query('SELECT * FROM torneo_partite WHERE torneo_id=$1 ORDER BY data_str, ora', [t.id]),
       ]);
       const sqMap = Object.fromEntries(squadre.rows.map(s => [s.id, s]));
@@ -1470,6 +1559,50 @@ app.get('/api/tornei/miei', userAuth, async (req, res) => {
       }));
       return { ...t, gironi: gironi.rows, squadre: squadre.rows, partite: partiteEnriched };
     }));
+    res.json(result);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Palestre: intervalli occupati (admin) ─── */
+app.get('/api/admin/palestre-occupate', adminAuth, async (req, res) => {
+  try {
+    const { da, a, palestre } = req.query;
+    if (!da || !a) return res.status(400).json({ error: 'da e a obbligatori' });
+    const palestreList = palestre ? palestre.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (!palestreList.length) return res.json([]);
+
+    // calendario entries linked to these palestres
+    const calRes = await db.query(
+      `SELECT c.data_str, c.ora, p.nome AS luogo
+       FROM calendario c JOIN palestres p ON p.id = c.palestra_id
+       WHERE c.data_str >= $1 AND c.data_str <= $2 AND p.nome = ANY($3)`,
+      [da, a, palestreList]
+    );
+
+    // torneo_partite from ALL tornei at these palestres
+    const ptRes = await db.query(
+      `SELECT data_str, ora, luogo
+       FROM torneo_partite
+       WHERE data_str >= $1 AND data_str <= $2 AND luogo = ANY($3) AND data_str != ''`,
+      [da, a, palestreList]
+    );
+
+    // Parse ora field: "19:00" → {inizio:"19:00", fine:""} / "19:00-21:00" → {inizio:"19:00", fine:"21:00"}
+    function parseOraInterval(ora) {
+      if (!ora) return { inizio: '', fine: '' };
+      const sep = ora.includes('–') ? '–' : (ora.includes('-') ? '-' : null);
+      if (sep) {
+        const [a, b] = ora.split(sep);
+        return { inizio: a.trim(), fine: b ? b.trim() : '' };
+      }
+      return { inizio: ora.trim(), fine: '' };
+    }
+
+    const result = [
+      ...calRes.rows.map(r => { const { inizio, fine } = parseOraInterval(r.ora); return { data_str: r.data_str, luogo: r.luogo, inizio, fine }; }),
+      ...ptRes.rows.map(r => { const { inizio, fine } = parseOraInterval(r.ora); return { data_str: r.data_str, luogo: r.luogo, inizio, fine }; }),
+    ].filter(r => r.inizio);
+
     res.json(result);
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });

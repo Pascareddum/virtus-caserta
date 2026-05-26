@@ -53,6 +53,8 @@
     .girone-header{padding:10px 20px 8px;background:#f8fafc;border-bottom:1px solid #f1f5f9;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#6b7280;}
     .partita-row{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;border-bottom:1px solid #f1f5f9;}
     .partita-row:last-child{border-bottom:none;}
+    .partita-row.mia{background:#f5f3ff;border-left:3px solid #7c3aed;}
+    .tag.mia-squadra{background:#f5f3ff;color:#6d28d9;}
     .partita-vs{font-size:13px;font-weight:700;color:#111827;margin-bottom:2px;}
     .partita-meta{font-size:11px;color:#9ca3af;}
     .partita-score{font-size:18px;font-weight:800;color:#0d2055;min-width:44px;text-align:center;padding-top:2px;}
@@ -111,6 +113,7 @@
   </div>
 
   <script>
+    let _userId = null;
     fetch('/api/me').then(r=>r.json()).then(d=>{ if(!d.auth) location.replace('/login'); }).catch(()=>location.replace('/login'));
 
     function fmtData(ds) {
@@ -142,6 +145,72 @@
 
     const STATO_LABEL = { aperto:'Aperto', in_corso:'In corso', concluso:'Concluso', bozza:'Bozza' };
 
+    function calcolaClassifica(gironeId, partite, sqMap, best_of) {
+      const bp = best_of || 3;
+      const pts = {};
+      const gp = partite.filter(p =>
+        p.girone_id === gironeId && p.stato === 'completata' &&
+        p.risultato_casa != null && p.risultato_ospite != null
+      );
+      if (!gp.length) return [];
+      for (const p of gp) {
+        const rc = Number(p.risultato_casa), ro = Number(p.risultato_ospite);
+        if (rc === ro) continue;
+        for (const sid of [p.squadra_casa_id, p.squadra_ospite_id]) {
+          if (!pts[sid]) pts[sid] = { punti:0, vinte:0, perse:0, sv:0, sp:0, g:0 };
+          pts[sid].g++;
+        }
+        const decisivo = (rc + ro) === bp;
+        const [wid, lid, ws, ls] = rc > ro
+          ? [p.squadra_casa_id, p.squadra_ospite_id, rc, ro]
+          : [p.squadra_ospite_id, p.squadra_casa_id, ro, rc];
+        pts[wid].vinte++; pts[lid].perse++;
+        pts[wid].punti += decisivo ? 2 : 3;
+        pts[lid].punti += decisivo ? 1 : 0;
+        pts[wid].sv += ws; pts[wid].sp += ls;
+        pts[lid].sv += ls; pts[lid].sp += ws;
+      }
+      return Object.entries(pts)
+        .map(([sid, p]) => ({ sid, sq: sqMap[sid], ...p, ratio: p.sp ? p.sv/p.sp : p.sv }))
+        .sort((a,b) => b.punti-a.punti || b.ratio-a.ratio || b.vinte-a.vinte);
+    }
+
+    function renderClassifica(cl, miaSquadraId) {
+      if (!cl.length) return '';
+      const rows = cl.map((sq, i) => {
+        const nome   = sq.sq?.nome   || sq.sid;
+        const colore = sq.sq?.colore || '#9ca3af';
+        const isMia  = miaSquadraId && sq.sid === miaSquadraId;
+        const medal  = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+        return `<tr style="${isMia?'background:#f5f3ff;':''}">
+          <td style="padding:7px 10px;font-size:12px;font-weight:700;">${medal}</td>
+          <td style="padding:7px 10px;font-size:12px;font-weight:700;">
+            <span style="color:${colore};">●</span> ${nome}${isMia?' <span style="font-size:10px;color:#7c3aed;">← tu</span>':''}
+          </td>
+          <td style="padding:7px 8px;text-align:center;font-size:12px;">${sq.g}</td>
+          <td style="padding:7px 8px;text-align:center;font-size:12px;color:#16a34a;">${sq.vinte}</td>
+          <td style="padding:7px 8px;text-align:center;font-size:12px;color:#dc2626;">${sq.perse}</td>
+          <td style="padding:7px 8px;text-align:center;font-size:12px;">${sq.sv}–${sq.sp}</td>
+          <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#0d2055;">${sq.punti}</td>
+        </tr>`;
+      }).join('');
+      return `<div style="background:#f8fafc;border-top:1px solid #f1f5f9;">
+        <div style="padding:7px 14px 4px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#7c3aed;">Classifica</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="border-bottom:1px solid #f1f5f9;">
+            <th style="padding:3px 10px;text-align:left;font-size:10px;color:#9ca3af;font-weight:700;">#</th>
+            <th style="padding:3px 10px;text-align:left;font-size:10px;color:#9ca3af;font-weight:700;">Squadra</th>
+            <th style="padding:3px 8px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700;" title="Giocate">G</th>
+            <th style="padding:3px 8px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700;" title="Vinte">V</th>
+            <th style="padding:3px 8px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700;" title="Perse">P</th>
+            <th style="padding:3px 8px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700;" title="Set">Set</th>
+            <th style="padding:3px 8px;text-align:center;font-size:10px;color:#9ca3af;font-weight:700;" title="Punti">Pt</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }
+
     function fmtDataRange(t) {
       if (!t.data_inizio) return 'Data da definire';
       return fmtData(t.data_inizio) + (t.data_fine && t.data_fine !== t.data_inizio ? ' → ' + fmtData(t.data_fine) : '');
@@ -159,7 +228,7 @@
         }
         list.innerHTML = data.map(t => `
           <div class="ev-item">
-            <div class="ev-icon torneo">🏆</div>
+            <div class="ev-icon torneo">${t.immagine ? `<img src="${t.immagine}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">` : '🏆'}</div>
             <div class="ev-info">
               <div class="ev-name">${t.nome}</div>
               <div class="ev-meta">${fmtDataRange(t)}${t.note ? ' · ' + t.note : ''}</div>
@@ -186,6 +255,12 @@
           const gironi = t.gironi || [];
           const partite = t.partite || [];
           const partiteLibere = partite.filter(p => !p.girone_id);
+          const sqMap = Object.fromEntries((t.squadre || []).map(s => [s.id, s]));
+
+          // Find user's squad in this torneo
+          const miaSquadra = _userId
+            ? (t.squadre || []).find(s => Array.isArray(s.partecipanti) && s.partecipanti.map(String).includes(_userId))
+            : null;
 
           const renderPartita = p => {
             const cn = p.squadra_casa?.nome   || '?';
@@ -195,7 +270,8 @@
             const score = (p.risultato_casa != null && p.risultato_ospite != null)
               ? `${p.risultato_casa}–${p.risultato_ospite}` : '';
             const meta = [p.data_str ? fmtData(p.data_str) : null, p.ora, p.luogo].filter(Boolean).join(' · ');
-            return `<div class="partita-row">
+            const isMia = miaSquadra && (p.squadra_casa_id === miaSquadra.id || p.squadra_ospite_id === miaSquadra.id);
+            return `<div class="partita-row${isMia ? ' mia' : ''}">
               <div style="flex:1;min-width:0;">
                 <div class="partita-vs">
                   <span style="color:${cc};">${cn}</span>
@@ -209,24 +285,28 @@
             </div>`;
           };
 
-          const gironiHtml = gironi.map(g => {
+          const gironiNorm = gironi.filter(g => g.tipo !== 'knockout');
+          const gironiHtml = gironiNorm.map(g => {
             const gp = partite.filter(p => p.girone_id === g.id);
+            const cl = calcolaClassifica(g.id, partite, sqMap, t.best_of);
             return `<div class="girone-header">${g.nome}</div>
-              ${gp.length ? gp.map(renderPartita).join('') : '<div style="padding:8px 20px;font-size:12px;color:#9ca3af;">Nessuna partita</div>'}`;
+              ${gp.length ? gp.map(renderPartita).join('') : '<div style="padding:8px 20px;font-size:12px;color:#9ca3af;">Nessuna partita</div>'}
+              ${renderClassifica(cl, miaSquadra?.id)}`;
           }).join('');
 
           const libereHtml = partiteLibere.length
-            ? `${gironi.length ? '<div class="girone-header">Partite</div>' : ''}${partiteLibere.map(renderPartita).join('')}`
+            ? `${gironiNorm.length ? '<div class="girone-header">Partite</div>' : ''}${partiteLibere.map(renderPartita).join('')}`
             : '';
 
           const headerHtml = `<div class="ev-item" style="border-bottom:1.5px solid #f1f5f9;padding-bottom:12px;">
-            <div class="ev-icon torneo">🏆</div>
+            <div class="ev-icon torneo">${t.immagine ? `<img src="${t.immagine}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">` : '🏆'}</div>
             <div class="ev-info">
               <div class="ev-name">${t.nome}</div>
               <div class="ev-meta">${fmtDataRange(t)}</div>
               <div class="ev-tags">
                 <span class="tag formato">${t.formato}</span>
                 <span class="tag ${t.stato || ''}">${STATO_LABEL[t.stato] || t.stato}</span>
+                ${miaSquadra ? `<span class="tag mia-squadra">🏐 ${miaSquadra.nome}</span>` : ''}
               </div>
             </div>
           </div>`;
@@ -239,7 +319,7 @@
 
     loadEventi();
     loadTornei();
-    loadMieiTornei();
+    fetch('/api/profilo').then(r=>r.ok?r.json():null).then(p=>{ if(p) _userId = String(p.id); }).catch(()=>{}).finally(()=>loadMieiTornei());
   </script>
 </body>
 </html>

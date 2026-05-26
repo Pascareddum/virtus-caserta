@@ -265,6 +265,9 @@ async function createTables() {
   await query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS responsabile VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE tornei ADD COLUMN IF NOT EXISTS responsabile VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE tornei ADD COLUMN IF NOT EXISTS immagine VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE tornei ADD COLUMN IF NOT EXISTS palestra_nome VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE tornei ADD COLUMN IF NOT EXISTS palestra_slots JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE tornei ADD COLUMN IF NOT EXISTS best_of INTEGER DEFAULT 3`);
   await query(`ALTER TABLE squadra ADD COLUMN IF NOT EXISTS utente_id VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS addetto_arbitro VARCHAR DEFAULT ''`);
   await query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS refertista VARCHAR DEFAULT ''`);
@@ -389,6 +392,8 @@ async function createTables() {
       torneo_id  VARCHAR NOT NULL,
       nome       VARCHAR NOT NULL,
       ordine     INTEGER DEFAULT 0,
+      tipo       VARCHAR DEFAULT 'girone',
+      squadre    JSONB   DEFAULT '[]',
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
@@ -398,20 +403,30 @@ async function createTables() {
       id                VARCHAR PRIMARY KEY,
       torneo_id         VARCHAR NOT NULL,
       girone_id         VARCHAR DEFAULT '',
-      squadra_casa_id   VARCHAR NOT NULL,
-      squadra_ospite_id VARCHAR NOT NULL,
+      squadra_casa_id   VARCHAR DEFAULT '',
+      squadra_ospite_id VARCHAR DEFAULT '',
       data_str          VARCHAR DEFAULT '',
       ora               VARCHAR DEFAULT '',
       luogo             VARCHAR DEFAULT '',
       risultato_casa    INTEGER,
       risultato_ospite  INTEGER,
       stato             VARCHAR DEFAULT 'programmata',
+      round             VARCHAR DEFAULT '',
+      bracket_pos       INTEGER DEFAULT 0,
       in_calendario     BOOLEAN DEFAULT false,
       calendario_id     VARCHAR DEFAULT '',
       note              TEXT    DEFAULT '',
       created_at        TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+
+  // Migrations for existing torneo tables
+  await query(`ALTER TABLE torneo_gironi ADD COLUMN IF NOT EXISTS tipo VARCHAR DEFAULT 'girone'`);
+  await query(`ALTER TABLE torneo_gironi ADD COLUMN IF NOT EXISTS squadre JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE torneo_partite ADD COLUMN IF NOT EXISTS round VARCHAR DEFAULT ''`);
+  await query(`ALTER TABLE torneo_partite ADD COLUMN IF NOT EXISTS bracket_pos INTEGER DEFAULT 0`);
+  try { await query(`ALTER TABLE torneo_partite ALTER COLUMN squadra_casa_id DROP NOT NULL`); } catch(_){}
+  try { await query(`ALTER TABLE torneo_partite ALTER COLUMN squadra_ospite_id DROP NOT NULL`); } catch(_){}
 
   // RLS — block direct PostgREST/anon-key access; postgres role bypasses automatically
   for (const t of [
