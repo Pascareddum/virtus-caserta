@@ -620,46 +620,50 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
 
     const seenPartite = new Set();
     for (const nome of nomiSquadre) {
-      const parsed = parseClaUrl(catLinksP[nome]?.cla);
-      if (!parsed) continue;
-      let mRes;
-      if (parsed.type === 'fipav') {
-        await ensureFipavMatchesLoaded(parsed.cid, parsed.fonte);
-        mRes = await db.query(
-          `SELECT id,casa,ospite,data_ora,luogo,categoria,giornata,fonte,cid,tid FROM fipav_matches
-           WHERE cid=$1 AND fonte=$2 AND played=false AND postponed=false
-             AND data_ora >= $3 AND data_ora <= $4
-           ORDER BY data_ora`,
-          [parsed.cid, parsed.fonte, lun, dom]
-        );
-      } else {
-        await ensureOpesMatchesLoaded(parsed.tid);
-        mRes = await db.query(
-          `SELECT id,casa,ospite,data_ora,luogo,categoria,giornata,fonte,cid,tid FROM fipav_matches
-           WHERE tid=$1 AND fonte='opes' AND played=false AND postponed=false
-             AND data_ora >= $2 AND data_ora <= $3
-           ORDER BY data_ora`,
-          [parsed.tid, lun, dom]
-        );
-      }
-      for (const m of mRes.rows) {
-        const key = `${m.casa}|${m.ospite}|${m.data_ora}`;
-        if (seenPartite.has(key)) continue;
-        seenPartite.add(key);
-        eventi.push({
-          tipo: 'partita',
-          casa: m.casa, ospite: m.ospite,
-          data_ora: m.data_ora,
-          luogo: m.luogo || '',
-          categoria: m.categoria,
-          giornata: m.giornata || '',
-          fonte: m.fonte,
-          cid: m.cid || null,
-          tid: m.tid || null,
-          squadra: nome,
-          ruolo: squadraRuolo[nome] || 'atleta',
-          ts: new Date(m.data_ora).getTime(),
-        });
+      const links = catLinksP[nome] || {};
+      const allCla = [links.cla, ...(Array.isArray(links.extra_cla) ? links.extra_cla : [])].filter(Boolean);
+      for (const claUrl of allCla) {
+        const parsed = parseClaUrl(claUrl);
+        if (!parsed) continue;
+        let mRes;
+        if (parsed.type === 'fipav') {
+          await ensureFipavMatchesLoaded(parsed.cid, parsed.fonte);
+          mRes = await db.query(
+            `SELECT id,casa,ospite,data_ora,luogo,categoria,giornata,fonte,cid,tid FROM fipav_matches
+             WHERE cid=$1 AND fonte=$2 AND played=false AND postponed=false
+               AND data_ora >= $3 AND data_ora <= $4
+             ORDER BY data_ora`,
+            [parsed.cid, parsed.fonte, lun, dom]
+          );
+        } else {
+          await ensureOpesMatchesLoaded(parsed.tid);
+          mRes = await db.query(
+            `SELECT id,casa,ospite,data_ora,luogo,categoria,giornata,fonte,cid,tid FROM fipav_matches
+             WHERE tid=$1 AND fonte='opes' AND played=false AND postponed=false
+               AND data_ora >= $2 AND data_ora <= $3
+             ORDER BY data_ora`,
+            [parsed.tid, lun, dom]
+          );
+        }
+        for (const m of mRes.rows) {
+          const key = `${m.casa}|${m.ospite}|${m.data_ora}`;
+          if (seenPartite.has(key)) continue;
+          seenPartite.add(key);
+          eventi.push({
+            tipo: 'partita',
+            casa: m.casa, ospite: m.ospite,
+            data_ora: m.data_ora,
+            luogo: m.luogo || '',
+            categoria: m.categoria,
+            giornata: m.giornata || '',
+            fonte: m.fonte,
+            cid: m.cid || null,
+            tid: m.tid || null,
+            squadra: nome,
+            ruolo: squadraRuolo[nome] || 'atleta',
+            ts: new Date(m.data_ora).getTime(),
+          });
+        }
       }
     }
 
@@ -2005,11 +2009,15 @@ app.put('/api/admin/squadre-cat-links', adminAuth, async (req, res) => {
       const orari = Array.isArray(v?.orari)
         ? v.orari.map(o => ({ giorno: String(o.giorno||'').slice(0,20), ora: String(o.ora||'').slice(0,10), ora_fine: String(o.ora_fine||'').slice(0,10) }))
         : [];
+      const extra_cla = Array.isArray(v?.extra_cla)
+        ? v.extra_cla.map(u => String(u).slice(0, 500)).filter(Boolean)
+        : [];
       safe[nome] = {
         ris:         String(v?.ris         || '').slice(0, 500),
         cla:         String(v?.cla         || '').slice(0, 500),
         palestra_id: String(v?.palestra_id || '').slice(0, 100),
         orari,
+        extra_cla,
       };
     }
     await db.query(
