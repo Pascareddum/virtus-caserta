@@ -390,8 +390,9 @@ async function createTables() {
     'impostazioni', 'log_attivita', 'fipav_matches', 'fipav_classifica_cache',
     'assegnazioni_partita', 'staff_arbitrale', 'palestres', 'squadre_homepage',
     'utenti', 'tornei', 'torneo_partecipanti', 'torneo_squadre',
+    'partite_proposte', 'comunicazioni', 'documenti_utente',
   ]) {
-    await query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
+    try { await query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`); } catch (_) {}
   }
 
   // Valori default impostazioni
