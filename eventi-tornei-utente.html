@@ -6,91 +6,94 @@
   <title>Eventi &amp; Tornei – Virtus Caserta</title>
   <link rel="stylesheet" href="common.css">
   <style>
-    :root {
-      --blu: #0d2055; --bg: #f0f4f8; --bordo: #e2e8f0; --testo: #1e293b; --sub: #64748b;
+    *,*::before,*::after{box-sizing:border-box;}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f7f8fa;min-height:100vh;display:flex;flex-direction:column;}
+    .page-wrap{flex:1;max-width:640px;width:100%;margin:0 auto;padding:32px 20px 64px;}
+
+    /* ── top-bar ── */
+    .top-bar{display:flex;align-items:center;gap:14px;margin-bottom:28px;}
+    .btn-back{display:inline-flex;align-items:center;gap:6px;color:#0d2055;text-decoration:none;
+      font-size:13px;font-weight:700;padding:8px 14px;border-radius:10px;border:1.5px solid #e9ecf0;
+      background:#fff;transition:all .2s;}
+    .btn-back:hover{border-color:#0d2055;background:#eef4ff;}
+    .page-title{font-size:20px;font-weight:800;color:#0d2055;letter-spacing:-.02em;}
+
+    /* ── sections ── */
+    .sec{background:#fff;border-radius:18px;border:1.5px solid #e9ecf0;overflow:hidden;
+      box-shadow:0 2px 16px rgba(13,32,85,.05);margin-bottom:20px;}
+    .sec-header{display:flex;align-items:center;justify-content:space-between;
+      padding:14px 20px 12px;border-bottom:1.5px solid #e9ecf0;}
+    .sec-title{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#0d2055;}
+    .sec-count{font-size:11px;color:#9ca3af;font-weight:600;}
+    .sec-list{display:flex;flex-direction:column;}
+
+    /* ── cards ── */
+    .ev-item{display:flex;align-items:flex-start;gap:14px;padding:14px 20px;
+      border-bottom:1px solid #f1f5f9;transition:background .12s;}
+    .ev-item:last-child{border-bottom:none;}
+    .ev-item:hover{background:#f9fafb;}
+    .ev-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+      justify-content:center;font-size:20px;flex-shrink:0;}
+    .ev-icon.evento{background:#fce7f3;}
+    .ev-icon.torneo{background:#ede9fe;}
+    .ev-info{flex:1;min-width:0;}
+    .ev-name{font-size:14px;font-weight:700;color:#111827;margin-bottom:3px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .ev-meta{font-size:11px;color:#9ca3af;margin-bottom:5px;}
+    .ev-tags{display:flex;flex-wrap:wrap;gap:5px;}
+    .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;}
+    .tag.evento{background:#fce7f3;color:#be185d;}
+    .tag.torneo{background:#ede9fe;color:#7c3aed;}
+    .tag.formato{background:#e0f2fe;color:#0369a1;}
+    .tag.aperto{background:#dcfce7;color:#16a34a;}
+    .tag.in_corso{background:#fef3c7;color:#d97706;}
+    .tag.concluso{background:#f1f5f9;color:#6b7280;}
+
+    .sec-empty{padding:36px 20px;text-align:center;color:#9ca3af;font-size:13px;font-weight:600;}
+    .sec-loading{padding:28px 20px;text-align:center;color:#9ca3af;}
+    .spin{display:inline-block;width:18px;height:18px;border:2.5px solid #e2e8f0;
+      border-top-color:#0d2055;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    @media(max-width:480px){
+      .page-wrap{padding:20px 14px 48px;}
+      .top-bar{gap:10px;}
+      .btn-back{font-size:12px;padding:7px 12px;}
+      .page-title{font-size:18px;}
+      .ev-item{padding:11px 14px;gap:10px;}
     }
-    *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:-apple-system,'Segoe UI',Arial,sans-serif; background:var(--bg); color:var(--testo); min-height:100vh; }
-    nav { position:fixed; top:0; left:0; width:100%; z-index:200; background:var(--blu); height:60px;
-      display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:0 20px;
-      box-shadow:0 2px 16px rgba(13,32,85,.4); }
-    .nav-left { display:flex; align-items:center; }
-    .nav-back { color:rgba(255,255,255,.8); text-decoration:none; font-size:12px; font-weight:700;
-      letter-spacing:1px; text-transform:uppercase; padding:6px 12px; border-radius:8px;
-      border:1px solid rgba(255,255,255,.2); }
-    .nav-center { display:flex; align-items:center; justify-content:center; }
-    .nav-center img { height:38px; }
-    .page { margin-top:60px; padding:24px 16px 80px; max-width:640px; margin-left:auto; margin-right:auto; }
-    .page-title { font-size:22px; font-weight:800; color:var(--blu); margin-bottom:20px; }
-
-    .section-hdr { font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--sub); margin-bottom:10px; margin-top:24px; }
-
-    .ev-card {
-      background:#fff; border-radius:14px; border:1.5px solid var(--bordo);
-      padding:16px 18px; margin-bottom:10px; display:flex; gap:14px; align-items:flex-start;
-      box-shadow:0 1px 6px rgba(13,32,85,.06);
-    }
-    .ev-ico { font-size:26px; flex-shrink:0; }
-    .ev-body { flex:1; }
-    .ev-title { font-size:15px; font-weight:700; color:var(--blu); margin-bottom:4px; }
-    .ev-meta { font-size:12px; color:var(--sub); }
-    .ev-badge { display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; margin-top:6px; }
-    .ev-badge.evento { background:#fce7f3; color:#be185d; }
-    .ev-badge.torneo { background:#ede9fe; color:#7c3aed; }
-    .ev-formato { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:#ede9fe; color:#7c3aed; margin-left:6px; }
-
-    .stato-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; margin-left:6px; }
-    .stato-aperto { background:#dcfce7; color:#16a34a; }
-    .stato-in_corso { background:#fef3c7; color:#d97706; }
-    .stato-concluso { background:#f1f5f9; color:#6b7280; }
-
-    .empty { text-align:center; padding:40px 16px; color:var(--sub); font-size:14px; }
-    .loading { text-align:center; padding:40px 16px; color:var(--sub); font-size:14px; }
-    .tabs { display:flex; gap:8px; margin-bottom:20px; }
-    .tab-pill { padding:8px 18px; border-radius:20px; border:1.5px solid var(--bordo); background:#fff;
-      font-size:13px; font-weight:700; cursor:pointer; color:var(--sub); }
-    .tab-pill.on { background:var(--blu); border-color:var(--blu); color:#fff; }
   </style>
 </head>
 <body>
-  <nav>
-    <div class="nav-left"><a href="/utente" class="nav-back">← Profilo</a></div>
-    <div class="nav-center"><img src="images/positivo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'"></div>
-    <div></div>
-  </nav>
-
-  <div class="page">
-    <div class="page-title">🏆 Eventi &amp; Tornei</div>
-    <div class="tabs">
-      <button class="tab-pill on" id="tabEventi" onclick="switchView('eventi')">📅 Eventi</button>
-      <button class="tab-pill" id="tabTornei" onclick="switchView('tornei')">🏆 Tornei</button>
+  <div class="page-wrap">
+    <div class="top-bar">
+      <a href="/utente" class="btn-back">← Account</a>
+      <h1 class="page-title">Eventi &amp; Tornei</h1>
     </div>
 
-    <div id="viewEventi">
-      <div class="loading" id="eventiLoading">Caricamento…</div>
-      <div id="eventiList" style="display:none;"></div>
+    <div class="sec">
+      <div class="sec-header">
+        <span class="sec-title">Prossimi eventi</span>
+        <span class="sec-count" id="eventiCount">—</span>
+      </div>
+      <div class="sec-list" id="eventiList">
+        <div class="sec-loading"><div class="spin"></div> Caricamento…</div>
+      </div>
     </div>
 
-    <div id="viewTornei" style="display:none;">
-      <div class="loading" id="torneiLoading">Caricamento…</div>
-      <div id="torneiList" style="display:none;"></div>
+    <div class="sec">
+      <div class="sec-header">
+        <span class="sec-title">Tornei</span>
+        <span class="sec-count" id="torneiCount">—</span>
+      </div>
+      <div class="sec-list" id="torneiList">
+        <div class="sec-loading"><div class="spin"></div> Caricamento…</div>
+      </div>
     </div>
   </div>
 
   <script>
     fetch('/api/me').then(r=>r.json()).then(d=>{ if(!d.auth) location.replace('/login'); }).catch(()=>location.replace('/login'));
-    function headers() { return { 'Content-Type':'application/json' }; }
-
-    let _currentView = 'eventi';
-
-    function switchView(v) {
-      _currentView = v;
-      document.getElementById('viewEventi').style.display = v === 'eventi' ? '' : 'none';
-      document.getElementById('viewTornei').style.display = v === 'tornei' ? '' : 'none';
-      document.getElementById('tabEventi').classList.toggle('on', v === 'eventi');
-      document.getElementById('tabTornei').classList.toggle('on', v === 'tornei');
-      if (v === 'tornei') loadTornei();
-    }
 
     function fmtData(ds) {
       if (!ds) return '';
@@ -98,69 +101,60 @@
     }
 
     async function loadEventi() {
-      const loading = document.getElementById('eventiLoading');
       const list = document.getElementById('eventiList');
+      const count = document.getElementById('eventiCount');
       try {
-        const r = await fetch('/api/prossimi-eventi', { headers: headers() });
-        const data = await r.json();
-        loading.style.display = 'none';
-        list.style.display = '';
+        const data = await fetch('/api/prossimi-eventi').then(r=>r.json());
+        count.textContent = data.length + (data.length === 1 ? ' evento' : ' eventi');
         if (!data.length) {
-          list.innerHTML = '<div class="empty">Nessun evento in programma.</div>';
+          list.innerHTML = '<div class="sec-empty">Nessun evento in programma</div>';
           return;
         }
         list.innerHTML = data.map(ev => `
-          <div class="ev-card">
-            <div class="ev-ico">📅</div>
-            <div class="ev-body">
-              <div class="ev-title">${ev.titolo}</div>
+          <div class="ev-item">
+            <div class="ev-icon evento">📅</div>
+            <div class="ev-info">
+              <div class="ev-name">${ev.titolo}</div>
               <div class="ev-meta">${fmtData(ev.data_str || ev.data)}${ev.ora ? ' · ' + ev.ora : ''}${ev.categoria ? ' · ' + ev.categoria : ''}</div>
-              <span class="ev-badge evento">Evento</span>
+              <div class="ev-tags"><span class="tag evento">Evento</span></div>
             </div>
           </div>`).join('');
-      } catch {
-        loading.textContent = 'Errore di caricamento.';
-      }
+      } catch { list.innerHTML = '<div class="sec-empty">Errore di caricamento</div>'; }
     }
 
     async function loadTornei() {
-      const loading = document.getElementById('torneiLoading');
       const list = document.getElementById('torneiList');
-      if (list.innerHTML && list.style.display !== 'none') return;
+      const count = document.getElementById('torneiCount');
+      const statoLabel = { aperto:'Aperto', in_corso:'In corso', concluso:'Concluso' };
       try {
-        const r = await fetch('/api/tornei/pubblici', { headers: headers() });
-        const data = await r.json();
-        loading.style.display = 'none';
-        list.style.display = '';
+        const data = await fetch('/api/tornei/pubblici').then(r=>r.json());
+        count.textContent = data.length + (data.length === 1 ? ' torneo' : ' tornei');
         if (!data.length) {
-          list.innerHTML = '<div class="empty">Nessun torneo disponibile.</div>';
+          list.innerHTML = '<div class="sec-empty">Nessun torneo disponibile</div>';
           return;
         }
-        const statoLabel = { aperto:'Aperto', in_corso:'In corso', concluso:'Concluso' };
         list.innerHTML = data.map(t => {
-          const statoClass = 'stato-' + (t.stato || '');
           const dataRange = t.data_inizio
             ? fmtData(t.data_inizio) + (t.data_fine && t.data_fine !== t.data_inizio ? ' → ' + fmtData(t.data_fine) : '')
-            : '—';
-          return `<div class="ev-card">
-            <div class="ev-ico">🏆</div>
-            <div class="ev-body">
-              <div class="ev-title">${t.nome}
-                <span class="stato-badge ${statoClass}">${statoLabel[t.stato] || t.stato}</span>
+            : 'Data da definire';
+          return `<div class="ev-item">
+            <div class="ev-icon torneo">🏆</div>
+            <div class="ev-info">
+              <div class="ev-name">${t.nome}</div>
+              <div class="ev-meta">${dataRange}${t.note ? ' · ' + t.note : ''}</div>
+              <div class="ev-tags">
+                <span class="tag torneo">Torneo</span>
+                <span class="tag formato">${t.formato}</span>
+                <span class="tag ${t.stato || ''}">${statoLabel[t.stato] || t.stato}</span>
               </div>
-              <div class="ev-meta">${dataRange}</div>
-              <span class="ev-badge torneo">Torneo</span>
-              <span class="ev-formato">${t.formato}</span>
-              ${t.note ? `<div style="font-size:12px;color:#6b7280;margin-top:6px;">${t.note}</div>` : ''}
             </div>
           </div>`;
         }).join('');
-      } catch {
-        loading.textContent = 'Errore di caricamento.';
-      }
+      } catch { list.innerHTML = '<div class="sec-empty">Errore di caricamento</div>'; }
     }
 
     loadEventi();
+    loadTornei();
   </script>
 </body>
 </html>

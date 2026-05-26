@@ -2760,8 +2760,16 @@
         <select id="sqInfoRis" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;"><option>Caricamento…</option></select>
       </div>
       <div>
-        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Categoria classifica</label>
+        <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Categoria classifica (principale)</label>
         <select id="sqInfoCla" style="width:100%;padding:9px 10px;border:1.5px solid #d1d5db;border-radius:9px;font-size:13px;"><option>Caricamento…</option></select>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label style="font-size:12px;font-weight:700;color:#6b7280;margin:0;">Campionati aggiuntivi</label>
+          <button type="button" onclick="sqInfoAddCla()" style="padding:4px 12px;border-radius:7px;border:1.5px solid #d1d5db;background:#f9fafb;font-size:12px;font-weight:700;cursor:pointer;color:#374151;">+ Aggiungi</button>
+        </div>
+        <div id="sqInfoExtraClaList" style="display:flex;flex-direction:column;gap:7px;"></div>
+        <p style="font-size:11px;color:#9ca3af;margin:5px 0 0;">Aggiungi qui altri campionati (FIPAV o OPES) in cui questa squadra partecipa.</p>
       </div>
       <div>
         <label style="font-size:12px;font-weight:700;color:#6b7280;display:block;margin-bottom:4px;">Palestra</label>
@@ -4053,12 +4061,35 @@
     });
   }
 
+  let _sqInfoClaCount = 0;
+  let _sqClaOpts = '';
+
+  function sqInfoAddCla(val = '') {
+    const n = _sqInfoClaCount++;
+    const div = document.createElement('div');
+    div.id = `sqClaRow_${n}`;
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;';
+    div.innerHTML = `
+      <select style="flex:1;padding:7px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;">${_sqClaOpts}</select>
+      <button type="button" onclick="document.getElementById('sqClaRow_${n}').remove()" style="padding:4px 10px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">✕</button>
+    `;
+    if (val) div.querySelector('select').value = val;
+    document.getElementById('sqInfoExtraClaList').appendChild(div);
+  }
+
+  function sqInfoGetExtraCla() {
+    return Array.from(document.querySelectorAll('#sqInfoExtraClaList > div select'))
+      .map(s => s.value).filter(Boolean);
+  }
+
   async function apriSqCatInfo() {
     if (!_sqCatSelected) return;
     document.getElementById('modalSqCatInfoTitolo').textContent = 'Info — ' + _sqCatSelected;
     document.getElementById('sqInfoLog').style.display = 'none';
     document.getElementById('sqInfoOrariList').innerHTML = '';
+    document.getElementById('sqInfoExtraClaList').innerHTML = '';
     _sqInfoOrariCount = 0;
+    _sqInfoClaCount = 0;
     ['sqInfoRis','sqInfoCla'].forEach(id => {
       document.getElementById(id).innerHTML = '<option>Caricamento…</option>';
     });
@@ -4104,6 +4135,8 @@
       document.getElementById('sqInfoCla').innerHTML = claOpts;
       document.getElementById('sqInfoRis').value = curLinks.ris || '';
       document.getElementById('sqInfoCla').value = curLinks.cla || '';
+      _sqClaOpts = claOpts;
+      (curLinks.extra_cla || []).forEach(c => sqInfoAddCla(c));
     } catch (e) {
       _sqInfoLog('Errore caricamento: ' + e.message, false);
     }
@@ -4117,6 +4150,7 @@
     const cla        = document.getElementById('sqInfoCla').value;
     const palestra_id = document.getElementById('sqInfoPalestra').value;
     const orari      = sqInfoGetOrari();
+    const extra_cla  = sqInfoGetExtraCla();
     try {
       const r1 = await fetch('/api/admin/squadre-categorie', {
         method: 'PUT', headers: headers(),
@@ -4124,7 +4158,7 @@
       });
       if (!r1.ok) throw new Error('Errore salvataggio macro-categoria');
       const curLinks = await fetch('/api/squadre-cat-links', { headers: headers() }).then(r => r.json()).catch(() => ({}));
-      curLinks[_sqCatSelected] = { ...curLinks[_sqCatSelected], ris, cla, palestra_id, orari };
+      curLinks[_sqCatSelected] = { ...curLinks[_sqCatSelected], ris, cla, palestra_id, orari, extra_cla };
       const r2 = await fetch('/api/admin/squadre-cat-links', {
         method: 'PUT', headers: headers(),
         body: JSON.stringify(curLinks),
