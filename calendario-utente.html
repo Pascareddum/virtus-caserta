@@ -192,8 +192,8 @@
   let selDay = new Date(oggi);
   let mappa = {};
   let userCats = [];
+  let catLinks = {};
   let _userId = null;
-  try { if (_tok) { const _p = JSON.parse(atob(_tok.split('.')[1])); _userId = String(_p.id); } } catch {}
 
   function lunedi(d){ const c=new Date(d);c.setHours(0,0,0,0);const dw=c.getDay();c.setDate(c.getDate()-(dw===0?6:dw-1));return c; }
   function addDays(d,n){ const c=new Date(d);c.setDate(c.getDate()+n);return c; }
@@ -205,11 +205,37 @@
   function avversario(m){ if(isVirtus(m.casa)&&!isVirtus(m.ospite))return m.ospite;if(!isVirtus(m.casa)&&isVirtus(m.ospite))return m.casa;return m.casa+' – '+m.ospite; }
   function gruppoPartita(m){ if(m.fonte==='opes')return'opes';const cat=(m.categoria||'').toLowerCase();if(SENIOR_KW.some(k=>cat.includes(k)))return'fipav-senior';return'fipav-under'; }
 
+  function _parseCla(cla) {
+    if (!cla) return null;
+    try {
+      const u = new URL(cla, location.origin);
+      if (u.hostname.includes('opespallavolo.it')) {
+        const m = u.pathname.match(/\/t-teamtable\/(\d+)/);
+        if (m) return { type: 'opes', tid: m[1] };
+      } else {
+        const cid = u.searchParams.get('CId');
+        if (cid) return { type: 'fipav', cid };
+      }
+    } catch {}
+    return null;
+  }
+
   function evMatchesUser(e) {
-    if (_userId && (e.utenti_collegati || []).map(String).includes(_userId)) return true;
-    if (!userCats.length) return true;
-    const cat = (e.categoria || '').toLowerCase();
-    return userCats.some(uc => cat.includes(uc.toLowerCase()) || uc.toLowerCase().includes(cat));
+    // Non-partita: server already filtered by team membership — show all
+    if (e.tipo !== 'partita') return true;
+    // Partita: match by CId (FIPAV) or tid (OPES) from team's cla link
+    for (const uc of userCats) {
+      const links = catLinks[uc] || {};
+      const parsed = _parseCla(links.cla);
+      if (parsed) {
+        if (parsed.type === 'fipav' && String(e.cid) === String(parsed.cid)) return true;
+        if (parsed.type === 'opes' && e.fonte === 'opes' && String(e.tid) === String(parsed.tid)) return true;
+      } else if (e.fonte === 'opes' && (links.ris || '').includes('fonte=opes')) {
+        // fallback: no cla URL configured but ris signals OPES team — show all OPES matches
+        return true;
+      }
+    }
+    return false;
   }
 
   function vaiOggi(){ weekStart=lunedi(oggi);selDay=new Date(oggi);render(); }
@@ -341,10 +367,12 @@
     try{
       const prof=await fetch('/api/profilo').then(r=>r.ok?r.json():null);
       if(prof){
+        _userId=String(prof.id);
         const parseMap=v=>v?(typeof v==='string'?JSON.parse(v):v):{};
         const atletaCats=Object.keys(parseMap(prof.ruolo_atleta));
         const allenatoreCats=Object.keys(parseMap(prof.ruolo_allenatore));
         userCats=[...new Set([...atletaCats,...allenatoreCats])];
+        catLinks=prof.cat_links||{};
       }
     }catch{}
 

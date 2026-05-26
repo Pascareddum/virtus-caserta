@@ -1845,6 +1845,32 @@
   </div>
 </div>
 
+<!-- MODAL COLLEGA UTENTI A PARTITA -->
+<div class="modal-overlay" id="modalCollegaUtentiPartita">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-hdr">
+      <h3>Collega utenti alla partita</h3>
+      <button class="modal-close" onclick="chiudiModal('modalCollegaUtentiPartita')">✕</button>
+    </div>
+    <div class="modal-body" style="gap:14px;">
+      <input type="hidden" id="cupPartitaId">
+      <div id="cupPartitaInfo" style="background:var(--surface-2);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--testo);"></div>
+      <div class="mf">
+        <label>Aggiungi utente</label>
+        <select id="cupUtenteSel" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
+          <option value="">— Seleziona utente —</option>
+        </select>
+      </div>
+      <button class="btn-salva" style="width:100%;" onclick="cupAggiungiUtente()">+ Collega</button>
+      <div style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.8px;margin-top:4px;">Utenti collegati</div>
+      <div id="cupUtentiCollegati" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-annulla" onclick="chiudiModal('modalCollegaUtentiPartita')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
 <!-- PANNELLO PARTITE IN CASA -->
 <div class="pannello" id="pan-partite-casa">
   <div class="toolbar">
@@ -5922,11 +5948,13 @@
       const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short' }) : '—';
       const oraStr  = dt ? dt.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
       const isCasa  = p.is_casa;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--bordo);">
-        <div style="flex:1;">
+      const nUtenti = (p.utenti_collegati || []).length;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bordo);flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;">
           <div style="font-size:13px;font-weight:600;">${p.casa} vs ${p.ospite}</div>
           <div style="font-size:11px;color:var(--sub);">${p.categoria||''} · ${dataStr}${oraStr?' '+oraStr:''}</div>
         </div>
+        <button onclick="apriCollegaUtentiPartita('${p.id}')" class="btn-azione btn-edit" style="white-space:nowrap;">👥 Utenti${nUtenti?' ('+nUtenti+')':''}</button>
         ${isCasa
           ? `<button onclick="toggleIsCasa('${p.id}',false)" class="btn-azione btn-delete" style="white-space:nowrap;">Rimuovi</button>`
           : `<button onclick="toggleIsCasa('${p.id}',true)"  class="btn-azione btn-edit"   style="white-space:nowrap;">+ Casa</button>`
@@ -5955,6 +5983,76 @@
 
   async function rimuoviPartitaCasa(id) {
     await toggleIsCasa(id, false);
+  }
+
+  /* ── Collega utenti a partita ── */
+  let _cupUtentiAll = [];
+
+  async function apriCollegaUtentiPartita(partitaId) {
+    const p = _partiteFutureAll.find(x => x.id === partitaId);
+    if (!p) return;
+    document.getElementById('cupPartitaId').value = partitaId;
+    const dt = p.data_ora ? new Date(p.data_ora) : null;
+    const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' }) : '—';
+    document.getElementById('cupPartitaInfo').innerHTML = `<strong>${p.casa} vs ${p.ospite}</strong><br><span style="color:var(--sub);">${p.categoria||''} · ${dataStr}</span>`;
+    // Load all users for select
+    try {
+      if (!_cupUtentiAll.length) {
+        const u = await fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json());
+        _cupUtentiAll = Array.isArray(u) ? u : [];
+      }
+      const sel = document.getElementById('cupUtenteSel');
+      sel.innerHTML = '<option value="">— Seleziona utente —</option>' +
+        _cupUtentiAll.map(u => `<option value="${u.id}">${u.cognome} ${u.nome} (${u.email})</option>`).join('');
+    } catch {}
+    document.getElementById('modalCollegaUtentiPartita').classList.add('aperto');
+    cupRenderCollegati(partitaId);
+  }
+
+  async function cupRenderCollegati(partitaId) {
+    const el = document.getElementById('cupUtentiCollegati');
+    el.innerHTML = '<div style="font-size:12px;color:var(--sub);">Caricamento…</div>';
+    try {
+      const lista = await fetch(`/api/admin/partite/${partitaId}/utenti-collegati`, { headers: headers() }).then(r => r.json());
+      if (!lista.length) { el.innerHTML = '<div style="font-size:12px;color:var(--sub);">Nessun utente collegato.</div>'; return; }
+      el.innerHTML = lista.map(u => `
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface-2);padding:8px 12px;border-radius:8px;">
+          <span style="flex:1;font-size:13px;">${u.cognome} ${u.nome} <span style="color:var(--sub);font-size:11px;">${u.email}</span></span>
+          <button onclick="cupRimuoviUtente('${partitaId}','${u.id}')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:16px;line-height:1;" title="Rimuovi">✕</button>
+        </div>`).join('');
+    } catch {
+      el.innerHTML = '<div style="font-size:12px;color:#dc2626;">Errore caricamento.</div>';
+    }
+  }
+
+  async function cupAggiungiUtente() {
+    const partitaId = document.getElementById('cupPartitaId').value;
+    const utenteId  = document.getElementById('cupUtenteSel').value;
+    if (!utenteId) return;
+    try {
+      const r = await fetch(`/api/admin/partite/${partitaId}/collega-utente`, {
+        method: 'POST', headers: headers(),
+        body: JSON.stringify({ utente_id: utenteId }),
+      });
+      if (!r.ok) throw new Error();
+      document.getElementById('cupUtenteSel').value = '';
+      // Update count in list
+      const p = _partiteFutureAll.find(x => x.id === partitaId);
+      if (p) { p.utenti_collegati = [...(p.utenti_collegati || []), utenteId]; renderPartiteFuture(_partiteFutureAll); }
+      cupRenderCollegati(partitaId);
+    } catch { alert('Errore collegamento.'); }
+  }
+
+  async function cupRimuoviUtente(partitaId, utenteId) {
+    try {
+      const r = await fetch(`/api/admin/partite/${partitaId}/collega-utente/${utenteId}`, {
+        method: 'DELETE', headers: headers(),
+      });
+      if (!r.ok) throw new Error();
+      const p = _partiteFutureAll.find(x => x.id === partitaId);
+      if (p) { p.utenti_collegati = (p.utenti_collegati || []).filter(x => x !== utenteId); renderPartiteFuture(_partiteFutureAll); }
+      cupRenderCollegati(partitaId);
+    } catch { alert('Errore rimozione.'); }
   }
 
   /* ── Dashboard: partite settimana ── */

@@ -383,6 +383,17 @@ async function createTables() {
     );
   `);
 
+  // RLS — block direct PostgREST/anon-key access; postgres role bypasses automatically
+  for (const t of [
+    'products', 'ordini', 'notizie', 'calendario', 'squadra', 'galleria',
+    'iscrizioni', 'sponsor', 'risultati', 'partecipazioni', 'push_subscriptions',
+    'impostazioni', 'log_attivita', 'fipav_matches', 'fipav_classifica_cache',
+    'assegnazioni_partita', 'staff_arbitrale', 'palestres', 'squadre_homepage',
+    'utenti', 'tornei', 'torneo_partecipanti', 'torneo_squadre',
+  ]) {
+    await query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
+  }
+
   // Valori default impostazioni
   await query(`
     INSERT INTO impostazioni (chiave, valore) VALUES

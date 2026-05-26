@@ -517,7 +517,11 @@ app.get('/api/profilo', userAuth, async (req, res) => {
       [req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Utente non trovato.' });
-    res.json(r.rows[0]);
+    const campRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_campionato_mappa'`);
+    const campionato_mappa = JSON.parse(campRaw.rows[0]?.valore || '{}');
+    const catLinksRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_links'`);
+    const cat_links = JSON.parse(catLinksRaw.rows[0]?.valore || '{}');
+    res.json({ ...r.rows[0], campionato_mappa, cat_links });
   } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
 });
 
@@ -570,16 +574,12 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
     const lun = new Date(`${lunStr}T00:00:00+02:00`);
     const dom = new Date(`${domStr}T23:59:59+02:00`);
 
-    // Mapping squadra → categoria FIPAV
-    const mRaw = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_mappa'`);
-    const catMappa = JSON.parse(mRaw.rows[0]?.valore || '{}');
-
     const eventi = [];
 
     // Allenamenti/eventi da calendario per ogni squadra (primaria + collegate)
     for (const nome of nomiSquadre) {
       const calRes = await db.query(
-        `SELECT titolo,data_str,ora,tipo FROM calendario
+        `SELECT id,titolo,data_str,ora,tipo FROM calendario
          WHERE (categoria ILIKE $1 OR categorie_collegate @> $2::jsonb)
            AND data_str >= $3 AND data_str <= $4
          ORDER BY data_str, ora`,
@@ -587,7 +587,8 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
       );
       for (const r of calRes.rows) {
         eventi.push({
-          tipo: 'allenamento',
+          tipo: r.tipo || 'allenamento',
+          id: r.id,
           titolo: r.titolo,
           data: r.data_str,
           ora: r.ora,
@@ -598,19 +599,53 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
       }
     }
 
-    // Partite FIPAV per categorie mappate
-    const fipavCats = [...new Set(nomiSquadre.map(n => catMappa[n]).filter(Boolean))];
-    for (const cat of fipavCats) {
-      const mRes = await db.query(
-        `SELECT casa,ospite,data_ora,luogo,categoria,giornata FROM fipav_matches
-         WHERE categoria ILIKE $1 AND played=false AND postponed=false
-           AND data_ora >= $2 AND data_ora <= $3
-         ORDER BY data_ora`,
-        [cat, lun, dom]
-      );
-      // Trova squadra che mappa a questa categoria
-      const squadra = nomiSquadre.find(n => catMappa[n] === cat) || '';
+    // Partite: usa cla link (classifica URL) → CId → fipav_matches.cid
+    const catLinksRawP = await db.query(`SELECT valore FROM impostazioni WHERE chiave='squadre_cat_links'`);
+    const catLinksP = JSON.parse(catLinksRawP.rows[0]?.valore || '{}');
+
+    function parseClaUrl(cla) {
+      if (!cla) return null;
+      try {
+        const u = new URL(cla);
+        if (u.hostname.includes('opespallavolo.it')) {
+          const m = u.pathname.match(/\/t-teamtable\/(\d+)/);
+          if (m) return { type: 'opes', tid: m[1] };
+        } else {
+          const cid = u.searchParams.get('CId');
+          if (cid) return { type: 'fipav', cid, fonte: u.hostname.includes('campania') ? 'campania' : 'caserta' };
+        }
+      } catch {}
+      return null;
+    }
+
+    const seenPartite = new Set();
+    for (const nome of nomiSquadre) {
+      const parsed = parseClaUrl(catLinksP[nome]?.cla);
+      if (!parsed) continue;
+      let mRes;
+      if (parsed.type === 'fipav') {
+        await ensureFipavMatchesLoaded(parsed.cid, parsed.fonte);
+        mRes = await db.query(
+          `SELECT id,casa,ospite,data_ora,luogo,categoria,giornata,fonte,cid,tid FROM fipav_matches
+           WHERE cid=$1 AND fonte=$2 AND played=false AND postponed=false
+             AND data_ora >= $3 AND data_ora <= $4
+           ORDER BY data_ora`,
+          [parsed.cid, parsed.fonte, lun, dom]
+        );
+      } else {
+        await ensureOpesMatchesLoaded(parsed.tid);
+        mRes = await db.query(
+          `SELECT id,casa,ospite,data_ora,luogo,categoria,giornata,fonte,cid,tid FROM fipav_matches
+           WHERE tid=$1 AND fonte='opes' AND played=false AND postponed=false
+             AND data_ora >= $2 AND data_ora <= $3
+           ORDER BY data_ora`,
+          [parsed.tid, lun, dom]
+        );
+      }
       for (const m of mRes.rows) {
+        const key = `${m.casa}|${m.ospite}|${m.data_ora}`;
+        if (seenPartite.has(key)) continue;
+        seenPartite.add(key);
         eventi.push({
           tipo: 'partita',
           casa: m.casa, ospite: m.ospite,
@@ -618,8 +653,11 @@ app.get('/api/profilo/prossimi', userAuth, async (req, res) => {
           luogo: m.luogo || '',
           categoria: m.categoria,
           giornata: m.giornata || '',
-          squadra,
-          ruolo: squadraRuolo[squadra] || 'atleta',
+          fonte: m.fonte,
+          cid: m.cid || null,
+          tid: m.tid || null,
+          squadra: nome,
+          ruolo: squadraRuolo[nome] || 'atleta',
           ts: new Date(m.data_ora).getTime(),
         });
       }
@@ -2631,6 +2669,7 @@ function dbMatchToObj(row) {
     parziali: row.parziali || null, luogo: row.luogo || '',
     logoHome: row.logo_home || '', logoAway: row.logo_away || '',
     matchUrl: row.match_url || '', classificaUrl: row.classifica_url || '',
+    utenti_collegati: row.utenti_collegati || [],
   };
 }
 
@@ -3305,7 +3344,7 @@ app.get('/api/admin/partite/casa', adminAuth, async (_req, res) => {
 app.get('/api/admin/partite/future', adminAuth, async (_req, res) => {
   try {
     const r = await db.query(
-      `SELECT id, categoria, giornata, data_ora, casa, ospite, luogo, is_casa
+      `SELECT id, categoria, giornata, data_ora, casa, ospite, luogo, is_casa, utenti_collegati
        FROM fipav_matches
        WHERE played=false AND postponed=false AND data_ora >= NOW()
        ORDER BY data_ora`
@@ -3433,6 +3472,41 @@ app.put('/api/admin/partite/:id/staff-arbitrale', adminAuth, async (req, res) =>
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
   }
+});
+
+/* ─── Partite: collega/scollega utenti ─── */
+app.post('/api/admin/partite/:id/collega-utente', adminAuth, async (req, res) => {
+  const { utente_id } = req.body;
+  if (!utente_id) return res.status(400).json({ error: 'utente_id obbligatorio' });
+  try {
+    const r = await db.query(
+      `UPDATE fipav_matches SET utenti_collegati = CASE WHEN utenti_collegati @> $1::jsonb THEN utenti_collegati ELSE utenti_collegati || $1::jsonb END WHERE id=$2 RETURNING id`,
+      [JSON.stringify([String(utente_id)]), req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Partita non trovata' });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/admin/partite/:id/collega-utente/:uid', adminAuth, async (req, res) => {
+  try {
+    await db.query(
+      `UPDATE fipav_matches SET utenti_collegati = COALESCE((SELECT jsonb_agg(x) FROM jsonb_array_elements_text(utenti_collegati) AS x WHERE x != $1), '[]'::jsonb) WHERE id=$2`,
+      [req.params.uid, req.params.id]
+    );
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.get('/api/admin/partite/:id/utenti-collegati', adminAuth, async (req, res) => {
+  try {
+    const p = await db.query('SELECT utenti_collegati FROM fipav_matches WHERE id=$1', [req.params.id]);
+    if (!p.rows.length) return res.status(404).json({ error: 'Partita non trovata' });
+    const ids = (p.rows[0].utenti_collegati || []).map(String);
+    if (!ids.length) return res.json([]);
+    const u = await db.query(`SELECT id,nome,cognome,email FROM utenti WHERE id = ANY($1::text[])`, [ids]);
+    res.json(u.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
 /* ─── Staff arbitrale: API utente ─── */
@@ -4363,6 +4437,7 @@ db.init().then(async () => {
   try { await db.query(`ALTER TABLE ordini ADD COLUMN IF NOT EXISTS mail_letta BOOLEAN DEFAULT FALSE`); } catch(_){}
   try { await db.query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS categorie_collegate JSONB DEFAULT '[]'`); } catch(_){}
   try { await db.query(`ALTER TABLE calendario ADD COLUMN IF NOT EXISTS utenti_collegati JSONB DEFAULT '[]'`); } catch(_){}
+  try { await db.query(`ALTER TABLE fipav_matches ADD COLUMN IF NOT EXISTS utenti_collegati JSONB DEFAULT '[]'`); } catch(_){}
   try { await db.query(`CREATE TABLE IF NOT EXISTS comunicazioni (
     id TEXT PRIMARY KEY,
     mittente_id TEXT NOT NULL,
