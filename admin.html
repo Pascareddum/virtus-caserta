@@ -1290,6 +1290,7 @@
     <div class="nav-divider"></div>
     <button class="tab-btn" data-tab="live"   onclick="switchTab('live')">Live</button>
     <button class="tab-btn" data-tab="utenti" onclick="switchTab('utenti')">Utenti</button>
+    <button class="tab-btn" data-tab="push"   onclick="switchTab('push')">Notifiche Push</button>
     <div class="drawer-home">
       <a href="/">Torna alla home</a>
     </div>
@@ -1336,6 +1337,7 @@
   <div class="nav-divider"></div>
   <button class="tab-btn" data-tab="live"   onclick="switchTab('live')">Live</button>
   <button class="tab-btn" data-tab="utenti" onclick="switchTab('utenti')">Utenti</button>
+  <button class="tab-btn" data-tab="push"   onclick="switchTab('push')">Notifiche Push</button>
   <div class="sidebar-home">
     <a href="/">Torna alla home</a>
   </div>
@@ -2138,6 +2140,49 @@
       </tr></thead>
       <tbody id="palestreBody"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- ══ NOTIFICHE PUSH ══ -->
+<div class="pannello" id="pan-push">
+  <div class="toolbar"><h2>Notifiche Push</h2></div>
+  <div style="max-width:640px;display:flex;flex-direction:column;gap:20px;padding:8px 0;">
+
+    <!-- Info subscribers -->
+    <div style="background:var(--surface);border:1.5px solid var(--bordo);border-radius:var(--radius-lg);padding:20px;display:flex;align-items:center;gap:16px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:22px;">🔔</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--sub);margin-bottom:2px;">Dispositivi iscritti</div>
+        <div id="pushSubCount" style="font-size:28px;font-weight:800;color:var(--testo);">—</div>
+      </div>
+      <button onclick="caricaSubCount()" style="margin-left:auto;padding:7px 14px;border-radius:8px;border:1.5px solid var(--bordo);background:var(--surface-3);font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;">Aggiorna</button>
+    </div>
+
+    <!-- Form invio -->
+    <div style="background:var(--surface);border:1.5px solid var(--bordo);border-radius:var(--radius-lg);padding:24px;display:flex;flex-direction:column;gap:16px;">
+      <h3 style="font-size:15px;font-weight:800;color:var(--testo);margin:0;">Invia notifica</h3>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;">Titolo</label>
+        <input id="pushTitolo" type="text" placeholder="Es. Nuova partita in casa!" maxlength="80"
+          style="padding:10px 14px;border:1.5px solid var(--bordo);border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:var(--surface-3);">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;">Messaggio</label>
+        <textarea id="pushMessaggio" placeholder="Testo della notifica…" maxlength="200" rows="3"
+          style="padding:10px 14px;border:1.5px solid var(--bordo);border-radius:10px;font-size:14px;font-family:inherit;outline:none;resize:vertical;background:var(--surface-3);"></textarea>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;">URL destinazione <span style="font-weight:400;text-transform:none;">(opzionale)</span></label>
+        <input id="pushUrl" type="text" placeholder="Es. /notizie o /calendario" value="/"
+          style="padding:10px 14px;border:1.5px solid var(--bordo);border-radius:10px;font-size:14px;font-family:inherit;outline:none;background:var(--surface-3);">
+      </div>
+      <button onclick="inviaPushNotifica()" id="btnInviaPush"
+        style="padding:12px 28px;border-radius:10px;border:none;background:#0d2055;color:#fff;font-size:14px;font-weight:700;cursor:pointer;align-self:flex-start;">
+        Invia notifica
+      </button>
+      <div id="pushLog" style="display:none;padding:12px 16px;border-radius:8px;font-size:13px;font-weight:600;"></div>
+    </div>
+
   </div>
 </div>
 
@@ -8283,6 +8328,67 @@
         link.click();
       });
   }
+
+  /* ── NOTIFICHE PUSH ── */
+  async function caricaSubCount() {
+    try {
+      const r = await fetch('/api/admin/push/subscribers', { headers: headers() });
+      const d = await r.json();
+      document.getElementById('pushSubCount').textContent = r.ok ? d.count : '—';
+    } catch { document.getElementById('pushSubCount').textContent = '—'; }
+  }
+
+  async function inviaPushNotifica() {
+    const titolo    = document.getElementById('pushTitolo').value.trim();
+    const messaggio = document.getElementById('pushMessaggio').value.trim();
+    const url       = document.getElementById('pushUrl').value.trim() || '/';
+    const log       = document.getElementById('pushLog');
+    const btn       = document.getElementById('btnInviaPush');
+    if (!titolo || !messaggio) {
+      log.style.display = 'block';
+      log.style.background = '#fef2f2';
+      log.style.color = '#dc2626';
+      log.textContent = 'Titolo e messaggio obbligatori.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Invio in corso…';
+    log.style.display = 'none';
+    try {
+      const res  = await fetch('/api/admin/push/send', {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ titolo, messaggio, url }),
+      });
+      const data = await res.json();
+      log.style.display = 'block';
+      if (res.ok && data.success) {
+        log.style.background = '#f0fdf4';
+        log.style.color = '#16a34a';
+        log.textContent = `✓ Inviata a ${data.ok} dispositivo${data.ok !== 1 ? 'i' : ''}${data.fail ? ` (${data.fail} falliti)` : ''}.`;
+        caricaSubCount();
+      } else {
+        log.style.background = '#fef2f2';
+        log.style.color = '#dc2626';
+        log.textContent = data.error || 'Errore durante l\'invio.';
+      }
+    } catch {
+      log.style.display = 'block';
+      log.style.background = '#fef2f2';
+      log.style.color = '#dc2626';
+      log.textContent = 'Errore di rete.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Invia notifica';
+    }
+  }
+
+  /* carica count quando si apre tab push */
+  const _origSwitchTab = switchTab;
+  switchTab = function(nome) {
+    _origSwitchTab(nome);
+    if (nome === 'push') caricaSubCount();
+  };
 </script>
 </body>
 </html>

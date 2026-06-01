@@ -4525,6 +4525,38 @@ app.post('/api/admin/push/send', adminAuth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 
+app.get('/api/admin/push/subscribers', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query('SELECT COUNT(*) FROM push_subscriptions');
+    res.json({ count: parseInt(r.rows[0].count, 10) });
+  } catch (err) { res.status(500).json({ error: 'Errore interno del server.' }); }
+});
+
+app.post('/api/push/test', async (req, res) => {
+  const token = process.env.PUSH_TEST_TOKEN;
+  if (!token || req.headers['x-push-token'] !== token) {
+    return res.status(401).json({ error: 'Token non valido' });
+  }
+  if (!webpush) return res.status(503).json({ error: 'Push non configurato (VAPID keys mancanti)' });
+  const { titolo = 'Test Virtus Caserta', messaggio = 'Notifica di prova ricevuta!', url = '/' } = req.body;
+  try {
+    const subs = await db.query('SELECT * FROM push_subscriptions');
+    if (!subs.rows.length) return res.json({ success: false, message: 'Nessun subscriber registrato' });
+    const payload = JSON.stringify({ titolo, messaggio, url });
+    let ok = 0, fail = 0;
+    for (const sub of subs.rows) {
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
+        ok++;
+      } catch (e) {
+        fail++;
+        if (e.statusCode === 410) await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1', [sub.endpoint]);
+      }
+    }
+    res.json({ success: true, ok, fail });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
+});
+
 /* ─── Modulo contatti ─── */
 const contactLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Troppi messaggi. Riprova tra un\'ora.' } });
 

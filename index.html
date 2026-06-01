@@ -2902,58 +2902,38 @@
 
     aggiornaNavbar();
 
-    /* ── NOTIFICHE PARTITE IN CASA ── */
-    /*async function inizializzaNotifiche() {
-      if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-
-      // Registra service worker
+    /* ── PWA: Service Worker + Push Subscription ── */
+    (async function inizializzaPWA() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
       let reg;
       try {
         reg = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
       } catch { return; }
 
-      // Chiedi permesso solo se non ancora deciso
       if (Notification.permission === 'default') {
         await Notification.requestPermission();
       }
       if (Notification.permission !== 'granted') return;
 
-      // Carica partite
-      let partite = [];
-      try { partite = await fetch('/api/partite').then(r => r.json()); } catch { return; }
+      try {
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return;
 
-      const notificate = JSON.parse(localStorage.getItem('vc_notificate') || '[]');
-      const now = Date.now();
+        const { key } = await fetch('/api/push/vapid-key').then(r => r.json());
+        if (!key) return;
 
-      partite.forEach(m => {
-        if (m.played || !m.timestamp) return;
-        if (!isVirtus(m.casa)) return;            // solo partite in casa
-        if (notificate.includes(m.id)) return;    // già pianificata
-
-        const matchMs  = m.timestamp;             // già in ms dal server
-        const notifyMs = matchMs - 60 * 60 * 1000; // 1 ora prima
-        const delay    = notifyMs - now;
-
-        if (delay > 0 && delay < 7 * 24 * 60 * 60 * 1000) { // entro 7 giorni
-          const sw = reg.active || reg.waiting || reg.installing;
-          if (sw) {
-            sw.postMessage({
-              type:  'SCHEDULE_NOTIFICATION',
-              title: '🏐 Partita in casa tra 1 ora!',
-              body:  `${m.casa} vs ${m.ospite} – ${m.dataOra}`,
-              delay,
-              tag:   'partita-' + m.id,
-            });
-            notificate.push(m.id);
-          }
-        }
-      });
-
-      localStorage.setItem('vc_notificate', JSON.stringify(notificate));
-    }
-
-    inizializzaNotifiche();*/
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        });
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')))) } }),
+        });
+      } catch { /* permesso negato o browser non supporta */ }
+    })();
 
     /* ── SPONSOR TICKER ── */
     (async function caricaSponsor() {
