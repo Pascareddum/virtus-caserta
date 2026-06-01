@@ -7,4 +7,4 @@ Disallow: /api/
 Disallow: /ordine-confermato
 Disallow: /reset-password
 
-Sitemap: https://virtus-caserta.it/sitemap.xml
+Sitemap: https://www.virtuscaserta.com/sitemap.xml
