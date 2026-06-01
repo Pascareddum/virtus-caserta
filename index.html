@@ -2903,36 +2903,60 @@
     aggiornaNavbar();
 
     /* ── PWA: Service Worker + Push Subscription ── */
-    (async function inizializzaPWA() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      let reg;
-      try {
-        reg = await navigator.serviceWorker.register('/sw.js');
-        await navigator.serviceWorker.ready;
-      } catch { return; }
+    let _swReg = null;
 
-      if (Notification.permission === 'default') {
-        await Notification.requestPermission();
-      }
-      if (Notification.permission !== 'granted') return;
-
+    async function _iscriviPush(reg) {
       try {
         const existing = await reg.pushManager.getSubscription();
         if (existing) return;
-
         const { key } = await fetch('/api/push/vapid-key').then(r => r.json());
         if (!key) return;
-
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: key,
         });
+        const p256dh = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh'))));
+        const auth   = btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth'))));
         await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode(...new Uint8Array(sub.getKey('auth')))) } }),
+          body: JSON.stringify({ endpoint: sub.endpoint, keys: { p256dh, auth } }),
         });
-      } catch { /* permesso negato o browser non supporta */ }
+      } catch { /* errore subscription */ }
+    }
+
+    /* chiamata da bottone – user gesture richiesta da iOS */
+    window.richiediNotifiche = async function() {
+      const banner = document.getElementById('pushBanner');
+      if (!_swReg) return;
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        if (banner) banner.style.display = 'none';
+        localStorage.setItem('vc_push_banner', 'dismissed');
+        await _iscriviPush(_swReg);
+      } else {
+        if (banner) banner.style.display = 'none';
+        localStorage.setItem('vc_push_banner', 'dismissed');
+      }
+    };
+
+    (async function inizializzaPWA() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+      try {
+        _swReg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+      } catch { return; }
+
+      if (Notification.permission === 'granted') {
+        await _iscriviPush(_swReg);
+        return;
+      }
+
+      /* mostra banner solo se non già rifiutato/dismesso */
+      if (Notification.permission === 'default' && !localStorage.getItem('vc_push_banner')) {
+        const banner = document.getElementById('pushBanner');
+        if (banner) banner.style.display = 'flex';
+      }
     })();
 
     /* ── SPONSOR TICKER ── */
@@ -3380,5 +3404,22 @@
   })();
   </script>
   <script src="common.js"></script>
+
+  <!-- Banner notifiche push -->
+  <div id="pushBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#0d2055;color:#fff;padding:14px 20px;align-items:center;gap:14px;box-shadow:0 -4px 24px rgba(0,0,0,.25);">
+    <span style="font-size:22px;">🔔</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:14px;font-weight:700;line-height:1.3;">Vuoi ricevere notifiche?</div>
+      <div style="font-size:12px;opacity:.8;margin-top:2px;">Partite, eventi e aggiornamenti in tempo reale.</div>
+    </div>
+    <button onclick="richiediNotifiche()"
+      style="padding:9px 18px;border-radius:8px;border:none;background:#e8372a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+      Abilita
+    </button>
+    <button onclick="(function(){document.getElementById('pushBanner').style.display='none';localStorage.setItem('vc_push_banner','dismissed');})()"
+      style="padding:9px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:13px;cursor:pointer;flex-shrink:0;">
+      No grazie
+    </button>
+  </div>
 </body>
 </html>
