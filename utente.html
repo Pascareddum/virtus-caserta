@@ -667,6 +667,18 @@
                 <label class="toggle-label" for="toggleNotifPartite"></label>
               </div>
             </div>
+            <div id="notifCampionatiPanel" style="display:none;padding:4px 0 4px 0;flex-direction:column;gap:0;">
+              <!-- Summary row -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
+                <span id="notifCampSummary" style="font-size:12px;color:#6b7280;"></span>
+                <button id="notifCampBtn" onclick="toggleCampPanel()" style="padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-family:inherit;">Visualizza</button>
+              </div>
+              <!-- Expanded panel -->
+              <div id="notifCampDetail" style="display:none;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff;margin-top:4px;flex-direction:column;gap:6px;">
+                <div id="notifCampSelezionati"></div>
+                <div id="notifCampDisponibili"></div>
+              </div>
+            </div>
           </div>
           <div class="notif-status" id="notifStatus"></div>
         </div>
@@ -1087,6 +1099,82 @@
       return endpoint;
     }
 
+    let _pushCampionati = [];   // all available categories from API
+    let _selectedCampionati = []; // currently selected ([] = tutti)
+
+    async function loadCampionati() {
+      try {
+        const r = await fetch('/api/push/campionati');
+        if (r.ok) _pushCampionati = await r.json();
+      } catch (_) {}
+    }
+
+    function renderCampionatiSelector() {
+      const selEl  = document.getElementById('notifCampSelezionati');
+      const dispEl = document.getElementById('notifCampDisponibili');
+      const esc = s => s.replace(/'/g, "\\'");
+      const btnBase = 'padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid;transition:all .12s;';
+
+      // ── Summary ──
+      const summaryEl = document.getElementById('notifCampSummary');
+      if (summaryEl) {
+        summaryEl.textContent = _selectedCampionati.length
+          ? _selectedCampionati.length + ' campionat' + (_selectedCampionati.length === 1 ? 'o selezionato' : 'i selezionati')
+          : 'Tutti i campionati';
+      }
+
+      // ── Selezionati (dentro detail panel) ──
+      if (!_selectedCampionati.length) {
+        selEl.innerHTML = `<div style="font-size:12px;color:#9ca3af;font-style:italic;padding:4px 0 8px;">Tutti i campionati (nessun filtro)</div>`;
+      } else {
+        selEl.innerHTML =
+          '<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9ca3af;margin-bottom:6px;">Selezionati</div>' +
+          _selectedCampionati.map(cat => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:#f9fafb;border-radius:8px;margin-bottom:5px;">
+              <span style="font-size:13px;color:#374151;">${cat}</span>
+              <button onclick="rimuoviCampionato('${esc(cat)}')" style="${btnBase}background:#fef0f2;color:#b42318;border-color:#fecdd3;">Rimuovi</button>
+            </div>`).join('');
+      }
+
+      // ── Disponibili ──
+      const disponibili = _pushCampionati.filter(c => !_selectedCampionati.includes(c));
+      if (!disponibili.length) {
+        dispEl.innerHTML = _pushCampionati.length
+          ? '<div style="font-size:12px;color:#9ca3af;padding-top:4px;">Tutti i campionati già selezionati.</div>'
+          : '<div style="font-size:12px;color:#9ca3af;padding-top:4px;">Nessun campionato disponibile.</div>';
+        return;
+      }
+      dispEl.innerHTML =
+        '<div style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#9ca3af;margin:8px 0 6px;">Aggiungi</div>' +
+        disponibili.map(cat => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;margin-bottom:5px;">
+            <span style="font-size:13px;color:#374151;">${cat}</span>
+            <button onclick="aggiungiCampionato('${esc(cat)}')" style="${btnBase}background:#f0fdf4;color:#166534;border-color:#bbf7d0;">+ Aggiungi</button>
+          </div>`).join('');
+    }
+
+    function toggleCampPanel() {
+      const detail = document.getElementById('notifCampDetail');
+      const btn    = document.getElementById('notifCampBtn');
+      const open   = detail.style.display === 'none' || !detail.style.display;
+      detail.style.display = open ? 'flex' : 'none';
+      btn.textContent = open ? 'Chiudi' : 'Visualizza';
+    }
+
+    function aggiungiCampionato(cat) {
+      if (!_selectedCampionati.includes(cat)) _selectedCampionati.push(cat);
+      renderCampionatiSelector();
+      savePushPrefs();
+    }
+
+    function rimuoviCampionato(cat) {
+      _selectedCampionati = _selectedCampionati.filter(c => c !== cat);
+      renderCampionatiSelector();
+      savePushPrefs();
+    }
+
+    function getCampionatiSelected() { return _selectedCampionati; }
+
     async function loadPushPrefs() {
       let endpoint = localStorage.getItem(PUSH_EP_KEY);
       const statusEl = document.getElementById('notifStatus');
@@ -1116,6 +1204,7 @@
       subPanel.classList.toggle('visible', enabled);
 
       if (enabled) {
+        await loadCampionati();
         try {
           const r = await fetch(`/api/push/preferences?endpoint=${encodeURIComponent(endpoint)}`);
           if (r.ok) {
@@ -1123,6 +1212,9 @@
             document.getElementById('toggleNotifLive').checked    = !!prefs.notif_live;
             document.getElementById('toggleNotifNotizie').checked  = !!prefs.notif_notizie;
             document.getElementById('toggleNotifPartite').checked  = !!prefs.notif_partite;
+            _selectedCampionati = prefs.notif_campionati || [];
+            renderCampionatiSelector();
+            document.getElementById('notifCampionatiPanel').style.display = prefs.notif_partite ? 'flex' : 'none';
           }
         } catch (_) {}
       }
@@ -1133,15 +1225,19 @@
       if (!endpoint) return;
       const statusEl = document.getElementById('notifStatus');
       statusEl.textContent = 'Salvataggio…';
+      const partiteOn = document.getElementById('toggleNotifPartite').checked;
+      document.getElementById('notifCampionatiPanel').style.display = partiteOn ? 'flex' : 'none';
+      const campionati = getCampionatiSelected();
       try {
         await fetch('/api/push/preferences', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             endpoint,
-            notif_live:    document.getElementById('toggleNotifLive').checked,
-            notif_notizie: document.getElementById('toggleNotifNotizie').checked,
-            notif_partite: document.getElementById('toggleNotifPartite').checked,
+            notif_live:        document.getElementById('toggleNotifLive').checked,
+            notif_notizie:     document.getElementById('toggleNotifNotizie').checked,
+            notif_partite:     partiteOn,
+            notif_campionati:  campionati,
           }),
         });
         statusEl.textContent = 'Preferenze salvate.';
@@ -1167,6 +1263,10 @@
           document.getElementById('toggleNotifLive').checked    = true;
           document.getElementById('toggleNotifNotizie').checked  = true;
           document.getElementById('toggleNotifPartite').checked  = true;
+          await loadCampionati();
+          _selectedCampionati = [];
+          renderCampionatiSelector();
+          document.getElementById('notifCampionatiPanel').style.display = 'flex';
           await savePushPrefs();
         } catch (e) { this.checked = false; statusEl.textContent = 'Errore: ' + e.message; }
       } else {

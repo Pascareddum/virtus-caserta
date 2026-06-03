@@ -421,9 +421,12 @@ async function createTables() {
   `);
 
   // Push notification preferences
-  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_live     BOOLEAN DEFAULT true`);
-  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_notizie  BOOLEAN DEFAULT true`);
-  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_partite  BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_live       BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_notizie    BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_partite    BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_campionati JSONB   DEFAULT '[]'`);
+  // Migrate old FIPAV/OPES values to empty array (= all categories)
+  await query(`UPDATE push_subscriptions SET notif_campionati='[]' WHERE notif_campionati='["FIPAV","OPES"]'::jsonb OR notif_campionati='["OPES","FIPAV"]'::jsonb`);
   await query(`
     CREATE TABLE IF NOT EXISTS partita_notif_log (
       match_id VARCHAR PRIMARY KEY,
@@ -464,10 +467,49 @@ async function createTables() {
   `);
 }
 
+/* ─── Backfill: sync squadra.utente_id → utenti.squadre_atleta/allenatore ─── */
+async function backfillSquadreUtenti() {
+  const COACH_ROLES = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
+  try {
+    // Find users with linked squadra records but empty squadre_atleta and squadre_allenatore
+    const res = await query(`
+      SELECT DISTINCT s.utente_id
+      FROM squadra s
+      JOIN utenti u ON u.id = s.utente_id
+      WHERE s.utente_id IS NOT NULL AND s.utente_id != ''
+        AND s.sesso != 'Staff'
+        AND (u.squadre_atleta = '[]'::jsonb OR u.squadre_atleta IS NULL)
+        AND (u.squadre_allenatore = '[]'::jsonb OR u.squadre_allenatore IS NULL)
+    `);
+    if (!res.rows.length) return;
+    console.log(`[DB] Backfill squadre: ${res.rows.length} utenti da sincronizzare`);
+    for (const { utente_id } of res.rows) {
+      const linked = await query(
+        `SELECT ruolo, sesso FROM squadra WHERE utente_id=$1 AND (sesso IS NULL OR sesso != 'Staff')`,
+        [utente_id]
+      );
+      const sqAtleta = [], sqAllen = [];
+      for (const g of linked.rows) {
+        const teams = (g.sesso || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (COACH_ROLES.includes(g.ruolo)) { teams.forEach(t => { if (!sqAllen.includes(t)) sqAllen.push(t); }); }
+        else { teams.forEach(t => { if (!sqAtleta.includes(t)) sqAtleta.push(t); }); }
+      }
+      await query(
+        `UPDATE utenti SET is_atleta=($1::int > 0), is_allenatore=($2::int > 0), squadre_atleta=$3, squadre_allenatore=$4 WHERE id=$5`,
+        [sqAtleta.length, sqAllen.length, JSON.stringify(sqAtleta), JSON.stringify(sqAllen), utente_id]
+      );
+    }
+    console.log('[DB] Backfill squadre completato');
+  } catch (err) {
+    console.error('[DB] Backfill squadre errore:', err.message);
+  }
+}
+
 /* ─── Init ─── */
 async function init() {
   if (!pool) throw new Error('DATABASE_URL non configurata');
   await createTables();
+  await backfillSquadreUtenti();
   console.log('[DB] Inizializzazione completata');
 }
 

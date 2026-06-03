@@ -12,12 +12,15 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('push', e => {
   const data = e.data ? e.data.json() : {};
-  e.waitUntil(self.registration.showNotification(data.titolo || 'Virtus Caserta', {
+  const opts = {
     body: data.messaggio || '',
     icon: '/images/logo.png',
     badge: '/images/logo.png',
     data: { url: data.url || '/' },
-  }));
+    lang: 'it',
+  };
+  if (data.image) opts.image = data.image;
+  e.waitUntil(self.registration.showNotification(data.titolo || 'Virtus Caserta', opts));
 });
 
 self.addEventListener('notificationclick', e => {

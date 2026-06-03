@@ -2192,7 +2192,8 @@ app.post('/api/admin/notizie', adminAuth, async (req, res) => {
       [id, titolo, testo, colore || 'blu', immagine || '', dataStr]
     );
     await logActivity('Notizia aggiunta', titolo);
-    sendPushByType('notizie', { titolo: '📰 Nuova notizia', messaggio: titolo, url: '/notizie' });
+    const descr = testo ? testo.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : '';
+    sendPushByType('notizie', { titolo: '📰 ' + titolo, messaggio: descr, image: immagine || undefined, url: '/notizie' });
     res.status(201).json({ id, titolo, testo, colore: colore || 'blu', immagine: immagine || '', data: dataStr });
   } catch (err) {
     console.error(err);
@@ -4057,9 +4058,28 @@ app.post('/api/admin/squadra', adminAuth, async (req, res) => {
   const { nome, cognome, numero, ruolo, foto, bio, sesso, utente_id } = req.body;
   if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
   const id = crypto.randomUUID();
+  const COACH_ROLES_SRV = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
   try {
     await db.query(`INSERT INTO squadra (id,nome,cognome,numero,ruolo,foto,bio,sesso,utente_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [id, nome, cognome, numero || null, ruolo || '', foto || '', bio || '', sesso || 'Femminile', utente_id || '']);
+
+    if (utente_id) {
+      const linked = await db.query(
+        `SELECT ruolo, sesso FROM squadra WHERE utente_id=$1 AND (sesso IS NULL OR sesso != 'Staff')`,
+        [utente_id]
+      );
+      const sqAtleta = [], sqAllen = [];
+      for (const g of linked.rows) {
+        const teams = (g.sesso || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (COACH_ROLES_SRV.includes(g.ruolo)) { teams.forEach(t => { if (!sqAllen.includes(t)) sqAllen.push(t); }); }
+        else { teams.forEach(t => { if (!sqAtleta.includes(t)) sqAtleta.push(t); }); }
+      }
+      await db.query(
+        `UPDATE utenti SET is_atleta=($1::int > 0), is_allenatore=($2::int > 0), squadre_atleta=$3, squadre_allenatore=$4 WHERE id=$5`,
+        [sqAtleta.length, sqAllen.length, JSON.stringify(sqAtleta), JSON.stringify(sqAllen), utente_id]
+      );
+    }
+
     await logActivity('Giocatrice aggiunta', `${nome} ${cognome}`);
     res.status(201).json({ id, nome, cognome, numero, ruolo, foto, bio, sesso, utente_id: utente_id || '' });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
@@ -4067,19 +4087,62 @@ app.post('/api/admin/squadra', adminAuth, async (req, res) => {
 app.put('/api/admin/squadra/:id', adminAuth, async (req, res) => {
   const { nome, cognome, numero, ruolo, foto, bio, attiva, sesso, utente_id } = req.body;
   try {
+    const prev = await db.query('SELECT utente_id FROM squadra WHERE id=$1', [req.params.id]);
     const r = await db.query(
       `UPDATE squadra SET nome=$1,cognome=$2,numero=$3,ruolo=$4,foto=$5,bio=$6,attiva=$7,sesso=$8,utente_id=$9 WHERE id=$10 RETURNING *`,
       [nome, cognome, numero || null, ruolo || '', foto || '', bio || '', attiva !== false, sesso || 'Femminile', utente_id || '', req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Giocatrice non trovata' });
+
+    // Sync utente squadre when utente_id is set or changed
+    const newUid = utente_id || '';
+    const oldUid = prev.rows[0]?.utente_id || '';
+    const affectedUids = new Set([newUid, oldUid].filter(Boolean));
+    const COACH_ROLES_SRV = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
+    for (const uid of affectedUids) {
+      const linked = await db.query(
+        `SELECT ruolo, sesso FROM squadra WHERE utente_id=$1 AND (sesso IS NULL OR sesso != 'Staff')`,
+        [uid]
+      );
+      const sqAtleta = [], sqAllen = [];
+      for (const g of linked.rows) {
+        const teams = (g.sesso || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (COACH_ROLES_SRV.includes(g.ruolo)) { teams.forEach(t => { if (!sqAllen.includes(t)) sqAllen.push(t); }); }
+        else { teams.forEach(t => { if (!sqAtleta.includes(t)) sqAtleta.push(t); }); }
+      }
+      await db.query(
+        `UPDATE utenti SET is_atleta=($1::int > 0), is_allenatore=($2::int > 0), squadre_atleta=$3, squadre_allenatore=$4 WHERE id=$5`,
+        [sqAtleta.length, sqAllen.length, JSON.stringify(sqAtleta), JSON.stringify(sqAllen), uid]
+      );
+    }
+
     await logActivity('Giocatrice modificata', `${nome} ${cognome}`);
     res.json(r.rows[0]);
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 app.delete('/api/admin/squadra/:id', adminAuth, async (req, res) => {
+  const COACH_ROLES_SRV = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
   try {
-    const r = await db.query('DELETE FROM squadra WHERE id=$1 RETURNING nome,cognome', [req.params.id]);
-    if (!r.rows.length) return res.status(404).json({ error: 'Non trovata' });
-    await logActivity('Giocatrice eliminata', `${r.rows[0].nome} ${r.rows[0].cognome}`);
+    const prev = await db.query('SELECT nome, cognome, utente_id FROM squadra WHERE id=$1', [req.params.id]);
+    if (!prev.rows.length) return res.status(404).json({ error: 'Non trovata' });
+    const { nome, cognome, utente_id: uid } = prev.rows[0];
+    await db.query('DELETE FROM squadra WHERE id=$1', [req.params.id]);
+    if (uid) {
+      const linked = await db.query(
+        `SELECT ruolo, sesso FROM squadra WHERE utente_id=$1 AND (sesso IS NULL OR sesso != 'Staff')`,
+        [uid]
+      );
+      const sqAtleta = [], sqAllen = [];
+      for (const g of linked.rows) {
+        const teams = (g.sesso || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (COACH_ROLES_SRV.includes(g.ruolo)) { teams.forEach(t => { if (!sqAllen.includes(t)) sqAllen.push(t); }); }
+        else { teams.forEach(t => { if (!sqAtleta.includes(t)) sqAtleta.push(t); }); }
+      }
+      await db.query(
+        `UPDATE utenti SET is_atleta=($1::int > 0), is_allenatore=($2::int > 0), squadre_atleta=$3, squadre_allenatore=$4 WHERE id=$5`,
+        [sqAtleta.length, sqAllen.length, JSON.stringify(sqAtleta), JSON.stringify(sqAllen), uid]
+      );
+    }
+    await logActivity('Giocatrice eliminata', `${nome} ${cognome}`);
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
@@ -4520,13 +4583,27 @@ app.get('/api/push/vapid-key', (_req, res) => {
   res.json({ key: process.env.VAPID_PUBLIC_KEY || null });
 });
 
+app.get('/api/push/campionati', async (_req, res) => {
+  try {
+    const all = await getMatchesFromDB();
+    const cats = [...new Set(all.map(m => m.categoria).filter(Boolean))].sort();
+    res.json(cats);
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
 /* Helper: invia push a tutti i subscriber con preferenza attiva */
-async function sendPushByType(tipo, payload) {
+async function sendPushByType(tipo, payload, opts = {}) {
   if (!webpush) return;
   const col = { live: 'notif_live', notizie: 'notif_notizie', partite: 'notif_partite' }[tipo];
   if (!col) return;
   try {
-    const subs = await db.query(`SELECT endpoint, keys FROM push_subscriptions WHERE ${col}=true`);
+    let q = `SELECT endpoint, keys FROM push_subscriptions WHERE ${col}=true`;
+    const params = [];
+    if (tipo === 'partite' && opts.categoria) {
+      q += ` AND (notif_campionati = '[]'::jsonb OR notif_campionati @> $1::jsonb)`;
+      params.push(JSON.stringify([opts.categoria]));
+    }
+    const subs = await db.query(q, params);
     const body = JSON.stringify(payload);
     for (const sub of subs.rows) {
       try {
@@ -4543,19 +4620,22 @@ app.get('/api/push/preferences', async (req, res) => {
   const { endpoint } = req.query;
   if (!endpoint) return res.status(400).json({ error: 'endpoint mancante' });
   try {
-    const r = await db.query('SELECT notif_live,notif_notizie,notif_partite FROM push_subscriptions WHERE endpoint=$1', [endpoint]);
+    const r = await db.query('SELECT notif_live,notif_notizie,notif_partite,notif_campionati FROM push_subscriptions WHERE endpoint=$1', [endpoint]);
     if (!r.rows.length) return res.status(404).json({ error: 'subscription non trovata' });
-    res.json(r.rows[0]);
+    const row = r.rows[0];
+    row.notif_campionati = row.notif_campionati || ['FIPAV', 'OPES'];
+    res.json(row);
   } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
 });
 
 app.put('/api/push/preferences', async (req, res) => {
-  const { endpoint, notif_live, notif_notizie, notif_partite } = req.body;
+  const { endpoint, notif_live, notif_notizie, notif_partite, notif_campionati } = req.body;
   if (!endpoint) return res.status(400).json({ error: 'endpoint mancante' });
+  const campionati = Array.isArray(notif_campionati) ? notif_campionati.filter(c => typeof c === 'string' && c.length < 200) : [];
   try {
     await db.query(
-      `UPDATE push_subscriptions SET notif_live=$1, notif_notizie=$2, notif_partite=$3 WHERE endpoint=$4`,
-      [!!notif_live, !!notif_notizie, !!notif_partite, endpoint]
+      `UPDATE push_subscriptions SET notif_live=$1, notif_notizie=$2, notif_partite=$3, notif_campionati=$4 WHERE endpoint=$5`,
+      [!!notif_live, !!notif_notizie, !!notif_partite, JSON.stringify(campionati), endpoint]
     );
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
@@ -4957,7 +5037,7 @@ db.init().then(async () => {
     if (!webpush) return;
     try {
       const matches = await db.query(
-        `SELECT id, casa, ospite, categoria FROM fipav_matches
+        `SELECT id, casa, ospite, categoria, fonte FROM fipav_matches
          WHERE played=false AND postponed=false
            AND data_ora > NOW() + INTERVAL '2 hours 45 minutes'
            AND data_ora < NOW() + INTERVAL '3 hours 15 minutes'`
@@ -4970,7 +5050,7 @@ db.init().then(async () => {
           titolo: '🏐 Partita tra 3 ore!',
           messaggio: `${m.casa} vs ${m.ospite}${m.categoria ? ' — ' + m.categoria : ''}`,
           url: '/risultati',
-        });
+        }, { categoria: m.categoria });
       }
     } catch (err) { console.error('[push partite scheduler]', err.message); }
   }
