@@ -420,6 +420,17 @@ async function createTables() {
     );
   `);
 
+  // Push notification preferences
+  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_live     BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_notizie  BOOLEAN DEFAULT true`);
+  await query(`ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS notif_partite  BOOLEAN DEFAULT true`);
+  await query(`
+    CREATE TABLE IF NOT EXISTS partita_notif_log (
+      match_id VARCHAR PRIMARY KEY,
+      sent_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
   // Migrations for existing torneo tables
   await query(`ALTER TABLE torneo_gironi ADD COLUMN IF NOT EXISTS tipo VARCHAR DEFAULT 'girone'`);
   await query(`ALTER TABLE torneo_gironi ADD COLUMN IF NOT EXISTS squadre JSONB DEFAULT '[]'`);

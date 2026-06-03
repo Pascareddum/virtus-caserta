@@ -2171,6 +2171,7 @@ app.post('/api/admin/notizie', adminAuth, async (req, res) => {
       [id, titolo, testo, colore || 'blu', immagine || '', dataStr]
     );
     await logActivity('Notizia aggiunta', titolo);
+    sendPushByType('notizie', { titolo: '📰 Nuova notizia', messaggio: titolo, url: '/notizie' });
     res.status(201).json({ id, titolo, testo, colore: colore || 'blu', immagine: immagine || '', data: dataStr });
   } catch (err) {
     console.error(err);
@@ -2265,7 +2266,7 @@ app.get('/api/live-links', async (_req, res) => {
     const r = await db.query(`SELECT chiave, valore FROM impostazioni WHERE chiave IN ('youtube_live_url','spike_live_url')`);
     const obj = {};
     for (const row of r.rows) obj[row.chiave] = row.valore;
-    res.json({ youtube_live_url: obj.youtube_live_url || '', spike_live_url: obj.spike_live_url || '' });
+    res.json({ youtube_live_url: obj.youtube_live_url || '', spike_live_url: obj.spike_live_url || '', twitch_live: _twitchIsLive });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Errore interno del server.' });
@@ -2483,6 +2484,10 @@ app.put('/api/admin/impostazioni', adminAuth, async (req, res) => {
       }
     }
     await logActivity('Impostazioni aggiornate', Object.keys(req.body).join(', '));
+    const liveSet = req.body.youtube_live_url || req.body.spike_live_url;
+    if (liveSet && liveSet.trim()) {
+      sendPushByType('live', { titolo: '🔴 Virtus Caserta in diretta!', messaggio: 'Guarda la partita live ora.', url: '/live' });
+    }
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -4493,6 +4498,47 @@ try {
 app.get('/api/push/vapid-key', (_req, res) => {
   res.json({ key: process.env.VAPID_PUBLIC_KEY || null });
 });
+
+/* Helper: invia push a tutti i subscriber con preferenza attiva */
+async function sendPushByType(tipo, payload) {
+  if (!webpush) return;
+  const col = { live: 'notif_live', notizie: 'notif_notizie', partite: 'notif_partite' }[tipo];
+  if (!col) return;
+  try {
+    const subs = await db.query(`SELECT endpoint, keys FROM push_subscriptions WHERE ${col}=true`);
+    const body = JSON.stringify(payload);
+    for (const sub of subs.rows) {
+      try {
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, body);
+      } catch (e) {
+        if (e.statusCode === 410) await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1', [sub.endpoint]);
+      }
+    }
+  } catch (err) { console.error('[push]', err); }
+}
+
+/* Preferenze push per endpoint */
+app.get('/api/push/preferences', async (req, res) => {
+  const { endpoint } = req.query;
+  if (!endpoint) return res.status(400).json({ error: 'endpoint mancante' });
+  try {
+    const r = await db.query('SELECT notif_live,notif_notizie,notif_partite FROM push_subscriptions WHERE endpoint=$1', [endpoint]);
+    if (!r.rows.length) return res.status(404).json({ error: 'subscription non trovata' });
+    res.json(r.rows[0]);
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
+
+app.put('/api/push/preferences', async (req, res) => {
+  const { endpoint, notif_live, notif_notizie, notif_partite } = req.body;
+  if (!endpoint) return res.status(400).json({ error: 'endpoint mancante' });
+  try {
+    await db.query(
+      `UPDATE push_subscriptions SET notif_live=$1, notif_notizie=$2, notif_partite=$3 WHERE endpoint=$4`,
+      [!!notif_live, !!notif_notizie, !!notif_partite, endpoint]
+    );
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Errore interno.' }); }
+});
 app.post('/api/push/subscribe', async (req, res) => {
   const { endpoint, keys } = req.body;
   if (!endpoint || !keys) return res.status(400).json({ error: 'Dati subscription mancanti' });
@@ -4556,6 +4602,54 @@ app.post('/api/push/test', async (req, res) => {
     res.json({ success: true, ok, fail });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
+
+/* ─── Twitch Live Monitor ─── */
+let _twitchToken = null;
+let _twitchTokenExpiry = 0;
+let _twitchIsLive = false;
+
+async function _getTwitchToken() {
+  if (_twitchToken && Date.now() < _twitchTokenExpiry) return _twitchToken;
+  const clientId     = process.env.TWITCH_CLIENT_ID;
+  const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  const r = await fetch(
+    `https://id.twitch.tv/oauth2/token?client_id=${clientId}&client_secret=${clientSecret}&grant_type=client_credentials`,
+    { method: 'POST' }
+  );
+  const d = await r.json();
+  if (!d.access_token) return null;
+  _twitchToken = d.access_token;
+  _twitchTokenExpiry = Date.now() + ((d.expires_in || 3600) - 60) * 1000;
+  return _twitchToken;
+}
+
+async function checkTwitchLive() {
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  const channel  = process.env.TWITCH_CHANNEL_NAME || 'virtuscaserta';
+  if (!clientId) return;
+  try {
+    const token = await _getTwitchToken();
+    if (!token) return;
+    const r = await fetch(`https://api.twitch.tv/helix/streams?user_login=${encodeURIComponent(channel)}`, {
+      headers: { 'Client-ID': clientId, 'Authorization': `Bearer ${token}` },
+    });
+    if (!r.ok) { if (r.status === 401) { _twitchToken = null; } return; }
+    const d = await r.json();
+    const isLive = Array.isArray(d.data) && d.data.length > 0;
+    if (isLive && !_twitchIsLive) {
+      _twitchIsLive = true;
+      const stream = d.data[0];
+      sendPushByType('live', {
+        titolo:   '🔴 Virtus Caserta in diretta su Twitch!',
+        messaggio: stream.title || 'Guarda la partita live ora.',
+        url:       '/live',
+      });
+    } else if (!isLive) {
+      _twitchIsLive = false;
+    }
+  } catch (err) { console.error('[Twitch monitor]', err.message); }
+}
 
 /* ─── Modulo contatti ─── */
 const contactLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Troppi messaggi. Riprova tra un\'ora.' } });
@@ -4829,7 +4923,38 @@ db.init().then(async () => {
   });
   // Avvia scheduler FIPAV: carica partite da DB, registra timer, refresh giornaliero
   initFipavScheduler().catch(err => console.log('[FIPAV Scheduler] Boot fallito:', err.message));
+
+  // Twitch live monitor (2min interval)
+  if (process.env.TWITCH_CLIENT_ID) {
+    checkTwitchLive();
+    setInterval(checkTwitchLive, 2 * 60 * 1000);
+  }
   scheduleReminderMailOrdini();
+
+  // Scheduler notifiche partita 3h prima
+  async function checkPartiteNotifiche() {
+    if (!webpush) return;
+    try {
+      const matches = await db.query(
+        `SELECT id, casa, ospite, categoria FROM fipav_matches
+         WHERE played=false AND postponed=false
+           AND data_ora > NOW() + INTERVAL '2 hours 45 minutes'
+           AND data_ora < NOW() + INTERVAL '3 hours 15 minutes'`
+      );
+      for (const m of matches.rows) {
+        const already = await db.query('SELECT 1 FROM partita_notif_log WHERE match_id=$1', [m.id]);
+        if (already.rows.length) continue;
+        await db.query('INSERT INTO partita_notif_log (match_id) VALUES ($1) ON CONFLICT DO NOTHING', [m.id]);
+        sendPushByType('partite', {
+          titolo: '🏐 Partita tra 3 ore!',
+          messaggio: `${m.casa} vs ${m.ospite}${m.categoria ? ' — ' + m.categoria : ''}`,
+          url: '/risultati',
+        });
+      }
+    } catch (err) { console.error('[push partite scheduler]', err.message); }
+  }
+  setInterval(checkPartiteNotifiche, 10 * 60 * 1000);
+  checkPartiteNotifiche();
 }).catch(err => {
   console.error('[DB] Errore inizializzazione:', err.message);
   app.listen(PORT, () => {

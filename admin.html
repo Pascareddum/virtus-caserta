@@ -1497,7 +1497,7 @@
   <div class="toolbar">
     <h2>Squadra</h2>
     <div style="display:flex;gap:8px;align-items:center;">
-      <button class="btn-aggiungi" style="background:#7c3aed;" onclick="apriSqHpGlobal()">🏠 Homepage</button>
+      <button class="btn-aggiungi" style="background:#7c3aed;" onclick="apriSqHpGlobal()">Homepage</button>
       <button class="btn-aggiungi" onclick="apriAggiungiSquadraCat()">+ Aggiungi squadra</button>
     </div>
   </div>
@@ -1573,6 +1573,15 @@
       </tr></thead>
       <tbody id="staffBody"></tbody>
     </table>
+  </div>
+
+  <!-- Staff Arbitrale -->
+  <div style="margin-top:32px;">
+    <div class="toolbar" style="margin-bottom:12px;">
+      <h2 style="font-size:16px;">Staff Arbitrale</h2>
+      <button class="btn-aggiungi" onclick="apriModalAggiungiStaffArb()">+ Aggiungi staff arbitrale</button>
+    </div>
+    <div id="staffArbitraleList"></div>
   </div>
 </div>
 
@@ -1670,7 +1679,7 @@
       <button class="filtro-btn"    id="sfAllenamento" onclick="filtraSessioni('allenamento')">Allenamento</button>
       <button class="filtro-btn"    id="sfEvento"      onclick="filtraSessioni('evento')">Evento</button>
       <button class="filtro-btn"    id="sfTorneo"      onclick="filtraSessioni('torneo')">Torneo</button>
-      <button onclick="svuotaCalendario()" style="padding:6px 14px;border-radius:var(--radius);border:1.5px solid var(--rosso);background:transparent;color:var(--rosso);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;">🗑 Svuota calendario</button>
+      <button onclick="svuotaCalendario()" style="padding:6px 14px;border-radius:var(--radius);border:1.5px solid var(--rosso);background:transparent;color:var(--rosso);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.04em;">Svuota calendario</button>
     </div>
   </div>
   <!-- Next session banner -->
@@ -3082,7 +3091,7 @@
     if (nome === 'calendario')   caricaCalendario();
     if (nome === 'ordini')       caricaOrdini();
     if (nome === 'squadra')      { _sqCatSelected = null; caricaSquadra(); }
-    if (nome === 'staff')        caricaStaff();
+    if (nome === 'staff')        { caricaStaff(); caricaStaffArbitrale(); }
     if (nome === 'live')         caricaLiveLinks();
     if (nome === 'sponsor')      caricaSponsor();
     if (nome === 'utenti')       caricaUtenti();
@@ -3440,7 +3449,7 @@
         ? 'Prossima: ' + new Date(future[0].data+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})
         : 'Nessuna sessione prossima';
       return `<div class="cal-cat-card" onclick="apriCalCat('${cat.nome.replace(/'/g,"\\'")}')">
-        <div class="cat-ico">🏐</div>
+        <div class="cat-ico"></div>
         <div class="cat-nome">${cat.nome}</div>
         <div class="cat-sub">${catSess.length} sessioni totali</div>
         <div class="cat-pross">${prossLabel}</div>
@@ -4190,7 +4199,7 @@
         (g.sesso || '').split(',').map(s => s.trim()).includes(cat)
       ).length;
       return `<div class="cal-cat-card" onclick="apriSqCat('${cat.replace(/'/g,"\\'")}')">
-        <div class="cat-ico">🏐</div>
+        <div class="cat-ico"></div>
         <div class="cat-nome">${cat}</div>
         <div class="cat-sub">${count} giocator${count === 1 ? 'e' : 'i'}</div>
       </div>`;
@@ -4971,7 +4980,7 @@
     try {
       const list = await fetch('/api/admin/squadre-homepage', { headers: headers() }).then(r => r.json());
       if (!list.length) {
-        el.innerHTML = '<div class="empty-state"><div class="icon">🏠</div>Nessuna card homepage. Aggiungine una.</div>';
+        el.innerHTML = '<div class="empty-state"><div class="icon"></div>Nessuna card homepage. Aggiungine una.</div>';
         return;
       }
       el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">` +
@@ -5060,8 +5069,8 @@
           <td data-label="Livello">${s.livello}</td>
           <td data-label="Attivo">${s.attivo ? '<span style="color:#16a34a;font-weight:700;">✓ Sì</span>' : '<span style="color:#999;">✗ No</span>'}</td>
           <td data-label="Azioni" style="display:flex;gap:6px;">
-            <button onclick="modificaSponsor(${JSON.stringify(s).replace(/"/g,'&quot;')})" class="btn-azione btn-edit">✏️</button>
-            <button onclick="eliminaSponsor(${s.id},'${s.nome.replace(/'/g,"\\\'")}')" class="btn-azione btn-delete">🗑</button>
+            <button onclick="modificaSponsor(${JSON.stringify(s).replace(/"/g,'&quot;')})" class="btn-azione btn-edit">modifica</button>
+            <button onclick="eliminaSponsor(${s.id},'${s.nome.replace(/'/g,"\\\'")}')" class="btn-azione btn-delete">elimina</button>
           </td>
         </tr>`).join('');
     } catch(e) { tbody.innerHTML = '<tr><td colspan="6">Errore caricamento.</td></tr>'; }
@@ -5532,6 +5541,29 @@
 
     try {
       await _loadCats();
+      // Merge from linked squadra records — populates teams/roles if utenti fields are empty
+      const COACH_ROLES_CLI = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
+      const squadraRaw = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+      const linked = squadraRaw.filter(g => g.utente_id === id && g.sesso !== 'Staff');
+      for (const g of linked) {
+        if (COACH_ROLES_CLI.includes(g.ruolo)) {
+          const team = (g.sesso || '').split(',')[0].trim();
+          if (team && !_allenatoreIncarichi.some(i => i.squadra === team)) {
+            _allenatoreIncarichi.push({ squadra: team, ruolo: g.ruolo });
+            _tipoStato.allenatore = true;
+          }
+        } else {
+          const teams = (g.sesso || '').split(',').map(s => s.trim()).filter(Boolean);
+          for (const team of teams) {
+            if (!_atletaIncarichi.some(i => i.squadra === team)) {
+              _atletaIncarichi.push({ squadra: team, ruolo: g.ruolo });
+              _tipoStato.atleta = true;
+            }
+          }
+        }
+      }
+      _aggiornaTabTipo();
+      _mostraSezioniSquadre();
       renderAtletaList();
       renderAllenatoreList();
     } catch {

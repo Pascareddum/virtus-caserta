@@ -473,6 +473,52 @@
     }
     .btn-logout:hover { background: #f9fafb; color: #374151; border-color: #d1d5db; }
 
+    /* ── Notifiche ── */
+    .notif-section { margin: 20px 0; }
+    .notif-card {
+      background: #f8fafc;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .notif-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .notif-row-info { flex: 1; min-width: 0; }
+    .notif-row-label { font-size: 14px; font-weight: 600; color: #1f2937; }
+    .notif-row-desc { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+    .toggle-wrap { flex-shrink: 0; }
+    .toggle-input { display: none; }
+    .toggle-label {
+      display: inline-block;
+      width: 42px; height: 24px;
+      background: #d1d5db;
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle-label::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .toggle-input:checked + .toggle-label { background: #0d2055; }
+    .toggle-input:checked + .toggle-label::after { transform: translateX(18px); }
+    .notif-sub { display: none; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid #e5e7eb; }
+    .notif-sub.visible { display: flex; }
+    .notif-status { font-size: 12px; color: #9ca3af; text-align: center; }
+
     @media (max-width: 480px) {
       .profile-card { padding: 32px 18px 32px; }
       .profile-name { font-size: 20px; }
@@ -573,6 +619,56 @@
             </div>
             <div id="staffArbList" class="agenda-day-events"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Notifiche push -->
+      <div class="notif-section">
+        <div class="section-label">Notifiche push</div>
+        <div class="notif-card">
+          <div class="notif-row">
+            <div class="notif-row-info">
+              <div class="notif-row-label">Abilita notifiche</div>
+              <div class="notif-row-desc">Per questo dispositivo/browser</div>
+            </div>
+            <div class="toggle-wrap">
+              <input type="checkbox" class="toggle-input" id="togglePushEnabled">
+              <label class="toggle-label" for="togglePushEnabled"></label>
+            </div>
+          </div>
+          <div class="notif-sub" id="notifSub">
+            <div class="notif-row">
+              <div class="notif-row-info">
+                <div class="notif-row-label">🔴 Diretta live</div>
+                <div class="notif-row-desc">Quando Virtus Caserta è in diretta</div>
+              </div>
+              <div class="toggle-wrap">
+                <input type="checkbox" class="toggle-input" id="toggleNotifLive">
+                <label class="toggle-label" for="toggleNotifLive"></label>
+              </div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-row-info">
+                <div class="notif-row-label">📰 Notizie</div>
+                <div class="notif-row-desc">Quando viene pubblicata una nuova notizia</div>
+              </div>
+              <div class="toggle-wrap">
+                <input type="checkbox" class="toggle-input" id="toggleNotifNotizie">
+                <label class="toggle-label" for="toggleNotifNotizie"></label>
+              </div>
+            </div>
+            <div class="notif-row">
+              <div class="notif-row-info">
+                <div class="notif-row-label">🏐 Partite</div>
+                <div class="notif-row-desc">Avviso 3 ore prima di ogni partita</div>
+              </div>
+              <div class="toggle-wrap">
+                <input type="checkbox" class="toggle-input" id="toggleNotifPartite">
+                <label class="toggle-label" for="toggleNotifPartite"></label>
+              </div>
+            </div>
+          </div>
+          <div class="notif-status" id="notifStatus"></div>
         </div>
       </div>
 
@@ -953,6 +1049,139 @@
 
     loadProfile();
     loadStaffArbitrale();
+
+    /* ── Push notification preferences ── */
+    const PUSH_EP_KEY = 'vc_push_endpoint';
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+
+    async function getVapidKey() {
+      try {
+        const r = await fetch('/api/push/vapid-key');
+        const d = await r.json();
+        return d.key || null;
+      } catch { return null; }
+    }
+
+    async function subscribePush() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+      const vapidKey = await getVapidKey();
+      if (!vapidKey) return null;
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      });
+      const { endpoint, keys } = sub.toJSON();
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint, keys }),
+      });
+      localStorage.setItem(PUSH_EP_KEY, endpoint);
+      return endpoint;
+    }
+
+    async function loadPushPrefs() {
+      let endpoint = localStorage.getItem(PUSH_EP_KEY);
+      const statusEl = document.getElementById('notifStatus');
+      const mainToggle = document.getElementById('togglePushEnabled');
+      const subPanel = document.getElementById('notifSub');
+
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        statusEl.textContent = 'Notifiche non supportate da questo browser.';
+        mainToggle.disabled = true;
+        return;
+      }
+
+      // If permission already granted but localStorage missing, recover endpoint from SW
+      if (Notification.permission === 'granted' && !endpoint) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) {
+            endpoint = sub.endpoint;
+            localStorage.setItem(PUSH_EP_KEY, endpoint);
+          }
+        } catch (_) {}
+      }
+
+      const enabled = Notification.permission === 'granted' && !!endpoint;
+      mainToggle.checked = enabled;
+      subPanel.classList.toggle('visible', enabled);
+
+      if (enabled) {
+        try {
+          const r = await fetch(`/api/push/preferences?endpoint=${encodeURIComponent(endpoint)}`);
+          if (r.ok) {
+            const prefs = await r.json();
+            document.getElementById('toggleNotifLive').checked    = !!prefs.notif_live;
+            document.getElementById('toggleNotifNotizie').checked  = !!prefs.notif_notizie;
+            document.getElementById('toggleNotifPartite').checked  = !!prefs.notif_partite;
+          }
+        } catch (_) {}
+      }
+    }
+
+    async function savePushPrefs() {
+      const endpoint = localStorage.getItem(PUSH_EP_KEY);
+      if (!endpoint) return;
+      const statusEl = document.getElementById('notifStatus');
+      statusEl.textContent = 'Salvataggio…';
+      try {
+        await fetch('/api/push/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint,
+            notif_live:    document.getElementById('toggleNotifLive').checked,
+            notif_notizie: document.getElementById('toggleNotifNotizie').checked,
+            notif_partite: document.getElementById('toggleNotifPartite').checked,
+          }),
+        });
+        statusEl.textContent = 'Preferenze salvate.';
+        setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      } catch { statusEl.textContent = 'Errore salvataggio.'; }
+    }
+
+    document.getElementById('togglePushEnabled').addEventListener('change', async function() {
+      const statusEl = document.getElementById('notifStatus');
+      const subPanel = document.getElementById('notifSub');
+      if (this.checked) {
+        statusEl.textContent = 'Attivazione notifiche…';
+        try {
+          const perm = await Notification.requestPermission();
+          if (perm !== 'granted') {
+            this.checked = false;
+            statusEl.textContent = 'Permesso negato. Abilita le notifiche nelle impostazioni del browser.';
+            return;
+          }
+          const ep = await subscribePush();
+          if (!ep) { this.checked = false; statusEl.textContent = 'Errore attivazione.'; return; }
+          subPanel.classList.add('visible');
+          document.getElementById('toggleNotifLive').checked    = true;
+          document.getElementById('toggleNotifNotizie').checked  = true;
+          document.getElementById('toggleNotifPartite').checked  = true;
+          await savePushPrefs();
+        } catch (e) { this.checked = false; statusEl.textContent = 'Errore: ' + e.message; }
+      } else {
+        localStorage.removeItem(PUSH_EP_KEY);
+        subPanel.classList.remove('visible');
+        statusEl.textContent = 'Notifiche disattivate.';
+        setTimeout(() => { statusEl.textContent = ''; }, 2000);
+      }
+    });
+
+    ['toggleNotifLive','toggleNotifNotizie','toggleNotifPartite'].forEach(id => {
+      document.getElementById(id).addEventListener('change', savePushPrefs);
+    });
+
+    loadPushPrefs();
   </script>
 </body>
 </html>

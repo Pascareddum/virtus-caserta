@@ -377,6 +377,7 @@
       Twitch
     </span>
     <span class="section-title">Diretta Twitch</span>
+    <span class="live-pill off" id="twitchPill">● Offline</span>
   </div>
 
   <div class="embed-container">
@@ -479,6 +480,11 @@
         const pill = document.getElementById('spikePill');
         pill.textContent = '● Live';
         pill.classList.remove('off');
+      }
+      if (data.twitch_live) {
+        const tPill = document.getElementById('twitchPill');
+        tPill.textContent = '● Live';
+        tPill.classList.remove('off');
       }
     } catch (e) {
       console.error('[Live] Errore:', e.message);
