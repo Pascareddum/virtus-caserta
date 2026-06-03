@@ -451,10 +451,31 @@ app.post('/api/logout', (_req, res) => {
 });
 
 /* ─── Auth status (per redirect su login page) ─── */
+const USER_SESSION_OPTS = () => ({
+  httpOnly: true,
+  sameSite: 'strict',
+  maxAge: 120 * 24 * 60 * 60 * 1000,
+  secure: process.env.NODE_ENV === 'production',
+});
+
 app.get('/api/me', (req, res) => {
   const payload = verifyToken(req);
   if (!payload) return res.json({ auth: false });
+  // Sliding session: refresh cookie on every authenticated page load
+  if (payload.role === 'utente' && req.cookies.vc_user_session) {
+    const newToken = jwt.sign({ id: payload.id, email: payload.email, nome: payload.nome, role: 'utente' }, JWT_SECRET, { expiresIn: '120d' });
+    res.cookie('vc_user_session', newToken, USER_SESSION_OPTS());
+  }
   res.json({ auth: true, role: payload.role });
+});
+
+/* ─── Token refresh esplicito (per client Bearer) ─── */
+app.post('/api/auth/refresh', (req, res) => {
+  const payload = verifyToken(req);
+  if (!payload || payload.role !== 'utente') return res.status(401).json({ error: 'Non autenticato' });
+  const newToken = jwt.sign({ id: payload.id, email: payload.email, nome: payload.nome, role: 'utente' }, JWT_SECRET, { expiresIn: '120d' });
+  res.cookie('vc_user_session', newToken, USER_SESSION_OPTS());
+  res.json({ token: newToken });
 });
 
 /* ─── Utenti: registrazione (pubblico) ─── */
@@ -495,11 +516,11 @@ app.post('/api/login', loginLimiter, async (req, res) => {
     if (!u.password_hash) return res.status(403).json({ error: 'Password non impostata. Controlla la tua email.' });
     const ok = await bcrypt.compare(password, u.password_hash);
     if (!ok) return res.status(401).json({ error: 'Credenziali non valide.' });
-    const token = jwt.sign({ id: u.id, email: u.email, nome: u.nome, role: 'utente' }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: u.id, email: u.email, nome: u.nome, role: 'utente' }, JWT_SECRET, { expiresIn: '120d' });
     res.cookie('vc_user_session', token, {
       httpOnly: true,
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 120 * 24 * 60 * 60 * 1000,
       secure: process.env.NODE_ENV === 'production',
     });
     res.json({ user: { id: u.id, nome: u.nome, cognome: u.cognome, email: u.email } });
