@@ -441,6 +441,34 @@ async function createTables() {
   await query(`ALTER TABLE torneo_partite ADD COLUMN IF NOT EXISTS bracket_pos INTEGER DEFAULT 0`);
   try { await query(`ALTER TABLE torneo_partite ALTER COLUMN squadra_casa_id DROP NOT NULL`); } catch(_){}
   try { await query(`ALTER TABLE torneo_partite ALTER COLUMN squadra_ospite_id DROP NOT NULL`); } catch(_){}
+  await query(`ALTER TABLE IF EXISTS progetti ADD COLUMN IF NOT EXISTS immagine VARCHAR(500)`);
+
+  // Progetti / Bandi
+  await query(`
+    CREATE TABLE IF NOT EXISTS progetti (
+      id                   SERIAL PRIMARY KEY,
+      titolo               VARCHAR(255) NOT NULL,
+      descrizione          TEXT,
+      immagine             VARCHAR(500),
+      pdf_bando            VARCHAR(500),
+      data_scadenza        DATE,
+      documenti_richiesti  JSONB DEFAULT '[]',
+      pubblicato           BOOLEAN DEFAULT false,
+      created_at           TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS progetti_domande (
+      id           SERIAL PRIMARY KEY,
+      progetto_id  INTEGER NOT NULL REFERENCES progetti(id) ON DELETE CASCADE,
+      nome         VARCHAR(255),
+      cognome      VARCHAR(255),
+      email        VARCHAR(255),
+      note         TEXT,
+      files        JSONB DEFAULT '[]',
+      created_at   TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 
   // RLS — block direct PostgREST/anon-key access; postgres role bypasses automatically
   for (const t of [
@@ -450,6 +478,7 @@ async function createTables() {
     'assegnazioni_partita', 'staff_arbitrale', 'palestres', 'squadre_homepage',
     'utenti', 'tornei', 'torneo_partecipanti', 'torneo_squadre', 'torneo_gironi', 'torneo_partite',
     'partite_proposte', 'comunicazioni', 'documenti_utente',
+    'progetti', 'progetti_domande',
   ]) {
     try { await query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`); } catch (_) {}
   }

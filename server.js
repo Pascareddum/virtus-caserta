@@ -310,6 +310,7 @@ app.get('/eventi-tornei',     sendPage('eventi-tornei-utente.html'));
 app.get('/galleria',          (_req, res) => res.redirect(301, '/'));
 app.get('/iscrizione',        (_req, res) => res.redirect(301, '/'));
 app.get('/sponsor',           sendPage('sponsor.html'));
+app.get('/progetti',          sendPage('progetti.html'));
 app.get('/reset-password',    (_req, res) => res.redirect(301, '/login'));
 app.get('/imposta-password',  sendPage('imposta-password.html'));
 
@@ -4977,6 +4978,161 @@ function scheduleReminderMailOrdini() {
   const nextStr = new Date(now.getTime() + delay).toLocaleString('it-IT', { timeZone: 'Europe/Rome' });
   console.log(`[Reminder ordini] Prossimo check: ${nextStr}`);
 }
+
+/* ─── Progetti ─── */
+// Multer per allegati domande (max 5 file, PDF/doc/img)
+const uploadProgetti = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /\.(pdf|doc|docx|jpg|jpeg|png)$/i.test(file.originalname);
+    cb(null, ok);
+  },
+});
+
+// Pubblica: lista progetti pubblicati
+app.get('/api/progetti', async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT id, titolo, immagine, data_scadenza, pubblicato FROM progetti WHERE pubblicato=true ORDER BY created_at DESC`);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Pubblica: dettaglio singolo progetto
+app.get('/api/progetti/:id', async (req, res) => {
+  try {
+    const r = await db.query(`SELECT * FROM progetti WHERE id=$1 AND pubblicato=true`, [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Pubblica: invia domanda
+app.post('/api/progetti/:id/domanda', uploadProgetti.any(), async (req, res) => {
+  try {
+    const { nome, cognome, email, note } = req.body;
+    const progetto = await db.query(`SELECT id, documenti_richiesti FROM progetti WHERE id=$1 AND pubblicato=true`, [req.params.id]);
+    if (!progetto.rows.length) return res.status(404).json({ error: 'Progetto non trovato' });
+    const files = [];
+    for (const f of (req.files || [])) {
+      const storagePath = `progetti/${req.params.id}/${Date.now()}_${f.fieldname}_${f.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      if (supabaseStorage) {
+        const { error } = await supabaseStorage.from(SUPABASE_BUCKET).upload(storagePath, f.buffer, { contentType: f.mimetype, upsert: false });
+        if (error) throw new Error(error.message);
+        const { data } = supabaseStorage.from(SUPABASE_BUCKET).getPublicUrl(storagePath);
+        files.push({ label: f.fieldname, nome: f.originalname, url: data.publicUrl });
+      } else {
+        const dir = path.join(UPLOADS_DIR, `progetti/${req.params.id}`);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const fp = path.join(dir, path.basename(storagePath));
+        fs.writeFileSync(fp, f.buffer);
+        files.push({ label: f.fieldname, nome: f.originalname, url: '/uploads/' + storagePath });
+      }
+    }
+    const ins = await db.query(
+      `INSERT INTO progetti_domande (progetto_id, nome, cognome, email, note, files) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, created_at`,
+      [req.params.id, nome || '', cognome || '', email || '', note || '', JSON.stringify(files)]
+    );
+    res.json({ ok: true, domanda_id: ins.rows[0].id, created_at: ins.rows[0].created_at });
+  } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
+});
+
+// Admin: lista tutti i progetti
+app.get('/api/admin/progetti', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query(`SELECT id, titolo, data_scadenza, pubblicato, created_at FROM progetti ORDER BY created_at DESC`);
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: domande ricevute (tutte) — DEVE stare prima di /:id
+app.get('/api/admin/progetti/domande', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT d.*, p.titolo AS progetto_titolo FROM progetti_domande d JOIN progetti p ON p.id=d.progetto_id ORDER BY d.created_at DESC`
+    );
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Admin: dettaglio progetto
+app.get('/api/admin/progetti/:id', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query(`SELECT * FROM progetti WHERE id=$1`, [req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    res.json(r.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+async function _uploadProgettoFile(file, folder) {
+  const storagePath = `progetti/${folder}/${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  if (supabaseStorage) {
+    const { error } = await supabaseStorage.from(SUPABASE_BUCKET).upload(storagePath, file.buffer, { contentType: file.mimetype, upsert: false });
+    if (error) throw new Error(error.message);
+    const { data } = supabaseStorage.from(SUPABASE_BUCKET).getPublicUrl(storagePath);
+    return data.publicUrl;
+  } else {
+    const dir = path.join(UPLOADS_DIR, `progetti/${folder}`);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, path.basename(storagePath)), file.buffer);
+    return '/uploads/' + storagePath;
+  }
+}
+
+// Admin: crea progetto
+app.post('/api/admin/progetti', adminAuth, uploadProgetti.fields([{ name:'pdf_bando', maxCount:1 }, { name:'immagine', maxCount:1 }]), async (req, res) => {
+  try {
+    const { titolo, descrizione, data_scadenza, documenti_richiesti, pubblicato } = req.body;
+    const files = req.files || {};
+    let pdf_bando = null, immagine = null;
+    if (files.pdf_bando?.[0]) pdf_bando = await _uploadProgettoFile(files.pdf_bando[0], 'bandi');
+    if (files.immagine?.[0])  immagine  = await _uploadProgettoFile(files.immagine[0],  'img');
+    const docs = documenti_richiesti ? JSON.parse(documenti_richiesti) : [];
+    const r = await db.query(
+      `INSERT INTO progetti (titolo, descrizione, immagine, pdf_bando, data_scadenza, documenti_richiesti, pubblicato) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [titolo, descrizione || '', immagine, pdf_bando, data_scadenza || null, JSON.stringify(docs), pubblicato === 'true']
+    );
+    res.json(r.rows[0]);
+  } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
+});
+
+// Admin: modifica progetto
+app.put('/api/admin/progetti/:id', adminAuth, uploadProgetti.fields([{ name:'pdf_bando', maxCount:1 }, { name:'immagine', maxCount:1 }]), async (req, res) => {
+  try {
+    const { titolo, descrizione, data_scadenza, documenti_richiesti, pubblicato } = req.body;
+    const existing = await db.query(`SELECT * FROM progetti WHERE id=$1`, [req.params.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Non trovato' });
+    const files = req.files || {};
+    let pdf_bando = existing.rows[0].pdf_bando;
+    let immagine  = existing.rows[0].immagine;
+    if (files.pdf_bando?.[0]) pdf_bando = await _uploadProgettoFile(files.pdf_bando[0], 'bandi');
+    if (files.immagine?.[0])  immagine  = await _uploadProgettoFile(files.immagine[0],  'img');
+    const docs = documenti_richiesti ? JSON.parse(documenti_richiesti) : existing.rows[0].documenti_richiesti;
+    const r = await db.query(
+      `UPDATE progetti SET titolo=$1, descrizione=$2, immagine=$3, pdf_bando=$4, data_scadenza=$5, documenti_richiesti=$6, pubblicato=$7 WHERE id=$8 RETURNING *`,
+      [titolo, descrizione || '', immagine, pdf_bando, data_scadenza || null, JSON.stringify(docs), pubblicato === 'true', req.params.id]
+    );
+    res.json(r.rows[0]);
+  } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
+});
+
+// Admin: elimina progetto
+app.delete('/api/admin/progetti/:id', adminAuth, async (req, res) => {
+  try {
+    await db.query(`DELETE FROM progetti WHERE id=$1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/admin/progetti/:id/domande', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT d.*, p.titolo AS progetto_titolo FROM progetti_domande d JOIN progetti p ON p.id=d.progetto_id WHERE d.progetto_id=$1 ORDER BY d.created_at DESC`,
+      [req.params.id]
+    );
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 /* ─── Startup ─── */
 db.init().then(async () => {

@@ -331,6 +331,10 @@
     .btn-delete:hover { background:#fde1e5; }
     .btn-link   { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
     .btn-link:hover   { background:#dcfce7; }
+    .btn-pin        { background:#fff8f0; color:#b45309; border-color:#fcd89a; }
+    .btn-pin:hover  { background:#fef3c7; }
+    .btn-pin-active { background:#fef3c7; color:#92400e; border-color:#f59e0b; font-weight:700; }
+    .btn-pin-active:hover { background:#fde68a; }
     .torneo-card { background:#fff; border:1.5px solid var(--bordo); border-radius:14px; padding:18px 20px; margin-bottom:12px; box-shadow:var(--shadow-xs); }
     .torneo-top  { display:flex; align-items:flex-start; gap:14px; }
     .torneo-info { flex:1; min-width:0; }
@@ -1287,6 +1291,15 @@
         <button class="tab-btn nav-sub" data-tab="sponsor"         onclick="switchTab('sponsor')">Sponsor</button>
       </div>
     </div>
+    <div class="nav-group" id="dgrp-progetti">
+      <button class="nav-grp-hdr" onclick="toggleGrp('dgrp-progetti')">
+        <span>Progetti</span><span class="nav-grp-chevron"></span>
+      </button>
+      <div class="nav-grp-items">
+        <button class="tab-btn nav-sub" data-tab="progetti-lista"  onclick="switchTab('progetti-lista')">Bandi/Progetti</button>
+        <button class="tab-btn nav-sub" data-tab="progetti-domande" onclick="switchTab('progetti-domande')">Domande ricevute</button>
+      </div>
+    </div>
     <div class="nav-divider"></div>
     <button class="tab-btn" data-tab="live"   onclick="switchTab('live')">Live</button>
     <button class="tab-btn" data-tab="utenti" onclick="switchTab('utenti')">Utenti</button>
@@ -1332,6 +1345,15 @@
       <button class="tab-btn nav-sub" data-tab="staff"           onclick="switchTab('staff')">Staff</button>
       <button class="tab-btn nav-sub" data-tab="squadra"         onclick="switchTab('squadra')">Squadra</button>
       <button class="tab-btn nav-sub" data-tab="sponsor"         onclick="switchTab('sponsor')">Sponsor</button>
+    </div>
+  </div>
+  <div class="nav-group" id="sgrp-progetti">
+    <button class="nav-grp-hdr" onclick="toggleGrp('sgrp-progetti')">
+      <span>Progetti</span><span class="nav-grp-chevron"></span>
+    </button>
+    <div class="nav-grp-items">
+      <button class="tab-btn nav-sub" data-tab="progetti-lista"   onclick="switchTab('progetti-lista')">Bandi/Progetti</button>
+      <button class="tab-btn nav-sub" data-tab="progetti-domande" onclick="switchTab('progetti-domande')">Domande ricevute</button>
     </div>
   </div>
   <div class="nav-divider"></div>
@@ -2996,6 +3018,74 @@
   </div>
 </div>
 
+<!-- ══ PROGETTI – BANDI ══ -->
+<div class="pannello" id="pan-progetti-lista">
+  <div class="toolbar">
+    <h2>Bandi / Progetti</h2>
+    <button onclick="apriModaleNuovoProgetto()" style="padding:9px 18px;border-radius:9px;border:none;background:#0d2055;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">+ Nuovo progetto</button>
+  </div>
+  <div id="progettiAdminList" style="display:flex;flex-direction:column;gap:12px;max-width:860px;"></div>
+</div>
+
+<!-- ══ PROGETTI – DOMANDE ══ -->
+<div class="pannello" id="pan-progetti-domande">
+  <div class="toolbar"><h2>Domande ricevute</h2></div>
+  <div id="progettiDomandeList" style="max-width:900px;"></div>
+</div>
+
+<!-- MODAL PROGETTO (crea/modifica) -->
+<div class="modal-overlay-admin" id="modalProgetto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4000;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:18px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 60px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid var(--bordo);position:sticky;top:0;background:#fff;z-index:1;">
+      <strong id="modalProgettoTitolo" style="font-size:16px;font-weight:800;">Nuovo progetto</strong>
+      <button onclick="chiudiModaleProgetto()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;">✕</button>
+    </div>
+    <div style="padding:20px 22px 24px;display:flex;flex-direction:column;gap:14px;">
+      <input type="hidden" id="progettoEditId">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;">Titolo *</label>
+        <input id="progettoTitolo" type="text" placeholder="Nome del progetto/bando"
+          style="width:100%;padding:10px 13px;border:1.5px solid var(--bordo);border-radius:9px;font-size:14px;font-family:inherit;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;">Descrizione</label>
+        <textarea id="progettoDescrizione" rows="5" placeholder="Descrizione, requisiti, informazioni…"
+          style="width:100%;padding:10px 13px;border:1.5px solid var(--bordo);border-radius:9px;font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;">Data scadenza</label>
+        <input id="progettoScadenza" type="date"
+          style="padding:10px 13px;border:1.5px solid var(--bordo);border-radius:9px;font-size:14px;font-family:inherit;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;">Immagine copertina</label>
+        <input id="progettoImgFile" type="file" accept="image/*" style="font-size:13px;">
+        <div id="progettoImgPreview" style="margin-top:8px;"></div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;">PDF Bando (file)</label>
+        <input id="progettoPdfFile" type="file" accept=".pdf" style="font-size:13px;">
+        <div id="progettoPdfAttuale" style="font-size:12px;color:#888;margin-top:4px;"></div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px;">Documenti richiesti</label>
+        <div id="docsRichiesti" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <button onclick="aggiungiDocRichiesto()" type="button"
+          style="margin-top:8px;padding:7px 14px;border-radius:8px;border:1.5px dashed var(--bordo);background:var(--surface-3);font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;">+ Aggiungi documento</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input id="progettoPubblicato" type="checkbox" style="width:16px;height:16px;cursor:pointer;">
+        <label for="progettoPubblicato" style="font-size:14px;font-weight:600;cursor:pointer;">Pubblicato (visibile sul sito)</label>
+      </div>
+      <div id="progettoErrMsg" style="background:#fee2e2;color:#dc2626;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:700;display:none;"></div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button onclick="chiudiModaleProgetto()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--bordo);background:#fff;font-size:14px;font-weight:700;cursor:pointer;">Annulla</button>
+        <button onclick="salvaProgetto()" id="btnSalvaProgetto" style="flex:2;padding:11px;border-radius:10px;border:none;background:#0d2055;color:#fff;font-size:14px;font-weight:800;cursor:pointer;">Salva</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   /* ── Quill WYSIWYG ── */
   let quill = null;
@@ -3272,6 +3362,26 @@
   const COLORI_LABEL = { blu:'Notizia', arancio:'Comunicato', azzurro:'Risultato' };
   const COLORI_BADGE = { blu:'badge-blu', arancio:'badge-arancio', azzurro:'badge-azzurro' };
 
+  function getPinnedAdmin() {
+    try { return JSON.parse(localStorage.getItem('pinnedNewsIds') || '[]'); } catch { return []; }
+  }
+  function setPinnedAdmin(arr) {
+    localStorage.setItem('pinnedNewsIds', JSON.stringify(arr));
+  }
+  function togglePin(id) {
+    id = String(id);
+    const pins = getPinnedAdmin();
+    const idx = pins.indexOf(id);
+    if (idx !== -1) {
+      pins.splice(idx, 1);
+    } else {
+      if (pins.length >= 3) { alert('Puoi fissare al massimo 3 notizie in evidenza.'); return; }
+      pins.unshift(id);
+    }
+    setPinnedAdmin(pins);
+    caricaNotizie();
+  }
+
   async function caricaNotizie() {
     const tbody = document.getElementById('notizieBody');
     try {
@@ -3280,22 +3390,27 @@
         tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">📰</div>Nessuna notizia. Aggiungine una!</div></td></tr>`;
         return;
       }
-      tbody.innerHTML = notizie.map(n => `
-        <tr>
+      const pins = getPinnedAdmin();
+      tbody.innerHTML = notizie.map(n => {
+        const isPinned = pins.includes(String(n.id));
+        return `
+        <tr${isPinned ? ' style="background:#fffbeb;border-left:3px solid #f57c00;"' : ''}>
           <td data-label="" style="font-size:26px;text-align:center;">${n.immagine ? `<img src="${n.immagine}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;">` : (n.colore==='arancio'?'🟠':n.colore==='azzurro'?'🩵':'🔵')}</td>
           <td data-label="Titolo">
-            <div class="prod-nome">${n.titolo}</div>
+            <div class="prod-nome">${n.titolo}${isPinned ? ' <span style="font-size:10px;font-weight:800;letter-spacing:1.2px;color:#b45309;background:#fef3c7;padding:2px 7px;border-radius:10px;vertical-align:middle;">IN EVIDENZA</span>' : ''}</div>
             <div class="prod-desc">${(n.testo||'').slice(0,80)}${(n.testo||'').length>80?'…':''}</div>
           </td>
           <td data-label="Categoria"><span class="badge ${COLORI_BADGE[n.colore]||'badge-blu'}">${COLORI_LABEL[n.colore]||'Notizia'}</span></td>
           <td data-label="Data" style="color:var(--sub);font-size:13px;">${n.data||'—'}</td>
           <td data-label="Azioni">
             <div class="azioni">
+              <button class="btn-azione ${isPinned ? 'btn-pin-active' : 'btn-pin'}" onclick="togglePin('${n.id}')">${isPinned ? 'In evidenza ✕' : 'Metti in evidenza'}</button>
               <button class="btn-azione btn-edit"   onclick="apriModalNotizia('${n.id}')">Modifica</button>
               <button class="btn-azione btn-delete" onclick="eliminaNotizia('${n.id}','${(n.titolo||'').replace(/'/g,"\\'")}')">Elimina</button>
             </div>
           </td>
-        </tr>`).join('');
+        </tr>`;
+      }).join('');
     } catch {
       tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">Errore caricamento notizie.</div></td></tr>`;
     }
@@ -8420,7 +8535,248 @@
   switchTab = function(nome) {
     _origSwitchTab(nome);
     if (nome === 'push') caricaSubCount();
+    if (nome === 'progetti-lista') caricaProgettiAdmin();
+    if (nome === 'progetti-domande') caricaProgettiDomande();
   };
+
+  /* ════════════════════════════════
+     PROGETTI ADMIN
+  ════════════════════════════════ */
+  let _progettiAdmin = [];
+
+  function _projEsc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function _projIsAperto(p) {
+    if (!p.data_scadenza) return true;
+    return new Date(p.data_scadenza) >= new Date(new Date().toDateString());
+  }
+
+  function _projFmtData(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
+  }
+
+  async function caricaProgettiAdmin() {
+    const el = document.getElementById('progettiAdminList');
+    el.innerHTML = '<div style="color:var(--sub);padding:20px 0;">Caricamento…</div>';
+    try {
+      const r = await fetch('/api/admin/progetti', { headers: headers() });
+      _progettiAdmin = await r.json();
+      renderProgettiAdmin();
+    } catch (e) {
+      el.innerHTML = `<div style="color:#dc2626;padding:12px;">Errore: ${e.message}</div>`;
+    }
+  }
+
+  function renderProgettiAdmin() {
+    const el = document.getElementById('progettiAdminList');
+    if (!_progettiAdmin.length) {
+      el.innerHTML = '<div style="color:var(--sub);padding:20px 0;">Nessun progetto creato.</div>';
+      return;
+    }
+    el.innerHTML = _progettiAdmin.map(p => {
+      const aperto = _projIsAperto(p);
+      return `
+        <div style="background:var(--surface);border:1.5px solid var(--bordo);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:800;color:var(--testo);">${_projEsc(p.titolo)}</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:3px;">Scadenza: ${_projFmtData(p.data_scadenza)}</div>
+          </div>
+          <span style="flex-shrink:0;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;${aperto ? 'background:#dcfce7;color:#16a34a;' : 'background:#fee2e2;color:#dc2626;'}">${aperto ? 'Aperto' : 'Chiuso'}</span>
+          ${p.pubblicato ? '<span style="flex-shrink:0;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:#eff6ff;color:#1d4ed8;">Pubblicato</span>' : '<span style="flex-shrink:0;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:#f3f4f6;color:#6b7280;">Bozza</span>'}
+          <div style="display:flex;gap:8px;flex-shrink:0;">
+            <button onclick="apriModaleModificaProgetto(${p.id})" style="padding:7px 14px;border-radius:8px;border:1.5px solid var(--bordo);background:#fff;font-size:12px;font-weight:700;cursor:pointer;">Modifica</button>
+            <button onclick="eliminaProgetto(${p.id}, '${_projEsc(p.titolo).replace(/'/g, "\\'")}' )" style="padding:7px 14px;border-radius:8px;border:none;background:#fee2e2;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;">Elimina</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function apriModaleNuovoProgetto() {
+    document.getElementById('progettoEditId').value = '';
+    document.getElementById('modalProgettoTitolo').textContent = 'Nuovo progetto';
+    document.getElementById('progettoTitolo').value = '';
+    document.getElementById('progettoDescrizione').value = '';
+    document.getElementById('progettoScadenza').value = '';
+    document.getElementById('progettoPdfFile').value = '';
+    document.getElementById('progettoPdfAttuale').textContent = '';
+    document.getElementById('progettoImgFile').value = '';
+    document.getElementById('progettoImgPreview').innerHTML = '';
+    document.getElementById('progettoPubblicato').checked = false;
+    document.getElementById('docsRichiesti').innerHTML = '';
+    document.getElementById('progettoErrMsg').style.display = 'none';
+    _mostraModaleProgetto();
+  }
+
+  async function apriModaleModificaProgetto(id) {
+    try {
+      const r = await fetch('/api/admin/progetti/' + id, { headers: headers() });
+      const p = await r.json();
+      document.getElementById('progettoEditId').value = p.id;
+      document.getElementById('modalProgettoTitolo').textContent = 'Modifica progetto';
+      document.getElementById('progettoTitolo').value = p.titolo || '';
+      document.getElementById('progettoDescrizione').value = p.descrizione || '';
+      document.getElementById('progettoScadenza').value = p.data_scadenza ? p.data_scadenza.slice(0,10) : '';
+      document.getElementById('progettoPdfFile').value = '';
+      document.getElementById('progettoPdfAttuale').textContent = p.pdf_bando ? `PDF attuale: ${p.pdf_bando.split('/').pop()}` : '';
+      document.getElementById('progettoImgFile').value = '';
+      document.getElementById('progettoImgPreview').innerHTML = p.immagine
+        ? `<img src="${p.immagine}" alt="" style="height:80px;border-radius:8px;object-fit:cover;display:block;"><div style="font-size:11px;color:#888;margin-top:3px;">Immagine attuale (carica nuova per sostituire)</div>`
+        : '';
+      document.getElementById('progettoPubblicato').checked = !!p.pubblicato;
+      document.getElementById('progettoErrMsg').style.display = 'none';
+      const docs = Array.isArray(p.documenti_richiesti) ? p.documenti_richiesti : [];
+      const docsEl = document.getElementById('docsRichiesti');
+      docsEl.innerHTML = '';
+      docs.forEach(d => _renderDocRow(d.label, d.required));
+      _mostraModaleProgetto();
+    } catch (e) {
+      alert('Errore caricamento: ' + e.message);
+    }
+  }
+
+  function _mostraModaleProgetto() {
+    const m = document.getElementById('modalProgetto');
+    m.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function chiudiModaleProgetto() {
+    document.getElementById('modalProgetto').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function _renderDocRow(label, required) {
+    const docsEl = document.getElementById('docsRichiesti');
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:center;';
+    row.innerHTML = `
+      <input type="text" value="${_projEsc(label)}" placeholder="Es. Documento identità" style="flex:1;padding:8px 12px;border:1.5px solid var(--bordo);border-radius:8px;font-size:13px;font-family:inherit;outline:none;" class="doc-label-input">
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;cursor:pointer;">
+        <input type="checkbox" ${required ? 'checked' : ''} class="doc-req-input" style="width:14px;height:14px;"> Obbligatorio
+      </label>
+      <button type="button" onclick="this.closest('div').remove()" style="padding:6px 10px;border-radius:7px;border:none;background:#fee2e2;color:#dc2626;font-weight:700;cursor:pointer;font-size:13px;">✕</button>`;
+    docsEl.appendChild(row);
+  }
+
+  function aggiungiDocRichiesto() {
+    _renderDocRow('', false);
+  }
+
+  async function salvaProgetto() {
+    const btn = document.getElementById('btnSalvaProgetto');
+    const errEl = document.getElementById('progettoErrMsg');
+    errEl.style.display = 'none';
+    const titolo = document.getElementById('progettoTitolo').value.trim();
+    if (!titolo) { errEl.textContent = 'Il titolo è obbligatorio.'; errEl.style.display = 'block'; return; }
+
+    const docs = [];
+    document.querySelectorAll('#docsRichiesti > div').forEach(row => {
+      const lbl = row.querySelector('.doc-label-input')?.value?.trim();
+      const req = row.querySelector('.doc-req-input')?.checked;
+      if (lbl) docs.push({ label: lbl, required: !!req });
+    });
+
+    const fd = new FormData();
+    fd.append('titolo', titolo);
+    fd.append('descrizione', document.getElementById('progettoDescrizione').value);
+    fd.append('data_scadenza', document.getElementById('progettoScadenza').value);
+    fd.append('pubblicato', document.getElementById('progettoPubblicato').checked ? 'true' : 'false');
+    fd.append('documenti_richiesti', JSON.stringify(docs));
+    const pdfFile = document.getElementById('progettoPdfFile').files[0];
+    if (pdfFile) fd.append('pdf_bando', pdfFile);
+    const imgFile = document.getElementById('progettoImgFile').files[0];
+    if (imgFile) fd.append('immagine', imgFile);
+
+    btn.disabled = true;
+    btn.textContent = 'Salvataggio…';
+
+    try {
+      const editId = document.getElementById('progettoEditId').value;
+      const url = editId ? '/api/admin/progetti/' + editId : '/api/admin/progetti';
+      const method = editId ? 'PUT' : 'POST';
+      const r = await fetch(url, { method, body: fd });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Errore'); }
+      chiudiModaleProgetto();
+      caricaProgettiAdmin();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Salva';
+    }
+  }
+
+  async function eliminaProgetto(id, titolo) {
+    if (!confirm(`Eliminare il progetto "${titolo}"?\nSaranno eliminate anche tutte le domande ricevute.`)) return;
+    try {
+      const r = await fetch('/api/admin/progetti/' + id, { method: 'DELETE', headers: headers() });
+      if (!r.ok) throw new Error('Errore eliminazione');
+      caricaProgettiAdmin();
+    } catch (e) { alert(e.message); }
+  }
+
+  /* ── Domande ── */
+  async function caricaProgettiDomande() {
+    const el = document.getElementById('progettiDomandeList');
+    el.innerHTML = '<div style="color:var(--sub);padding:20px 0;">Caricamento…</div>';
+    try {
+      const r = await fetch('/api/admin/progetti/domande', { headers: headers() });
+      const lista = await r.json();
+      if (!lista.length) {
+        el.innerHTML = '<div style="color:var(--sub);padding:20px 0;">Nessuna domanda ricevuta.</div>';
+        return;
+      }
+      el.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="background:var(--surface-3);text-align:left;">
+                <th style="padding:10px 14px;font-weight:700;color:var(--sub);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">#</th>
+                <th style="padding:10px 14px;font-weight:700;color:var(--sub);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">Progetto</th>
+                <th style="padding:10px 14px;font-weight:700;color:var(--sub);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">Candidato</th>
+                <th style="padding:10px 14px;font-weight:700;color:var(--sub);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">Email</th>
+                <th style="padding:10px 14px;font-weight:700;color:var(--sub);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">Data</th>
+                <th style="padding:10px 14px;font-weight:700;color:var(--sub);text-transform:uppercase;font-size:11px;letter-spacing:.06em;">File</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lista.map(d => {
+                const files = Array.isArray(d.files) ? d.files : [];
+                const fileLinks = files.map(f => `<a href="${_projEsc(f.url)}" target="_blank" rel="noopener" style="font-size:11px;color:#1d4ed8;text-decoration:none;display:block;">${_projEsc(f.label || f.nome)}</a>`).join('');
+                return `<tr style="border-bottom:1px solid var(--bordo);">
+                  <td style="padding:10px 14px;color:var(--sub);">${d.id}</td>
+                  <td style="padding:10px 14px;font-weight:700;">${_projEsc(d.progetto_titolo)}</td>
+                  <td style="padding:10px 14px;">${_projEsc(d.nome + ' ' + d.cognome)}</td>
+                  <td style="padding:10px 14px;">${_projEsc(d.email)}</td>
+                  <td style="padding:10px 14px;white-space:nowrap;">${new Date(d.created_at).toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'})}</td>
+                  <td style="padding:10px 14px;">${fileLinks || '—'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    } catch (e) {
+      el.innerHTML = `<div style="color:#dc2626;padding:12px;">Errore: ${e.message}</div>`;
+    }
+  }
+
+  /* chiudi modal progetto cliccando sfondo */
+  document.getElementById('modalProgetto').addEventListener('click', function(e) {
+    if (e.target === this) chiudiModaleProgetto();
+  });
+
+  /* anteprima immagine live */
+  document.getElementById('progettoImgFile').addEventListener('change', function() {
+    const f = this.files[0];
+    const preview = document.getElementById('progettoImgPreview');
+    if (!f) { preview.innerHTML = ''; return; }
+    const url = URL.createObjectURL(f);
+    preview.innerHTML = `<img src="${url}" alt="" style="height:80px;border-radius:8px;object-fit:cover;display:block;">`;
+  });
 </script>
 </body>
 </html>

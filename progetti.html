@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="/images/favicon/favicon.ico">
+  <link rel="icon" type="image/svg+xml" href="/images/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="96x96" href="/images/favicon/favicon-96x96.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon/apple-touch-icon.png">
+  <link rel="manifest" href="/images/favicon/site.webmanifest">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Progetti – Virtus Caserta</title>
+  <meta name="description" content="Bandi e progetti di Virtus Caserta ASD. Partecipa alle nostre iniziative.">
+  <meta property="og:title" content="Progetti – Virtus Caserta">
+  <meta property="og:description" content="Bandi e progetti di Virtus Caserta ASD.">
+  <meta property="og:image" content="https://www.virtuscaserta.com/images/logo.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.virtuscaserta.com/progetti">
+  <meta property="og:locale" content="it_IT">
+  <meta property="og:site_name" content="Virtus Caserta ASD">
+  <link rel="canonical" href="https://www.virtuscaserta.com/progetti">
+  <link rel="stylesheet" href="common.css">
+  <script src="/shared.js"></script>
+  <style>
+    :root {
+      --blu:     #0d2055;
+      --blu-m:   #1535a8;
+      --arancio: #f57c00;
+      --verde:   #16a34a;
+      --rosso:   #dc2626;
+      --bianco:  #ffffff;
+      --grigio:  #f2f2f7;
+      --bordo:   #e5e5ea;
+      --testo:   #1c1c1e;
+      --sub:     #8e8e93;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; background:var(--grigio); color:var(--testo); min-height:100vh; }
+
+    /* NAV */
+    nav {
+      position:fixed; top:0; left:0; width:100%; z-index:1000;
+      background:var(--blu); box-shadow:0 2px 16px rgba(0,0,0,0.35);
+      display:grid; grid-template-columns:1fr auto 1fr;
+      align-items:center; height:76px; padding:0 40px;
+    }
+    .nav-menu { display:flex; align-items:center; gap:36px; list-style:none; justify-content:flex-end; }
+    .nav-brand { display:flex; align-items:center; justify-content:center; text-decoration:none; padding:0 28px; }
+    .nav-brand img { height:50px; width:auto; object-fit:contain; display:block; transition:transform .25s; }
+    .nav-brand:hover img { transform:scale(1.1); }
+    .nav-menu a {
+      text-decoration:none; color:rgba(255,255,255,.82);
+      font-size:14px; font-weight:600; letter-spacing:1.5px;
+      text-transform:uppercase; padding:4px 0;
+      position:relative; transition:color .2s; white-space:nowrap;
+    }
+    .nav-menu a::after {
+      content:''; position:absolute; bottom:-2px; left:0;
+      width:0; height:2px; background:var(--arancio); transition:width .25s;
+    }
+    .nav-menu a:hover, .nav-menu a.attivo { color:#fff; }
+    .nav-menu a:hover::after, .nav-menu a.attivo::after { width:100%; }
+    .nav-actions { display:flex; align-items:center; gap:14px; justify-content:flex-start; }
+    .nav-social { display:flex; align-items:center; gap:10px; margin-left:auto; }
+    .nav-social a { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; text-decoration:none; color:#fff; transition:opacity .2s; }
+    .nav-social a:hover { opacity:.8; }
+    .nav-social a img { width:100%; height:100%; object-fit:contain; display:block; filter:brightness(0) invert(1); }
+
+    /* Dropdown "Noi" */
+    .nav-dropdown { position:relative; list-style:none; }
+    .nav-dropdown-toggle {
+      color:rgba(255,255,255,.82); font-size:14px; font-weight:600;
+      letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;
+      padding:4px 0; white-space:nowrap; user-select:none;
+    }
+    .nav-dropdown-toggle:hover { color:#fff; }
+    .nav-dropdown-menu {
+      display:none; position:absolute; top:calc(100% + 10px); right:0;
+      background:var(--blu); border-radius:10px;
+      box-shadow:0 8px 32px rgba(0,0,0,.3);
+      min-width:140px; list-style:none; overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .nav-dropdown:hover .nav-dropdown-menu { display:block; }
+    .nav-dropdown-menu li a {
+      display:block; padding:11px 18px;
+      color:rgba(255,255,255,.85); font-size:13px; font-weight:600;
+      letter-spacing:1px; text-transform:uppercase;
+      transition:background .15s, color .15s;
+    }
+    .nav-dropdown-menu li a:hover { background:rgba(255,255,255,.1); color:#fff; }
+    .nav-dropdown-menu li a::after { display:none; }
+
+    /* HERO */
+    .hero {
+      margin-top:76px;
+      background:linear-gradient(135deg, var(--blu) 0%, var(--blu-m) 100%);
+      padding:60px 24px 48px; text-align:center; color:#fff;
+    }
+    .etichetta {
+      display:inline-block; background:var(--arancio); color:#fff;
+      font-size:11px; font-weight:700; letter-spacing:3px;
+      text-transform:uppercase; padding:5px 16px; border-radius:20px; margin-bottom:14px;
+    }
+    .hero h1 { font-size:clamp(28px,5vw,44px); font-weight:900; letter-spacing:2px; text-transform:uppercase; }
+    .hero p { margin-top:10px; color:rgba(255,255,255,.7); font-size:16px; }
+
+    /* CONTAINER */
+    .container { max-width:920px; margin:0 auto; padding:40px 24px 80px; }
+
+    /* GRID CARDS */
+    .progetti-grid {
+      display:grid; grid-template-columns:repeat(2,1fr); gap:20px;
+    }
+
+    /* PROGETTO CARD */
+    .progetto-card {
+      background:var(--bianco); border-radius:20px;
+      box-shadow:0 2px 14px rgba(0,0,0,.07);
+      overflow:hidden; cursor:pointer;
+      transition:box-shadow .22s, transform .22s;
+      display:flex; flex-direction:column;
+    }
+    .progetto-card:hover { box-shadow:0 8px 32px rgba(13,32,85,.14); transform:translateY(-3px); }
+    .progetto-card.aperta {
+      grid-column:1/-1;
+      flex-direction:row;
+      cursor:default;
+      transform:none;
+      box-shadow:0 6px 28px rgba(13,32,85,.12);
+    }
+
+    /* Immagine */
+    .progetto-img {
+      position:relative; width:100%; height:200px; overflow:hidden;
+      background:linear-gradient(135deg, var(--blu) 0%, var(--blu-m) 100%);
+      flex-shrink:0;
+    }
+    .progetto-card.aperta .progetto-img {
+      width:320px; height:auto; min-height:220px; border-radius:0;
+    }
+    .progetto-img img {
+      width:100%; height:100%; object-fit:cover; display:block;
+      transition:transform .4s;
+    }
+    .progetto-card:not(.aperta):hover .progetto-img img { transform:scale(1.04); }
+    .progetto-img-placeholder {
+      width:100%; height:100%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:48px; opacity:.35;
+    }
+
+    /* Badge su immagine */
+    .badge-stato {
+      position:absolute; top:12px; right:12px;
+      font-size:10px; font-weight:800; letter-spacing:1.2px;
+      text-transform:uppercase; padding:4px 11px; border-radius:20px;
+      display:flex; align-items:center; gap:4px;
+      backdrop-filter:blur(6px);
+    }
+    .badge-aperto { background:rgba(220,252,231,.92); color:var(--verde); }
+    .badge-chiuso { background:rgba(254,226,226,.92); color:var(--rosso); }
+    .badge-aperto::before, .badge-chiuso::before { content:'●'; font-size:8px; }
+
+    /* Body card collassata */
+    .progetto-body {
+      padding:18px 20px 16px; flex:1;
+      display:flex; flex-direction:column; justify-content:space-between;
+    }
+    .progetto-titolo { font-size:16px; font-weight:800; color:var(--testo); line-height:1.3; margin-bottom:5px; }
+    .progetto-scadenza { font-size:12px; color:var(--sub); font-weight:600; margin-bottom:12px; }
+    .progetto-snippet {
+      font-size:13px; color:#666; line-height:1.55;
+      overflow:hidden; display:-webkit-box;
+      -webkit-line-clamp:2; -webkit-box-orient:vertical;
+      margin-bottom:14px;
+    }
+    .btn-leggi {
+      align-self:flex-start;
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 16px; border-radius:20px;
+      background:var(--blu); color:#fff;
+      font-size:12px; font-weight:700; border:none; cursor:pointer;
+      transition:background .18s, gap .18s;
+    }
+    .btn-leggi:hover { background:var(--blu-m); gap:10px; }
+    .btn-leggi svg { width:14px; height:14px; flex-shrink:0; }
+
+    /* Card aperta — contenuto dettaglio */
+    .progetto-card.aperta .progetto-body { padding:24px 28px; }
+    .progetto-detail { display:none; }
+    .progetto-card.aperta .progetto-detail { display:flex; flex-direction:column; flex:1; }
+
+    .progetto-desc-full {
+      font-size:15px; color:#444; line-height:1.75;
+      margin-bottom:16px; white-space:pre-wrap;
+    }
+    .progetto-desc-full * { max-width:100%; }
+
+    .detail-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:auto; padding-top:16px; }
+
+    .btn-pdf {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:9px 16px; border-radius:20px;
+      background:#f0f4f8; color:var(--blu); font-size:13px;
+      font-weight:700; text-decoration:none; transition:background .18s;
+      border:1.5px solid #d4e0f0;
+    }
+    .btn-pdf:hover { background:#dce6f5; }
+
+    .btn-partecipa {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:11px 24px; border-radius:20px;
+      background:linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+      color:#fff; border:none; font-size:14px; font-weight:700;
+      cursor:pointer; box-shadow:0 3px 12px rgba(245,124,0,.35);
+      transition:box-shadow .18s, transform .14s;
+    }
+    .btn-partecipa:hover { box-shadow:0 5px 20px rgba(245,124,0,.5); transform:translateY(-1px); }
+    .btn-partecipa:disabled { background:#ccc; box-shadow:none; cursor:not-allowed; }
+    .btn-partecipa svg { width:16px; height:16px; }
+
+    .btn-chiudi-card {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:9px 14px; border-radius:20px;
+      background:none; color:var(--sub); border:1.5px solid var(--bordo);
+      font-size:12px; font-weight:700; cursor:pointer; transition:color .15s, border-color .15s;
+    }
+    .btn-chiudi-card:hover { color:var(--testo); border-color:#bbb; }
+
+    .chiuso-msg {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:9px 16px; background:#fee2e2; color:var(--rosso);
+      border-radius:20px; font-size:13px; font-weight:700;
+    }
+
+    /* VUOTO */
+    .vuoto { text-align:center; padding:60px 24px; color:var(--sub); font-size:16px; }
+
+    @media (max-width:700px) {
+      .progetti-grid { grid-template-columns:1fr; }
+      .progetto-card.aperta { flex-direction:column; }
+      .progetto-card.aperta .progetto-img { width:100%; height:220px; min-height:unset; }
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.55);
+      z-index:3000; display:flex; align-items:center; justify-content:center;
+      padding:16px; opacity:0; pointer-events:none; transition:opacity .25s;
+    }
+    .modal-overlay.aperta { opacity:1; pointer-events:all; }
+    .modal-box {
+      background:#fff; border-radius:20px; width:100%; max-width:560px;
+      max-height:90vh; overflow-y:auto;
+      box-shadow:0 12px 60px rgba(0,0,0,.3);
+      transform:translateY(20px); transition:transform .25s;
+    }
+    .modal-overlay.aperta .modal-box { transform:translateY(0); }
+    .modal-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px 24px 16px; border-bottom:1px solid var(--bordo);
+      position:sticky; top:0; background:#fff; z-index:1;
+    }
+    .modal-title { font-size:17px; font-weight:800; color:var(--testo); }
+    .modal-close {
+      background:none; border:none; font-size:22px; color:var(--sub);
+      cursor:pointer; width:36px; height:36px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      transition:background .15s;
+    }
+    .modal-close:hover { background:var(--grigio); }
+    .modal-body { padding:20px 24px 24px; }
+
+    .form-group { margin-bottom:16px; }
+    .form-group label {
+      display:block; font-size:12px; font-weight:700; color:var(--sub);
+      text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px;
+    }
+    .form-group input, .form-group textarea {
+      width:100%; padding:10px 14px; border:1.5px solid var(--bordo);
+      border-radius:10px; font-size:14px; color:var(--testo);
+      outline:none; transition:border-color .2s; font-family:inherit;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color:var(--blu-m); }
+    .form-group textarea { resize:vertical; min-height:90px; }
+
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+    /* Upload aree */
+    .upload-section { margin-top:8px; }
+    .upload-section-title {
+      font-size:13px; font-weight:800; color:var(--testo);
+      margin-bottom:12px; padding-bottom:6px;
+      border-bottom:1px solid var(--bordo);
+    }
+    .upload-item {
+      margin-bottom:12px; padding:12px 14px;
+      background:var(--grigio); border-radius:10px;
+      border:1.5px dashed var(--bordo); transition:border-color .2s;
+    }
+    .upload-item:focus-within { border-color:var(--blu-m); background:#f0f4f8; }
+    .upload-item label {
+      display:block; font-size:13px; font-weight:700;
+      color:var(--testo); margin-bottom:6px;
+      text-transform:none; letter-spacing:0;
+    }
+    .upload-item input[type=file] { font-size:12px; color:var(--sub); }
+    .upload-item .file-hint { font-size:11px; color:var(--sub); margin-top:4px; }
+
+    /* Errore */
+    .form-error {
+      background:#fee2e2; color:var(--rosso); padding:10px 14px;
+      border-radius:10px; font-size:13px; font-weight:700; margin-bottom:14px; display:none;
+    }
+    .form-error.visibile { display:block; }
+
+    /* Ricevuta */
+    .ricevuta-box {
+      text-align:center; padding:20px 0 8px;
+    }
+    .ricevuta-icon { font-size:52px; margin-bottom:10px; }
+    .ricevuta-title { font-size:20px; font-weight:800; color:var(--verde); margin-bottom:8px; }
+    .ricevuta-msg { font-size:14px; color:#555; line-height:1.6; margin-bottom:20px; }
+    .ricevuta-detail {
+      background:var(--grigio); border-radius:12px; padding:14px 16px;
+      text-align:left; margin-bottom:20px; font-size:13px; color:var(--testo);
+      line-height:1.8;
+    }
+    .ricevuta-detail strong { color:var(--blu); }
+    .btn-scarica {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:11px 24px; background:var(--blu); color:#fff;
+      border:none; border-radius:10px; font-size:14px; font-weight:700;
+      cursor:pointer; transition:background .2s; text-decoration:none;
+    }
+    .btn-scarica:hover { background:var(--blu-m); }
+
+    /* Submit btn */
+    .btn-invia {
+      width:100%; padding:13px; background:var(--blu); color:#fff;
+      border:none; border-radius:12px; font-size:15px; font-weight:800;
+      cursor:pointer; margin-top:8px; transition:background .2s;
+    }
+    .btn-invia:hover { background:var(--blu-m); }
+    .btn-invia:disabled { background:#aaa; cursor:not-allowed; }
+
+    /* FOOTER */
+    footer { background:#0d1730; color:rgba(255,255,255,.5); font-size:14px; }
+    .footer-inner {
+      display:flex; flex-wrap:wrap; gap:24px; align-items:center; justify-content:space-between;
+      max-width:1100px; margin:0 auto; padding:40px 40px 28px;
+    }
+    .footer-inner img { height:46px; opacity:.85; }
+    .footer-links { display:flex; flex-wrap:wrap; gap:10px 20px; }
+    .footer-links a { color:rgba(255,255,255,.6); text-decoration:none; font-size:13px; transition:color .2s; }
+    .footer-links a:hover { color:#fff; }
+    .footer-soc { display:flex; gap:10px; }
+    .footer-soc a { width:32px; height:32px; display:flex; align-items:center; justify-content:center; }
+    .footer-soc a img { width:100%; height:100%; object-fit:contain; filter:brightness(0) invert(1); opacity:.7; }
+    .footer-soc a:hover img { opacity:1; }
+    .footer-auth { display:flex; flex-direction:column; gap:6px; }
+    .footer-auth-title { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.35); }
+    .footer-auth a, .footer-btn { color:rgba(255,255,255,.7); text-decoration:none; font-size:13px; background:none; border:none; cursor:pointer; padding:0; transition:color .2s; }
+    .footer-auth a:hover, .footer-btn:hover { color:#fff; }
+    .footer-bottom { border-top:1px solid rgba(255,255,255,.07); text-align:center; padding:14px 24px; font-size:12px; }
+
+    @media (max-width:768px) {
+      .hero { margin-top:64px; }
+      nav { padding:0 16px; height:64px; }
+      .nav-brand img { height:38px; }
+      .form-row { grid-template-columns:1fr; }
+    }
+    @media (max-width:480px) {
+      .container { padding:24px 12px 60px; }
+      .progetto-body { padding:14px 16px 12px; }
+      .progetto-card.aperta .progetto-body { padding:18px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <ul class="nav-menu">
+      <li class="nav-hashtag"><span>#noisiamolasquadra</span></li>
+      <li><a href="/chi-siamo">Chi siamo</a></li>
+      <li><a href="/notizie">Notizie</a></li>
+      <li class="nav-dropdown">
+        <span class="nav-dropdown-toggle">Noi</span>
+        <ul class="nav-dropdown-menu">
+          <li><a href="/squadra">Squadra</a></li>
+          <li><a href="/staff">Staff</a></li>
+          <li><a href="/progetti" class="attivo">Progetti</a></li>
+        </ul>
+      </li>
+    </ul>
+    <a href="/" class="nav-brand">
+      <img src="images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display='none'">
+    </a>
+    <div class="nav-actions">
+      <ul class="nav-menu" style="justify-content:flex-start;">
+        <li><a href="/risultati">Risultati</a></li>
+        <li><a href="/shop">Shop</a></li>
+        <li><a href="/live">Live</a></li>
+      </ul>
+      <div class="nav-social" style="margin-left:auto;">
+        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="images/facebook-icon.png" alt="Facebook"></a>
+        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener" title="Instagram"><img src="images/instagram-icon.png" alt="Instagram"></a>
+        <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener" title="YouTube"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+        <a href="https://www.twitch.tv/virtuscaserta" target="_blank" rel="noopener" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="etichetta">Virtus Caserta</div>
+    <h1>Progetti &amp; Bandi</h1>
+    <p>Partecipa alle nostre iniziative</p>
+  </div>
+
+  <!-- LISTA PROGETTI -->
+  <div class="container">
+    <div id="progettiList">
+      <div class="vuoto">Caricamento progetti…</div>
+    </div>
+  </div>
+
+
+  <!-- MODAL PARTECIPA -->
+  <div class="modal-overlay" id="modalOverlay" onclick="chiudiModaleSfondo(event)">
+    <div class="modal-box" id="modalBox">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitolo">Partecipa</span>
+        <button class="modal-close" onclick="chiudiModale()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer-std">
+    <div class="footer-inner">
+      <img src="images/negativo@4x.png" alt="Virtus Caserta" loading="lazy" onerror="this.style.display='none'">
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/chi-siamo">Chi siamo</a>
+        <a href="/notizie">Notizie</a>
+        <a href="/risultati">Risultati</a>
+        <a href="/shop">Shop</a>
+        <a href="/live">Live</a>
+        <a href="/progetti">Progetti</a>
+      </div>
+      <div class="footer-soc">
+        <a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener"><img src="images/facebook-icon.png" alt="Facebook"></a>
+        <a href="https://www.instagram.com/virtuscaserta/" target="_blank" rel="noopener"><img src="images/instagram-icon.png" alt="Instagram"></a>
+        <a href="https://www.youtube.com/@virtuscaserta" target="_blank" rel="noopener"><img src="images/youtube-logo-removebg-preview.png" alt="YouTube"></a>
+        <a href="https://www.twitch.tv/virtuscaserta" title="Twitch"><img src="images/Twitch-logo-removebg-preview.png" alt="Twitch"></a>
+      </div>
+      <div class="footer-auth" id="footerAuthArea">
+        <div class="footer-auth-title">Account</div>
+        <div class="footer-auth-login">
+          <a href="/login">Accedi</a>
+        </div>
+        <div class="footer-auth-logged">
+          <a href="/admin" id="footerAdminLink" style="display:none">Sezione amministratore</a>
+          <button class="footer-btn" onclick="logout()">Esci</button>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2024 <strong>Virtus Caserta</strong> – Società Sportiva Pallavolo · <a href="/privacy">Privacy</a> · <a href="/termini">Termini</a> · Sito realizzato da Alessandro Pascarella</p>
+    </div>
+  </footer>
+
+  <script>
+    let _progettiData = [];
+    let _progettoCorrente = null;
+
+    function isAperto(p) {
+      if (!p.data_scadenza) return true;
+      return new Date(p.data_scadenza) >= new Date(new Date().toDateString());
+    }
+
+    function fmtData(d) {
+      if (!d) return '';
+      return new Date(d).toLocaleDateString('it-IT', { day:'2-digit', month:'long', year:'numeric' });
+    }
+
+    async function caricaProgetti() {
+      try {
+        const r = await fetch('/api/progetti');
+        const lista = await r.json();
+        _progettiData = lista;
+        renderProgetti(lista);
+      } catch {
+        document.getElementById('progettiList').innerHTML = '<div class="vuoto">Errore nel caricamento dei progetti.</div>';
+      }
+    }
+
+    function _imgHtml(p, inCard) {
+      const h = inCard ? '' : '';
+      if (p.immagine) return `<img src="${esc(p.immagine)}" alt="${esc(p.titolo)}" loading="lazy">`;
+      return `<div class="progetto-img-placeholder">🏐</div>`;
+    }
+
+    function renderProgetti(lista) {
+      const el = document.getElementById('progettiList');
+      if (!lista.length) {
+        el.innerHTML = '<div class="vuoto">Nessun progetto disponibile al momento.</div>';
+        return;
+      }
+      const cards = lista.map(p => {
+        const aperto = isAperto(p);
+        return `
+          <div class="progetto-card" id="proj-${p.id}" onclick="toggleProgetto(${p.id})">
+            <div class="progetto-img">
+              ${_imgHtml(p)}
+              <span class="badge-stato ${aperto ? 'badge-aperto' : 'badge-chiuso'}">${aperto ? 'Aperto' : 'Chiuso'}</span>
+            </div>
+            <div class="progetto-body">
+              <div>
+                <div class="progetto-titolo">${esc(p.titolo)}</div>
+                ${p.data_scadenza ? `<div class="progetto-scadenza">Scadenza: ${fmtData(p.data_scadenza)}</div>` : ''}
+              </div>
+              <button class="btn-leggi">
+                Scopri di più
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+              </button>
+              <div class="progetto-detail" id="detail-${p.id}">
+                <div id="desc-${p.id}" style="color:var(--sub);padding:16px 0 4px;">Caricamento…</div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+      el.innerHTML = `<div class="progetti-grid" id="progettiGrid">${cards}</div>`;
+    }
+
+    async function toggleProgetto(id) {
+      const card = document.getElementById('proj-' + id);
+      const isOpen = card.classList.contains('aperta');
+      document.querySelectorAll('.progetto-card.aperta').forEach(c => c.classList.remove('aperta'));
+      if (isOpen) return;
+      card.onclick = null;
+      card.classList.add('aperta');
+      await caricaDettaglio(id);
+    }
+
+    function chiudiCard(id) {
+      const card = document.getElementById('proj-' + id);
+      card.classList.remove('aperta');
+      card.onclick = () => toggleProgetto(id);
+    }
+
+    async function caricaDettaglio(id) {
+      const descEl = document.getElementById('desc-' + id);
+      if (descEl.dataset.loaded) return;
+      try {
+        const r = await fetch('/api/progetti/' + id);
+        const p = await r.json();
+        _progettiData = _progettiData.map(x => x.id === p.id ? { ...x, ...p } : x);
+        const aperto = isAperto(p);
+        descEl.dataset.loaded = '1';
+
+        const imgHtml = p.immagine
+          ? `<img src="${esc(p.immagine)}" alt="${esc(p.titolo)}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          : `<div class="progetto-img-placeholder">🏐</div>`;
+        document.querySelector(`#proj-${id} .progetto-img`).innerHTML =
+          `${imgHtml}<span class="badge-stato ${aperto ? 'badge-aperto' : 'badge-chiuso'}">${aperto ? 'Aperto' : 'Chiuso'}</span>`;
+
+        descEl.innerHTML = `
+          <div class="progetto-detail" style="display:flex;flex-direction:column;flex:1;">
+            <div class="progetto-titolo" style="font-size:20px;margin-bottom:4px;">${esc(p.titolo)}</div>
+            ${p.data_scadenza ? `<div class="progetto-scadenza" style="margin-bottom:14px;">Scadenza: ${fmtData(p.data_scadenza)}</div>` : ''}
+            <div class="progetto-desc-full">${p.descrizione || '<span style="color:var(--sub);font-style:italic;">Nessuna descrizione disponibile.</span>'}</div>
+            <div class="detail-actions">
+              ${p.pdf_bando ? `<a class="btn-pdf" href="${esc(p.pdf_bando)}" target="_blank" rel="noopener">📄 Scarica PDF bando</a>` : ''}
+              ${aperto
+                ? `<button class="btn-partecipa" onclick="event.stopPropagation();apriModale(${id})">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+                    Partecipa
+                  </button>`
+                : `<span class="chiuso-msg">⛔ Chiuso il ${fmtData(p.data_scadenza)}</span>`
+              }
+              <button class="btn-chiudi-card" onclick="event.stopPropagation();chiudiCard(${id})">✕ Chiudi</button>
+            </div>
+          </div>`;
+      } catch {
+        descEl.innerHTML = '<div style="color:var(--sub);">Errore nel caricamento dei dettagli.</div>';
+      }
+    }
+
+    function apriModale(id) {
+      const p = _progettiData.find(x => x.id === id);
+      if (!p) return;
+      _progettoCorrente = p;
+      document.getElementById('modalTitolo').textContent = 'Partecipa: ' + p.titolo;
+      renderFormDomanda(p);
+      document.getElementById('modalOverlay').classList.add('aperta');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function chiudiModale() {
+      document.getElementById('modalOverlay').classList.remove('aperta');
+      document.body.style.overflow = '';
+      _progettoCorrente = null;
+    }
+
+    function chiudiModaleSfondo(e) {
+      if (e.target === document.getElementById('modalOverlay')) chiudiModale();
+    }
+
+    function renderFormDomanda(p) {
+      const docs = Array.isArray(p.documenti_richiesti) ? p.documenti_richiesti : [];
+      const uploadsHtml = docs.length ? `
+        <div class="upload-section">
+          <div class="upload-section-title">Documenti da allegare</div>
+          ${docs.map((d, i) => `
+            <div class="upload-item">
+              <label>${esc(d.label)}${d.required ? ' <span style="color:var(--rosso)">*</span>' : ''}</label>
+              <input type="file" name="doc_${i}" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" ${d.required ? 'required' : ''}>
+              <div class="file-hint">PDF, DOC, JPG — max 10 MB</div>
+            </div>`).join('')}
+        </div>` : '';
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="form-error" id="formError"></div>
+        <form id="domandaForm" onsubmit="inviaDomanda(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome *</label>
+              <input type="text" name="nome" required placeholder="Mario">
+            </div>
+            <div class="form-group">
+              <label>Cognome *</label>
+              <input type="text" name="cognome" required placeholder="Rossi">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" name="email" required placeholder="mario@esempio.it">
+          </div>
+          <div class="form-group">
+            <label>Note / Requisiti</label>
+            <textarea name="note" placeholder="Descrivi brevemente la tua candidatura…"></textarea>
+          </div>
+          ${uploadsHtml}
+          <button type="submit" class="btn-invia" id="btnInvia">Invia domanda</button>
+        </form>`;
+    }
+
+    async function inviaDomanda(e) {
+      e.preventDefault();
+      const form = document.getElementById('domandaForm');
+      const errEl = document.getElementById('formError');
+      const btn = document.getElementById('btnInvia');
+      errEl.classList.remove('visibile');
+      btn.disabled = true;
+      btn.textContent = 'Invio in corso…';
+
+      const fd = new FormData(form);
+      fd.set('progetto_id', _progettoCorrente.id);
+
+      try {
+        const r = await fetch('/api/progetti/' + _progettoCorrente.id + '/domanda', {
+          method: 'POST', body: fd,
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Errore durante l\'invio');
+        mostraRicevuta(data);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.add('visibile');
+        btn.disabled = false;
+        btn.textContent = 'Invia domanda';
+      }
+    }
+
+    function mostraRicevuta(data) {
+      const p = _progettoCorrente;
+      const form = document.getElementById('domandaForm');
+      const nome = form ? (form.nome?.value + ' ' + form.cognome?.value).trim() : '';
+      const email = form ? form.email?.value : '';
+      const dataInvio = new Date().toLocaleString('it-IT', { dateStyle:'long', timeStyle:'short' });
+
+      document.getElementById('modalBody').innerHTML = `
+        <div class="ricevuta-box">
+          <div class="ricevuta-icon">✅</div>
+          <div class="ricevuta-title">Domanda inviata!</div>
+          <div class="ricevuta-msg">La tua candidatura è stata registrata con successo.<br>Riceverai conferma all'indirizzo email indicato.</div>
+          <div class="ricevuta-detail">
+            <strong>Progetto:</strong> ${esc(p.titolo)}<br>
+            <strong>Riferimento:</strong> #${data.domanda_id}<br>
+            <strong>Data invio:</strong> ${dataInvio}<br>
+            ${email ? `<strong>Email:</strong> ${esc(email)}<br>` : ''}
+          </div>
+          <button class="btn-scarica" onclick="stampaTicevuta(${data.domanda_id}, '${esc(p.titolo).replace(/'/g,'\\&apos;')}', '${dataInvio.replace(/'/g,'\\&apos;')}', '${esc(email)}')">
+            🖨️ Scarica ricevuta
+          </button>
+          <div style="margin-top:14px;">
+            <button onclick="chiudiModale()" style="background:none;border:none;color:var(--sub);font-size:13px;cursor:pointer;text-decoration:underline;">Chiudi</button>
+          </div>
+        </div>`;
+    }
+
+    function stampaTicevuta(id, titolo, dataInvio, email) {
+      const win = window.open('', '_blank', 'width=700,height=600');
+      win.document.write(`<!DOCTYPE html><html lang="it"><head>
+        <meta charset="UTF-8"><title>Ricevuta Domanda #${id}</title>
+        <style>
+          body { font-family:Arial,sans-serif; margin:40px; color:#111; }
+          h1 { color:#0d2055; font-size:22px; margin-bottom:4px; }
+          .sub { color:#666; font-size:13px; margin-bottom:28px; }
+          table { width:100%; border-collapse:collapse; }
+          td { padding:10px 14px; border-bottom:1px solid #eee; font-size:14px; }
+          td:first-child { font-weight:700; color:#0d2055; width:160px; }
+          .footer { margin-top:40px; font-size:11px; color:#999; border-top:1px solid #eee; padding-top:12px; }
+          @media print { body { margin:20px; } }
+        </style>
+      </head><body>
+        <h1>Virtus Caserta ASD</h1>
+        <div class="sub">Ricevuta di partecipazione</div>
+        <table>
+          <tr><td>Riferimento</td><td>#${id}</td></tr>
+          <tr><td>Progetto</td><td>${titolo}</td></tr>
+          <tr><td>Data invio</td><td>${dataInvio}</td></tr>
+          ${email ? `<tr><td>Email</td><td>${email}</td></tr>` : ''}
+        </table>
+        <div class="footer">Virtus Caserta ASD – www.virtuscaserta.com</div>
+        <script>window.onload=()=>{ window.print(); }<\/script>
+      </body></html>`);
+      win.document.close();
+    }
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') chiudiModale(); });
+
+    caricaProgetti();
+  </script>
+</body>
+</html>

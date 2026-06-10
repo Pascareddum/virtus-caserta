@@ -1880,6 +1880,7 @@
         <ul class="nav-dropdown-menu">
           <li><a href="/squadra">Squadra</a></li>
           <li><a href="/staff">Staff</a></li>
+          <li><a href="/progetti">Progetti</a></li>
         </ul>
       </li>
     </ul>
@@ -1923,6 +1924,7 @@
     <a href="/notizie" class="drawer-link" onclick="chiudiDrawer()">Notizie</a>
     <a href="/squadra" class="drawer-link" onclick="chiudiDrawer()">Squadra</a>
     <a href="/staff" class="drawer-link" onclick="chiudiDrawer()">Staff</a>
+    <a href="/progetti" class="drawer-link" onclick="chiudiDrawer()">Progetti</a>
     <a href="/risultati" class="drawer-link" onclick="chiudiDrawer()">Risultati</a>
     <a href="/shop" class="drawer-link" onclick="chiudiDrawer()">Shop</a>
     <a href="/live" class="drawer-link" onclick="chiudiDrawer()">Live</a>
@@ -2542,10 +2544,23 @@
           track.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:40px">Nessuna notizia disponibile.</p>';
           return;
         }
+        try {
+          const pins = JSON.parse(localStorage.getItem('pinnedNewsIds') || '[]');
+          if (pins.length) {
+            notizie.sort((a, b) => {
+              const pa = pins.indexOf(String(a.id));
+              const pb = pins.indexOf(String(b.id));
+              if (pa !== -1 && pb !== -1) return pa - pb;
+              if (pa !== -1) return -1;
+              if (pb !== -1) return 1;
+              return 0;
+            });
+          }
+        } catch {}
         _carouselTotal = notizie.length;
         const stripHtml = s => s ? s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : '';
         track.innerHTML = notizie.map(n => `
-          <div class="notizia-card">
+          <div class="notizia-card" style="cursor:pointer;" onclick="location.href='/notizie#notizia-${n.id}'">
             <div class="notizia-img ${n.colore || 'blu'}">
               ${n.immagine
                 ? `<div class="notizia-img-bg" style="background-image:url('${n.immagine}')"></div><img src="${n.immagine}" alt="${n.titolo}">`
@@ -2555,7 +2570,7 @@
               <div class="notizia-data">${n.data || ''}</div>
               <h3>${n.titolo}</h3>
               <p>${stripHtml(n.testo)}</p>
-              <a href="/notizie" class="notizia-leggi">Leggi tutto →</a>
+              <a href="/notizie#notizia-${n.id}" class="notizia-leggi" onclick="event.stopPropagation()">Leggi tutto →</a>
             </div>
           </div>`).join('');
 
