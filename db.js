@@ -469,6 +469,23 @@ async function createTables() {
       created_at   TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS partite_proposte (
+      id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      mittente_id         TEXT NOT NULL,
+      data                DATE NOT NULL,
+      ora                 TIME NOT NULL,
+      ora_fine            TIME,
+      luogo               TEXT,
+      palestra_id         INTEGER,
+      note                TEXT,
+      invitati_categorie  JSONB DEFAULT '[]',
+      invitati_persone    JSONB DEFAULT '[]',
+      stato               TEXT DEFAULT 'pending',
+      admin_note          TEXT,
+      creato_il           TIMESTAMPTZ DEFAULT now()
+    )
+  `);
 
   // RLS — block direct PostgREST/anon-key access; postgres role bypasses automatically
   for (const t of [

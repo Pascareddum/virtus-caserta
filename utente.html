@@ -1018,6 +1018,14 @@
         activeEl.style.display = 'none';
         return;
       }
+      const now = new Date();
+      const active   = lista.filter(a => !(a.stato === 'rifiutato' && a.data_ora && new Date(a.data_ora) < now));
+      const archived = lista.filter(a =>   a.stato === 'rifiutato' && a.data_ora && new Date(a.data_ora) < now);
+      if (!active.length && !archived.length) {
+        emptyEl.style.display = 'block';
+        activeEl.style.display = 'none';
+        return;
+      }
       emptyEl.style.display = 'none';
       activeEl.style.display = 'block';
       const RUOLI = { addetto: "Addetto all'arbitro", refertista: 'Refertista' };
@@ -1026,7 +1034,7 @@
         confermato: { c:'#16a34a', bg:'#f0fdf4', lbl:'Confermato' },
         rifiutato:  { c:'#dc2626', bg:'#fef2f2', lbl:'Rifiutato' },
       };
-      listEl.innerHTML = lista.map(a => {
+      function _card(a) {
         const dt = a.data_ora ? new Date(a.data_ora) : null;
         const dataStr = dt ? dt.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'long', year:'numeric' }) : '—';
         const oraStr  = dt ? dt.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
@@ -1045,8 +1053,39 @@
           <div style="font-size:12px;color:#374151;font-weight:600;">${RUOLI[a.ruolo]||a.ruolo}</div>
           ${actions}
         </div>`;
-      }).join('');
+      }
+      listEl.innerHTML = active.length
+        ? active.map(_card).join('')
+        : '<div class="agenda-empty" style="padding:12px;text-align:center;color:#9ca3af;font-size:13px;">Nessuna partita attiva</div>';
+      // archivio: partite rifiutate con data passata
+      let archWrap = document.getElementById('staffArbArchiveWrap');
+      if (!archWrap) {
+        archWrap = document.createElement('div');
+        archWrap.id = 'staffArbArchiveWrap';
+        listEl.parentNode.appendChild(archWrap);
+      }
+      if (archived.length) {
+        archWrap.innerHTML = `
+          <button id="btnArbCronologia" onclick="toggleArbArchive()"
+            style="width:100%;margin-top:10px;padding:10px 16px;background:none;border:1.5px dashed #d1d5db;border-radius:10px;color:#6b7280;font-size:13px;font-weight:600;cursor:pointer;text-align:left;">
+            📋 Visualizza cronologia partite assegnate (${archived.length})
+          </button>
+          <div id="staffArbArchiveList" style="display:none;margin-top:6px;">
+            ${archived.map(_card).join('')}
+          </div>`;
+      } else {
+        archWrap.innerHTML = '';
+      }
     }
+
+    window.toggleArbArchive = function() {
+      const list = document.getElementById('staffArbArchiveList');
+      const btn  = document.getElementById('btnArbCronologia');
+      if (!list || !btn) return;
+      const open = list.style.display !== 'none';
+      list.style.display = open ? 'none' : 'block';
+      btn.textContent = open ? `📋 Visualizza cronologia partite assegnate` : '▲ Nascondi cronologia';
+    };
 
     window.rispondiStaff = async function(id, stato) {
       try {

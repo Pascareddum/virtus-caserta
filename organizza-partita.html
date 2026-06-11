@@ -389,12 +389,10 @@
     let peopleLoaded = false;
     let _myId = '';
 
-    function getMyUserId() {
-      try { return String(JSON.parse(atob(_tok.split('.')[1])).id || ''); } catch { return ''; }
-    }
-
     async function caricaPersone() {
-      _myId = getMyUserId();
+      if (!_myId) {
+        try { const d = await fetch('/api/me').then(r => r.json()); _myId = d.id ? String(d.id) : ''; } catch {}
+      }
       const res = document.getElementById('peopleResults');
       res.innerHTML = '<div style="padding:16px;text-align:center;color:#9ca3af;font-size:13px;"><div class="spin"></div> Caricamento…</div>';
       try {

@@ -1277,7 +1277,8 @@
         <button class="tab-btn nav-sub" data-tab="tornei"        onclick="switchTab('tornei')">Tornei</button>
         <button class="tab-btn nav-sub" data-tab="sessioni"      onclick="switchTab('sessioni')">Sessioni</button>
         <button class="tab-btn nav-sub" data-tab="palestre"      onclick="switchTab('palestre')">Palestre</button>
-        <button class="tab-btn nav-sub" data-tab="partite-casa"  onclick="switchTab('partite-casa')">Partite in casa</button>
+        <button class="tab-btn nav-sub" data-tab="partite-casa"       onclick="switchTab('partite-casa')">Partite in casa</button>
+        <button class="tab-btn nav-sub" data-tab="richieste-partite"  onclick="switchTab('richieste-partite')">Richieste partite</button>
       </div>
     </div>
     <div class="nav-group" id="dgrp-aggiungi">
@@ -1333,7 +1334,8 @@
       <button class="tab-btn nav-sub" data-tab="tornei"       onclick="switchTab('tornei')">Tornei</button>
       <button class="tab-btn nav-sub" data-tab="sessioni"     onclick="switchTab('sessioni')">Sessioni</button>
       <button class="tab-btn nav-sub" data-tab="palestre"     onclick="switchTab('palestre')">Palestre</button>
-      <button class="tab-btn nav-sub" data-tab="partite-casa" onclick="switchTab('partite-casa')">Partite in casa</button>
+      <button class="tab-btn nav-sub" data-tab="partite-casa"      onclick="switchTab('partite-casa')">Partite in casa</button>
+      <button class="tab-btn nav-sub" data-tab="richieste-partite" onclick="switchTab('richieste-partite')">Richieste partite</button>
     </div>
   </div>
   <div class="nav-group" id="sgrp-aggiungi">
@@ -3033,6 +3035,17 @@
   <div id="progettiDomandeList" style="max-width:900px;"></div>
 </div>
 
+<!-- ══ RICHIESTE PARTITE ══ -->
+<div class="pannello" id="pan-richieste-partite">
+  <div class="toolbar">
+    <h2>Richieste partite</h2>
+    <button onclick="caricaRichiestePartite()" class="filtro-btn" style="padding:6px 14px;">↻ Aggiorna</button>
+  </div>
+  <div id="richiestePartiteList" style="max-width:900px;">
+    <div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>
+  </div>
+</div>
+
 <!-- MODAL PROGETTO (crea/modifica) -->
 <div class="modal-overlay-admin" id="modalProgetto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4000;align-items:center;justify-content:center;padding:16px;">
   <div style="background:#fff;border-radius:18px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;box-shadow:0 12px 60px rgba(0,0,0,.3);">
@@ -3149,7 +3162,7 @@
   /* ══ TABS ══ */
   const TAB_GROUP = {
     prodotti:'shop', ordini:'shop',
-    calendario:'pianifica', eventi:'pianifica', sessioni:'pianifica', tornei:'pianifica', palestre:'pianifica', 'partite-casa':'pianifica',
+    calendario:'pianifica', eventi:'pianifica', sessioni:'pianifica', tornei:'pianifica', palestre:'pianifica', 'partite-casa':'pianifica', 'richieste-partite':'pianifica',
     notizie:'aggiungi', staff:'aggiungi', squadra:'aggiungi',
     sponsor:'aggiungi',
   };
@@ -8537,6 +8550,7 @@
     if (nome === 'push') caricaSubCount();
     if (nome === 'progetti-lista') caricaProgettiAdmin();
     if (nome === 'progetti-domande') caricaProgettiDomande();
+    if (nome === 'richieste-partite') caricaRichiestePartite();
   };
 
   /* ════════════════════════════════
@@ -8763,6 +8777,68 @@
       el.innerHTML = `<div style="color:#dc2626;padding:12px;">Errore: ${e.message}</div>`;
     }
   }
+
+  /* ════════════════════════════════
+     RICHIESTE PARTITE
+  ════════════════════════════════ */
+  async function caricaRichiestePartite() {
+    const el = document.getElementById('richiestePartiteList');
+    el.innerHTML = '<div style="padding:16px;text-align:center;color:var(--sub);font-size:13px;">Caricamento…</div>';
+    try {
+      const r = await fetch('/api/admin/partite-proposte', { headers: headers() });
+      if (!r.ok) throw new Error('Status ' + r.status);
+      const lista = await r.json();
+      if (!lista.length) {
+        el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--sub);font-size:13px;">Nessuna richiesta</div>';
+        return;
+      }
+      const STATUS = {
+        pending:  { lbl: 'In attesa',  c: '#d97706', bg: '#fffbeb' },
+        accepted: { lbl: 'Accettata',  c: '#16a34a', bg: '#f0fdf4' },
+        refused:  { lbl: 'Rifiutata',  c: '#dc2626', bg: '#fef2f2' },
+      };
+      el.innerHTML = lista.map(p => {
+        const st = STATUS[p.stato] || { lbl: p.stato, c: '#6b7280', bg: '#f9fafb' };
+        const badge = `<span style="font-size:10px;font-weight:700;background:${st.bg};color:${st.c};border-radius:4px;padding:2px 8px;white-space:nowrap;">${st.lbl}</span>`;
+        const orario = p.ora + (p.ora_fine ? ' – ' + p.ora_fine : '');
+        const mittente = [p.mittente_nome, p.mittente_cognome].filter(Boolean).join(' ') || p.mittente_id;
+        const actions = p.stato === 'pending' ? `
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button onclick="rispondiProposta('${p.id}','accepted')"
+              style="padding:7px 16px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✓ Accetta</button>
+            <button onclick="rispondiProposta('${p.id}','refused')"
+              style="padding:7px 16px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✕ Rifiuta</button>
+          </div>` : (p.admin_note ? `<div style="font-size:12px;color:#6b7280;margin-top:6px;">Nota admin: ${p.admin_note}</div>` : '');
+        return `<div style="background:#fff;border:1px solid var(--bordo);border-radius:12px;padding:16px 18px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+            <div style="font-size:14px;font-weight:700;color:#111827;">${mittente}</div>
+            ${badge}
+          </div>
+          <div style="font-size:13px;color:#374151;margin-bottom:3px;">📅 ${p.data} · ⏰ ${orario}</div>
+          ${p.luogo ? `<div style="font-size:12px;color:#6b7280;">📍 ${p.luogo}</div>` : ''}
+          ${p.note ? `<div style="font-size:12px;color:#6b7280;margin-top:4px;">${p.note}</div>` : ''}
+          <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Ricevuta il ${new Date(p.creato_il).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+          ${actions}
+        </div>`;
+      }).join('');
+    } catch (e) {
+      el.innerHTML = `<div style="color:#dc2626;padding:12px;">Errore: ${e.message}</div>`;
+    }
+  }
+
+  window.rispondiProposta = async function(id, stato) {
+    try {
+      const r = await fetch(`/api/admin/partite-proposte/${id}`, {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify({ stato })
+      });
+      if (!r.ok) throw new Error('Status ' + r.status);
+      caricaRichiestePartite();
+    } catch (e) {
+      alert('Errore: ' + e.message);
+    }
+  };
 
   /* chiudi modal progetto cliccando sfondo */
   document.getElementById('modalProgetto').addEventListener('click', function(e) {

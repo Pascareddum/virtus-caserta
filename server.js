@@ -467,7 +467,7 @@ app.get('/api/me', (req, res) => {
     const newToken = jwt.sign({ id: payload.id, email: payload.email, nome: payload.nome, role: 'utente' }, JWT_SECRET, { expiresIn: '120d' });
     res.cookie('vc_user_session', newToken, USER_SESSION_OPTS());
   }
-  res.json({ auth: true, role: payload.role });
+  res.json({ auth: true, role: payload.role, id: payload.id });
 });
 
 /* ─── Token refresh esplicito (per client Bearer) ─── */
@@ -1883,6 +1883,32 @@ app.get('/api/partite/proposte', userAuth, async (req, res) => {
     const r = await db.query('SELECT * FROM partite_proposte WHERE mittente_id=$1 ORDER BY creato_il DESC', [uid]);
     res.json(r.rows);
   } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
+/* ─── Admin: richieste partite proposte ─── */
+app.get('/api/admin/partite-proposte', adminAuth, async (req, res) => {
+  try {
+    const r = await db.query(`
+      SELECT pp.*, u.nome AS mittente_nome, u.cognome AS mittente_cognome, u.email AS mittente_email
+      FROM partite_proposte pp
+      LEFT JOIN utenti u ON u.id::text = pp.mittente_id
+      ORDER BY pp.creato_il DESC
+    `);
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.put('/api/admin/partite-proposte/:id', adminAuth, async (req, res) => {
+  const { stato, admin_note } = req.body;
+  if (!['accepted', 'refused'].includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
+  try {
+    const r = await db.query(
+      'UPDATE partite_proposte SET stato=$1, admin_note=$2 WHERE id=$3 RETURNING *',
+      [stato, admin_note || null, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovata' });
+    res.json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 
 /* ─── Admin: documenti utente ─── */
