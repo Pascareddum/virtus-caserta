@@ -22,6 +22,7 @@
         '<ul class="nav-dropdown-menu">' +
           '<li><a href="/squadra"' + _cls('/squadra') + '>Squadra</a></li>' +
           '<li><a href="/staff"' + _cls('/staff') + '>Staff</a></li>' +
+          '<li><a href="/progetti"' + _cls('/progetti') + '>Progetti</a></li>' +
         '</ul>' +
       '</li>' +
     '</ul>' +
@@ -51,12 +52,14 @@
     '</div>' +
   '</div>' +
   '<div class="nav-drawer" id="navDrawer">' +
+    '<button class="drawer-close-btn" onclick="chiudiDrawer()" aria-label="Chiudi menu">✕</button>' +
     '<div class="drawer-logo"><img src="/images/negativo@4x.png" alt="Virtus Caserta" onerror="this.style.display=\'none\'"></div>' +
     '<a href="/" class="drawer-link' + _drc('/') + '" onclick="chiudiDrawer()">Home</a>' +
     '<a href="/chi-siamo" class="drawer-link' + _drc('/chi-siamo') + '" onclick="chiudiDrawer()">Chi siamo</a>' +
     '<a href="/notizie" class="drawer-link' + _drc('/notizie') + '" onclick="chiudiDrawer()">Notizie</a>' +
     '<a href="/squadra" class="drawer-link' + _drc('/squadra') + '" onclick="chiudiDrawer()">Squadra</a>' +
     '<a href="/staff" class="drawer-link' + _drc('/staff') + '" onclick="chiudiDrawer()">Staff</a>' +
+    '<a href="/progetti" class="drawer-link' + _drc('/progetti') + '" onclick="chiudiDrawer()">Progetti</a>' +
     '<a href="/risultati" class="drawer-link' + _drc('/risultati') + '" onclick="chiudiDrawer()">Risultati</a>' +
     '<a href="/shop" class="drawer-link' + _drc('/shop') + '" onclick="chiudiDrawer()">Shop</a>' +
     '<a href="/live" class="drawer-link' + _drc('/live') + '" onclick="chiudiDrawer()">Live</a>' +
@@ -81,6 +84,7 @@
         '<a href="/risultati">Risultati</a>' +
         '<a href="/shop">Shop</a>' +
         '<a href="/live">Live</a>' +
+        '<a href="/progetti">Progetti</a>' +
       '</div>' +
       '<div class="footer-soc">' +
         '<a href="https://www.facebook.com/virtuscaserta" target="_blank" rel="noopener" title="Facebook"><img src="/images/facebook-icon.png" alt="Facebook"></a>' +
@@ -199,7 +203,7 @@
 
   /* ── Bootstrap ── */
   function _boot() {
-    if (_p === '/') { _injectCSS(); } else { _inject(); }
+    _inject();
     window.aggiornaNavbar();
   }
   if (document.readyState === 'loading') {

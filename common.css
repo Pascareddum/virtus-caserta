@@ -130,6 +130,32 @@
 }
 .nav-drawer.aperto { opacity: 1; pointer-events: all; }
 
+.drawer-close-btn {
+  position: fixed;
+  top: 18px;
+  right: 20px;
+  z-index: 1020;
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.28s ease, background 0.18s;
+}
+.drawer-close-btn:hover { background: rgba(255,255,255,0.22); }
+.nav-drawer.aperto .drawer-close-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .nav-drawer .drawer-logo { margin-bottom: 32px; }
 .nav-drawer .drawer-logo img { height: 52px; object-fit: contain; }
 
