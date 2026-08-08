@@ -1881,7 +1881,34 @@ app.get('/api/partite/proposte', userAuth, async (req, res) => {
   try {
     const uid = String(req.user.id);
     const r = await db.query('SELECT * FROM partite_proposte WHERE mittente_id=$1 ORDER BY creato_il DESC', [uid]);
-    res.json(r.rows);
+    const rows = r.rows;
+    for (const row of rows) {
+      const ids = (row.invitati_persone || []).map(Number).filter(Boolean);
+      if (ids.length) {
+        const nr = await db.query(
+          `SELECT id, nome, cognome FROM utenti WHERE id = ANY($1::int[])`,
+          [ids]
+        );
+        row.invitati_nomi = nr.rows.map(u => `${u.nome||''} ${u.cognome||''}`.trim());
+      } else {
+        row.invitati_nomi = [];
+      }
+    }
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.put('/api/partite/proposte/:id/invitati', userAuth, async (req, res) => {
+  const { invitati_persone } = req.body;
+  const uid = String(req.user.id);
+  try {
+    const r = await db.query(
+      `UPDATE partite_proposte SET invitati_persone=$1
+       WHERE id=$2 AND mittente_id=$3 AND stato='accepted' RETURNING *`,
+      [JSON.stringify(Array.isArray(invitati_persone) ? invitati_persone : []), req.params.id, uid]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Non trovata o non autorizzato' });
+    res.json(r.rows[0]);
   } catch (err) { res.status(500).json({ error: 'Errore interno' }); }
 });
 
@@ -1902,12 +1929,35 @@ app.put('/api/admin/partite-proposte/:id', adminAuth, async (req, res) => {
   const { stato, admin_note } = req.body;
   if (!['accepted', 'refused'].includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
   try {
+    // Fetch proposal before update to get palestra/time data
+    const pr = await db.query('SELECT * FROM partite_proposte WHERE id=$1', [req.params.id]);
+    if (!pr.rows.length) return res.status(404).json({ error: 'Non trovata' });
+    const prop = pr.rows[0];
+
     const r = await db.query(
       'UPDATE partite_proposte SET stato=$1, admin_note=$2 WHERE id=$3 RETURNING *',
       [stato, admin_note || null, req.params.id]
     );
-    if (!r.rows.length) return res.status(404).json({ error: 'Non trovata' });
+
+    // On acceptance: block palestra slot in calendario
+    if (stato === 'accepted' && prop.palestra_id) {
+      const oraStr = prop.ora + (prop.ora_fine ? ('–' + String(prop.ora_fine).slice(0,5)) : '');
+      const calId = crypto.randomUUID();
+      await db.query(
+        `INSERT INTO calendario (id, titolo, data_str, ora, palestra_id, categoria, note)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (id) DO NOTHING`,
+        [calId, 'Partita organizzata', prop.data, oraStr, String(prop.palestra_id), 'partita', prop.note || '']
+      );
+    }
+
     res.json(r.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
+});
+
+app.delete('/api/admin/partite-proposte/:id', adminAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM partite_proposte WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno' }); }
 });
 

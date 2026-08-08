@@ -442,6 +442,12 @@ async function createTables() {
   try { await query(`ALTER TABLE torneo_partite ALTER COLUMN squadra_casa_id DROP NOT NULL`); } catch(_){}
   try { await query(`ALTER TABLE torneo_partite ALTER COLUMN squadra_ospite_id DROP NOT NULL`); } catch(_){}
   await query(`ALTER TABLE IF EXISTS progetti ADD COLUMN IF NOT EXISTS immagine VARCHAR(500)`);
+  await query(`ALTER TABLE IF EXISTS partite_proposte ADD COLUMN IF NOT EXISTS stato TEXT DEFAULT 'pending'`);
+  await query(`ALTER TABLE IF EXISTS partite_proposte ADD COLUMN IF NOT EXISTS admin_note TEXT`);
+  await query(`ALTER TABLE IF EXISTS partite_proposte ADD COLUMN IF NOT EXISTS ora_fine TIME`);
+  await query(`ALTER TABLE IF EXISTS partite_proposte ADD COLUMN IF NOT EXISTS palestra_id INTEGER`);
+  await query(`ALTER TABLE IF EXISTS partite_proposte ADD COLUMN IF NOT EXISTS invitati_categorie JSONB DEFAULT '[]'`);
+  await query(`ALTER TABLE IF EXISTS partite_proposte ADD COLUMN IF NOT EXISTS invitati_persone JSONB DEFAULT '[]'`);
 
   // Progetti / Bandi
   await query(`

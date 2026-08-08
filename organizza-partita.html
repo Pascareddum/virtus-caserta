@@ -91,6 +91,23 @@
     .match-status.refused{background:#fef2f2;color:#b91c1c;}
     .list-empty{padding:36px 20px;text-align:center;color:#9ca3af;font-size:13px;font-weight:600;}
 
+    /* ── Accepted match management card ── */
+    .match-card-accepted{background:#fff;border:2px solid #16a34a;border-radius:16px;overflow:hidden;margin-bottom:12px;box-shadow:0 2px 12px rgba(22,163,74,.08);}
+    .mca-header{background:linear-gradient(135deg,#f0fdf4,#dcfce7);padding:14px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-bottom:1px solid #bbf7d0;}
+    .mca-badge{font-size:11px;font-weight:800;background:#16a34a;color:#fff;border-radius:20px;padding:3px 10px;white-space:nowrap;}
+    .mca-date{font-size:13px;font-weight:700;color:#15803d;}
+    .mca-luogo{font-size:12px;color:#166534;}
+    .mca-body{padding:14px 18px;}
+    .mca-section{margin-bottom:12px;}
+    .mca-section-lbl{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#6b7280;margin-bottom:6px;}
+    .mca-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:#eef4ff;color:#0d2055;font-size:12px;font-weight:600;margin:2px;}
+    .mca-btn{padding:8px 16px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;}
+    .mca-btn-gestisci{background:#eef4ff;color:#0d2055;margin-top:6px;}
+    .mca-btn-gestisci:hover{background:#dbeafe;}
+    .mca-btn-salva{background:#0d2055;color:#fff;margin-top:10px;}
+    .mca-btn-salva:hover{background:#1535a8;}
+    .mca-people-wrap{margin-top:10px;padding:12px;background:#f9fafb;border-radius:12px;border:1.5px solid #e9ecf0;}
+
     /* ── Submit ── */
     .btn-submit{width:100%;padding:15px;background:#0d2055;color:#fff;border:none;border-radius:14px;
       font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-top:6px;}
@@ -502,6 +519,9 @@
       return d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: 'short' });
     }
 
+    // Per-card invitati state: proposalId → Set of user ids
+    const _cardInvitati = {};
+
     async function caricaProposte() {
       const list = document.getElementById('matchList');
       try {
@@ -509,29 +529,136 @@
         if (!r.ok) throw new Error();
         const items = await r.json();
         if (!items.length) { list.innerHTML = '<div class="list-empty">Nessuna proposta inviata</div>'; return; }
-        const STATUS = { pending: 'In attesa', accepted: 'Accettata', refused: 'Rifiutata' };
         list.innerHTML = '';
         items.forEach(m => {
-          const item = document.createElement('div');
-          item.className = 'match-item';
           const stato  = m.stato || 'pending';
-          const orario = m.ora + (m.ora_fine ? ' – ' + m.ora_fine : '');
-          item.innerHTML = `
-            <div class="match-icon">🏐</div>
-            <div class="match-info">
-              <div class="match-vs">${fmtDate(m.data)}</div>
-              <div class="match-meta">
-                <span>${orario}</span>
-                ${m.luogo ? `<span>${m.luogo}</span>` : ''}
+          const orario = String(m.ora||'').slice(0,5) + (m.ora_fine ? ' – ' + String(m.ora_fine).slice(0,5) : '');
+          if (stato === 'accepted') {
+            _cardInvitati[m.id] = new Set((m.invitati_persone || []).map(String));
+            const nomi = (m.invitati_nomi || []);
+            const div = document.createElement('div');
+            div.className = 'match-card-accepted';
+            div.id = 'mca-' + m.id;
+            div.innerHTML = `
+              <div class="mca-header">
+                <span class="mca-badge">✓ Accettata</span>
+                <span class="mca-date">📅 ${fmtDate(m.data)} · ⏰ ${orario}</span>
+                ${m.luogo ? `<span class="mca-luogo">📍 ${m.luogo}</span>` : ''}
               </div>
-            </div>
-            <span class="match-status ${stato}">${STATUS[stato] || stato}</span>`;
-          list.appendChild(item);
+              <div class="mca-body">
+                <div class="mca-section">
+                  <div class="mca-section-lbl">Partecipanti invitati</div>
+                  <div id="mca-chips-${m.id}">
+                    ${nomi.length ? nomi.map(n=>`<span class="mca-chip">👤 ${n}</span>`).join('') : '<span style="color:#9ca3af;font-size:13px;">Nessuno ancora</span>'}
+                  </div>
+                </div>
+                <button class="mca-btn mca-btn-gestisci" onclick="toggleCardInvitati('${m.id}')">+ Gestisci partecipanti</button>
+                <div id="mca-edit-${m.id}" style="display:none;">
+                  <div class="mca-people-wrap">
+                    <input type="text" id="mca-search-${m.id}" placeholder="Cerca per nome…"
+                      oninput="filterCardPeople('${m.id}', this.value)"
+                      style="width:100%;padding:9px 12px;border:1.5px solid #e9ecf0;border-radius:10px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:8px;">
+                    <div id="mca-results-${m.id}" class="people-results" style="max-height:160px;"></div>
+                    <div id="mca-sel-chips-${m.id}" class="sel-chips" style="margin-top:8px;"></div>
+                  </div>
+                  <button class="mca-btn mca-btn-salva" onclick="salvaCardInvitati('${m.id}')">Salva partecipanti</button>
+                </div>
+              </div>`;
+            list.appendChild(div);
+          } else {
+            const STATUS = { pending: 'In attesa', refused: 'Rifiutata' };
+            const item = document.createElement('div');
+            item.className = 'match-item';
+            item.innerHTML = `
+              <div class="match-icon">🏐</div>
+              <div class="match-info">
+                <div class="match-vs">${fmtDate(m.data)}</div>
+                <div class="match-meta">
+                  <span>${orario}</span>
+                  ${m.luogo ? `<span>${m.luogo}</span>` : ''}
+                </div>
+              </div>
+              <span class="match-status ${stato}">${STATUS[stato] || stato}</span>`;
+            list.appendChild(item);
+          }
         });
       } catch {
         list.innerHTML = '<div class="list-empty">Impossibile caricare le proposte</div>';
       }
     }
+
+    function toggleCardInvitati(id) {
+      const el = document.getElementById('mca-edit-' + id);
+      if (!el) return;
+      const open = el.style.display !== 'none';
+      el.style.display = open ? 'none' : 'block';
+      if (!open) {
+        filterCardPeople(id, '');
+        renderCardChips(id);
+      }
+    }
+
+    function filterCardPeople(id, q) {
+      if (!peopleLoaded) return;
+      const set = _cardInvitati[id] || new Set();
+      const list = q.trim()
+        ? allPeople.filter(p => `${p.nome||''} ${p.cognome||''}`.toLowerCase().includes(q.toLowerCase()))
+        : allPeople;
+      const res = document.getElementById('mca-results-' + id);
+      if (!res) return;
+      if (!list.length) { res.innerHTML = '<div style="padding:10px 14px;font-size:13px;color:#9ca3af;">Nessun risultato</div>'; return; }
+      res.innerHTML = '';
+      list.forEach(p => {
+        const sel = set.has(String(p.id));
+        const ini = [p.nome, p.cognome].filter(Boolean).map(s=>s[0].toUpperCase()).join('') || '?';
+        const row = document.createElement('div');
+        row.className = 'person-row' + (sel ? ' sel' : '');
+        row.innerHTML = `<div class="person-av">${ini}</div>
+          <div class="person-info"><div class="person-name">${p.nome||''} ${p.cognome||''}</div></div>
+          <div class="person-check">${sel?'✓':''}</div>`;
+        row.onclick = () => {
+          if (set.has(String(p.id))) set.delete(String(p.id));
+          else set.add(String(p.id));
+          _cardInvitati[id] = set;
+          filterCardPeople(id, document.getElementById('mca-search-'+id)?.value || '');
+          renderCardChips(id);
+        };
+        res.appendChild(row);
+      });
+    }
+
+    function renderCardChips(id) {
+      const set = _cardInvitati[id] || new Set();
+      const el = document.getElementById('mca-sel-chips-' + id);
+      if (!el) return;
+      const selected = allPeople.filter(p => set.has(String(p.id)));
+      el.innerHTML = selected.map(p => {
+        const nome = `${p.nome||''} ${p.cognome||''}`.trim();
+        return `<span class="sel-chip">${nome}<button onclick="removeCardInvitato('${id}',${p.id})">×</button></span>`;
+      }).join('');
+    }
+
+    window.removeCardInvitato = function(id, uid) {
+      (_cardInvitati[id] || new Set()).delete(String(uid));
+      filterCardPeople(id, document.getElementById('mca-search-'+id)?.value || '');
+      renderCardChips(id);
+    };
+
+    window.salvaCardInvitati = async function(id) {
+      const ids = [...(_cardInvitati[id] || new Set())].map(Number).filter(Boolean);
+      try {
+        const r = await fetch(`/api/partite/proposte/${id}/invitati`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invitati_persone: ids })
+        });
+        if (!r.ok) throw new Error('Status ' + r.status);
+        toast('Partecipanti salvati!');
+        caricaProposte();
+      } catch (e) {
+        toast('Errore: ' + e.message, true);
+      }
+    };
 
     // ── Init ──
     caricaPalestre();

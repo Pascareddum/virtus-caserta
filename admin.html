@@ -8802,13 +8802,15 @@
         const badge = `<span style="font-size:10px;font-weight:700;background:${st.bg};color:${st.c};border-radius:4px;padding:2px 8px;white-space:nowrap;">${st.lbl}</span>`;
         const orario = p.ora + (p.ora_fine ? ' – ' + p.ora_fine : '');
         const mittente = [p.mittente_nome, p.mittente_cognome].filter(Boolean).join(' ') || p.mittente_id;
-        const actions = p.stato === 'pending' ? `
-          <div style="display:flex;gap:8px;margin-top:10px;">
+        const actions = `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          ${p.stato === 'pending' ? `
             <button onclick="rispondiProposta('${p.id}','accepted')"
               style="padding:7px 16px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✓ Accetta</button>
             <button onclick="rispondiProposta('${p.id}','refused')"
-              style="padding:7px 16px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✕ Rifiuta</button>
-          </div>` : (p.admin_note ? `<div style="font-size:12px;color:#6b7280;margin-top:6px;">Nota admin: ${p.admin_note}</div>` : '');
+              style="padding:7px 16px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✕ Rifiuta</button>` : (p.admin_note ? `<span style="font-size:12px;color:#6b7280;">Nota: ${p.admin_note}</span>` : '')}
+          <button onclick="eliminaProposta('${p.id}')"
+            style="padding:7px 14px;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;color:#6b7280;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto;">🗑 Elimina</button>
+        </div>`;
         return `<div style="background:#fff;border:1px solid var(--bordo);border-radius:12px;padding:16px 18px;margin-bottom:12px;">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
             <div style="font-size:14px;font-weight:700;color:#111827;">${mittente}</div>
@@ -8832,6 +8834,20 @@
         method: 'PUT',
         headers: headers(),
         body: JSON.stringify({ stato })
+      });
+      if (!r.ok) throw new Error('Status ' + r.status);
+      caricaRichiestePartite();
+    } catch (e) {
+      alert('Errore: ' + e.message);
+    }
+  };
+
+  window.eliminaProposta = async function(id) {
+    if (!confirm('Eliminare questa richiesta di partita?')) return;
+    try {
+      const r = await fetch(`/api/admin/partite-proposte/${id}`, {
+        method: 'DELETE',
+        headers: headers()
       });
       if (!r.ok) throw new Error('Status ' + r.status);
       caricaRichiestePartite();
