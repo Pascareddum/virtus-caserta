@@ -2418,7 +2418,7 @@ app.put('/api/admin/squadre-cat-links', adminAuth, async (req, res) => {
     for (const [nome, v] of Object.entries(req.body)) {
       if (typeof nome !== 'string' || nome.length > 200) continue;
       const orari = Array.isArray(v?.orari)
-        ? v.orari.map(o => ({ giorno: String(o.giorno||'').slice(0,20), ora: String(o.ora||'').slice(0,10), ora_fine: String(o.ora_fine||'').slice(0,10) }))
+        ? v.orari.map(o => ({ giorno: String(o.giorno||'').slice(0,20), ora: String(o.ora||'').slice(0,10), ora_fine: String(o.ora_fine||'').slice(0,10), ...(o.specifica ? { specifica: String(o.specifica).slice(0,200) } : {}) }))
         : [];
       const extra_cla = Array.isArray(v?.extra_cla)
         ? v.extra_cla.map(u => String(u).slice(0, 500)).filter(Boolean)
@@ -3065,8 +3065,8 @@ app.post('/api/richiesta-ordine', ordineEmailLimiter, async (req, res) => {
 /* ─── FIPAV Partite ─── */
 const FIPAV_CASERTA_BASE   = 'https://caserta.portalefipav.net';
 const FIPAV_CAMPANIA_BASE  = 'https://www.fipavcampania.it';
-const FIPAV_CASERTA_URL    = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?ComitatoId=19&StId=2281&DataDa=&StatoGara=&CId=&SId=5150&PId=7261&btFiltro=CERCA';
-const FIPAV_CAMPANIA_URL   = 'https://www.fipavcampania.it/risultati-classifiche.aspx?ComitatoId=15&StId=2277&DataDa=&StatoGara=&CId=&SId=5150&PId=1078&btFiltro=CERCA';
+const FIPAV_CASERTA_URL    = 'https://caserta.portalefipav.net/risultati-classifiche.aspx?PId=7261';
+const FIPAV_CAMPANIA_URL   = 'https://www.fipavcampania.it/risultati-classifiche.aspx?ComitatoId=15&StId=2395&DataDa=&StatoGara=&CId=&SId=5150&PId=1078&btFiltro=CERCA';
 
 /* ─── Scheduler: fetch risultato FIPAV (1.5h, retry ogni 30min, stop a 3h) ─── */
 const RESULT_FETCH_INITIAL_DELAY = 1.5 * 60 * 60 * 1000;  // 1h30

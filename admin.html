@@ -1542,6 +1542,7 @@
       <button onclick="chiudiSqCat()" class="btn-back-cal">← Categorie</button>
       <h3 id="sqCatNome" style="margin:0;font-size:17px;font-weight:800;color:#0d2055;flex:1;"></h3>
       <button onclick="apriSqCatInfo()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#374151;display:flex;align-items:center;gap:5px;">ℹ Info squadra</button>
+      <button onclick="eliminaSquadraCat()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#dc2626;">Elimina squadra</button>
     </div>
     <!-- Homepage card for this category -->
     <div style="margin-bottom:22px;">
@@ -4308,8 +4309,8 @@
       _sqAllPlayers = raw.filter(g => g.sesso !== 'Staff' && !RUOLI_STAFF_ADMIN.includes(g.ruolo));
       _sqAllCoaches = raw.filter(g => g.sesso !== 'Staff' && ['Allenatore','Vice Allenatore','Primo allenatore','Secondo allenatore','Assistente'].includes(g.ruolo));
       const opzioni = catList.length
-        ? catList.sort((a,b) => (a.ordine||0)-(b.ordine||0)).map(s => s.nome)
-        : SQUADRE_FISSE;
+        ? catList.sort((a,b) => (a.ordine||0)-(b.ordine||0))
+        : SQUADRE_FISSE.map(n => ({ nome: n, custom: false }));
       renderSqCatCards(opzioni);
       if (_sqCatSelected) apriSqCat(_sqCatSelected);
     } catch {
@@ -4323,12 +4324,13 @@
     grid.style.display = 'grid';
     if (!opzioni.length) { grid.innerHTML = '<div style="color:#9ca3af;padding:16px">Nessuna categoria configurata.</div>'; return; }
     grid.innerHTML = opzioni.map(cat => {
+      const nome = typeof cat === 'string' ? cat : cat.nome;
       const count = _sqAllPlayers.filter(g =>
-        (g.sesso || '').split(',').map(s => s.trim()).includes(cat)
+        (g.sesso || '').split(',').map(s => s.trim()).includes(nome)
       ).length;
-      return `<div class="cal-cat-card" onclick="apriSqCat('${cat.replace(/'/g,"\\'")}')">
+      return `<div class="cal-cat-card" onclick="apriSqCat('${nome.replace(/'/g,"\\'")}')">
         <div class="cat-ico"></div>
-        <div class="cat-nome">${cat}</div>
+        <div class="cat-nome">${nome}</div>
         <div class="cat-sub">${count} giocator${count === 1 ? 'e' : 'i'}</div>
       </div>`;
     }).join('');
@@ -4367,9 +4369,30 @@
     else alert('Errore salvataggio.');
   }
 
+  async function eliminaSquadraCat() {
+    const nome = _sqCatSelected;
+    if (!nome) return;
+    const catList = await fetchSquadreCat();
+    const sq = catList.find(s => s.nome === nome);
+    if (!sq) return;
+    if (sq.custom) {
+      if (!confirm(`Eliminare definitivamente la squadra "${nome}"?`)) return;
+      const extra = catList.filter(s => s.custom && s.nome !== nome).map(s => s.nome);
+      await fetch('/api/admin/squadre-extra', { method: 'PUT', headers: headers(), body: JSON.stringify(extra) });
+    } else {
+      if (!confirm(`Nascondere "${nome}" dalla lista?\n(Riapparirà se ci sono atleti con questa squadra assegnata.)`)) return;
+      const correnti = await fetch('/api/admin/squadre-escluse', { headers: headers() }).then(r => r.json()).catch(() => []);
+      if (!correnti.includes(nome)) correnti.push(nome);
+      await fetch('/api/admin/squadre-escluse', { method: 'PUT', headers: headers(), body: JSON.stringify(correnti) });
+    }
+    _catListCache = null;
+    chiudiSqCat();
+    caricaSquadra();
+  }
+
   let _sqInfoOrariCount = 0;
 
-  function sqInfoAddOrario(giorno, ora, ora_fine) {
+  function sqInfoAddOrario(giorno, ora, ora_fine, specifica) {
     const n = _sqInfoOrariCount++;
     const GIORNI = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
     const div = document.createElement('div');
@@ -4383,6 +4406,7 @@
       <span style="font-size:12px;color:#6b7280;">–</span>
       <input type="time" value="${ora_fine||'21:00'}" style="width:90px;padding:7px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:13px;" title="Fine">
       <button type="button" onclick="document.getElementById('sqOrarioRow_${n}').remove()" style="padding:4px 10px;border-radius:7px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">✕</button>
+      <input type="text" value="${(specifica||'').replace(/"/g,'&quot;')}" placeholder="Specifica (es. solo under 18)" style="width:100%;padding:6px 10px;border:1.5px solid #d1d5db;border-radius:8px;font-size:12px;color:#374151;" title="Specifica">
     `;
     document.getElementById('sqInfoOrariList').appendChild(div);
   }
@@ -4390,7 +4414,8 @@
   function sqInfoGetOrari() {
     return Array.from(document.querySelectorAll('#sqInfoOrariList > div')).map(row => {
       const inputs = row.querySelectorAll('input[type=time]');
-      return { giorno: row.querySelector('select').value, ora: inputs[0].value, ora_fine: inputs[1].value };
+      const specifica = row.querySelector('input[type=text]')?.value?.trim() || '';
+      return { giorno: row.querySelector('select').value, ora: inputs[0].value, ora_fine: inputs[1].value, ...(specifica && { specifica }) };
     });
   }
 
@@ -4443,7 +4468,7 @@
       palSel.innerHTML = `<option value="">— nessuna —</option>` +
         (palestre || []).map(p => `<option value="${p.id}" ${p.id === curLinks.palestra_id ? 'selected' : ''}>${p.nome}</option>`).join('');
       // Orari
-      (curLinks.orari || []).forEach(o => sqInfoAddOrario(o.giorno, o.ora));
+      (curLinks.orari || []).forEach(o => sqInfoAddOrario(o.giorno, o.ora, o.ora_fine, o.specifica));
       // Links
       const gruppi = partite.gruppi || {};
       const fipavCats = Object.entries(gruppi)

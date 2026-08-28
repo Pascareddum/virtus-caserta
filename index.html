@@ -2459,7 +2459,7 @@
                 </div>
                 ${st.orari.length ? `<table class="sq-subteam-table">
                   <thead><tr><th>Giorno</th><th>Orario</th></tr></thead>
-                  <tbody>${st.orari.map(o => `<tr><td>${o.giorno}</td><td>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</td></tr>`).join('')}</tbody>
+                  <tbody>${st.orari.map(o => `<tr><td>${o.giorno}${o.specifica ? ` <span style="font-size:11px;color:#6b7280;">(${o.specifica})</span>` : ''}</td><td>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</td></tr>`).join('')}</tbody>
                 </table>` : ''}
                 <div onclick="event.stopPropagation()">${linksHtml}</div>
               </div>
@@ -2485,7 +2485,7 @@
           }
           if ((info.orari || []).length) {
             document.getElementById('sqPanelOrari').innerHTML = info.orari.map(o =>
-              `<li>${o.giorno} <span>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</span></li>`
+              `<li>${o.giorno}${o.specifica ? ` <em style="font-size:11px;color:#6b7280;">(${o.specifica})</em>` : ''} <span>${o.ora}${o.ora_fine ? '–'+o.ora_fine : ''}</span></li>`
             ).join('');
             document.getElementById('sqOrariSimple').style.display = '';
           }
