@@ -4131,6 +4131,12 @@ app.get('/api/squadra', async (_req, res) => {
     res.json(r.rows);
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
+app.get('/api/admin/squadra', adminAuth, async (_req, res) => {
+  try {
+    const r = await db.query('SELECT * FROM squadra ORDER BY numero ASC NULLS LAST, cognome');
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
+});
 app.post('/api/admin/squadra', adminAuth, async (req, res) => {
   const { nome, cognome, numero, ruolo, foto, bio, sesso, utente_id } = req.body;
   if (!nome || !cognome) return res.status(400).json({ error: 'Nome e cognome obbligatori' });
@@ -4221,6 +4227,53 @@ app.delete('/api/admin/squadra/:id', adminAuth, async (req, res) => {
     }
     await logActivity('Giocatrice eliminata', `${nome} ${cognome}`);
     res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
+});
+app.post('/api/admin/squadra/:id/sostituisci', adminAuth, async (req, res) => {
+  const { utente_id } = req.body;
+  const COACH_ROLES_SRV = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
+  if (!utente_id) return res.status(400).json({ error: 'utente_id richiesto' });
+  try {
+    const origR = await db.query('SELECT * FROM squadra WHERE id=$1', [req.params.id]);
+    if (!origR.rows.length) return res.status(404).json({ error: 'Giocatore non trovato' });
+    const orig = origR.rows[0];
+    const uR = await db.query('SELECT nome, cognome FROM utenti WHERE id=$1', [utente_id]);
+    if (!uR.rows.length) return res.status(404).json({ error: 'Utente non trovato' });
+    const u = uR.rows[0];
+    const primaSquadra = (orig.sesso || '').split(',')[0].trim();
+
+    const dupR = await db.query(
+      `SELECT * FROM squadra WHERE utente_id=$1 AND id<>$2 AND (sesso IS NULL OR sesso != 'Staff')`,
+      [utente_id, orig.id]
+    );
+    const dup = dupR.rows.find(g => (g.sesso || '').split(',').map(s => s.trim()).includes(primaSquadra));
+
+    let mergedId = orig.id;
+    if (dup) {
+      await db.query(
+        `UPDATE squadra SET numero=$1, foto=$2, bio=$3 WHERE id=$4`,
+        [dup.numero ?? orig.numero, dup.foto || orig.foto || '', dup.bio || orig.bio || '', dup.id]
+      );
+      await db.query('DELETE FROM squadra WHERE id=$1', [orig.id]);
+      mergedId = dup.id;
+    } else {
+      await db.query('UPDATE squadra SET nome=$1, cognome=$2, utente_id=$3 WHERE id=$4', [u.nome, u.cognome, utente_id, orig.id]);
+    }
+
+    const linked = await db.query(`SELECT ruolo, sesso FROM squadra WHERE utente_id=$1 AND (sesso IS NULL OR sesso != 'Staff')`, [utente_id]);
+    const sqAtleta = [], sqAllen = [];
+    for (const g of linked.rows) {
+      const teams = (g.sesso || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (COACH_ROLES_SRV.includes(g.ruolo)) { teams.forEach(t => { if (!sqAllen.includes(t)) sqAllen.push(t); }); }
+      else { teams.forEach(t => { if (!sqAtleta.includes(t)) sqAtleta.push(t); }); }
+    }
+    await db.query(
+      `UPDATE utenti SET is_atleta=($1::int > 0), is_allenatore=($2::int > 0), squadre_atleta=$3, squadre_allenatore=$4 WHERE id=$5`,
+      [sqAtleta.length, sqAllen.length, JSON.stringify(sqAtleta), JSON.stringify(sqAllen), utente_id]
+    );
+
+    await logActivity('Giocatore sostituito con account reale', `${u.nome} ${u.cognome}`);
+    res.json({ success: true, merged: !!dup, id: mergedId });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Errore interno del server.' }); }
 });
 

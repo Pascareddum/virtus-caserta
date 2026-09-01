@@ -2732,9 +2732,11 @@
       </div>
       <div class="mf">
         <label>Collega account utente</label>
-        <select id="gUtenteId" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
+        <select id="gUtenteId" onchange="_onGUtenteChange()" style="width:100%;padding:11px 14px;border:1.5px solid var(--bordo);border-radius:var(--radius);font-size:14px;font-family:inherit;outline:none;background:var(--surface);">
           <option value="">— Nessun account collegato —</option>
         </select>
+        <small style="color:#6b7280;font-size:11px">Seleziona un utente già registrato per collegare il suo account: nome e cognome verranno presi da lì.</small>
+        <button type="button" id="btnSostituisciGiocatore" onclick="sostituisciGiocatore()" style="display:none;margin-top:8px;padding:8px 14px;border-radius:8px;border:1.5px solid #0d2055;background:#fff;color:#0d2055;font-size:12px;font-weight:700;cursor:pointer;">Sostituisci con account selezionato</button>
       </div>
       <div class="mf"><label>Bio</label><textarea id="gBio" placeholder="Breve descrizione..."></textarea></div>
       <div class="mf">
@@ -4303,7 +4305,7 @@
     grid.innerHTML = '<div style="color:#9ca3af;padding:16px">Caricamento…</div>';
     try {
       const [raw, catList] = await Promise.all([
-        fetch('/api/squadra', { headers: headers() }).then(r => r.json()),
+        fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json()),
         fetchSquadreCat()
       ]);
       _sqAllPlayers = raw.filter(g => g.sesso !== 'Staff' && !RUOLI_STAFF_ADMIN.includes(g.ruolo));
@@ -4599,10 +4601,7 @@
     document.getElementById('pickAllList').innerHTML = '<div style="text-align:center;color:#9ca3af;padding:20px;font-size:13px;">Caricamento…</div>';
     document.getElementById('modalPickAllenatore').classList.add('aperto');
     try {
-      const [squadraRaw, utentiRaw] = await Promise.all([
-        fetch('/api/squadra', { headers: headers() }).then(r => r.json()),
-        fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json())
-      ]);
+      const utentiRaw = await fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json());
       const alreadyKeys = new Set(
         _sqAllCoaches
           .filter(c => (c.sesso||'').split(',').map(s=>s.trim()).includes(_sqCatSelected))
@@ -4615,12 +4614,6 @@
         if (seen.has(key) || alreadyKeys.has(key)) return;
         seen.add(key);
         people.push({ nome: u.nome, cognome: u.cognome, utente_id: u.id, foto: '', label: u.is_allenatore ? 'Allenatore' : 'Utente' });
-      });
-      squadraRaw.filter(g => g.sesso !== 'Staff').forEach(g => {
-        const key = `${g.nome.toLowerCase()} ${g.cognome.toLowerCase()}`;
-        if (seen.has(key) || alreadyKeys.has(key)) return;
-        seen.add(key);
-        people.push({ nome: g.nome, cognome: g.cognome, utente_id: g.utente_id || '', foto: g.foto || '', label: g.ruolo || 'Giocatore' });
       });
       _pickAllPeople = people;
       renderPickAllList('');
@@ -4666,7 +4659,7 @@
       const body = { nome, cognome, ruolo: 'Allenatore', sesso: _sqCatSelected, attiva: true, utente_id: uid || '', foto: foto || '', bio: '', numero: null };
       const res = await fetch('/api/admin/squadra', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Errore'); }
-      const raw = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+      const raw = await fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json());
       _sqAllCoaches = raw.filter(g => g.sesso !== 'Staff' && ['Allenatore','Vice Allenatore','Primo allenatore','Secondo allenatore','Assistente'].includes(g.ruolo));
       _sqAllPlayers = raw.filter(g => g.sesso !== 'Staff' && !RUOLI_STAFF_ADMIN.includes(g.ruolo));
       chiudiModal('modalPickAllenatore');
@@ -4728,12 +4721,14 @@
     giocatriceInEditing = id;
     document.getElementById('modalGiocatriceTitolo').textContent = id ? 'Modifica giocatrice' : 'Nuova giocatrice';
     ['gNome','gCognome','gNumero','gBio','gFoto'].forEach(i => document.getElementById(i).value = '');
+    document.getElementById('gNome').disabled = false;
+    document.getElementById('gCognome').disabled = false;
     document.getElementById('gAttiva').checked = true;
     document.getElementById('gFotoPreview').style.display = 'none';
     let sessoIniziale = (!id && _sqCatSelected) ? _sqCatSelected : 'Femminile';
     let utenteIdCorrente = '';
     if (id) {
-      const list = await fetch('/api/squadra').then(r => r.json());
+      const list = await fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json());
       const g = list.find(x => x.id === id);
       if (g) {
         document.getElementById('gNome').value    = g.nome;
@@ -4749,8 +4744,41 @@
       }
     }
     await _popolaUtenteSelect('gUtenteId', utenteIdCorrente);
+    _onGUtenteChange();
+    document.getElementById('btnSostituisciGiocatore').style.display = (id && !utenteIdCorrente) ? 'inline-block' : 'none';
     renderGSessoCheckboxes(sessoIniziale);
     document.getElementById('modalGiocatrice').classList.add('aperto');
+  }
+
+  async function sostituisciGiocatore() {
+    const uid = document.getElementById('gUtenteId').value;
+    if (!uid) { alert('Seleziona prima un account dalla lista "Collega account utente".'); return; }
+    if (!confirm('Sostituire questo giocatore con l\'account selezionato?\nSe esiste già una scheda collegata a quell\'account per questa squadra, il giocatore senza account verrà eliminato e i suoi dati (numero, foto, bio) trasferiti su quella scheda.')) return;
+    const btn = document.getElementById('btnSostituisciGiocatore');
+    btn.disabled = true; btn.textContent = 'Sostituzione…';
+    try {
+      const res = await fetch(`/api/admin/squadra/${giocatriceInEditing}/sostituisci`, { method: 'POST', headers: headers(), body: JSON.stringify({ utente_id: uid }) });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Errore'); }
+      chiudiModal('modalGiocatrice');
+      caricaSquadra();
+    } catch (e) { alert('Errore: ' + e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Sostituisci con account selezionato'; }
+  }
+
+  function _onGUtenteChange() {
+    const uid = document.getElementById('gUtenteId').value;
+    const nomeInput = document.getElementById('gNome');
+    const cognomeInput = document.getElementById('gCognome');
+    const u = uid ? _allUtentiCache.find(x => x.id === uid) : null;
+    if (u) {
+      nomeInput.value = u.nome;
+      cognomeInput.value = u.cognome;
+      nomeInput.disabled = true;
+      cognomeInput.disabled = true;
+    } else {
+      nomeInput.disabled = false;
+      cognomeInput.disabled = false;
+    }
   }
 
   async function salvaGiocatrice() {
@@ -4787,7 +4815,7 @@
   async function caricaStaff() {
     const tbody = document.getElementById('staffBody');
     try {
-      const list = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+      const list = await fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json());
       const staff = list.filter(g => g.sesso === 'Staff');
       if (!staff.length) { tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="icon">👥</div>Nessun membro staff. Aggiungine uno!</div></td></tr>`; return; }
       tbody.innerHTML = staff.map(g => `
@@ -4819,7 +4847,7 @@
     document.getElementById('stFotoFile').value = '';
     let utenteIdCorrente = '';
     if (id) {
-      const list = await fetch('/api/squadra').then(r => r.json());
+      const list = await fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json());
       const g = list.find(x => x.id === id);
       if (g) {
         document.getElementById('stNome').value     = g.nome;
@@ -5696,7 +5724,7 @@
       await _loadCats();
       // Merge from linked squadra records — populates teams/roles if utenti fields are empty
       const COACH_ROLES_CLI = ['Allenatore', 'Vice Allenatore', 'Primo allenatore', 'Secondo allenatore', 'Assistente'];
-      const squadraRaw = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+      const squadraRaw = await fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json());
       const linked = squadraRaw.filter(g => g.utente_id === id && g.sesso !== 'Staff');
       for (const g of linked) {
         if (COACH_ROLES_CLI.includes(g.ruolo)) {
@@ -5766,7 +5794,7 @@
       caricaUtenti();
       // Duplicate check: look for unlinked squadra records with same name
       try {
-        const squadraRaw = await fetch('/api/squadra', { headers: headers() }).then(r => r.json());
+        const squadraRaw = await fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json());
         const nomeL = _tipoUtenteNome.toLowerCase().trim();
         const cognL = _tipoUtenteCognome.toLowerCase().trim();
         const matches = squadraRaw.filter(g =>
@@ -7338,7 +7366,7 @@
     try {
       const RUOLI_STAFF_LOC = ['Staff','Allenatore','Vice Allenatore','Preparatore Atletico','Fisioterapista','Team Manager','Dirigente','Accompagnatore','Medico'];
       const [staffList, utentiList] = await Promise.all([
-        fetch('/api/squadra', { headers: headers() }).then(r => r.json()),
+        fetch('/api/admin/squadra', { headers: headers() }).then(r => r.json()),
         fetch('/api/admin/utenti', { headers: headers() }).then(r => r.json()),
       ]);
       const utentiNomi = new Set();

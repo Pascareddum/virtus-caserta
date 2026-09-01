@@ -1,305 +1,443 @@
-# Report Analisi Settimanale — Virtus Caserta
+# Report Analisi Settimanale – Virtus Caserta
 
-**Data analisi:** 6 luglio 2026  
-**File analizzati:** server.js (5297 righe), db.js (568 righe), common.js (380 righe), shared.js (215 righe), sw.js, package.json, railway.json, 25 pagine HTML
+**Data analisi:** 1 settembre 2026  
+**Progetto:** virtus-caserta (Node.js/Express + PostgreSQL/Supabase)  
+**File analizzati:** server.js (5.297 righe), db.js, common.js, shared.js, sw.js, *.html (26 pagine), package.json, railway.json
 
 ---
 
 ## Riepilogo Esecutivo
 
-I 5 punti critici principali:
+Cinque punti critici emergono dall'analisi:
 
-1. **🔴 Bug persistente (non risolto dalla settimana scorsa):** `common.js` scrive `data.token/role/nome` nel localStorage dopo login, ma il server risponde con `{ user: {...} }` — i valori sono tutti `undefined`. Il footer non mostra mai il nome utente.
-2. **🔴 SSRF parziale in `/api/proxy-image`:** Il controllo regex `isFipav` determina solo il Referer, non blocca la fetch verso URL arbitrari (inclusi host interni).
-3. **🔴 2 vulnerabilità HIGH nelle dipendenze:** `multer` e `nodemailer` hanno CVE gravi risolvibili con `npm audit fix`.
-4. **🟡 CSP con `'unsafe-inline'` su scriptSrc:** Annulla le protezioni XSS fornite dalla Content Security Policy.
-5. **🟡 JWT utente con scadenza 120 giorni senza revoca:** Token compromessi rimangono validi 4 mesi senza possibilità di invalidarli.
+1. **Logout rotto** — `window.logout` in `common.js` cancella solo il localStorage ma non chiama `/api/logout`, lasciando il cookie `vc_user_session` attivo. L'utente rimane autenticato lato server anche dopo il logout apparente.
+2. **Valori di fallback insicuri** — `JWT_SECRET` e `ADMIN_PASSWORD` hanno fallback hardcoded in codice (`'virtus_secret_2026_dev'` / `'virtus2026'`). Se le variabili d'ambiente mancano in produzione, l'applicazione parte comunque con segreti noti.
+3. **`/api/push/subscribe` e `/api/imposta-password` non protetti** — il primo accetta subscription senza autenticazione (spam/flood); il secondo non ha rate limiter (brute-force sui token di setup password).
+4. **N+1 query in `/api/profilo/prossimi`** — per ogni squadra dell'utente vengono eseguiti query DB sequenziali in loop, causando decine di roundtrip per utenti multi-squadra.
+5. **Service Worker cache `'vc-v1'` mai aggiornata** — il nome cache è fisso: dopo ogni deploy i client possono continuare a servire JS/CSS obsoleti indefinitamente.
 
 ---
 
 ## 1. Sicurezza
 
-### 1.1 Bug autenticazione — localStorage stores `undefined` dopo login
-**Priorità: 🔴 Alta**
+### 1.1 Fallback JWT_SECRET e ADMIN_PASSWORD hardcoded
+**Priorità:** 🔴 Alta
 
-- **File:** `common.js`, righe 292–294 e 317–319
-- **Problema:** Dopo un login riuscito, il client scrive `data.token`, `data.role`, `data.nome` nel localStorage. Ma il server risponde con `{ user: { id, nome, cognome, email } }` — non esiste un campo `token` o `role` nella risposta. Tutti e tre i valori salvati sono `"undefined"`. Il footer non mostra mai il nome dell'utente, e la navbar non aggiorna correttamente lo stato loggato.
-- **Codice attuale (`common.js` riga 289–294):**
-  ```js
-  const res  = await fetch('/api/login', { ... });
-  const data = await res.json();
-  if (!res.ok) { errEl.textContent = data.error; return; }
-  localStorage.setItem('vc_token', data.token);   // undefined!
-  localStorage.setItem('vc_role',  data.role);    // undefined!
-  localStorage.setItem('vc_nome',  data.nome);    // undefined!
-  ```
-- **Risposta server (`server.js` riga 527):**
-  ```js
-  res.json({ user: { id: u.id, nome: u.nome, cognome: u.cognome, email: u.email } });
-  ```
-- **Soluzione:**
-  ```js
-  const data = await res.json();
-  if (!res.ok) { errEl.textContent = data.error; return; }
-  const { nome } = data.user;
-  localStorage.setItem('vc_nome', nome);
-  localStorage.setItem('vc_role', 'utente');
-  // Il token JWT è già nel cookie httpOnly — non serve in localStorage
-  ```
+**File:** `server.js`, righe 28–29 e 413
+```js
+const JWT_SECRET = process.env.JWT_SECRET || 'virtus_secret_2026_dev'; // ← fallback noto
+const adminPassword = process.env.ADMIN_PASSWORD || 'virtus2026';       // ← fallback noto
+```
+Se `JWT_SECRET` non è impostato, chiunque conosca il fallback può forgiare token JWT validi. Ugualmente, `ADMIN_PASSWORD='virtus2026'` è un fallback pubblicamente leggibile nel sorgente.
+
+**Soluzione:** Rimuovere entrambi i fallback. Il controllo già esiste in produzione per `JWT_SECRET`; estenderlo anche ad `ADMIN_PASSWORD` e far crashare il processo se mancanti.
+```js
+// All'avvio, ampliare il controllo:
+const missing = ['JWT_SECRET', 'ADMIN_PASSWORD', 'ADMIN_USERNAME'].filter(k => !process.env[k]);
+if (missing.length) { console.error(...); process.exit(1); }
+
+const JWT_SECRET = process.env.JWT_SECRET; // nessun fallback
+```
 
 ---
 
-### 1.2 SSRF parziale in `/api/proxy-image`
-**Priorità: 🔴 Alta**
+### 1.2 Logout non invalida il cookie di sessione
+**Priorità:** 🔴 Alta
 
-- **File:** `server.js`, righe 4102–4125
-- **Problema:** Il controllo `isFipav = /portalefipav|fipavcampania/i.test(url)` serve solo a scegliere il valore del header `Referer`, **non** a bloccare la richiesta. Un URL come `http://169.254.169.254/latest/meta-data?x=portalefipav` supera il test regex e fa comunque fetch verso qualsiasi host. Stessa cosa per risorse interne Railway (es. `http://localhost:5432`).
-- **Codice attuale:**
-  ```js
-  const isFipav = /portalefipav|fipavcampania/i.test(url);
-  const imgRes = await fetch(url, { ... }); // nessuna validazione del dominio!
-  ```
-- **Soluzione — allowlist esplicita:**
-  ```js
-  const ALLOWED_ORIGINS = [
-    'portalefipav.net',
-    'fipavcampania.it',
-    'opespallavolo.it',
-    'cdninstagram.com',
-    'instagram.com',
-  ];
-  let parsedUrl;
-  try { parsedUrl = new URL(url); } catch { return res.status(400).json({ error: 'URL non valido' }); }
-  if (!ALLOWED_ORIGINS.some(h => parsedUrl.hostname.endsWith(h))) {
-    return res.status(403).json({ error: 'Dominio non consentito' });
-  }
-  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    return res.status(400).json({ error: 'Protocollo non consentito' });
-  }
-  ```
+**File:** `common.js`, riga 324
+```js
+window.logout = function () {
+  ['vc_token','vc_role','vc_nome','vc_user','vc_admin_token'].forEach(k => localStorage.removeItem(k));
+  location.reload(); // ← il cookie httpOnly vc_user_session resta attivo
+};
+```
+Il server usa cookie httpOnly (`vc_user_session`) come sorgente primaria di autenticazione. Il logout frontend che cancella solo il localStorage non invalida il cookie. L'endpoint `/api/logout` esiste ma non viene chiamato.
+
+**Soluzione:**
+```js
+window.logout = async function () {
+  await fetch('/api/logout', { method: 'POST' }); // cancella il cookie lato server
+  ['vc_token','vc_role','vc_nome','vc_user','vc_admin_token'].forEach(k => localStorage.removeItem(k));
+  location.reload();
+};
+```
 
 ---
 
-### 1.3 Vulnerabilità HIGH nelle dipendenze
-**Priorità: 🔴 Alta**
+### 1.3 `/api/push/subscribe` senza autenticazione
+**Priorità:** 🔴 Alta
 
-- **File:** `package.json`
-- **Problema:** `npm audit` segnala 2 vulnerabilità di gravità HIGH:
-  - **multer ≤2.1.1** — DoS via field names profondamente annidati (GHSA-72gw-mp4g-v24j) e cleanup incompleto degli upload abortiti (GHSA-3p4h-7m6x-2hcm).
-  - **nodemailer ≤9.0.0** — CRLF injection nei header (GHSA-268h-hp4c-crq3), bypass validazione TLS OAuth2 (GHSA-r7g4-qg5f-qqm2), lettura arbitraria di file locali via opzione `raw` (GHSA-p6gq-j5cr-w38f).
-- **Soluzione immediata:**
-  ```bash
-  npm audit fix
-  ```
-  Verificare manualmente che upload immagini e invio email funzionino dopo l'aggiornamento.
+**File:** `server.js`, riga 4720
+```js
+app.post('/api/push/subscribe', async (req, res) => { // ← nessun middleware auth
+  const { endpoint, keys } = req.body;
+  ...
+  await db.query(`INSERT INTO push_subscriptions ...`);
+```
+Chiunque può registrare endpoint arbitrari, gonfiare la tabella `push_subscriptions` e potenzialmente ricevere notifiche. Aggiungere almeno un rate limiter; idealmente richiedere autenticazione.
 
----
-
-### 1.4 Content Security Policy con `'unsafe-inline'` su scriptSrc
-**Priorità: 🟡 Media**
-
-- **File:** `server.js`, righe 181–182
-- **Problema:** La direttiva `scriptSrc: ["'self'", "'unsafe-inline'"]` annulla la protezione XSS della CSP: un attaccante che riesce ad iniettare HTML può eseguire script inline arbitrari.
-- **Soluzione a lungo termine:** Sostituire gli script inline nelle pagine HTML con file `.js` esterni e rimuovere `'unsafe-inline'`. Nel breve termine, usare nonce per-request:
-  ```js
-  const nonce = crypto.randomBytes(16).toString('base64');
-  // Passare il nonce al template e aggiungerlo ai tag <script>
-  scriptSrc: ["'self'", `'nonce-${nonce}'`]
-  ```
+**Soluzione:**
+```js
+const pushSubscribeLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, ... });
+app.post('/api/push/subscribe', pushSubscribeLimiter, async (req, res) => { ... });
+// Oppure, per limitare solo agli utenti autenticati:
+app.post('/api/push/subscribe', pushSubscribeLimiter, userAuth, async (req, res) => { ... });
+```
 
 ---
 
-### 1.5 JWT utente con scadenza 120 giorni senza meccanismo di revoca
-**Priorità: 🟡 Media**
+### 1.4 `/api/imposta-password` senza rate limiter
+**Priorità:** 🔴 Alta
 
-- **File:** `server.js`, riga 520
-- **Problema:** I token utente hanno `expiresIn: '120d'`. Non esiste una blocklist o un campo `jti` nel database. Se un account viene compromesso o un utente viene disattivato, il suo token rimane valido per 4 mesi.
-- **Soluzione consigliata:** Ridurre la scadenza e verificare lo stato dell'utente nel middleware `userAuth`:
-  ```js
-  // In userAuth — aggiungere dopo jwt.verify():
-  const u = await db.query('SELECT stato FROM utenti WHERE id=$1', [payload.id]);
-  if (!u.rows.length || u.rows[0].stato !== 'attivo') {
-    res.clearCookie('vc_user_session');
-    return res.status(401).json({ error: 'Account non attivo.' });
-  }
-  ```
+**File:** `server.js`, riga 928
+```js
+app.post('/api/imposta-password', async (req, res) => { // ← nessun rate limiter
+  const r = await db.query(
+    `SELECT id FROM utenti WHERE setup_token=$1 AND setup_token_exp > NOW()...`
+```
+Un attaccante può tentare token a raffica (brute-force) senza alcun throttling.
+
+**Soluzione:**
+```js
+const impostaPasswordLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, ... });
+app.post('/api/imposta-password', impostaPasswordLimiter, async (req, res) => { ... });
+```
 
 ---
 
-### 1.6 Nessun rate limiter globale sugli endpoint di lettura
-**Priorità: 🟡 Media**
+### 1.5 `/api/push/preferences` senza autenticazione
+**Priorità:** 🟡 Media
 
-- **File:** `server.js`
-- **Problema:** Endpoint pubblici come `/api/squadra`, `/api/notizie`, `/api/calendario`, `/api/sponsor`, `/api/risultati` non hanno rate limiting. Un bot può fare scraping o causare overload del DB senza restrizioni.
-- **Soluzione:**
-  ```js
-  const globalReadLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 120,
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-  app.use('/api/', globalReadLimiter);
-  // I limiter specifici (loginLimiter, contactLimiter, ecc.) fanno override automaticamente
-  ```
+**File:** `server.js`, riga 4708
+```js
+app.put('/api/push/preferences', async (req, res) => { // ← nessun auth
+```
+Le preferenze di notifica push sono modificabili da chiunque conosca l'endpoint.
+
+**Soluzione:** Aggiungere il middleware `userAuth` o almeno un controllo sull'endpoint (`endpoint` come identifier parziale).
+
+---
+
+### 1.6 Leakage di messaggi d'errore interni
+**Priorità:** 🟡 Media
+
+**File:** `server.js`, riga 4985
+```js
+res.status(500).json({ error: err.message || 'Errore interno del server.' });
+```
+`err.message` può contenere dettagli interni (nomi di tabelle, stack trace parziali, messaggi PostgreSQL). La stessa logica ricorre in `console.error('[Contact] ...')` che va bene, ma non nel JSON di risposta.
+
+**Soluzione:**
+```js
+console.error('[Test email]', err);
+res.status(500).json({ error: 'Errore interno del server.' }); // messaggio generico
+```
+
+---
+
+### 1.7 Token JWT utente con scadenza 120 giorni
+**Priorità:** 🟢 Bassa
+
+**File:** `server.js`, riga 520
+```js
+const token = jwt.sign({ ... }, JWT_SECRET, { expiresIn: '120d' });
+```
+120 giorni è molto lungo. Se un token viene compromesso, rimane valido per 4 mesi. La sliding session via `/api/me` è già implementata; una scadenza più breve (es. 30d) con rinnovo automatico offre un miglior bilanciamento sicurezza/UX.
 
 ---
 
 ## 2. Qualità del Codice
 
-### 2.1 CSS `:root` duplicato in 10 file HTML
-**Priorità: 🟡 Media**
+### 2.1 Logout frontend incoerente con l'auth backend (dettaglio aggiuntivo)
+**Priorità:** 🔴 Alta
 
-- **File:** admin.html, calendario.html, chiSiamo.html, index.html, live.html, notizie.html, privacy.html, progetti.html, shop.html, sponsor.html
-- **Problema:** Ogni pagina ridefinisce inline le variabili CSS (es. `--blu: #0d2055`, `--arancio: #f57c00`). Un rebranding richiede modifiche manuali su 10+ file. `common.css` esiste ma non contiene il blocco `:root`.
-- **Soluzione:** Spostare il blocco `:root { ... }` in `common.css` e rimuovere le definizioni duplicate dalle singole pagine HTML.
+**File:** `common.js`, riga 303 (dentro `submitLogin`)
+```js
+localStorage.setItem('vc_token', data.token); // ← data.token è undefined
+localStorage.setItem('vc_role',  data.role);  // ← data.role è undefined
+localStorage.setItem('vc_nome',  data.nome);  // ← data.nome è undefined
+```
+Il server `/api/login` risponde con `{ user: { id, nome, cognome, email } }` via JSON e imposta il token in un cookie httpOnly. Non restituisce `data.token`, `data.role` o `data.nome` al livello radice. Le scritture in localStorage salvano `undefined` per tutti e tre i campi. Lo stato di autenticazione lato client è quindi basato su dati vuoti; funziona solo perché il cookie esiste.
 
-### 2.2 Funzioni route molto lunghe in server.js
-**Priorità: 🟢 Bassa**
+**Soluzione:** Allineare il client al contratto API:
+```js
+const data = await res.json();
+if (!res.ok) { errEl.textContent = data.error; return; }
+localStorage.setItem('vc_nome', data.user?.nome || '');
+window.chiudiModal();
+_vcUpdateAuthUI();
+```
 
-- **File:** `server.js`
-- **Funzioni più lunghe rilevate:**
-  - `/api/profilo/prossimi` — 191 righe (aggregazione allenamenti + partite FIPAV + OPES + tornei)
-  - `/api/richiesta-ordine` — 164 righe (HTML email + logica ordine + invio)
-  - `/api/contact` — 129 righe (due template email + invio parallelo)
-- **Soluzione:** Estrarre la generazione degli HTML email in funzioni dedicate (es. `buildContactEmailAdmin(data)`) e la logica di aggregazione eventi in un modulo separato.
+---
 
-### 2.3 Pool DB senza limite di connessioni configurato
-**Priorità: 🟡 Media**
+### 2.2 `shared.js` usa `var` in tutto il file
+**Priorità:** 🟡 Media
 
-- **File:** `db.js`, riga 38
-- **Problema:** Il `Pool` di `pg` è istanziato senza specificare `max`. Il default è 10 connessioni. Su Railway/Supabase (piano free) il limite di connessioni concorrenti è basso — rischio di errore `too many clients` sotto carico.
-- **Soluzione:**
-  ```js
-  // In buildPoolConfig(), aggiungere a ogni oggetto di configurazione restituito:
-  max: 5,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
-  ```
+**File:** `shared.js`, riga 5 e seguenti (15+ occorrenze)
+```js
+var _p = window.location.pathname...
+var _nav = ...
+var _footer = ...
+```
+`var` ha scope a funzione e comportamento di hoisting che può causare bug sottili. L'intero file dovrebbe usare `const`/`let`.
+
+**Soluzione:** Sostituire tutte le occorrenze di `var` con `const` o `let` a seconda che la variabile venga riassegnata.
+
+---
+
+### 2.3 `server.js` monolitico (5.297 righe)
+**Priorità:** 🟡 Media
+
+**File:** `server.js`
+
+Il file gestisce: autenticazione, utenti, calendario, tornei, ordini/shop, email, push notification, FIPAV scraping, Twitch monitoring, impostazioni, log attività, sponsor, risultati, squadra, galleria, staff, sponsor, palestre, staff arbitrale, comunicazioni, documenti, partite proposte, bandi/progetti. Ogni area dovrebbe essere un router Express separato in una cartella `routes/`.
+
+**Soluzione (struttura suggerita):**
+```
+routes/
+  auth.js
+  users.js
+  calendario.js
+  shop.js
+  tornei.js
+  push.js
+  fipav.js
+  admin.js
+server.js  // solo bootstrap: middleware, route mounting, listen
+```
+
+---
+
+### 2.4 `db.js`: migrazioni sequenziali ad ogni avvio
+**Priorità:** 🟢 Bassa
+
+**File:** `db.js`, funzione `createTables()`
+
+Ogni volta che il server parte, vengono eseguiti ~60 `ALTER TABLE`/`CREATE TABLE IF NOT EXISTS` in sequenza. La maggior parte sono no-op ma consumano tempo di avvio e connessioni al pool. Considerare una libreria di migration (es. `node-pg-migrate` o `umzug`) con tracking delle versioni applicate.
 
 ---
 
 ## 3. Performance
 
-### 3.1 Immagini senza lazy loading in index.html
-**Priorità: 🟡 Media**
+### 3.1 N+1 query in `/api/profilo/prossimi`
+**Priorità:** 🔴 Alta
 
-- **File:** `index.html`
-- **Problema:** 24 tag `<img>` nella home page, di cui solo 5 hanno `loading="lazy"`. Le 19 rimanenti vengono caricate tutte al primo render, impattando il LCP.
-- **Soluzione:** Aggiungere `loading="lazy"` a tutte le immagini sotto il fold:
-  ```html
-  <img src="/images/team.jpg" alt="Squadra" loading="lazy" width="800" height="600">
-  ```
+**File:** `server.js`, righe 561–680 circa
 
-### 3.2 Service Worker con cache version statica
-**Priorità: 🟢 Bassa**
+Per ogni squadra dell'utente (array `nomiSquadre`), vengono eseguite query DB separate in `for...of`:
+```js
+for (const nome of nomiSquadre) {
+  const calRes = await db.query(`SELECT ... FROM calendario WHERE ...`, [nome, ...]);
+  // poi loop separato per le partite FIPAV
+}
+```
+Con 5 squadre e 2 sorgenti dati ciascuna, un singolo caricamento della pagina profilo può generare 15+ roundtrip DB.
 
-- **File:** `sw.js`, riga 1
-- **Problema:** `const CACHE_NAME = 'vc-v1'` non cambia mai tra deploy. Il SW attuale gestisce solo push notifications (nessun caching di asset), quindi l'impatto è contenuto — ma va risolto prima di aggiungere strategia di caching.
-- **Soluzione:** Aggiornare il valore ad ogni deploy significativo:
-  ```js
-  const CACHE_NAME = 'vc-v1-20260706';
-  ```
+**Soluzione:** Consolidare con `ANY($1::text[])` o `IN (...)`:
+```js
+const calRes = await db.query(
+  `SELECT * FROM calendario
+   WHERE categoria = ANY($1::text[])
+   AND data_str >= $2 AND data_str <= $3`,
+  [nomiSquadre, lunStr, domStr]
+);
+```
+
+---
+
+### 3.2 Mancanza di indici DB su colonne frequentemente filtrate
+**Priorità:** 🟡 Media
+
+**File:** `db.js`
+
+Le query frequenti filtrano su `calendario.data_str`, `fipav_matches.data_ora`, `fipav_matches.cid`, `utenti.stato`, `notizie.created_at`, ma non esistono indici corrispondenti (solo `UNIQUE` su `fipav_classifica_cache` e `assegnazioni_partita`).
+
+**Soluzione da aggiungere in `createTables()`:**
+```sql
+CREATE INDEX IF NOT EXISTS idx_calendario_data ON calendario(data_str);
+CREATE INDEX IF NOT EXISTS idx_fipav_matches_data ON fipav_matches(data_ora);
+CREATE INDEX IF NOT EXISTS idx_fipav_matches_cid ON fipav_matches(cid, fonte);
+CREATE INDEX IF NOT EXISTS idx_utenti_stato ON utenti(stato);
+CREATE INDEX IF NOT EXISTS idx_notizie_created ON notizie(created_at DESC);
+```
+
+---
+
+### 3.3 Service Worker cache con versione statica
+**Priorità:** 🟡 Media
+
+**File:** `sw.js`, riga 1
+```js
+const CACHE_NAME = 'vc-v1'; // ← mai aggiornato
+```
+Se il service worker è già installato sui browser degli utenti, `vc-v1` non viene mai invalidato dopo un deploy. I client possono continuare a usare JS e CSS obsoleti.
+
+**Soluzione:** Aggiornare la versione ad ogni release, idealmente iniettandola al build time:
+```js
+const CACHE_NAME = 'vc-v2026-09-01'; // aggiornare ad ogni deploy significativo
+```
+Oppure aggiungere un parametro di versione generato dinamicamente (hash del bundle).
+
+---
+
+### 3.4 Endpoint admin senza paginazione
+**Priorità:** 🟢 Bassa
+
+**File:** `server.js`, riga 2609
+```js
+const result = await db.query(`SELECT * FROM ordini ${where} ORDER BY created_at DESC`);
+```
+Con molti ordini nel tempo, questa query restituisce l'intera tabella. Aggiungere `LIMIT`/`OFFSET` o cursori.
 
 ---
 
 ## 4. SEO e Accessibilità
 
-### 4.1 Pagine pubbliche senza `<meta name="description">`
-**Priorità: 🟡 Media**
+### 4.1 Immagini senza attributo `alt`
+**Priorità:** 🟡 Media
 
-- **Pagine interessate:** login.html, ordine-confermato.html (le altre 11 sono pagine private — corretto non indicizzarle)
-- **Soluzione:**
-  ```html
-  <!-- login.html -->
-  <meta name="description" content="Accedi al tuo account Virtus Caserta ASD.">
-  <meta name="robots" content="noindex">
+Pagine con immagini prive di `alt`:
 
-  <!-- ordine-confermato.html -->
-  <meta name="robots" content="noindex, nofollow">
-  ```
+| Pagina | Immagini senza `alt` |
+|--------|---------------------|
+| `admin.html` | 16 |
+| `index.html` | 2 |
+| `notizie.html` | 1 |
+| `calendario.html` | 1 |
+| `eventi-tornei-utente.html` | 2 |
 
-### 4.2 Immagini senza attributo `alt`
-**Priorità: 🟡 Media**
+Le immagini decorative devono avere `alt=""`, le informative un testo descrittivo.
 
-- **Totale:** 22 immagini su 5 file
-  - `admin.html` — 16 | `index.html` — 2 | `eventi-tornei-utente.html` — 2 | `notizie.html` — 1 | `calendario.html` — 1
-- **Problema:** Viola WCAG 2.1 Livello A. Compromette screen reader e audit accessibilità.
-- **Soluzione:** `alt=""` per immagini decorative, testo descrittivo per immagini informative.
+---
+
+### 4.2 Canonical tag assente
+**Priorità:** 🟢 Bassa
+
+Nessuna pagina HTML include il tag `<link rel="canonical">`. Con redirect 301 da URL `.html` a URL puliti, Google potrebbe indicizzare entrambe le versioni. Aggiungere:
+```html
+<link rel="canonical" href="https://www.virtuscaserta.com/notizie">
+```
+
+---
+
+### 4.3 Meta tag OG presenti su tutte le pagine principali
+**Priorità:** ✅ Nessun problema
+
+`og:title`, `og:description`, `twitter:card` sono correttamente definiti su `index.html`, `notizie.html`, `shop.html`, `squadra.html`. Il meccanismo di OG dinamico per gli articoli (`/notizia/:id`) è ben implementato.
 
 ---
 
 ## 5. Funzionalità e UX
 
-### 5.1 Footer utente non mostra il nome
-**Priorità: 🔴 Alta**
+### 5.1 Stato autenticazione nel drawer mobile basato su dati corrotti
+**Priorità:** 🟡 Media  
+*(Conseguenza del punto 2.1)*
 
-Conseguenza diretta del bug §1.1. Il footer che dovrebbe mostrare "Ciao, [Nome]" non funziona mai perché `localStorage.getItem('vc_nome')` restituisce la stringa `"undefined"`.
+Il drawer mobile carica `/api/prossimi-eventi` con un token Bearer preso da `localStorage.getItem('vc_token')` che è `undefined`. La richiesta funziona grazie al cookie httpOnly, ma il codice front-end è inconsistente e potrebbe rompersi con futuri refactoring.
 
-### 5.2 Password minima 6 caratteri
-**Priorità: 🟢 Bassa**
+---
 
-- **File:** `server.js`, riga 932
-- **Soluzione:** Aumentare a 8 caratteri (NIST SP 800-63B):
-  ```js
-  if (password.length < 8) return res.status(400).json({ error: 'Password minimo 8 caratteri.' });
-  ```
+### 5.2 Numero WhatsApp non configurato
+**Priorità:** 🟢 Bassa
+
+**File:** `common.js`, riga ~170
+```js
+const WA_NUMBER = ''; // es. '393331234567' — lascia vuoto per nascondere
+```
+Il componente è implementato ma disabilitato. Se il numero è disponibile, attivarlo migliora l'engagement.
 
 ---
 
 ## 6. Dipendenze
 
-### 6.1 Vulnerabilità HIGH in `multer` e `nodemailer`
-_Vedi §1.3 — priorità 🔴 Alta. Fix: `npm audit fix`._
+### 6.1 Express 4.x — upgrade a 5.x disponibile
+**Priorità:** 🟢 Bassa
 
-### 6.2 Express 4.x — Express 5 ora stabile
-**Priorità: 🟢 Bassa**
+- Installato: Express **4.22.2** (ultima 4.x)
+- Disponibile: Express **5.x** (stabile da fine 2024)
 
-Express 5.x è rilasciato come stabile. Migrazione non urgente ma da pianificare per miglioramenti nella gestione async e delle promesse.
+Express 5 include async error handling nativo (non serve più `try/catch` manuale per ogni route async). Richiede testing prima del passaggio.
+
+---
+
+### 6.2 `dotenv` potrebbe essere aggiornato
+**Priorità:** 🟢 Bassa
+
+`dotenv ^16.3.1` è funzionante ma la versione installata potrebbe essere vecchia. Eseguire `npm outdated` periodicamente e aggiornare le dipendenze non breaking.
 
 ---
 
 ## 7. Infrastruttura e Deploy
 
-### 7.1 Variabili d'ambiente non documentate
-**Priorità: 🟡 Media**
+### 7.1 `SUPABASE_REGION` non documentata in `.env.example`
+**Priorità:** 🟡 Media
 
-- **Problema:** Nessun `.env.example` nel repository. Le variabili richieste (almeno 18: `JWT_SECRET`, `ADMIN_PASSWORD`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `BREVO_API_KEY`, `BREVO_FROM_EMAIL`, `EMAIL_ADMIN`, `BASE_URL`, `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `TWITCH_CHANNEL_NAME`, `PUSH_TEST_TOKEN`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_MAILTO`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) devono essere ricavate leggendo l'intero server.js.
-- **Soluzione:** Creare `.env.example` con tutte le variabili commentate e aggiungerlo al `.gitignore`-safe (non include valori reali).
+**File:** `db.js`, riga ~22
+```js
+const region = process.env.SUPABASE_REGION || 'eu-central-1';
+```
+La variabile non è in `.env.example`. Chi fa un fresh deploy potrebbe non sapere di doverla configurare e connettersi alla regione sbagliata.
+
+**Soluzione:** Aggiungere a `.env.example`:
+```env
+# Regione Supabase (es. eu-central-1, eu-west-2)
+SUPABASE_REGION=eu-central-1
+```
+
+---
+
+### 7.2 `railway.json` senza `numReplicas`
+**Priorità:** 🟢 Bassa
+
+**File:** `railway.json`
+
+Il file non specifica `numReplicas`. Su Railway, un singolo replica implica downtime durante il deploy. Per zero-downtime:
+```json
+{
+  "deploy": {
+    "numReplicas": 2,
+    ...
+  }
+}
+```
+(Richiede piano Railway a pagamento con supporto multi-replica.)
+
+---
+
+### 7.3 Nessun logging strutturato
+**Priorità:** 🟢 Bassa
+
+Il progetto usa `console.log`/`console.error` direttamente. In produzione, un sistema di logging strutturato (es. `pino`) consente filtri per livello, correlazione request ID e integrazione con monitoring esterno.
 
 ---
 
 ## Tabella Riepilogativa
 
-| # | Problema | File:riga | Priorità |
-|---|----------|-----------|----------|
-| 1 | Bug login: localStorage scrive `undefined` → footer utente rotto | common.js:292 | 🔴 Alta |
-| 2 | SSRF parziale in `/api/proxy-image` — no allowlist dominio | server.js:4102 | 🔴 Alta |
-| 3 | Vulnerabilità HIGH: multer (DoS) e nodemailer (CRLF/SSRF/file read) | package.json | 🔴 Alta |
-| 4 | CSP `'unsafe-inline'` in scriptSrc — annulla protezione XSS | server.js:181 | 🟡 Media |
-| 5 | JWT utente 120gg senza revoca — compromissione lunga | server.js:520 | 🟡 Media |
-| 6 | Nessun rate limiter globale su endpoint pubblici di lettura | server.js | 🟡 Media |
-| 7 | CSS `:root` duplicato in 10 HTML — manutenzione difficile | *.html | 🟡 Media |
-| 8 | Pool DB senza `max` configurato — rischio `too many clients` | db.js:38 | 🟡 Media |
-| 9 | 19 immagini senza lazy loading in index.html | index.html | 🟡 Media |
-| 10 | Variabili d'ambiente non documentate (nessun `.env.example`) | — | 🟡 Media |
-| 11 | 22 immagini senza attributo `alt` su 5 pagine | *.html | 🟡 Media |
-| 12 | `login.html` senza meta description né `noindex` | login.html | 🟡 Media |
-| 13 | Password minima 6 caratteri (troppo debole) | server.js:932 | 🟢 Bassa |
-| 14 | Service worker cache version statica (`vc-v1`) | sw.js:1 | 🟢 Bassa |
-| 15 | Funzioni route >150 righe (bassa testabilità) | server.js | 🟢 Bassa |
-| 16 | Express 4.x in uso (Express 5 ora stabile) | package.json | 🟢 Bassa |
+| # | Problema | File/Riga | Area | Priorità |
+|---|----------|-----------|------|----------|
+| 1.1 | Fallback `JWT_SECRET` e `ADMIN_PASSWORD` hardcoded | `server.js:28,413` | Sicurezza | 🔴 Alta |
+| 1.2 | Logout non invalida cookie httpOnly | `common.js:324` | Sicurezza | 🔴 Alta |
+| 1.3 | `/api/push/subscribe` senza auth né rate limit | `server.js:4720` | Sicurezza | 🔴 Alta |
+| 1.4 | `/api/imposta-password` senza rate limiter | `server.js:928` | Sicurezza | 🔴 Alta |
+| 2.1 | Login frontend scrive `undefined` in localStorage | `common.js:303` | Qualità | 🔴 Alta |
+| 3.1 | N+1 query in `/api/profilo/prossimi` | `server.js:561-680` | Performance | 🔴 Alta |
+| 1.5 | `/api/push/preferences` senza auth | `server.js:4708` | Sicurezza | 🟡 Media |
+| 1.6 | Leakage `err.message` in risposta HTTP | `server.js:4985` | Sicurezza | 🟡 Media |
+| 2.2 | `shared.js` usa `var` (15+ occorrenze) | `shared.js:5+` | Qualità | 🟡 Media |
+| 2.3 | `server.js` monolitico (5.297 righe) | `server.js` | Qualità | 🟡 Media |
+| 3.2 | Indici DB mancanti su colonne hot | `db.js` | Performance | 🟡 Media |
+| 3.3 | Service Worker cache `'vc-v1'` statica | `sw.js:1` | Performance | 🟡 Media |
+| 4.1 | Immagini senza `alt` (22 totali) | varie `.html` | Accessibilità | 🟡 Media |
+| 5.1 | Auth state drawer mobile incoerente | `common.js` | UX | 🟡 Media |
+| 7.1 | `SUPABASE_REGION` non in `.env.example` | `db.js:22` | Infrastruttura | 🟡 Media |
+| 1.7 | Token JWT utente valido 120 giorni | `server.js:520` | Sicurezza | 🟢 Bassa |
+| 2.4 | Migrazioni DB sequenziali ad ogni avvio | `db.js` | Qualità | 🟢 Bassa |
+| 3.4 | Endpoint admin ordini senza paginazione | `server.js:2609` | Performance | 🟢 Bassa |
+| 4.2 | Canonical tag assente | tutte le `.html` | SEO | 🟢 Bassa |
+| 6.1 | Express 4.x, disponibile 5.x | `package.json` | Dipendenze | 🟢 Bassa |
+| 7.2 | `railway.json` senza `numReplicas` | `railway.json` | Infrastruttura | 🟢 Bassa |
+| 7.3 | Nessun logging strutturato | `server.js` | Infrastruttura | 🟢 Bassa |
 
 ---
 
-## Confronto con report precedente (29 giugno 2026)
-
-| Problema | Stato |
-|----------|-------|
-| Bug localStorage login (undefined) | ⚠️ Non risolto |
-| SSRF `/api/proxy-image` | ⚠️ Non risolto |
-| Chiave Supabase errata nell'upload admin | ✅ Non più rilevato (probabilmente risolto) |
-| CSS `:root` duplicato in HTML | ⚠️ Non risolto |
-| 13 pagine senza meta description | ⚠️ Parzialmente invariato |
-| Vulnerabilità multer/nodemailer | 🆕 Nuovo rilevamento |
-| Pool DB senza `max` configurato | 🆕 Nuovo rilevamento |
+*Report generato automaticamente — analisi statica del codice sorgente. Alcune valutazioni potrebbero necessitare verifica in ambiente reale.*
